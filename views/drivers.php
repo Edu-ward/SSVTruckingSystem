@@ -68,8 +68,12 @@
                 </div>
 
                 <div class="space-y-2 text-sm text-gray-600 mb-4">
-                    <div class="flex items-center space-x-2"><i class="fa-solid fa-phone w-4 text-center"></i> <span><?php echo htmlspecialchars($driver['phone'] ?? 'N/A'); ?></span></div>
-                    <div class="flex items-center space-x-2"><i class="fa-regular fa-envelope w-4 text-center"></i> <span><?php echo htmlspecialchars($driver['email'] ?? 'N/A'); ?></span></div>
+                    <div class="flex items-center space-x-2"><i class="fa-solid fa-phone w-4 text-center"></i>
+                        <span><?php echo htmlspecialchars($driver['phone'] ?? 'N/A'); ?></span>
+                    </div>
+                    <div class="flex items-center space-x-2"><i class="fa-regular fa-envelope w-4 text-center"></i>
+                        <span><?php echo htmlspecialchars($driver['email'] ?? 'N/A'); ?></span>
+                    </div>
                 </div>
 
                 <div class="bg-blue-50 rounded-lg p-3 text-sm text-gray-600 mb-4 flex justify-between">
@@ -79,7 +83,10 @@
 
                 <div class="grid grid-cols-3 gap-2 bg-gray-50 rounded-lg p-3 text-center mb-4">
                     <div>
-                        <div class="font-bold text-gray-800 text-sm"><i class="fa-solid fa-star text-yellow-400 text-xs mr-1"></i><?php echo number_format($driver['rating'], 1); ?></div>
+                        <div class="font-bold text-gray-800 text-sm">
+                            <i class="fa-solid fa-star text-yellow-400 text-xs mr-1"></i>
+                            <?php echo number_format($driver['rating'], 1); ?>
+                        </div>
                         <div class="text-xs text-gray-500">Rating</div>
                     </div>
                     <div>

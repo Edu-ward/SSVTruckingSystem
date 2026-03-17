@@ -1,26 +1,19 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    // ==========================================
-    // 1. CORE TAB LOGIC (Moved to top so UI always loads)
-    // ==========================================
     const urlParams = new URLSearchParams(window.location.search);
     const activeTab = urlParams.get('tab') || 'dashboard';
     let map = null;
 
     function switchTab(tabName) {
-        // Hide all views
         document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
         document.querySelectorAll('.nav-btn').forEach(el => el.className = "nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition");
 
-        // Show selected view
         const viewEl = document.getElementById('view-' + tabName);
         if (viewEl) viewEl.classList.remove('hidden');
 
-        // Highlight button
         const navBtn = document.getElementById('nav-' + tabName);
         if (navBtn) navBtn.className = "nav-btn flex items-center space-x-1 text-white bg-blue-700 px-3 py-1.5 rounded transition";
 
-        // Map rendering logic (Delayed to ensure DOM is fully visible)
         if (tabName === 'tracking') {
             setTimeout(() => {
                 if (!map) {
@@ -34,13 +27,7 @@
         window.history.pushState({}, '', '?tab=' + tabName);
     }
 
-    // BOOT UI IMMEDIATELY
     switchTab(activeTab);
-
-
-    // ==========================================
-    // 2. MAP LOGIC
-    // ==========================================
     const trackingData = <?php echo json_encode($trackingTrucks ?? []); ?>;
 
     function initMap() {
@@ -57,7 +44,7 @@
                 if (truck.latitude && truck.longitude) {
                     let markerClass = 'bg-gray-500';
                     if (truck.status === 'In Transit') markerClass = 'bg-transit';
-                    if (truck.status === 'Idle') markerClass = 'bg-yellow-500'; // Corrected CSS color class
+                    if (truck.status === 'Idle') markerClass = 'bg-yellow-500';
                     if (truck.status === 'Loading') markerClass = 'bg-blue-500';
                     if (truck.status === 'Unloading') markerClass = 'bg-orange-500';
 
@@ -77,7 +64,6 @@
                 }
             });
 
-            // Force redraw immediately after building to prevent grey tiles
             setTimeout(() => {
                 map.invalidateSize();
             }, 300);
@@ -102,9 +88,6 @@
     }
 
 
-    // ==========================================
-    // 3. MODALS & SUB-TABS LOGIC
-    // ==========================================
     function switchDispatchTab(tab) {
         document.getElementById('dispatch-grid-active').classList.add('hidden');
         document.getElementById('dispatch-grid-completed').classList.add('hidden');
@@ -120,12 +103,10 @@
         }
     }
 
-    // --- 3. Modal Logic ---
     function toggleModal(modalID, show) {
         const modal = document.getElementById(modalID);
         if (show) {
             modal.classList.remove('hidden');
-            // Auto-focus RFID inputs for card readers
             if (modalID === 'dispatchModal') setTimeout(() => document.getElementById('rfidInput').focus(), 100);
             if (modalID === 'addTruckModal') setTimeout(() => document.getElementById('newTruckRfidInput').focus(), 100);
         } else {
@@ -186,10 +167,6 @@
         toggleModal('updateDriverStatusModal', true);
     }
 
-
-    // ==========================================
-    // 4. CHART.JS INITIALIZATION (Safely wrapped)
-    // ==========================================
     try {
         const weeklyData = <?php echo json_encode($weeklyData ?? []); ?>;
         const fleetStatusData = <?php echo json_encode($fleetStatusData ?? []); ?>;
@@ -241,7 +218,6 @@
 
             const fleetCounts = fleetStatusData.map(row => row.count);
             const fleetTotal = fleetCounts.reduce((a, b) => a + parseInt(b), 0);
-            // Protect against NaN if database is empty
             const pieLabels = fleetStatusData.map(row => `${row.status}: ${fleetTotal > 0 ? Math.round((row.count / fleetTotal) * 100) : 0}%`);
 
             new Chart(document.getElementById('fleetChart').getContext('2d'), {
@@ -463,10 +439,6 @@
         console.error("Reports Charts Error:", err);
     }
 
-
-    // ==========================================
-    // 5. AJAX DELETION UI
-    // ==========================================
     if (document.getElementById('deleteDriverForm')) {
         document.getElementById('deleteDriverForm').addEventListener('submit', function(e) {
             e.preventDefault();

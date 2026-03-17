@@ -7,7 +7,8 @@
         <div class="flex items-center space-x-4">
             <div class="text-sm text-gray-500 font-medium">Total: <?php echo count($fleetData); ?> trucks</div>
             <button onclick="toggleModal('addTruckModal', true)" class="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2">
-                <i class="fa-solid fa-plus"></i><span>Add Truck</span>
+                <i class="fa-solid fa-plus"></i>
+                <span>Add Truck</span>
             </button>
         </div>
     </div>
@@ -44,19 +45,28 @@
                 <div class="space-y-3 text-sm text-gray-600 mb-5">
                     <div class="flex items-center space-x-3">
                         <i class="fa-solid fa-wifi w-4 text-center text-blue-400"></i>
-                        <span>RFID: <strong class="text-gray-900"><?php echo htmlspecialchars($truck['rfid_tag'] ?? 'Unassigned'); ?></strong></span>
+                        <span>RFID:
+                            <strong class="text-gray-900"><?php echo htmlspecialchars($truck['rfid_tag'] ?? 'Unassigned'); ?></strong>
+                        </span>
                     </div>
                     <div class="flex items-center space-x-3">
                         <i class="fa-solid fa-bolt w-4 text-center text-gray-400"></i>
-                        <span>Speed: <strong class="text-gray-900"><?php echo htmlspecialchars($truck['speed'] ?? 0); ?> mph</strong></span>
+                        <span>Speed:
+                            <strong class="text-gray-900"><?php echo htmlspecialchars($truck['speed'] ?? 0); ?> mph</strong>
+                        </span>
                     </div>
                     <div class="flex items-center space-x-3">
                         <i class="fa-solid fa-location-dot w-4 text-center text-gray-400"></i>
-                        <span>Destination: <strong class="text-gray-900"><?php echo htmlspecialchars($truck['current_location'] ?? 'Garage'); ?></strong></span>
+                        <span>Destination:
+                            <strong class="text-gray-900"><?php echo htmlspecialchars($truck['current_location'] ?? 'Garage'); ?></strong>
+                        </span>
                     </div>
                     <div class="flex items-center space-x-3">
                         <i class="fa-solid fa-tower-broadcast w-4 text-center text-purple-400"></i>
-                        <span>Coordinates: <strong class="text-gray-900"><?php echo htmlspecialchars($truck['latitude'] ?? '0.0000'); ?>, <?php echo htmlspecialchars($truck['longitude'] ?? '0.0000'); ?></strong></span>
+                        <span>Coordinates:
+                            <strong class="text-gray-900"><?php echo htmlspecialchars($truck['latitude'] ?? '0.0000'); ?>,
+                                <?php echo htmlspecialchars($truck['longitude'] ?? '0.0000'); ?></strong>
+                        </span>
                     </div>
                 </div>
 
@@ -76,10 +86,12 @@
 
                 <div class="grid grid-cols-2 gap-3 mt-auto">
                     <button onclick="focusTruck(<?php echo $truck['latitude'] ?? 0; ?>, <?php echo $truck['longitude'] ?? 0; ?>)" class="border border-gray-200 bg-white rounded-lg py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-location-crosshairs text-gray-500"></i><span>Track</span>
+                        <i class="fa-solid fa-location-crosshairs text-gray-500"></i>
+                        <span>Track</span>
                     </button>
                     <button class="border border-gray-200 bg-white rounded-lg py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition flex items-center justify-center space-x-2">
-                        <i class="fa-regular fa-user text-gray-500"></i><span>Details</span>
+                        <i class="fa-regular fa-user text-gray-500"></i>
+                        <span>Details</span>
                     </button>
                 </div>
             </div>

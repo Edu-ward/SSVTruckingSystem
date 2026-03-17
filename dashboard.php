@@ -1,24 +1,19 @@
 <?php
 session_start();
 
-// --- Logout Logic ---
 if (isset($_GET['action']) && $_GET['action'] == 'logout') {
     session_destroy();
     header("Location: index.php");
     exit;
 }
 
-require_once 'db.php'; // Ensure your db.php establishes a $pdo variable
+require_once 'db.php';
 
-// ==========================================
-// 1. HANDLE FORM SUBMISSIONS
-// ==========================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
-    // --- Create Dispatch ---
     if ($_POST['action'] == 'create_dispatch') {
         $truck_id = $_POST['truck_id'];
-        $driver_id = $_POST['driver_id']; // NOW GRABBED FROM THE DROPDOWN
+        $driver_id = $_POST['driver_id'];
         $rfid_tag = $_POST['rfid_tag'];
         $destination = $_POST['destination'];
         $weight = $_POST['weight'];
@@ -28,17 +23,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $insert = $pdo->prepare("INSERT INTO dispatches (ticket_number, truck_id, driver_id, status, destination, dispatch_date) VALUES (?, ?, ?, 'Pending', ?, CURDATE())");
         $insert->execute([$ticketNum, $truck_id, $driver_id, $destination]);
 
-        // Assign the driver to the truck and set truck to loading
         $pdo->prepare("UPDATE trucks SET status = 'Loading', current_driver_id = ? WHERE id = ?")->execute([$driver_id, $truck_id]);
 
-        // Auto-update the driver's status to Dispatched
         $pdo->prepare("UPDATE drivers SET status = 'Dispatched' WHERE id = ?")->execute([$driver_id]);
 
         header("Location: dashboard.php?tab=dispatches");
         exit;
     }
 
-    // --- Add Driver ---
     if ($_POST['action'] == 'add_driver') {
         $name = $_POST['name'];
         $cdl = $_POST['cdl_number'];
@@ -50,7 +42,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-    // --- Update Truck Status ---
     if ($_POST['action'] == 'update_truck_status') {
         $truck_id = $_POST['truck_id'];
         $new_status = $_POST['new_status'];
@@ -63,7 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-    // --- Update Driver Status (NEW) ---
     if ($_POST['action'] == 'update_driver_status') {
         $driver_id = $_POST['driver_id'];
         $new_status = $_POST['new_status'];
@@ -72,7 +62,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-    // --- Delete Driver ---
     if ($_POST['action'] == 'delete_driver') {
         $driver_id = $_POST['driver_id'];
         $pdo->prepare("UPDATE trucks SET current_driver_id = NULL, status = 'Idle', speed = 0, current_location = 'San Leonardo (Garage)', latitude = 15.3621, longitude = 120.9632 WHERE current_driver_id = ?")->execute([$driver_id]);
@@ -82,9 +71,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// ==========================================
-// 2. FETCH DATA FOR VIEWS
-// ==========================================
 $totalFleet = $pdo->query("SELECT COUNT(*) FROM trucks")->fetchColumn();
 $activeNow = $pdo->query("SELECT COUNT(*) FROM trucks WHERE status IN ('In Transit', 'Loading', 'Unloading')")->fetchColumn();
 $inProgress = $pdo->query("SELECT COUNT(*) FROM dispatches WHERE status = 'In Transit'")->fetchColumn();
@@ -134,9 +120,6 @@ function getInitials($name)
     return strtoupper(substr($i, 0, 2));
 }
 
-// ==========================================
-// 3. RENDER VIEWS
-// ==========================================
 include 'includes/header.php';
 ?>
 <div class="max-w-7xl mx-auto px-6 py-8 relative">

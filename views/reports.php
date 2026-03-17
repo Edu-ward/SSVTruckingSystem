@@ -11,7 +11,8 @@
                 <option>Yearly</option>
             </select>
             <button class="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2">
-                <i class="fa-solid fa-download"></i><span>Export Report</span>
+                <i class="fa-solid fa-download"></i>
+                <span>Export Report</span>
             </button>
         </div>
     </div>

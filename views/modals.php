@@ -1,6 +1,8 @@
 <div id="dispatchModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden relative">
-        <button onclick="toggleModal('dispatchModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700"><i class="fa-solid fa-xmark fa-lg"></i></button>
+        <button onclick="toggleModal('dispatchModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700">
+            <i class="fa-solid fa-xmark fa-lg"></i>
+        </button>
         <div class="p-6 border-b border-gray-100">
             <h3 class="text-xl font-bold text-gray-900">Create New Dispatch Ticket</h3>
             <p class="text-sm text-gray-500 mt-1">Enter the details for a new dispatch. All fields are required.</p>
@@ -29,8 +31,14 @@
                 <input type="text" id="rfidInput" name="rfid_tag" placeholder="Auto-filled from selected truck" readonly required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 bg-gray-100 text-gray-600 focus:outline-none cursor-not-allowed">
             </div>
             <div class="grid grid-cols-2 gap-6 mb-4">
-                <div><label class="block text-sm font-semibold text-gray-800 mb-2">Origin</label><input type="text" name="origin" value="San Leonardo, Nueva Ecija" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"></div>
-                <div><label class="block text-sm font-semibold text-gray-800 mb-2">Destination</label><input type="text" name="destination" placeholder="e.g. Cabanatuan City" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"></div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 mb-2">Origin</label>
+                    <input type="text" name="origin" value="San Leonardo, Nueva Ecija" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 mb-2">Destination</label>
+                    <input type="text" name="destination" placeholder="e.g. Cabanatuan City" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
+                </div>
             </div>
             <div class="mb-8 w-1/2 pr-3">
                 <label class="block text-sm font-semibold text-gray-800 mb-2">Weight (lbs)</label>
