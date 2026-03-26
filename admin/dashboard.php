@@ -3,11 +3,11 @@ session_start();
 
 if (isset($_GET['action']) && $_GET['action'] == 'logout') {
     session_destroy();
-    header("Location: index.php");
+    header("Location: ../index.php");
     exit;
 }
 
-require_once 'db.php';
+require_once '../db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
@@ -15,16 +15,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $truck_id = $_POST['truck_id'];
         $driver_id = $_POST['driver_id'];
         $rfid_tag = $_POST['rfid_tag'];
+        $origin = $_POST['origin']; // From the new modal
         $destination = $_POST['destination'];
-        $weight = $_POST['weight'];
+        $weight = floatval($_POST['weight']); // Ensure it is treated as a number
+
+        // SECURITY: Always calculate money on the backend! 
+        $rate_per_lb = 2.50; // Ensure this matches your JS rate
+        $calculated_pay = $weight * $rate_per_lb;
 
         $ticketNum = 'TKT-' . date('Y') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
 
-        $insert = $pdo->prepare("INSERT INTO dispatches (ticket_number, truck_id, driver_id, status, destination, dispatch_date) VALUES (?, ?, ?, 'Pending', ?, CURDATE())");
-        $insert->execute([$ticketNum, $truck_id, $driver_id, $destination]);
+        // 1. Insert into main dispatches table
+        $insert = $pdo->prepare("INSERT INTO dispatches (ticket_number, truck_id, driver_id, status, origin, destination, weight, pay_amount, dispatch_date) VALUES (?, ?, ?, 'Pending', ?, ?, ?, ?, CURDATE())");
+        $insert->execute([$ticketNum, $truck_id, $driver_id, $origin, $destination, $weight, $calculated_pay]);
 
+        // 2. Insert into driver_trips so it shows up on the Driver Panel
+        $trip_insert = $pdo->prepare("INSERT INTO driver_trips (driver_id, destination, trip_date, status) VALUES (?, ?, CURDATE(), 'In Transit')");
+        $trip_insert->execute([$driver_id, $destination]);
+
+        // 3. Update the driver's payroll total
+        $payroll_update = $pdo->prepare("UPDATE driver_payroll SET total_amount = total_amount + ? WHERE driver_id = ?");
+        $payroll_update->execute([$calculated_pay, $driver_id]);
+
+        // 4. Update fleet and driver status
         $pdo->prepare("UPDATE trucks SET status = 'Loading', current_driver_id = ? WHERE id = ?")->execute([$driver_id, $truck_id]);
-
         $pdo->prepare("UPDATE drivers SET status = 'Dispatched' WHERE id = ?")->execute([$driver_id]);
 
         header("Location: dashboard.php?tab=dispatches");
@@ -36,8 +50,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $cdl = $_POST['cdl_number'];
         $phone = $_POST['phone'];
         $email = $_POST['email'];
-        $insert = $pdo->prepare("INSERT INTO drivers (name, cdl_number, phone, email, status) VALUES (?, ?, ?, ?, 'Off Duty')");
-        $insert->execute([$name, $cdl, $phone, $email]);
+
+        // New inputs for their login account
+        $username = trim($_POST['username']);
+        $password = $_POST['password'];
+
+        // 1. Create the User login account first
+        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+        $user_insert = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'Driver')");
+        $user_insert->execute([$username, $hashed_password]);
+
+        // Get the ID of the newly created user
+        $new_user_id = $pdo->lastInsertId();
+
+        // 2. Insert into drivers table (Assuming you add a user_id column to link them, or use the same ID)
+        $driver_insert = $pdo->prepare("INSERT INTO drivers (id, name, cdl_number, phone, email, status) VALUES (?, ?, ?, ?, ?, 'Off Duty')");
+        // Using $new_user_id as the driver's primary ID to keep the tables synced
+        $driver_insert->execute([$new_user_id, $name, $cdl, $phone, $email]);
+
+        // 3. Initialize their payroll record
+        $pdo->query("INSERT INTO driver_payroll (driver_id, total_amount, amount_claimed) VALUES ($new_user_id, 0.00, 0.00)");
+
         header("Location: dashboard.php?tab=drivers");
         exit;
     }
@@ -120,7 +153,7 @@ function getInitials($name)
     return strtoupper(substr($i, 0, 2));
 }
 
-include 'includes/header.php';
+include '../includes/header.php';
 ?>
 <div class="max-w-7xl mx-auto px-6 py-8 relative">
     <?php
@@ -133,4 +166,4 @@ include 'includes/header.php';
     include 'views/modals.php';
     ?>
 </div>
-<?php include 'includes/scripts.php'; ?>
+<?php include '../includes/scripts.php'; ?>

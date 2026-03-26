@@ -1,3 +1,54 @@
+<div id="addDriverModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 md:w-1/2 shadow-lg rounded-md bg-white">
+
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-800">Add New Driver</h3>
+            <button onclick="document.getElementById('addDriverModal').classList.add('hidden')" class="text-gray-500 hover:text-red-500 text-2xl font-bold">&times;</button>
+        </div>
+
+        <form action="dashboard.php" method="POST" class="space-y-4">
+            <input type="hidden" name="action" value="add_driver">
+
+            <h4 class="font-semibold text-gray-600 border-b pb-1">Personal Details</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                    <input type="text" name="name" required class="mt-1 p-2 w-full border rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">CDL Number</label>
+                    <input type="text" name="cdl_number" required class="mt-1 p-2 w-full border rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Phone</label>
+                    <input type="text" name="phone" required class="mt-1 p-2 w-full border rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" name="email" required class="mt-1 p-2 w-full border rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+
+            <h4 class="font-semibold text-gray-600 border-b pb-1 mt-4">Login Credentials</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Username</label>
+                    <input type="text" name="username" required class="mt-1 p-2 w-full border rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" name="password" required class="mt-1 p-2 w-full border rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+
+            <div class="flex justify-end mt-6">
+                <button type="button" onclick="document.getElementById('addDriverModal').classList.add('hidden')" class="mr-3 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Driver</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div id="dispatchModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden relative">
         <button onclick="toggleModal('dispatchModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700">
@@ -5,11 +56,23 @@
         </button>
         <div class="p-6 border-b border-gray-100">
             <h3 class="text-xl font-bold text-gray-900">Create New Dispatch Ticket</h3>
-            <p class="text-sm text-gray-500 mt-1">Enter the details for a new dispatch. All fields are required.</p>
+            <p class="text-sm text-gray-500 mt-1">Scan the truck's RFID to auto-fill details, then enter weight to calculate pay.</p>
         </div>
-        <form method="POST" action="" class="p-6">
+        <form method="POST" action="" class="p-6" id="dispatchForm">
             <input type="hidden" name="action" value="create_dispatch">
+            <input type="hidden" name="truck_id" id="hiddenTruckId" required>
+
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-800 mb-2">Scan Truck RFID Tag <span class="text-red-500">*</span></label>
+                <input type="text" id="rfidInput" name="rfid_tag" placeholder="Click here and scan RFID card..." required autofocus autocomplete="off" class="w-full border border-blue-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 transition-colors">
+                <p id="rfidFeedback" class="text-xs mt-1 text-gray-500">Waiting for scan...</p>
+            </div>
+
             <div class="grid grid-cols-2 gap-6 mb-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 mb-2">Connected Truck</label>
+                    <input type="text" id="truckPlate" readonly placeholder="Auto-filled after scan" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 bg-gray-100 text-gray-600 focus:outline-none cursor-not-allowed">
+                </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 mb-2">Assign Driver</label>
                     <select name="driver_id" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
@@ -21,15 +84,8 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-800 mb-2">Driver Name</label>
-                    <input type="text" id="driverName" readonly placeholder="Select a truck first" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 bg-gray-100 text-gray-600 focus:outline-none cursor-not-allowed">
-                </div>
             </div>
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-800 mb-2">Truck RFID Tag</label>
-                <input type="text" id="rfidInput" name="rfid_tag" placeholder="Auto-filled from selected truck" readonly required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 bg-gray-100 text-gray-600 focus:outline-none cursor-not-allowed">
-            </div>
+
             <div class="grid grid-cols-2 gap-6 mb-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 mb-2">Origin</label>
@@ -40,10 +96,18 @@
                     <input type="text" name="destination" placeholder="e.g. Cabanatuan City" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
                 </div>
             </div>
-            <div class="mb-8 w-1/2 pr-3">
-                <label class="block text-sm font-semibold text-gray-800 mb-2">Weight (lbs)</label>
-                <input type="number" name="weight" placeholder="10000" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
+
+            <div class="grid grid-cols-2 gap-6 mb-8">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 mb-2">Weight (lbs)</label>
+                    <input type="number" id="weightInput" name="weight" placeholder="e.g. 10000" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 mb-2">Calculated Pay (₱)</label>
+                    <input type="text" id="payOutput" name="calculated_pay" readonly placeholder="₱0.00" class="w-full border border-green-200 rounded-lg px-4 py-2.5 bg-green-50 text-green-700 font-bold focus:outline-none cursor-not-allowed">
+                </div>
             </div>
+
             <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100">
                 <button type="button" onclick="toggleModal('dispatchModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition">Cancel</button>
                 <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-black hover:bg-gray-800 transition">Create Dispatch</button>

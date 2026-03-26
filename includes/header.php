@@ -65,6 +65,9 @@
         <div class="flex items-center space-x-2 text-xl font-bold"><i class="fa-solid fa-truck"></i><span>SSV Trucking</span></div>
 
         <div class="flex space-x-2 text-sm font-medium text-blue-100 items-center">
+            <button onclick="document.getElementById('addDriverModal').classList.remove('hidden')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                + Add Driver
+            </button>
             <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex items-center space-x-1 text-white bg-blue-700 px-3 py-1.5 rounded transition"><i class="fa-solid fa-border-all"></i><span>Dashboard</span></button>
             <button onclick="switchTab('tracking')" id="nav-tracking" class="nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition"><i class="fa-solid fa-map-location-dot"></i><span>Live Tracking</span></button>
             <button onclick="switchTab('dispatches')" id="nav-dispatches" class="nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition"><i class="fa-regular fa-file-lines"></i><span>Dispatches</span></button>

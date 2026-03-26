@@ -470,4 +470,67 @@
                 });
         });
     }
+
+    document.addEventListener("DOMContentLoaded", function() {
+
+        // 1. Weight to Pay Calculation
+        const weightInput = document.getElementById('weightInput');
+        const payOutput = document.getElementById('payOutput');
+        const RATE_PER_LB = 0.01; // Set your desired rate per lb here
+
+        if (weightInput && payOutput) {
+            weightInput.addEventListener('input', function() {
+                const weight = parseFloat(this.value) || 0;
+                const pay = weight * RATE_PER_LB;
+                payOutput.value = '₱' + pay.toFixed(2);
+            });
+        }
+
+        // 2. RFID Scanner Logic
+        const rfidInput = document.getElementById('rfidInput');
+        const truckPlate = document.getElementById('truckPlate');
+        const hiddenTruckId = document.getElementById('hiddenTruckId');
+        const rfidFeedback = document.getElementById('rfidFeedback');
+        const dispatchForm = document.getElementById('dispatchForm');
+
+        if (dispatchForm && rfidInput) {
+            // Prevent Enter key from submitting the form while scanning
+            dispatchForm.addEventListener('submit', function(e) {
+                if (document.activeElement === rfidInput && rfidInput.value !== '') {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // Trigger AJAX call when scanner finishes reading (it simulates a fast typing + Enter or blur)
+            rfidInput.addEventListener('change', function() {
+                const rfidValue = this.value.trim();
+
+                if (rfidValue.length > 0) {
+                    rfidFeedback.innerHTML = '<span class="text-blue-500"><i class="fa-solid fa-spinner fa-spin"></i> Finding truck...</span>';
+
+                    fetch('get_truck_by_rfid.php?rfid=' + encodeURIComponent(rfidValue))
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                truckPlate.value = data.truck_code;
+                                hiddenTruckId.value = data.truck_id;
+                                rfidFeedback.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-check"></i> Truck matched!</span>';
+                                // Move cursor to select driver
+                                document.querySelector('select[name="driver_id"]').focus();
+                            } else {
+                                truckPlate.value = '';
+                                hiddenTruckId.value = '';
+                                rfidFeedback.innerHTML = '<span class="text-red-500"><i class="fa-solid fa-triangle-exclamation"></i> Unregistered RFID tag!</span>';
+                                rfidInput.value = ''; // Clear for retry
+                                rfidInput.focus();
+                            }
+                        })
+                        .catch(error => {
+                            rfidFeedback.innerHTML = '<span class="text-red-500">Database connection error.</span>';
+                        });
+                }
+            });
+        }
+    });
 </script>
