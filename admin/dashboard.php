@@ -15,12 +15,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $truck_id = $_POST['truck_id'];
         $driver_id = $_POST['driver_id'];
         $rfid_tag = $_POST['rfid_tag'];
-        $origin = $_POST['origin']; // From the new modal
+        $origin = $_POST['origin'];
         $destination = $_POST['destination'];
-        $weight = floatval($_POST['weight']); // Ensure it is treated as a number
+        $weight = floatval($_POST['weight']);
 
         // SECURITY: Always calculate money on the backend! 
-        $rate_per_lb = 2.50; // Ensure this matches your JS rate
+        $rate_per_lb = 2.50;
         $calculated_pay = $weight * $rate_per_lb;
 
         $ticketNum = 'TKT-' . date('Y') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
@@ -51,24 +51,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $phone = $_POST['phone'];
         $email = $_POST['email'];
 
-        // New inputs for their login account
         $username = trim($_POST['username']);
         $password = $_POST['password'];
 
-        // 1. Create the User login account first
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         $user_insert = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'Driver')");
         $user_insert->execute([$username, $hashed_password]);
 
-        // Get the ID of the newly created user
         $new_user_id = $pdo->lastInsertId();
 
-        // 2. Insert into drivers table (Assuming you add a user_id column to link them, or use the same ID)
         $driver_insert = $pdo->prepare("INSERT INTO drivers (id, name, cdl_number, phone, email, status) VALUES (?, ?, ?, ?, ?, 'Off Duty')");
-        // Using $new_user_id as the driver's primary ID to keep the tables synced
         $driver_insert->execute([$new_user_id, $name, $cdl, $phone, $email]);
 
-        // 3. Initialize their payroll record
         $pdo->query("INSERT INTO driver_payroll (driver_id, total_amount, amount_claimed) VALUES ($new_user_id, 0.00, 0.00)");
 
         header("Location: dashboard.php?tab=drivers");
@@ -100,6 +94,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $pdo->prepare("UPDATE trucks SET current_driver_id = NULL, status = 'Idle', speed = 0, current_location = 'San Leonardo (Garage)', latitude = 15.3621, longitude = 120.9632 WHERE current_driver_id = ?")->execute([$driver_id]);
         $pdo->prepare("UPDATE dispatches SET driver_id = NULL WHERE driver_id = ?")->execute([$driver_id]);
         $pdo->prepare("DELETE FROM drivers WHERE id = ?")->execute([$driver_id]);
+        exit;
+    }
+
+    // --- NEW: ADD TRUCK LOGIC ---
+    if ($_POST['action'] == 'add_truck') {
+        $truck_code = trim($_POST['truck_code']);
+        $rfid_tag = trim($_POST['rfid_tag']);
+
+        $insert = $pdo->prepare("INSERT INTO trucks (truck_code, rfid_tag, status, current_location, latitude, longitude, speed) VALUES (?, ?, 'Idle', 'San Leonardo (Garage)', 15.3621, 120.9632, 0)");
+        $insert->execute([$truck_code, $rfid_tag]);
+
+        header("Location: dashboard.php?tab=fleet");
+        exit;
+    }
+
+    // --- NEW: DELETE TRUCK LOGIC ---
+    if ($_POST['action'] == 'delete_truck') {
+        $truck_id = $_POST['truck_id'];
+
+        // Step 1: Free up the driver if they are assigned to this truck
+        $stmt = $pdo->prepare("SELECT current_driver_id FROM trucks WHERE id = ?");
+        $stmt->execute([$truck_id]);
+        $truck = $stmt->fetch();
+
+        if ($truck && $truck['current_driver_id']) {
+            $pdo->prepare("UPDATE drivers SET status = 'Off Duty' WHERE id = ?")->execute([$truck['current_driver_id']]);
+        }
+
+        // Step 2: Unlink the truck from dispatch history! 
+        // (Without this, MySQL blocks the deletion to protect past dispatch records)
+        $pdo->prepare("UPDATE dispatches SET truck_id = NULL WHERE truck_id = ?")->execute([$truck_id]);
+
+        // Step 3: Delete the truck
+        $pdo->prepare("DELETE FROM trucks WHERE id = ?")->execute([$truck_id]);
+
+        header("Location: dashboard.php?tab=fleet");
         exit;
     }
 }

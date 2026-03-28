@@ -244,6 +244,28 @@
     </div>
 </div>
 
+<div id="deleteTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden relative">
+        <div class="p-6 text-center">
+            <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-triangle-exclamation text-3xl text-red-600"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Remove Truck</h3>
+            <p class="text-gray-500 mb-6">Are you sure you want to remove <strong id="dt-truck-code" class="text-gray-800"></strong>? This action cannot be undone.</p>
+
+            <form method="POST" action="dashboard.php">
+                <input type="hidden" name="action" value="delete_truck">
+                <input type="hidden" name="truck_id" id="delete_truck_id">
+
+                <div class="flex justify-center space-x-3">
+                    <button type="button" onclick="toggleModal('deleteTruckModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition">Cancel</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">Yes, Remove</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <div id="updateDriverStatusModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative p-6 text-center">
         <button onclick="toggleModal('updateDriverStatusModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700"><i class="fa-solid fa-xmark fa-lg"></i></button>
@@ -277,23 +299,32 @@
 
 <div id="addTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden relative">
-        <button onclick="toggleModal('addTruckModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700"><i class="fa-solid fa-xmark fa-lg"></i></button>
+        <button onclick="toggleModal('addTruckModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700">
+            <i class="fa-solid fa-xmark fa-lg"></i>
+        </button>
         <div class="p-6 border-b border-gray-100">
             <h3 class="text-xl font-bold text-gray-900">Add New Truck</h3>
             <p class="text-sm text-gray-500 mt-1">Register a new truck to the fleet and assign an RFID tag.</p>
         </div>
-        <form method="POST" action="" class="p-6">
+
+        <form method="POST" action="dashboard.php" class="p-6">
             <input type="hidden" name="action" value="add_truck">
 
             <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-800 mb-2">Truck Code / Plate Number</label>
+                <label class="block text-sm font-semibold text-gray-800 mb-2">Truck Code / Plate Number <span class="text-red-500">*</span></label>
                 <input type="text" name="truck_code" placeholder="e.g. TRK-006 or ABC-1234" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
             </div>
 
             <div class="mb-8">
-                <label class="block text-sm font-semibold text-gray-800 mb-2"><i class="fa-solid fa-wifi mr-1 text-blue-500"></i> Scan RFID Tag</label>
-                <input type="text" id="newTruckRfidInput" name="rfid_tag" placeholder="Scan or enter RFID-XXXXXX" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50/50">
-                <p class="text-xs text-gray-500 mt-2"><i class="fa-solid fa-circle-info"></i> Click here and tap the card on the reader to auto-fill.</p>
+                <label class="block text-sm font-semibold text-gray-800 mb-2">
+                    <i class="fa-solid fa-wifi mr-1 text-blue-500"></i> Scan RFID Tag <span class="text-red-500">*</span>
+                </label>
+
+                <input type="text" id="newTruckRfidInput" name="rfid_tag" placeholder="Click here and tap card..." required autofocus autocomplete="off" onkeydown="return event.key != 'Enter';" class="w-full border border-blue-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 transition-colors">
+
+                <p class="text-xs text-gray-500 mt-2">
+                    <i class="fa-solid fa-circle-info text-blue-400"></i> Ensure the blue box is highlighted before scanning.
+                </p>
             </div>
 
             <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100">

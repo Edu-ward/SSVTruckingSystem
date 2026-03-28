@@ -36,8 +36,13 @@
                         <span class="<?php echo $badgeClass; ?> text-white text-xs font-semibold px-2.5 py-1 rounded-full">
                             <?php echo htmlspecialchars($truck['status']); ?>
                         </span>
-                        <button onclick="openUpdateStatusModal(<?php echo $truck['id']; ?>, '<?php echo htmlspecialchars($truck['status']); ?>', '<?php echo htmlspecialchars($truck['truck_code']); ?>')" class="text-gray-400 hover:text-blue-600 transition" title="Change Truck Status">
+
+                        <button onclick="openUpdateStatusModal(<?php echo $truck['id']; ?>, '<?php echo htmlspecialchars($truck['status']); ?>', '<?php echo htmlspecialchars($truck['truck_code']); ?>')" class="text-gray-400 hover:text-blue-600 transition ml-2" title="Change Truck Status">
                             <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+
+                        <button onclick="openDeleteTruckModal(<?php echo $truck['id']; ?>, '<?php echo htmlspecialchars($truck['truck_code']); ?>')" class="text-gray-400 hover:text-red-600 transition ml-1" title="Remove Truck">
+                            <i class="fa-solid fa-trash"></i>
                         </button>
                     </div>
                 </div>

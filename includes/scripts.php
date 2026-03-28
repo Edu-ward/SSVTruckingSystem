@@ -153,6 +153,12 @@
         toggleModal('deleteDriverModal', true);
     }
 
+    function openDeleteTruckModal(truckId, truckCode) {
+        document.getElementById('dt-truck-code').innerText = truckCode;
+        document.getElementById('delete_truck_id').value = truckId;
+        toggleModal('deleteTruckModal', true);
+    }
+
     function openUpdateStatusModal(truckId, currentStatus, truckCode) {
         document.getElementById('us-truck-code').innerText = truckCode;
         document.getElementById('update_status_truck_id').value = truckId;
