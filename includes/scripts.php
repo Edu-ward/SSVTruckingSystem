@@ -28,7 +28,7 @@
     }
 
     switchTab(activeTab);
-    const trackingData = <?php echo json_encode($trackingTrucks ?? []); ?>;
+    const trackingData = <?= json_encode($trackingTrucks ?? []); ?>;
 
     function initMap() {
         const mapDiv = document.getElementById('map');
@@ -174,9 +174,9 @@
     }
 
     try {
-        const weeklyData = <?php echo json_encode($weeklyData ?? []); ?>;
-        const fleetStatusData = <?php echo json_encode($fleetStatusData ?? []); ?>;
-        const efficiencyData = <?php echo json_encode($efficiencyData ?? []); ?>;
+        const weeklyData = <?= json_encode($weeklyData ?? []); ?>;
+        const fleetStatusData = <?= json_encode($fleetStatusData ?? []); ?>;
+        const efficiencyData = <?= json_encode($efficiencyData ?? []); ?>;
 
         if (document.getElementById('weeklyChart') && weeklyData.length > 0) {
             new Chart(document.getElementById('weeklyChart').getContext('2d'), {
@@ -299,9 +299,9 @@
     }
 
     try {
-        const financeData = <?php echo json_encode($financeReports ?? []); ?>;
-        const deliveryData = <?php echo json_encode($deliveryPerformance ?? []); ?>;
-        const fuelData = <?php echo json_encode($fuelConsumption ?? []); ?>;
+        const financeData = <?= json_encode($financeReports ?? []); ?>;
+        const deliveryData = <?= json_encode($deliveryPerformance ?? []); ?>;
+        const fuelData = <?= json_encode($fuelConsumption ?? []); ?>;
 
         if (financeData.length > 0 && document.getElementById('revenueReportChart')) {
             new Chart(document.getElementById('revenueReportChart').getContext('2d'), {
@@ -539,4 +539,79 @@
             });
         }
     });
+
+    // Add this to the bottom of your scripts.php file
+    document.addEventListener("DOMContentLoaded", function() {
+        function updateLoadingTimers() {
+            const containers = document.querySelectorAll('.loading-timer-container');
+            const LOADING_DURATION_MS = 20 * 60 * 1000; // 20 minutes
+
+            containers.forEach(container => {
+                const truckCode = container.getAttribute('data-truck-id');
+                const timerText = container.querySelector('.timer-text');
+                const timerProgress = container.querySelector('.timer-progress');
+                const timerLabel = container.querySelector('.timer-label');
+
+                let startTime = localStorage.getItem('loading_start_' + truckCode);
+                if (!startTime) {
+                    startTime = Date.now();
+                    localStorage.setItem('loading_start_' + truckCode, startTime);
+                }
+
+                const elapsed = Date.now() - parseInt(startTime);
+                const remaining = Math.max(0, LOADING_DURATION_MS - elapsed);
+
+                if (remaining > 0) {
+                    // Still Loading
+                    const mins = Math.floor(remaining / 60000);
+                    const secs = Math.floor((remaining % 60000) / 1000);
+                    timerText.innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
+                    const percent = (elapsed / LOADING_DURATION_MS) * 100;
+                    timerProgress.style.width = percent + '%';
+                } else {
+                    // TIME IS UP!
+                    timerText.innerText = 'Ready!';
+                    timerLabel.innerHTML = '<i class="fa-solid fa-check text-green-600 mr-1"></i> Loading Complete';
+                    timerLabel.classList.replace('text-indigo-700', 'text-green-700');
+                    timerText.classList.replace('text-indigo-700', 'text-green-700');
+                    timerProgress.style.width = '100%';
+                    timerProgress.classList.replace('bg-indigo-600', 'bg-green-500');
+
+                    // Check if we've already updated this truck to prevent spamming the database
+                    if (!localStorage.getItem('loading_complete_' + truckCode)) {
+                        // Mark as complete locally so we don't fire this again
+                        localStorage.setItem('loading_complete_' + truckCode, 'true');
+
+                        // Send AJAX request to update database silently
+                        fetch('update_transit_status.php', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                },
+                                body: 'truck_code=' + encodeURIComponent(truckCode)
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    setTimeout(() => location.reload(), 2000);
+                                }
+                            })
+                            .catch(error => console.error("Error updating status:", error));
+                    }
+                }
+            });
+        }
+
+        // Only run the timer loop if we are actually on a page with timers
+        if (document.querySelector('.loading-timer-container')) {
+            setInterval(updateLoadingTimers, 1000);
+            updateLoadingTimers();
+        }
+    });
+
+    function openDeleteDispatchModal(dispatchId, ticketNumber) {
+        document.getElementById('dd-ticket-number').innerText = ticketNumber;
+        document.getElementById('delete_dispatch_id').value = dispatchId;
+        toggleModal('deleteDispatchModal', true);
+    }
 </script>

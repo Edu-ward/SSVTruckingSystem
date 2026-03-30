@@ -78,8 +78,8 @@
                     <select name="driver_id" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
                         <option value="">Select a driver</option>
                         <?php foreach ($allDrivers as $driver): ?>
-                            <option value="<?php echo $driver['id']; ?>">
-                                <?php echo htmlspecialchars($driver['name']); ?> (<?php echo $driver['status']; ?>)
+                            <option value="<?= $driver['id']; ?>">
+                                <?= htmlspecialchars($driver['name']); ?> (<?= $driver['status']; ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -346,5 +346,27 @@
     <div id="successState" class="flex flex-col items-center hidden">
         <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center text-white text-3xl mb-4 shadow-[0_0_15px_rgba(34,197,94,0.5)] animate-bounce"><i class="fa-solid fa-check"></i></div>
         <h3 class="text-xl font-bold text-white tracking-wide">Completed!</h3>
+    </div>
+</div>
+
+<div id="deleteDispatchModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden relative">
+        <div class="p-6 text-center">
+            <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-ban text-3xl text-red-600"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Void Dispatch Ticket</h3>
+            <p class="text-gray-500 mb-6">Are you sure you want to void ticket <strong id="dd-ticket-number" class="text-gray-800"></strong>? This will free up the truck and reverse the driver's payroll.</p>
+
+            <form method="POST" action="dashboard.php">
+                <input type="hidden" name="action" value="delete_dispatch">
+                <input type="hidden" name="dispatch_id" id="delete_dispatch_id">
+
+                <div class="flex justify-center space-x-3">
+                    <button type="button" onclick="toggleModal('deleteDispatchModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition">Keep Ticket</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">Void Ticket</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>

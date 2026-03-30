@@ -13,10 +13,10 @@
 
         <div class="bg-gray-100 p-1 rounded-full inline-flex mb-6 text-sm font-medium text-gray-600">
             <button id="btn-tab-active" onclick="switchDispatchTab('active')" class="px-6 py-2 rounded-full bg-white shadow-sm text-gray-900 transition">
-                Active (<?php echo count($activeTickets); ?>)
+                Active (<?= count($activeTickets); ?>)
             </button>
             <button id="btn-tab-completed" onclick="switchDispatchTab('completed')" class="px-6 py-2 rounded-full hover:text-gray-900 transition">
-                Completed (<?php echo count($completedTickets); ?>)
+                Completed (<?= count($completedTickets); ?>)
             </button>
         </div>
 
@@ -29,25 +29,32 @@
                     <div class="flex justify-between items-center mb-4">
                         <div class="flex items-center space-x-2 font-bold text-gray-800">
                             <i class="fa-regular fa-file-lines text-blue-500"></i>
-                            <span><?php echo htmlspecialchars($ticket['ticket_number']); ?></span>
+                            <span><?= htmlspecialchars($ticket['ticket_number']); ?></span>
                         </div>
-                        <span class="<?php echo $statusClass; ?> text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase">
-                            <?php echo htmlspecialchars($ticket['status']); ?>
-                        </span>
+
+                        <div class="flex items-center space-x-3">
+                            <span class="<?= $statusClass; ?> text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase">
+                                <?= htmlspecialchars($ticket['status']); ?>
+                            </span>
+                            <button onclick="openDeleteDispatchModal(<?= $ticket['id']; ?>, '<?= htmlspecialchars($ticket['ticket_number']); ?>')" class="text-gray-400 hover:text-red-500 transition" title="Cancel/Void Dispatch">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
+
                     <div class="space-y-3 mb-4 text-sm">
                         <div class="flex items-center space-x-2">
                             <i class="fa-solid fa-truck text-gray-500 w-5 flex justify-center"></i>
                             <span class="text-gray-600">
                                 <span class="font-bold text-gray-800">Truck:</span>
-                                <?php echo htmlspecialchars($ticket['truck_code']); ?>
+                                <?= htmlspecialchars($ticket['truck_code']); ?>
                             </span>
                         </div>
                         <div class="flex items-center space-x-2">
                             <i class="fa-regular fa-user text-gray-500 w-5 flex justify-center"></i>
                             <span class="text-gray-600">
                                 <span class="font-bold text-gray-800">Driver:</span>
-                                <?php echo htmlspecialchars($ticket['driver_name']); ?>
+                                <?= htmlspecialchars($ticket['driver_name']); ?>
                             </span>
                         </div>
                     </div>
@@ -61,7 +68,7 @@
                         </div>
                         <div class="relative pl-8"><i class="fa-regular fa-circle text-red-500 absolute left-0 top-0 mt-1 w-5 flex justify-center bg-white rounded-full"></i>
                             <div>
-                                <span class="font-bold text-gray-800">To:</span> <?php echo htmlspecialchars($ticket['destination']); ?>
+                                <span class="font-bold text-gray-800">To:</span> <?= htmlspecialchars($ticket['destination']); ?>
                             </div>
                         </div>
                     </div>
@@ -75,7 +82,7 @@
                     <div class="flex justify-between items-center mb-4">
                         <div class="flex items-center space-x-2 font-bold text-gray-800">
                             <i class="fa-regular fa-file-lines text-blue-500"></i>
-                            <span><?php echo htmlspecialchars($ticket['ticket_number']); ?></span>
+                            <span><?= htmlspecialchars($ticket['ticket_number']); ?></span>
                         </div>
                         <span class="bg-green-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase">delivered</span>
                     </div>
@@ -83,13 +90,13 @@
                         <div class="flex items-center space-x-2"><i class="fa-solid fa-truck text-gray-500 w-5 flex justify-center"></i>
                             <span class="text-gray-600">
                                 <span class="font-bold text-gray-800">Truck:</span>
-                                <?php echo htmlspecialchars($ticket['truck_code']); ?>
+                                <?= htmlspecialchars($ticket['truck_code']); ?>
                             </span>
                         </div>
                         <div class="flex items-center space-x-2"><i class="fa-regular fa-user text-gray-500 w-5 flex justify-center"></i>
                             <span class="text-gray-600">
                                 <span class="font-bold text-gray-800">Driver:</span>
-                                <?php echo htmlspecialchars($ticket['driver_name']); ?>
+                                <?= htmlspecialchars($ticket['driver_name']); ?>
                             </span>
                         </div>
                     </div>
@@ -104,7 +111,7 @@
                         <div class="relative pl-8"><i class="fa-regular fa-circle text-red-500 absolute left-0 top-0 mt-1 w-5 flex justify-center bg-white rounded-full"></i>
                             <div>
                                 <span class="font-bold text-gray-800">To:</span>
-                                <?php echo htmlspecialchars($ticket['destination']); ?>
+                                <?= htmlspecialchars($ticket['destination']); ?>
                             </div>
                         </div>
                     </div>
@@ -113,3 +120,14 @@
         </div>
     </div>
 </div>
+
+<script>
+    <?php if (isset($_GET['tab']) && $_GET['tab'] == 'dispatches'): ?>
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
+            if (key.startsWith('loading_start_') || key.startsWith('loading_complete_')) {
+                localStorage.removeItem(key);
+            }
+        }
+    <?php endif; ?>
+</script>

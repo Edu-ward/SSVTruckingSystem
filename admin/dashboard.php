@@ -89,6 +89,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
+    if ($_POST['action'] == 'delete_dispatch') {
+        $dispatch_id = $_POST['dispatch_id'];
+
+        $stmt = $pdo->prepare("SELECT truck_id, driver_id, pay_amount, destination FROM dispatches WHERE id = ?");
+        $stmt->execute([$dispatch_id]);
+        $dispatch = $stmt->fetch();
+
+        if ($dispatch) {
+            $pdo->prepare("UPDATE driver_payroll SET total_amount = total_amount - ? WHERE driver_id = ?")->execute([$dispatch['pay_amount'], $dispatch['driver_id']]);
+            $pdo->prepare("DELETE FROM driver_trips WHERE driver_id = ? AND destination = ? ORDER BY id DESC LIMIT 1")->execute([$dispatch['driver_id'], $dispatch['destination']]);
+            $pdo->prepare("UPDATE trucks SET status = 'Idle', current_driver_id = NULL WHERE id = ?")->execute([$dispatch['truck_id']]);
+            $pdo->prepare("UPDATE drivers SET status = 'Off Duty' WHERE id = ?")->execute([$dispatch['driver_id']]);
+            $pdo->prepare("DELETE FROM dispatches WHERE id = ?")->execute([$dispatch_id]);
+        }
+
+        header("Location: dashboard.php?tab=dispatches");
+        exit;
+    }
+
     if ($_POST['action'] == 'delete_driver') {
         $driver_id = $_POST['driver_id'];
         $pdo->prepare("UPDATE trucks SET current_driver_id = NULL, status = 'Idle', speed = 0, current_location = 'San Leonardo (Garage)', latitude = 15.3621, longitude = 120.9632 WHERE current_driver_id = ?")->execute([$driver_id]);
@@ -97,7 +116,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-    // --- NEW: ADD TRUCK LOGIC ---
     if ($_POST['action'] == 'add_truck') {
         $truck_code = trim($_POST['truck_code']);
         $rfid_tag = trim($_POST['rfid_tag']);
@@ -109,11 +127,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-    // --- NEW: DELETE TRUCK LOGIC ---
     if ($_POST['action'] == 'delete_truck') {
         $truck_id = $_POST['truck_id'];
 
-        // Step 1: Free up the driver if they are assigned to this truck
         $stmt = $pdo->prepare("SELECT current_driver_id FROM trucks WHERE id = ?");
         $stmt->execute([$truck_id]);
         $truck = $stmt->fetch();
@@ -122,11 +138,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $pdo->prepare("UPDATE drivers SET status = 'Off Duty' WHERE id = ?")->execute([$truck['current_driver_id']]);
         }
 
-        // Step 2: Unlink the truck from dispatch history! 
-        // (Without this, MySQL blocks the deletion to protect past dispatch records)
         $pdo->prepare("UPDATE dispatches SET truck_id = NULL WHERE truck_id = ?")->execute([$truck_id]);
 
-        // Step 3: Delete the truck
         $pdo->prepare("DELETE FROM trucks WHERE id = ?")->execute([$truck_id]);
 
         header("Location: dashboard.php?tab=fleet");

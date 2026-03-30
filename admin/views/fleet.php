@@ -5,7 +5,7 @@
             <span>Fleet Management</span>
         </div>
         <div class="flex items-center space-x-4">
-            <div class="text-sm text-gray-500 font-medium">Total: <?php echo count($fleetData); ?> trucks</div>
+            <div class="text-sm text-gray-500 font-medium">Total: <?= count($fleetData); ?> trucks</div>
             <button onclick="toggleModal('addTruckModal', true)" class="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2">
                 <i class="fa-solid fa-plus"></i>
                 <span>Add Truck</span>
@@ -28,20 +28,20 @@
                             <i class="fa-solid fa-truck"></i>
                         </div>
                         <div>
-                            <h3 class="font-bold text-gray-900 text-lg"><?php echo htmlspecialchars($truck['truck_code']); ?></h3>
-                            <p class="text-sm text-gray-500"><?php echo htmlspecialchars($truck['driver_name'] ?? 'No Driver Assigned'); ?></p>
+                            <h3 class="font-bold text-gray-900 text-lg"><?= htmlspecialchars($truck['truck_code']); ?></h3>
+                            <p class="text-sm text-gray-500"><?= htmlspecialchars($truck['driver_name'] ?? 'No Driver Assigned'); ?></p>
                         </div>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <span class="<?php echo $badgeClass; ?> text-white text-xs font-semibold px-2.5 py-1 rounded-full">
-                            <?php echo htmlspecialchars($truck['status']); ?>
+                        <span class="<?= $badgeClass; ?> text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+                            <?= htmlspecialchars($truck['status']); ?>
                         </span>
 
-                        <button onclick="openUpdateStatusModal(<?php echo $truck['id']; ?>, '<?php echo htmlspecialchars($truck['status']); ?>', '<?php echo htmlspecialchars($truck['truck_code']); ?>')" class="text-gray-400 hover:text-blue-600 transition ml-2" title="Change Truck Status">
+                        <button onclick="openUpdateStatusModal(<?= $truck['id']; ?>, '<?= htmlspecialchars($truck['status']); ?>', '<?= htmlspecialchars($truck['truck_code']); ?>')" class="text-gray-400 hover:text-blue-600 transition ml-2" title="Change Truck Status">
                             <i class="fa-solid fa-pen-to-square"></i>
                         </button>
 
-                        <button onclick="openDeleteTruckModal(<?php echo $truck['id']; ?>, '<?php echo htmlspecialchars($truck['truck_code']); ?>')" class="text-gray-400 hover:text-red-600 transition ml-1" title="Remove Truck">
+                        <button onclick="openDeleteTruckModal(<?= $truck['id']; ?>, '<?= htmlspecialchars($truck['truck_code']); ?>')" class="text-gray-400 hover:text-red-600 transition ml-1" title="Remove Truck">
                             <i class="fa-solid fa-trash"></i>
                         </button>
                     </div>
@@ -51,26 +51,26 @@
                     <div class="flex items-center space-x-3">
                         <i class="fa-solid fa-wifi w-4 text-center text-blue-400"></i>
                         <span>RFID:
-                            <strong class="text-gray-900"><?php echo htmlspecialchars($truck['rfid_tag'] ?? 'Unassigned'); ?></strong>
+                            <strong class="text-gray-900"><?= htmlspecialchars($truck['rfid_tag'] ?? 'Unassigned'); ?></strong>
                         </span>
                     </div>
                     <div class="flex items-center space-x-3">
                         <i class="fa-solid fa-bolt w-4 text-center text-gray-400"></i>
                         <span>Speed:
-                            <strong class="text-gray-900"><?php echo htmlspecialchars($truck['speed'] ?? 0); ?> mph</strong>
+                            <strong class="text-gray-900"><?= htmlspecialchars($truck['speed'] ?? 0); ?> mph</strong>
                         </span>
                     </div>
                     <div class="flex items-center space-x-3">
                         <i class="fa-solid fa-location-dot w-4 text-center text-gray-400"></i>
                         <span>Destination:
-                            <strong class="text-gray-900"><?php echo htmlspecialchars($truck['current_location'] ?? 'Garage'); ?></strong>
+                            <strong class="text-gray-900"><?= htmlspecialchars($truck['current_location'] ?? 'Garage'); ?></strong>
                         </span>
                     </div>
                     <div class="flex items-center space-x-3">
                         <i class="fa-solid fa-tower-broadcast w-4 text-center text-purple-400"></i>
                         <span>Coordinates:
-                            <strong class="text-gray-900"><?php echo htmlspecialchars($truck['latitude'] ?? '0.0000'); ?>,
-                                <?php echo htmlspecialchars($truck['longitude'] ?? '0.0000'); ?></strong>
+                            <strong class="text-gray-900"><?= htmlspecialchars($truck['latitude'] ?? '0.0000'); ?>,
+                                <?= htmlspecialchars($truck['longitude'] ?? '0.0000'); ?></strong>
                         </span>
                     </div>
                 </div>
@@ -78,11 +78,11 @@
                 <div class="bg-blue-50/50 border border-blue-100 rounded-lg p-4 mb-6 mt-auto">
                     <div class="text-xs text-gray-500 mb-1">Active Dispatch</div>
                     <?php if ($truck['ticket_number']): ?>
-                        <div class="font-bold text-gray-800 text-sm mb-1"><?php echo htmlspecialchars($truck['ticket_number']); ?></div>
+                        <div class="font-bold text-gray-800 text-sm mb-1"><?= htmlspecialchars($truck['ticket_number']); ?></div>
                         <div class="text-xs text-gray-500 flex items-center space-x-2">
                             <span>San Leonardo, Nueva Ecija</span>
                             <i class="fa-solid fa-arrow-right text-[10px] text-gray-400"></i>
-                            <span><?php echo htmlspecialchars($truck['destination']); ?></span>
+                            <span><?= htmlspecialchars($truck['destination']); ?></span>
                         </div>
                     <?php else: ?>
                         <div class="text-sm text-gray-500 italic py-1">No active dispatch</div>
@@ -90,7 +90,7 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-3 mt-auto">
-                    <button onclick="focusTruck(<?php echo $truck['latitude'] ?? 0; ?>, <?php echo $truck['longitude'] ?? 0; ?>)" class="border border-gray-200 bg-white rounded-lg py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition flex items-center justify-center space-x-2">
+                    <button onclick="focusTruck(<?= $truck['latitude'] ?? 0; ?>, <?= $truck['longitude'] ?? 0; ?>)" class="border border-gray-200 bg-white rounded-lg py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition flex items-center justify-center space-x-2">
                         <i class="fa-solid fa-location-crosshairs text-gray-500"></i>
                         <span>Track</span>
                     </button>

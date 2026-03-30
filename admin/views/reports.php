@@ -19,11 +19,11 @@
 
     <div class="grid grid-cols-4 gap-6 mb-6">
         <?php foreach ($reportKpis as $kpi): ?>
-            <div class="<?php echo $kpi['color_class']; ?> rounded-xl p-6 text-white relative overflow-hidden shadow-md">
-                <div class="text-sm text-white text-opacity-80 mb-1"><?php echo htmlspecialchars($kpi['title']); ?></div>
-                <div class="text-4xl font-bold mb-1"><?php echo htmlspecialchars($kpi['value']); ?></div>
-                <div class="text-xs text-white text-opacity-90"><?php echo htmlspecialchars($kpi['subtext']); ?></div>
-                <i class="fa-solid <?php echo $kpi['icon_class']; ?> absolute right-4 bottom-4 text-6xl text-white opacity-20"></i>
+            <div class="<?= $kpi['color_class']; ?> rounded-xl p-6 text-white relative overflow-hidden shadow-md">
+                <div class="text-sm text-white text-opacity-80 mb-1"><?= htmlspecialchars($kpi['title']); ?></div>
+                <div class="text-4xl font-bold mb-1"><?= htmlspecialchars($kpi['value']); ?></div>
+                <div class="text-xs text-white text-opacity-90"><?= htmlspecialchars($kpi['subtext']); ?></div>
+                <i class="fa-solid <?= $kpi['icon_class']; ?> absolute right-4 bottom-4 text-6xl text-white opacity-20"></i>
             </div>
         <?php endforeach; ?>
     </div>
@@ -63,10 +63,10 @@
                         $colorClass = $metric['is_positive'] ? 'text-green-500' : 'text-red-500';
                     ?>
                         <tr class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4 font-medium text-gray-800"><?php echo htmlspecialchars($metric['metric']); ?></td>
-                            <td class="px-6 py-4 font-bold"><?php echo htmlspecialchars($metric['this_month']); ?></td>
-                            <td class="px-6 py-4"><?php echo htmlspecialchars($metric['last_month']); ?></td>
-                            <td class="px-6 py-4 <?php echo $colorClass; ?> font-medium"><?php echo htmlspecialchars($metric['change_str']); ?></td>
+                            <td class="px-6 py-4 font-medium text-gray-800"><?= htmlspecialchars($metric['metric']); ?></td>
+                            <td class="px-6 py-4 font-bold"><?= htmlspecialchars($metric['this_month']); ?></td>
+                            <td class="px-6 py-4"><?= htmlspecialchars($metric['last_month']); ?></td>
+                            <td class="px-6 py-4 <?= $colorClass; ?> font-medium"><?= htmlspecialchars($metric['change_str']); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

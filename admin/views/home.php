@@ -3,7 +3,7 @@
         <div class="bg-blue-500 rounded-xl p-6 text-white relative overflow-hidden shadow">
             <div class="text-sm text-blue-100 mb-1">Total Fleet</div>
             <div class="text-4xl font-bold mb-1">
-                <?php echo $totalFleet; ?>
+                <?= $totalFleet; ?>
             </div>
             <div class="text-xs text-blue-100">Trucks</div>
             <i class="fa-solid fa-truck absolute right-4 bottom-4 text-6xl text-blue-400 opacity-50"></i>
@@ -11,7 +11,7 @@
         <div class="bg-green-500 rounded-xl p-6 text-white relative overflow-hidden shadow">
             <div class="text-sm text-green-100 mb-1">Active Now</div>
             <div class="text-4xl font-bold mb-1">
-                <?php echo $activeNow; ?>
+                <?= $activeNow; ?>
             </div>
             <div class="text-xs text-green-100">On the road</div>
             <i class="fa-solid fa-arrow-trend-up absolute right-4 bottom-4 text-6xl text-green-400 opacity-50"></i>
@@ -19,7 +19,7 @@
         <div class="bg-orange-500 rounded-xl p-6 text-white relative overflow-hidden shadow">
             <div class="text-sm text-orange-100 mb-1">In Progress</div>
             <div class="text-4xl font-bold mb-1">
-                <?php echo $inProgress; ?>
+                <?= $inProgress; ?>
             </div>
             <div class="text-xs text-orange-100">Active dispatches</div>
             <i class="fa-regular fa-clock absolute right-4 bottom-4 text-6xl text-orange-400 opacity-50"></i>
@@ -27,7 +27,7 @@
         <div class="bg-teal-500 rounded-xl p-6 text-white relative overflow-hidden shadow">
             <div class="text-sm text-teal-100 mb-1">Completed Today</div>
             <div class="text-4xl font-bold mb-1">
-                <?php echo $completedToday; ?>
+                <?= $completedToday; ?>
             </div>
             <div class="text-xs text-teal-100">Deliveries</div>
             <i class="fa-regular fa-circle-check absolute right-4 bottom-4 text-6xl text-teal-400 opacity-50"></i>
@@ -60,7 +60,7 @@
                         <i class="fa-solid fa-truck text-blue-500 w-6"></i> Idle Trucks
                     </div>
                     <div class="font-bold text-blue-700">
-                        <?php echo $idleTrucks; ?>
+                        <?= $idleTrucks; ?>
                     </div>
                 </div>
                 <div class="flex justify-between items-center p-3 bg-green-50 rounded-lg">
@@ -68,7 +68,7 @@
                         <i class="fa-regular fa-circle-check text-green-500 w-6"></i> On-Time Rate
                     </div>
                     <div class="font-bold text-green-700">
-                        <?php echo $onTimeRate; ?>%
+                        <?= $onTimeRate; ?>%
                     </div>
                 </div>
                 <div class="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
@@ -76,7 +76,7 @@
                         <i class="fa-solid fa-wifi text-purple-500 w-6"></i> RFID Active
                     </div>
                     <div class="font-bold text-purple-700">
-                        <?php echo $rfidActive; ?>
+                        <?= $rfidActive; ?>
                     </div>
                 </div>
             </div>
@@ -95,20 +95,20 @@
             ?>
                 <div class="p-4 px-6 flex justify-between items-center hover:bg-gray-50 transition">
                     <div class="flex items-center space-x-4">
-                        <div class="w-2.5 h-2.5 rounded-full <?php echo $dotColor; ?>">
+                        <div class="w-2.5 h-2.5 rounded-full <?= $dotColor; ?>">
                         </div>
                         <div>
                             <div class="font-semibold text-gray-800">
-                                <?php echo htmlspecialchars($dispatch['ticket_number']); ?>
+                                <?= htmlspecialchars($dispatch['ticket_number']); ?>
                             </div>
                             <div class="text-sm text-gray-500">
-                                <?php echo htmlspecialchars($dispatch['truck_code']) . ' - ' . htmlspecialchars($dispatch['driver_name']); ?>
+                                <?= htmlspecialchars($dispatch['truck_code']) . ' - ' . htmlspecialchars($dispatch['driver_name']); ?>
                             </div>
                         </div>
                     </div>
                     <div class="text-right">
-                        <div class="font-semibold text-gray-800"><?php echo htmlspecialchars($dispatch['status']); ?></div>
-                        <div class="text-sm text-gray-500"><?php echo htmlspecialchars($dispatch['destination']); ?></div>
+                        <div class="font-semibold text-gray-800"><?= htmlspecialchars($dispatch['status']); ?></div>
+                        <div class="text-sm text-gray-500"><?= htmlspecialchars($dispatch['destination']); ?></div>
                     </div>
                 </div>
             <?php endforeach; ?>
