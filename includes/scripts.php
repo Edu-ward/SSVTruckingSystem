@@ -583,6 +583,7 @@
                         localStorage.setItem('loading_complete_' + truckCode, 'true');
 
                         // Send AJAX request to update database silently
+                        // Send AJAX request to update database silently
                         fetch('update_transit_status.php', {
                                 method: 'POST',
                                 headers: {
@@ -593,7 +594,11 @@
                             .then(response => response.json())
                             .then(data => {
                                 if (data.success) {
-                                    setTimeout(() => location.reload(), 2000);
+                                    // THE FIX: Force the page to refresh immediately 
+                                    // so the Admin sees the status change to "In Transit"
+                                    window.location.reload();
+                                } else {
+                                    console.error("Backend Error: ", data.error);
                                 }
                             })
                             .catch(error => console.error("Error updating status:", error));

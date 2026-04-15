@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['truck_code'])) {
         $stmt = $pdo->prepare("UPDATE trucks SET status = 'In Transit' WHERE truck_code = ? AND status = 'Loading'");
         $stmt->execute([$truck_code]);
 
-        // You might also want to update the dispatch ticket status if applicable
+        // Update the dispatch ticket status 
         $stmt2 = $pdo->prepare("
             UPDATE dispatches d 
             JOIN trucks t ON d.truck_id = t.id 

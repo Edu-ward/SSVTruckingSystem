@@ -89,7 +89,7 @@
             <div class="grid grid-cols-2 gap-6 mb-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 mb-2">Origin</label>
-                    <input type="text" name="origin" value="San Leonardo, Nueva Ecija" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
+                    <input type="text" name="origin" value="Brgy. Burgos San Leonardo, Nueva Ecija" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 mb-2">Destination</label>
