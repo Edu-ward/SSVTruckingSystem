@@ -91,15 +91,15 @@
     function switchDispatchTab(tab) {
         document.getElementById('dispatch-grid-active').classList.add('hidden');
         document.getElementById('dispatch-grid-completed').classList.add('hidden');
-        document.getElementById('btn-tab-active').className = "px-6 py-2 rounded-full hover:text-gray-900 transition";
-        document.getElementById('btn-tab-completed').className = "px-6 py-2 rounded-full hover:text-gray-900 transition";
+        document.getElementById('btn-tab-active').className = "px-6 py-2 rounded-full hover:text-gray-900 dark:text-gray-100 transition";
+        document.getElementById('btn-tab-completed').className = "px-6 py-2 rounded-full hover:text-gray-900 dark:text-gray-100 transition";
 
         if (tab === 'active') {
             document.getElementById('dispatch-grid-active').classList.remove('hidden');
-            document.getElementById('btn-tab-active').className = "px-6 py-2 rounded-full bg-white shadow-sm text-gray-900 transition";
+            document.getElementById('btn-tab-active').className = "px-6 py-2 rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition";
         } else {
             document.getElementById('dispatch-grid-completed').classList.remove('hidden');
-            document.getElementById('btn-tab-completed').className = "px-6 py-2 rounded-full bg-white shadow-sm text-gray-900 transition";
+            document.getElementById('btn-tab-completed').className = "px-6 py-2 rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition";
         }
     }
 
@@ -257,11 +257,15 @@
                     datasets: [{
                         label: 'Efficiency %',
                         data: efficiencyData.map(row => row.efficiency_pct),
-                        borderColor: '#3b82f6',
-                        backgroundColor: '#eff6ff',
+
+                        // --- UPDATED COLORS ---
+                        borderColor: '#22c55e', // Tailwind green-500 line
+                        backgroundColor: 'rgba(34, 197, 94, 0.15)', // 15% transparent green fill
+                        pointBorderColor: '#22c55e', // Green ring around the dots
+                        pointBackgroundColor: '#ffffff', // White center for the dots
+                        // ----------------------
+
                         borderWidth: 2,
-                        pointBackgroundColor: '#ffffff',
-                        pointBorderColor: '#3b82f6',
                         fill: true,
                         tension: 0.3
                     }]
@@ -544,7 +548,7 @@
     document.addEventListener("DOMContentLoaded", function() {
         function updateLoadingTimers() {
             const containers = document.querySelectorAll('.loading-timer-container');
-            const LOADING_DURATION_MS = 20 * 60 * 1000; // 20 minutes
+            const LOADING_DURATION_MS = 1 * 60 * 1000; // 20 minutes
 
             containers.forEach(container => {
                 const truckCode = container.getAttribute('data-truck-id');

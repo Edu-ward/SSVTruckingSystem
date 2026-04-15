@@ -38,7 +38,7 @@ $trips = $stmt2->fetchAll();
     </style>
 </head>
 
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
 
     <nav class="bg-[#3b82f6] text-white py-4 px-6 shadow-md">
         <div class="flex justify-between items-center max-w-7xl mx-auto">
@@ -92,22 +92,22 @@ $trips = $stmt2->fetchAll();
 
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-6">Past Trip History</h2>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-6">Past Trip History</h2>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="text-gray-500 text-sm border-b border-gray-200">
+                        <tr class="text-gray-500 dark:text-gray-400 text-sm border-b border-gray-200 dark:border-gray-700">
                             <th class="pb-3 px-2 font-medium">Date</th>
                             <th class="pb-3 px-2 font-medium">Destination</th>
                             <th class="pb-3 px-2 font-medium">Status</th>
                         </tr>
                     </thead>
-                    <tbody class="text-gray-700">
+                    <tbody class="text-gray-700 dark:text-gray-200">
                         <?php if (count($trips) > 0): ?>
                             <?php foreach ($trips as $trip): ?>
-                                <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                                <tr class="border-b border-gray-50 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors">
                                     <td class="py-4 px-2"><?= date('M d, Y', strtotime($trip['trip_date'])); ?></td>
                                     <td class="py-4 px-2 font-medium"><?= htmlspecialchars($trip['destination']); ?></td>
                                     <td class="py-4 px-2">
@@ -125,7 +125,7 @@ $trips = $stmt2->fetchAll();
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="3" class="py-8 px-2 text-center text-gray-500">
+                                <td colspan="3" class="py-8 px-2 text-center text-gray-500 dark:text-gray-400">
                                     <i class="fa-solid fa-road text-4xl mb-3 text-gray-300 block"></i>
                                     No trips recorded yet.
                                 </td>

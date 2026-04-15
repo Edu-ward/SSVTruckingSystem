@@ -1,11 +1,11 @@
 <div id="view-reports" class="tab-content hidden">
-    <div class="bg-white rounded-xl shadow border border-gray-100 p-4 flex justify-between items-center mb-6">
-        <div class="flex items-center space-x-2 text-lg font-bold text-gray-800">
-            <i class="fa-solid fa-chart-column text-gray-600 w-5"></i>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-4 flex justify-between items-center mb-6">
+        <div class="flex items-center space-x-2 text-lg font-bold text-gray-800 dark:text-gray-200">
+            <i class="fa-solid fa-chart-column text-gray-600 dark:text-gray-300 w-5"></i>
             <span>Analytics & Reports</span>
         </div>
         <div class="flex space-x-3">
-            <select class="border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 focus:outline-none">
+            <select class="border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900 focus:outline-none">
                 <option>Monthly</option>
                 <option>Weekly</option>
                 <option>Yearly</option>
@@ -28,29 +28,29 @@
         <?php endforeach; ?>
     </div>
 
-    <div class="bg-white rounded-xl shadow p-6 border border-gray-100 mb-6">
-        <h3 class="font-semibold text-gray-800 mb-4">Revenue & Profit Analysis</h3>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border border-gray-100 dark:border-gray-700 mb-6">
+        <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-4">Revenue & Profit Analysis</h3>
         <canvas id="revenueReportChart" height="100"></canvas>
     </div>
 
     <div class="grid grid-cols-2 gap-6 mb-6">
-        <div class="bg-white rounded-xl shadow p-6 border border-gray-100">
-            <h3 class="font-semibold text-gray-800 mb-4">Delivery Performance</h3>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border border-gray-100 dark:border-gray-700">
+            <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-4">Delivery Performance</h3>
             <canvas id="deliveryReportChart" height="150"></canvas>
         </div>
-        <div class="bg-white rounded-xl shadow p-6 border border-gray-100">
-            <h3 class="font-semibold text-gray-800 mb-4">Fuel Consumption Trend</h3>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border border-gray-100 dark:border-gray-700">
+            <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-4">Fuel Consumption Trend</h3>
             <canvas id="fuelReportChart" height="150"></canvas>
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
-        <div class="p-6 border-b border-gray-100">
-            <h3 class="font-semibold text-gray-800">Performance Summary</h3>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div class="p-6 border-b border-gray-100 dark:border-gray-700">
+            <h3 class="font-semibold text-gray-800 dark:text-gray-200">Performance Summary</h3>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-gray-600">
-                <thead class="bg-gray-50 text-gray-700 font-semibold border-b border-gray-100">
+            <table class="w-full text-left text-sm text-gray-600 dark:text-gray-300">
+                <thead class="bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-200 font-semibold border-b border-gray-100 dark:border-gray-700">
                     <tr>
                         <th class="px-6 py-4">Metric</th>
                         <th class="px-6 py-4">This Month</th>
@@ -58,12 +58,12 @@
                         <th class="px-6 py-4">Change</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                     <?php foreach ($performanceMetrics as $metric):
                         $colorClass = $metric['is_positive'] ? 'text-green-500' : 'text-red-500';
                     ?>
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4 font-medium text-gray-800"><?= htmlspecialchars($metric['metric']); ?></td>
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition">
+                            <td class="px-6 py-4 font-medium text-gray-800 dark:text-gray-200"><?= htmlspecialchars($metric['metric']); ?></td>
                             <td class="px-6 py-4 font-bold"><?= htmlspecialchars($metric['this_month']); ?></td>
                             <td class="px-6 py-4"><?= htmlspecialchars($metric['last_month']); ?></td>
                             <td class="px-6 py-4 <?= $colorClass; ?> font-medium"><?= htmlspecialchars($metric['change_str']); ?></td>
