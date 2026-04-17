@@ -33,7 +33,7 @@
                         </div>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <span class="<?= $badgeClass; ?> text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+                        <span class="<?= $badgeClass; ?> text-white text-xs font-semibold px-2.5 py-1 rounded-full w-25">
                             <?= htmlspecialchars($truck['status']); ?>
                         </span>
 

@@ -4,7 +4,7 @@
             <i class="fa-solid fa-users text-gray-700 dark:text-gray-200"></i>
             <span>Driver Management</span>
         </div>
-        <button onclick="toggleModal('driverModal', true)" class="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2">
+        <button onclick="toggleModal('addDriverModal', true)" class="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2">
             <i class="fa-solid fa-user-plus"></i><span>Add Driver</span>
         </button>
     </div>
@@ -70,9 +70,6 @@
                 <div class="space-y-2 text-sm text-gray-600 dark:text-gray-300 mb-4">
                     <div class="flex items-center space-x-2"><i class="fa-solid fa-phone w-4 text-center"></i>
                         <span><?= htmlspecialchars($driver['phone'] ?? 'N/A'); ?></span>
-                    </div>
-                    <div class="flex items-center space-x-2"><i class="fa-regular fa-envelope w-4 text-center"></i>
-                        <span><?= htmlspecialchars($driver['email'] ?? 'N/A'); ?></span>
                     </div>
                 </div>
 

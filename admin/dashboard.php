@@ -49,7 +49,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $name = $_POST['name'];
         $cdl = $_POST['cdl_number'];
         $phone = $_POST['phone'];
-        $email = $_POST['email'];
 
         $username = trim($_POST['username']);
         $password = $_POST['password'];
@@ -60,8 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         $new_user_id = $pdo->lastInsertId();
 
-        $driver_insert = $pdo->prepare("INSERT INTO drivers (id, name, cdl_number, phone, email, status) VALUES (?, ?, ?, ?, ?, 'Off Duty')");
-        $driver_insert->execute([$new_user_id, $name, $cdl, $phone, $email]);
+        $driver_insert = $pdo->prepare("INSERT INTO drivers (id, name, cdl_number, phone, status) VALUES (?, ?, ?, ?, 'Off Duty')");
+        $driver_insert->execute([$new_user_id, $name, $cdl, $phone]);
 
         $pdo->query("INSERT INTO driver_payroll (driver_id, total_amount, amount_claimed) VALUES ($new_user_id, 0.00, 0.00)");
 
@@ -110,9 +109,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     if ($_POST['action'] == 'delete_driver') {
         $driver_id = $_POST['driver_id'];
-        $pdo->prepare("UPDATE trucks SET current_driver_id = NULL, status = 'Idle', speed = 0, current_location = 'San Leonardo (Garage)', latitude = 15.3621, longitude = 120.9632 WHERE current_driver_id = ?")->execute([$driver_id]);
-        $pdo->prepare("UPDATE dispatches SET driver_id = NULL WHERE driver_id = ?")->execute([$driver_id]);
-        $pdo->prepare("DELETE FROM drivers WHERE id = ?")->execute([$driver_id]);
+        try {
+            $pdo->prepare("UPDATE trucks SET current_driver_id = NULL, status = 'Idle', speed = 0, current_location = 'San Leonardo (Garage)', latitude = 15.3621, longitude = 120.9632 WHERE current_driver_id = ?")->execute([$driver_id]);
+            $pdo->prepare("UPDATE dispatches SET driver_id = NULL WHERE driver_id = ?")->execute([$driver_id]);
+            
+            $pdo->prepare("DELETE FROM driver_payroll WHERE driver_id = ?")->execute([$driver_id]);
+            $pdo->prepare("DELETE FROM driver_trips WHERE driver_id = ?")->execute([$driver_id]);
+            
+            $pdo->prepare("DELETE FROM drivers WHERE id = ?")->execute([$driver_id]);
+            $pdo->prepare("DELETE FROM users WHERE id = ?")->execute([$driver_id]);
+            
+            http_response_code(200);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo $e->getMessage();
+        }
         exit;
     }
 

@@ -9,42 +9,38 @@
         <form action="dashboard.php" method="POST" class="space-y-4">
             <input type="hidden" name="action" value="add_driver">
 
-            <h4 class="font-semibold text-gray-600 dark:text-gray-300 border-b pb-1">Personal Details</h4>
+            <h4 class="font-semibold text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600 pb-1">Personal Details</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Full Name</label>
-                    <input type="text" name="name" required class="mt-1 p-2 w-full border rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" name="name" required class="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">CDL Number</label>
-                    <input type="text" name="cdl_number" required class="mt-1 p-2 w-full border rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" name="cdl_number" required class="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Phone</label>
-                    <input type="text" name="phone" required class="mt-1 p-2 w-full border rounded-md focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Email</label>
-                    <input type="email" name="email" required class="mt-1 p-2 w-full border rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" name="phone" required class="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 </div>
             </div>
 
-            <h4 class="font-semibold text-gray-600 dark:text-gray-300 border-b pb-1 mt-4">Login Credentials</h4>
+            <h4 class="font-semibold text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600 pb-1 mt-4">Login Credentials</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Username</label>
-                    <input type="text" name="username" required class="mt-1 p-2 w-full border rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" name="username" required class="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Password</label>
-                    <input type="password" name="password" required class="mt-1 p-2 w-full border rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <input type="password" name="password" required class="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 </div>
             </div>
 
             <div class="flex justify-end mt-6">
-                <button type="button"onclick="document.getElementById('addDriverModal').classList.add('hidden')"class="mr-3 px-4 py-2 bg-transparent text-white border border-white rounded-md hover:bg-white hover:text-black">Cancel
-</button>
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Driver</button>
+                <button type="button" onclick="document.getElementById('addDriverModal').classList.add('hidden')" class="mr-3 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 border border-transparent">Save Driver</button>
             </div>
         </form>
     </div>
@@ -65,18 +61,18 @@
 
             <div class="mb-4">
                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Scan Truck RFID Tag <span class="text-red-500">*</span></label>
-                <input type="text" id="rfidInput" name="rfid_tag" placeholder="Click here and scan RFID card..." required autofocus autocomplete="off" class="w-full border border-blue-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 transition-colors">
+                <input type="text" id="rfidInput" name="rfid_tag" placeholder="Click here and scan RFID card..." required autofocus autocomplete="off" class="w-full border border-blue-300 dark:border-blue-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 dark:bg-blue-900 dark:text-gray-100 transition-colors">
                 <p id="rfidFeedback" class="text-xs mt-1 text-gray-500 dark:text-gray-400">Waiting for scan...</p>
             </div>
 
             <div class="grid grid-cols-2 gap-6 mb-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Connected Truck</label>
-                    <input type="text" id="truckPlate" readonly placeholder="Auto-filled after scan" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 bg-gray-100 text-gray-600 dark:text-gray-300 focus:outline-none cursor-not-allowed">
+                    <input type="text" id="truckPlate" readonly placeholder="Auto-filled after scan" class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 focus:outline-none cursor-not-allowed">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Assign Driver</label>
-                    <select name="driver_id" required class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900">
+                    <select name="driver_id" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100">
                         <option value="">Select a driver</option>
                         <?php foreach ($allDrivers as $driver): ?>
                             <option value="<?= $driver['id']; ?>">
@@ -90,22 +86,22 @@
             <div class="grid grid-cols-2 gap-6 mb-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Origin</label>
-                    <input type="text" name="origin" value="Brgy. Burgos San Leonardo, Nueva Ecija" required class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900">
+                    <input type="text" name="origin" value="Brgy. Burgos San Leonardo, Nueva Ecija" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Destination</label>
-                    <input type="text" name="destination" placeholder="e.g. Cabanatuan City" required class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900">
+                    <input type="text" name="destination" placeholder="e.g. Cabanatuan City" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-6 mb-8">
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Weight (lbs)</label>
-                    <input type="number" id="weightInput" name="weight" placeholder="e.g. 10000" required class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900">
+                    <input type="number" id="weightInput" name="weight" placeholder="e.g. 10000" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Calculated Pay (₱)</label>
-                    <input type="text" id="payOutput" name="calculated_pay" readonly placeholder="₱0.00" class="w-full border border-green-200 rounded-lg px-4 py-2.5 bg-green-50 text-green-700 font-bold focus:outline-none cursor-not-allowed">
+                    <input type="text" id="payOutput" name="calculated_pay" readonly placeholder="₱0.00" class="w-full border border-green-200 dark:border-green-700 rounded-lg px-4 py-2.5 bg-green-50 dark:bg-green-900 text-green-700 dark:text-green-300 font-bold focus:outline-none cursor-not-allowed">
                 </div>
             </div>
 
@@ -116,42 +112,6 @@
         </form>
     </div>
 </div>
-
-<div id="driverModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg overflow-hidden relative">
-        <button onclick="toggleModal('driverModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200"><i class="fa-solid fa-xmark fa-lg"></i></button>
-        <div class="p-6 border-b border-gray-100 dark:border-gray-700">
-            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Add New Driver</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Register a new driver to the system.</p>
-        </div>
-        <form method="POST" action="" class="p-6">
-            <input type="hidden" name="action" value="add_driver">
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Full Name</label>
-                <input type="text" name="name" placeholder="e.g. John Doe" required class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900">
-            </div>
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">CDL Number</label>
-                <input type="text" name="cdl_number" placeholder="e.g. CDL-123456" required class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900">
-            </div>
-            <div class="grid grid-cols-2 gap-6 mb-8">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Phone Number</label>
-                    <input type="text" name="phone" placeholder="09XX-XXX-XXXX" required class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Email Address</label>
-                    <input type="email" name="email" placeholder="driver@email.com" required class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900">
-                </div>
-            </div>
-            <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
-                <button type="button" onclick="toggleModal('driverModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition">Cancel</button>
-                <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-black hover:bg-gray-800 transition">Save Driver</button>
-            </div>
-        </form>
-    </div>
-</div>
-
 <div id="viewDriverModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden relative">
         <button onclick="toggleModal('viewDriverModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200"><i class="fa-solid fa-xmark fa-lg"></i></button>
@@ -184,10 +144,6 @@
                     <i class="fa-solid fa-phone text-gray-400 w-5 text-center"></i>
                     <span id="vd-phone" class="font-medium text-gray-700 dark:text-gray-200">--</span>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <i class="fa-regular fa-envelope text-gray-400 w-5 text-center"></i>
-                    <span id="vd-email" class="font-medium text-gray-700 dark:text-gray-200">--</span>
-                </div>
             </div>
         </div>
         <div class="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-right">
@@ -208,10 +164,6 @@
             <a href="#" id="cd-phone-link" class="w-full flex items-center justify-center space-x-2 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 py-3 rounded-lg font-semibold transition">
                 <i class="fa-solid fa-phone"></i>
                 <span id="cd-phone-text">Call Number</span>
-            </a>
-            <a href="#" id="cd-email-link" class="w-full flex items-center justify-center space-x-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 py-3 rounded-lg font-semibold transition">
-                <i class="fa-regular fa-envelope"></i>
-                <span id="cd-email-text">Send Email</span>
             </a>
         </div>
     </div>
@@ -249,8 +201,8 @@
             <i class="fa-solid fa-triangle-exclamation"></i>
         </div>
         <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Remove Driver</h3>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to remove 
-            <strong id="dd-name" class="text-gray-800 dark:text-gray-200"></strong> 
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to remove
+            <strong id="dd-name" class="text-gray-800 dark:text-gray-200"></strong>
             from the system? This action cannot be undone.
         </p>
         <form id="deleteDriverForm" method="POST" action="">
@@ -261,6 +213,8 @@
                 <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">Yes, Remove</button>
             </div>
         </form>
+    </div>
+
 </div>
 
 <div id="deleteTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
@@ -270,7 +224,7 @@
                 <i class="fa-solid fa-triangle-exclamation text-3xl text-red-600"></i>
             </div>
             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Remove Truck</h3>
-            <p class="text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to remove 
+            <p class="text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to remove
                 <strong id="dt-truck-code" class="text-gray-800 dark:text-gray-200"></strong>
                 ? This action cannot be undone.
             </p>
@@ -296,9 +250,10 @@
             <i class="fa-solid fa-user-pen"></i>
         </div>
         <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Update Driver Status</h3>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Manually change the current status for 
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Manually change the current status for
             <strong id="uds-driver-name" class="text-gray-800 dark:text-gray-200"></strong>
-        .</p>
+            .
+        </p>
 
         <form method="POST" action="">
             <input type="hidden" name="action" value="update_driver_status">
@@ -323,7 +278,7 @@
 
 <div id="addTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden relative">
-        <button onclick="toggleModal('addTruckModal', true)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200">
+        <button onclick="toggleModal('addTruckModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200">
             <i class="fa-solid fa-xmark fa-lg"></i>
         </button>
         <div class="p-6 border-b border-gray-100 dark:border-gray-700">
@@ -336,7 +291,7 @@
 
             <div class="mb-4">
                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Truck Code / Plate Number <span class="text-red-500">*</span></label>
-                <input type="text" name="truck_code" placeholder="e.g. TRK-006 or ABC-1234" required class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900">
+                <input type="text" name="truck_code" placeholder="e.g. TRK-006 or ABC-1234" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
             </div>
 
             <div class="mb-8">
@@ -344,7 +299,7 @@
                     <i class="fa-solid fa-wifi mr-1 text-blue-500"></i> Scan RFID Tag <span class="text-red-500">*</span>
                 </label>
 
-                <input type="text" id="newTruckRfidInput" name="rfid_tag" placeholder="Click here and tap card..." required autofocus autocomplete="off" onkeydown="return event.key != 'Enter';" class="w-full border border-blue-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 transition-colors">
+                <input type="text" id="newTruckRfidInput" name="rfid_tag" placeholder="Click here and tap card..." required autofocus autocomplete="off" onkeydown="return event.key != 'Enter';" class="w-full border border-blue-300 dark:border-blue-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 dark:bg-blue-900 dark:text-gray-100 transition-colors">
 
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
                     <i class="fa-solid fa-circle-info text-blue-400"></i> Ensure the blue box is highlighted before scanning.
@@ -368,7 +323,7 @@
         <h3 class="text-xl font-bold text-white tracking-wide">Deleting the driver...</h3>
     </div>
     <div id="successState" class="flex flex-col items-center hidden">
-        <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center text-white text-3xl mb-4 shadow-[0_0_15px_rgba(34,197,94,0.5)] animate-bounce"><i class="fa-solid fa-check"></i></div>
+        <div class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center text-white text-3xl mb-4 shadow-[0_0_15px_rgba(220,38,38,0.5)]"><i class="fa-solid fa-check"></i></div>
         <h3 class="text-xl font-bold text-white tracking-wide">Completed!</h3>
     </div>
 </div>
@@ -381,7 +336,7 @@
             </div>
             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Void Dispatch Ticket</h3>
             <p class="text-gray-500 dark:text-gray-400 mb-6">
-                Are you sure you want to void ticket 
+                Are you sure you want to void ticket
                 <strong id="dd-ticket-number" class="text-gray-800 dark:text-gray-200"></strong>
                 ? This will free up the truck and reverse the driver's payroll.
             </p>

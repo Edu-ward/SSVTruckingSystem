@@ -36,8 +36,10 @@
 
         try {
             map = L.map('map').setView([15.3621, 120.9632], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap'
+            L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                attribution: '&copy; Google Maps'
             }).addTo(map);
 
             trackingData.forEach(truck => {
@@ -131,7 +133,6 @@
         document.getElementById('vd-cdl').innerText = driver.cdl_number || 'N/A';
         document.getElementById('vd-status').innerText = driver.status;
         document.getElementById('vd-phone').innerText = driver.phone || 'N/A';
-        document.getElementById('vd-email').innerText = driver.email || 'N/A';
         document.getElementById('vd-truck').innerText = driver.truck_code || 'None assigned';
         document.getElementById('vd-deliveries').innerText = driver.total_deliveries;
         document.getElementById('vd-ontime').innerText = driver.on_time_pct + '%';
@@ -142,8 +143,6 @@
         document.getElementById('cd-title').innerText = 'Contact ' + driver.name.split(' ')[0];
         document.getElementById('cd-phone-text').innerText = 'Call ' + (driver.phone || 'N/A');
         document.getElementById('cd-phone-link').href = driver.phone ? 'tel:' + driver.phone : '#';
-        document.getElementById('cd-email-text').innerText = 'Email ' + (driver.email || 'N/A');
-        document.getElementById('cd-email-link').href = driver.email ? 'mailto:' + driver.email : '#';
         toggleModal('contactDriverModal', true);
     }
 
@@ -467,6 +466,9 @@
                     body: new FormData(this)
                 })
                 .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(text => { throw new Error(text) });
+                    }
                     setTimeout(() => {
                         loadingState.classList.add('hidden');
                         successState.classList.remove('hidden');
@@ -475,7 +477,7 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Database error.');
+                    alert('Could not remove driver: ' + error.message);
                     overlay.classList.add('hidden');
                 });
         });
@@ -586,7 +588,6 @@
                         // Mark as complete locally so we don't fire this again
                         localStorage.setItem('loading_complete_' + truckCode, 'true');
 
-                        // Send AJAX request to update database silently
                         // Send AJAX request to update database silently
                         fetch('update_transit_status.php', {
                                 method: 'POST',

@@ -77,13 +77,14 @@
 </head>
 
 <body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-    <nav class="bg-blue-600 text-white px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center space-x-2 text-xl font-bold"><i class="fa-solid fa-truck"></i><span>SSV Trucking</span></div>
+    <nav class="bg-blue-600 dark:bg-gray-800 text-white px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center space-x-2 text-xl font-bold">
+            <i class="fa-solid fa-truck"></i>
+            <span>SSV Trucking</span>
+        </div>
 
         <div class="flex space-x-2 text-sm font-medium text-blue-100 items-center">
-            <button onclick="document.getElementById('addDriverModal').classList.remove('hidden')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                + Add Driver
-            </button>
+
             <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex items-center space-x-1 text-white bg-blue-700 px-3 py-1.5 rounded transition"><i class="fa-solid fa-border-all"></i><span>Dashboard</span></button>
             <button onclick="switchTab('tracking')" id="nav-tracking" class="nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition"><i class="fa-solid fa-map-location-dot"></i><span>Live Tracking</span></button>
             <button onclick="switchTab('dispatches')" id="nav-dispatches" class="nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition"><i class="fa-regular fa-file-lines"></i><span>Dispatches</span></button>
@@ -119,7 +120,7 @@
                 const x = event.clientX;
                 const y = event.clientY;
                 const circle = document.createElement('div');
-                
+
                 // Add styling for expanding wave
                 circle.className = 'fixed rounded-full pointer-events-none z-[9999] transition-all duration-[700ms] ease-out';
                 circle.style.left = x + 'px';
@@ -127,10 +128,10 @@
                 circle.style.width = '0px';
                 circle.style.height = '0px';
                 circle.style.transform = 'translate(-50%, -50%)';
-                
+
                 const isGoingDark = !htmlTag.classList.contains('dark');
                 // Give a magical glowing tint to the ripple (blue glow for dark mode, golden glow for light mode)
-                circle.style.backgroundColor = isGoingDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(250, 204, 21, 0.15)'; 
+                circle.style.backgroundColor = isGoingDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(250, 204, 21, 0.15)';
                 circle.style.boxShadow = isGoingDark ? '0 0 40px 20px rgba(56, 189, 248, 0.1)' : '0 0 40px 20px rgba(250, 204, 21, 0.1)';
                 circle.style.backdropFilter = 'contrast(1.1)';
 
@@ -160,7 +161,7 @@
 
             // Save to store explicitly
             localStorage.setItem('theme', isNowDark ? "dark" : "light");
-            
+
             // Save to cookie as backup
             document.cookie = "theme=" + (isNowDark ? "dark" : "light") + "; path=/; max-age=" + (60 * 60 * 24 * 365);
         }

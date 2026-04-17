@@ -33,12 +33,17 @@
                         </div>
 
                         <div class="flex items-center space-x-3">
-                            <span class="<?= $statusClass; ?> text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase">
+                            <span class="<?= $statusClass; ?> text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase shadow-sm">
                                 <?= htmlspecialchars($ticket['status']); ?>
                             </span>
-                            <button onclick="openDeleteDispatchModal(<?= $ticket['id']; ?>, '<?= htmlspecialchars($ticket['ticket_number']); ?>')" class="text-gray-400 hover:text-red-500 transition" title="Cancel/Void Dispatch">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
+                            <div class="flex space-x-2 border-l border-gray-200 dark:border-gray-600 pl-3 ml-1">
+                                <button onclick="window.open('print_ticket.php?id=<?= $ticket['id']; ?>', '_blank')" class="text-gray-400 hover:text-blue-500 transition focus:outline-none" title="Print Waybill Ticket">
+                                    <i class="fa-solid fa-print"></i>
+                                </button>
+                                <button onclick="openDeleteDispatchModal(<?= $ticket['id']; ?>, '<?= htmlspecialchars($ticket['ticket_number']); ?>')" class="text-gray-400 hover:text-red-500 transition focus:outline-none" title="Cancel/Void Dispatch">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -84,7 +89,14 @@
                             <i class="fa-regular fa-file-lines text-blue-500"></i>
                             <span><?= htmlspecialchars($ticket['ticket_number']); ?></span>
                         </div>
-                        <span class="bg-green-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase">delivered</span>
+                        <div class="flex items-center space-x-3">
+                            <span class="bg-green-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase shadow-sm">delivered</span>
+                            <div class="border-l border-gray-200 dark:border-gray-600 pl-3 ml-1 flex items-center">
+                                <button onclick="window.open('print_ticket.php?id=<?= $ticket['id']; ?>', '_blank')" class="text-gray-400 hover:text-blue-500 transition focus:outline-none" title="Print Waybill Ticket">
+                                    <i class="fa-solid fa-print"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <div class="space-y-3 mb-4 text-sm">
                         <div class="flex items-center space-x-2"><i class="fa-solid fa-truck text-gray-500 dark:text-gray-400 w-5 flex justify-center"></i>
