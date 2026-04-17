@@ -42,7 +42,8 @@
             </div>
 
             <div class="flex justify-end mt-6">
-                <button type="button" onclick="document.getElementById('addDriverModal').classList.add('hidden')" class="mr-3 px-4 py-2 bg-gray-200 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
+                <button type="button"onclick="document.getElementById('addDriverModal').classList.add('hidden')"class="mr-3 px-4 py-2 bg-transparent text-white border border-white rounded-md hover:bg-white hover:text-black">Cancel
+</button>
                 <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Driver</button>
             </div>
         </form>
@@ -75,7 +76,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Assign Driver</label>
-                    <select name="driver_id" required class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900">
+                    <select name="driver_id" required class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900">
                         <option value="">Select a driver</option>
                         <?php foreach ($allDrivers as $driver): ?>
                             <option value="<?= $driver['id']; ?>">
@@ -179,8 +180,14 @@
                 </div>
             </div>
             <div class="border-t border-gray-100 dark:border-gray-700 pt-4 space-y-2 text-sm">
-                <div class="flex items-center space-x-3"><i class="fa-solid fa-phone text-gray-400 w-5 text-center"></i> <span id="vd-phone" class="font-medium text-gray-700 dark:text-gray-200">--</span></div>
-                <div class="flex items-center space-x-3"><i class="fa-regular fa-envelope text-gray-400 w-5 text-center"></i> <span id="vd-email" class="font-medium text-gray-700 dark:text-gray-200">--</span></div>
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-phone text-gray-400 w-5 text-center"></i>
+                    <span id="vd-phone" class="font-medium text-gray-700 dark:text-gray-200">--</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <i class="fa-regular fa-envelope text-gray-400 w-5 text-center"></i>
+                    <span id="vd-email" class="font-medium text-gray-700 dark:text-gray-200">--</span>
+                </div>
             </div>
         </div>
         <div class="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-right">
@@ -192,12 +199,20 @@
 <div id="contactDriverModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative p-6 text-center">
         <button onclick="toggleModal('contactDriverModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200"><i class="fa-solid fa-xmark fa-lg"></i></button>
-        <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-regular fa-comments"></i></div>
+        <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
+            <i class="fa-regular fa-comments"></i>
+        </div>
         <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1" id="cd-title">Contact Driver</h3>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Choose how you want to reach out to this driver.</p>
         <div class="space-y-3">
-            <a href="#" id="cd-phone-link" class="w-full flex items-center justify-center space-x-2 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 py-3 rounded-lg font-semibold transition"><i class="fa-solid fa-phone"></i><span id="cd-phone-text">Call Number</span></a>
-            <a href="#" id="cd-email-link" class="w-full flex items-center justify-center space-x-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 py-3 rounded-lg font-semibold transition"><i class="fa-regular fa-envelope"></i><span id="cd-email-text">Send Email</span></a>
+            <a href="#" id="cd-phone-link" class="w-full flex items-center justify-center space-x-2 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 py-3 rounded-lg font-semibold transition">
+                <i class="fa-solid fa-phone"></i>
+                <span id="cd-phone-text">Call Number</span>
+            </a>
+            <a href="#" id="cd-email-link" class="w-full flex items-center justify-center space-x-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 py-3 rounded-lg font-semibold transition">
+                <i class="fa-regular fa-envelope"></i>
+                <span id="cd-email-text">Send Email</span>
+            </a>
         </div>
     </div>
 </div>
@@ -230,9 +245,14 @@
 
 <div id="deleteDriverModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative p-6 text-center">
-        <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
         <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Remove Driver</h3>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to remove <strong id="dd-name" class="text-gray-800 dark:text-gray-200"></strong> from the system? This action cannot be undone.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to remove 
+            <strong id="dd-name" class="text-gray-800 dark:text-gray-200"></strong> 
+            from the system? This action cannot be undone.
+        </p>
         <form id="deleteDriverForm" method="POST" action="">
             <input type="hidden" name="action" value="delete_driver">
             <input type="hidden" name="driver_id" id="delete_driver_id" value="">
@@ -241,7 +261,6 @@
                 <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">Yes, Remove</button>
             </div>
         </form>
-    </div>
 </div>
 
 <div id="deleteTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
@@ -251,7 +270,10 @@
                 <i class="fa-solid fa-triangle-exclamation text-3xl text-red-600"></i>
             </div>
             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Remove Truck</h3>
-            <p class="text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to remove <strong id="dt-truck-code" class="text-gray-800 dark:text-gray-200"></strong>? This action cannot be undone.</p>
+            <p class="text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to remove 
+                <strong id="dt-truck-code" class="text-gray-800 dark:text-gray-200"></strong>
+                ? This action cannot be undone.
+            </p>
 
             <form method="POST" action="dashboard.php">
                 <input type="hidden" name="action" value="delete_truck">
@@ -274,7 +296,9 @@
             <i class="fa-solid fa-user-pen"></i>
         </div>
         <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Update Driver Status</h3>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Manually change the current status for <strong id="uds-driver-name" class="text-gray-800 dark:text-gray-200"></strong>.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Manually change the current status for 
+            <strong id="uds-driver-name" class="text-gray-800 dark:text-gray-200"></strong>
+        .</p>
 
         <form method="POST" action="">
             <input type="hidden" name="action" value="update_driver_status">
@@ -299,7 +323,7 @@
 
 <div id="addTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden relative">
-        <button onclick="toggleModal('addTruckModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200">
+        <button onclick="toggleModal('addTruckModal', true)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200">
             <i class="fa-solid fa-xmark fa-lg"></i>
         </button>
         <div class="p-6 border-b border-gray-100 dark:border-gray-700">
@@ -356,7 +380,11 @@
                 <i class="fa-solid fa-ban text-3xl text-red-600"></i>
             </div>
             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Void Dispatch Ticket</h3>
-            <p class="text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to void ticket <strong id="dd-ticket-number" class="text-gray-800 dark:text-gray-200"></strong>? This will free up the truck and reverse the driver's payroll.</p>
+            <p class="text-gray-500 dark:text-gray-400 mb-6">
+                Are you sure you want to void ticket 
+                <strong id="dd-ticket-number" class="text-gray-800 dark:text-gray-200"></strong>
+                ? This will free up the truck and reverse the driver's payroll.
+            </p>
 
             <form method="POST" action="dashboard.php">
                 <input type="hidden" name="action" value="delete_dispatch">
