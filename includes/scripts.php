@@ -467,7 +467,9 @@
                 })
                 .then(response => {
                     if (!response.ok) {
-                        return response.text().then(text => { throw new Error(text) });
+                        return response.text().then(text => {
+                            throw new Error(text)
+                        });
                     }
                     setTimeout(() => {
                         loadingState.classList.add('hidden');
@@ -546,11 +548,10 @@
         }
     });
 
-    // Add this to the bottom of your scripts.php file
     document.addEventListener("DOMContentLoaded", function() {
         function updateLoadingTimers() {
             const containers = document.querySelectorAll('.loading-timer-container');
-            const LOADING_DURATION_MS = 1 * 60 * 1000; // 20 minutes
+            const LOADING_DURATION_MS = 20* 60 * 1000;
 
             containers.forEach(container => {
                 const truckCode = container.getAttribute('data-truck-id');
