@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SSV Trucking - Admin System</title>
     <script>
-        // Check localStorage instantly to avoid FOUC and bypass PHP caching
         if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         } else {
@@ -30,7 +29,6 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            /* background-color removed from here so Tailwind can control it! */
         }
 
         #map {
@@ -103,25 +101,19 @@
         </div>
     </nav>
     <script>
-        // 1. Set the correct icon instantly when the page loads
         document.addEventListener("DOMContentLoaded", function() {
             if (document.documentElement.classList.contains('dark')) {
                 document.getElementById('themeIcon').classList.replace('fa-moon', 'fa-sun');
             }
         });
 
-        // 2. The function that runs ONLY when you click the button
         function toggleTheme(event) {
             const htmlTag = document.documentElement;
             const themeIcon = document.getElementById('themeIcon');
-
-            // Trigger premium ripple animation
             if (event) {
                 const x = event.clientX;
                 const y = event.clientY;
                 const circle = document.createElement('div');
-
-                // Add styling for expanding wave
                 circle.className = 'fixed rounded-full pointer-events-none z-[9999] transition-all duration-[700ms] ease-out';
                 circle.style.left = x + 'px';
                 circle.style.top = y + 'px';
@@ -130,7 +122,6 @@
                 circle.style.transform = 'translate(-50%, -50%)';
 
                 const isGoingDark = !htmlTag.classList.contains('dark');
-                // Give a magical glowing tint to the ripple (blue glow for dark mode, golden glow for light mode)
                 circle.style.backgroundColor = isGoingDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(250, 204, 21, 0.15)';
                 circle.style.boxShadow = isGoingDark ? '0 0 40px 20px rgba(56, 189, 248, 0.1)' : '0 0 40px 20px rgba(250, 204, 21, 0.1)';
                 circle.style.backdropFilter = 'contrast(1.1)';
@@ -146,11 +137,7 @@
 
                 setTimeout(() => circle.remove(), 700);
             }
-
-            // Toggle the dark class
             const isNowDark = htmlTag.classList.toggle('dark');
-
-            // Swap the icon
             if (isNowDark) {
                 themeIcon.classList.remove('fa-moon');
                 themeIcon.classList.add('fa-sun');
@@ -158,11 +145,7 @@
                 themeIcon.classList.remove('fa-sun');
                 themeIcon.classList.add('fa-moon');
             }
-
-            // Save to store explicitly
             localStorage.setItem('theme', isNowDark ? "dark" : "light");
-
-            // Save to cookie as backup
             document.cookie = "theme=" + (isNowDark ? "dark" : "light") + "; path=/; max-age=" + (60 * 60 * 24 * 365);
         }
     </script>

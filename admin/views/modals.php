@@ -94,11 +94,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-6 mb-8">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Weight (lbs)</label>
-                    <input type="number" id="weightInput" name="weight" placeholder="e.g. 10000" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
-                </div>
+            <div class="grid grid-cols-1 gap-6 mb-8">
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Calculated Pay (₱)</label>
                     <input type="text" id="payOutput" name="calculated_pay" readonly placeholder="₱0.00" class="w-full border border-green-200 dark:border-green-700 rounded-lg px-4 py-2.5 bg-green-50 dark:bg-green-900 text-green-700 dark:text-green-300 font-bold focus:outline-none cursor-not-allowed">
