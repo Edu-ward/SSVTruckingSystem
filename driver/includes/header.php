@@ -35,7 +35,10 @@
     <nav class="bg-[#3b82f6] dark:bg-gray-800 text-white py-4 px-6 shadow-md">
         <div class="flex justify-between items-center max-w-7xl mx-auto">
             <div class="flex items-center space-x-2 text-xl font-bold">
-                <i class="fa-solid fa-truck-fast"></i>
+                <div class="flex-shrink-0">
+                    <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-8 block dark:hidden">
+                    <img src="../src/ssvLogoLight.png" alt="SSV Logo" class="h-8 hidden dark:block">
+                </div>
                 <span>SSV Trucking</span>
             </div>
 
