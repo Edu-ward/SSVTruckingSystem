@@ -445,29 +445,56 @@
 
     document.addEventListener("DOMContentLoaded", function() {
 
-        // Destination Pay Calculation Logic
         const destSelect = document.getElementById('destinationSelect');
+        const gravelTypeSelect = document.getElementById('gravelType');
         const payOutput = document.getElementById('payOutput');
 
         if (destSelect && payOutput) {
-            const rates = {
+            const destRates = {
                 'San Leonardo': 150,
                 'Tarlac': 800,
                 'Laur': 900,
                 'Gabaldon': 1000
             };
 
-            destSelect.addEventListener('change', function() {
-                const dest = this.value;
-                if (rates[dest]) {
-                    payOutput.value = '₱' + rates[dest].toFixed(2);
+            const gravelPrices = <?= json_encode($gravelPrices ?? [
+                                        "S1_regular" => 1500,
+                                        "S1_crushed" => 1600,
+                                        "3_4_regular" => 1400,
+                                        "3_4_crushed" => 1500,
+                                        "G1_regular" => 1700,
+                                        "G1_crushed" => 1800,
+                                        "38_regular" => 1300,
+                                        "38_crushed" => 1400,
+                                        "base_course" => 1200,
+                                        "river_mix" => 1100,
+                                        "garden_soil" => 1000
+                                    ]); ?>;
+
+            function calculateTotalPay() {
+                const dest = destSelect.value;
+                const destPrice = destRates[dest] ? destRates[dest] : 0;
+
+                let gravelPrice = 0;
+                if (gravelTypeSelect && gravelTypeSelect.value) {
+                    const type = gravelTypeSelect.value;
+                    gravelPrice = gravelPrices[type] !== undefined ? gravelPrices[type] : 0;
+                }
+
+                if (dest || (gravelTypeSelect && gravelTypeSelect.value)) {
+                    const total = destPrice + gravelPrice;
+                    payOutput.value = '₱' + total.toFixed(2);
                 } else {
                     payOutput.value = '₱0.00';
                 }
-            });
+            }
+
+            destSelect.addEventListener('change', calculateTotalPay);
+            if (gravelTypeSelect) {
+                gravelTypeSelect.addEventListener('change', calculateTotalPay);
+            }
         }
 
-        // RFID Scanner Logic
         const rfidInput = document.getElementById('rfidInput');
         const truckPlate = document.getElementById('truckPlate');
         const hiddenTruckId = document.getElementById('hiddenTruckId');
@@ -475,7 +502,6 @@
         const dispatchForm = document.getElementById('dispatchForm');
 
         if (dispatchForm && rfidInput) {
-            // Prevent Enter key from submitting the form while scanning
             dispatchForm.addEventListener('submit', function(e) {
                 if (document.activeElement === rfidInput && rfidInput.value !== '') {
                     e.preventDefault();
@@ -483,7 +509,6 @@
                 }
             });
 
-            // Trigger AJAX call when scanner finishes reading (it simulates a fast typing + Enter or blur)
             rfidInput.addEventListener('change', function() {
                 const rfidValue = this.value.trim();
 
@@ -497,13 +522,12 @@
                                 truckPlate.value = data.truck_code;
                                 hiddenTruckId.value = data.truck_id;
                                 rfidFeedback.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-check"></i> Truck matched!</span>';
-                                // Move cursor to select driver
                                 document.querySelector('select[name="driver_id"]').focus();
                             } else {
                                 truckPlate.value = '';
                                 hiddenTruckId.value = '';
                                 rfidFeedback.innerHTML = '<span class="text-red-500"><i class="fa-solid fa-triangle-exclamation"></i> Unregistered RFID tag!</span>';
-                                rfidInput.value = ''; // Clear for retry
+                                rfidInput.value = '';
                                 rfidInput.focus();
                             }
                         })
