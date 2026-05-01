@@ -1,3 +1,9 @@
+<?php
+session_start();
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -23,6 +29,7 @@
         <?php endif; ?>
 
         <form action="auth.php" method="POST">
+            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
             <div class="mb-4">
                 <label class="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1">Username</label>
                 <input type="text" name="username" required class="w-full border p-2 rounded focus:outline-none focus:border-blue-500" placeholder="Username">
