@@ -12,11 +12,10 @@ if (!isset($_GET['id'])) {
 
 $ticket_id = $_GET['id'];
 
-// Fetch extended dispatch ticket details
 $stmt = $pdo->prepare("
     SELECT d.*, 
            t.truck_code, 
-           tr.name AS driver_name, 
+           CONCAT(tr.first_name, ' ', tr.last_name) AS driver_name, 
            tr.phone AS driver_phone
     FROM dispatches d
     LEFT JOIN trucks t ON d.truck_id = t.id
@@ -32,6 +31,7 @@ if (!$ticket) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -41,16 +41,21 @@ if (!$ticket) {
     <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         @media print {
-            body { 
-                print-color-adjust: exact; 
-                -webkit-print-color-adjust: exact; 
+            body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
             }
-            .no-print { display: none !important; }
+
+            .no-print {
+                display: none !important;
+            }
         }
-        body { 
-            background: #e5e7eb; 
-            font-family: 'Inter', sans-serif; 
+
+        body {
+            background: #e5e7eb;
+            font-family: 'Inter', sans-serif;
         }
+
         .waybill-container {
             background: #fff;
             width: 210mm;
@@ -59,6 +64,7 @@ if (!$ticket) {
             padding: 40px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
+
         .barcode {
             font-family: 'Libre Barcode 39', cursive;
             font-size: 4.5rem;
@@ -66,9 +72,9 @@ if (!$ticket) {
         }
     </style>
 </head>
+
 <body class="text-gray-900">
 
-    <!-- Action Bar for Browsers -->
     <div class="no-print bg-gray-900 text-white p-4 flex justify-between items-center fixed top-0 w-full z-10 shadow-md">
         <div class="flex items-center space-x-3">
             <i class="fa-solid fa-print text-blue-400"></i>
@@ -80,9 +86,7 @@ if (!$ticket) {
         </div>
     </div>
 
-    <!-- Printable Area -->
     <div class="waybill-container mt-20 relative">
-        <!-- Header Section -->
         <div class="flex justify-between items-start border-b-2 border-gray-900 pb-6 mb-6">
             <div>
                 <h1 class="text-4xl font-bold tracking-tight mb-1"><i class="fa-solid fa-truck-fast text-gray-800"></i> SSV Trucking</h1>
@@ -96,7 +100,6 @@ if (!$ticket) {
             </div>
         </div>
 
-        <!-- Meta Details Section -->
         <div class="grid grid-cols-2 gap-8 mb-8">
             <div class="bg-gray-50 p-4 border border-gray-200">
                 <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Carrier Details</p>
@@ -107,21 +110,32 @@ if (!$ticket) {
                     <strong class="text-gray-900 bg-white border border-gray-300 px-3 py-1 rounded shadow-sm"><?= htmlspecialchars($ticket['truck_code']); ?></strong>
                 </div>
             </div>
-            
+
             <div class="bg-gray-50 p-4 border border-gray-200">
                 <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Dispatch Details</p>
                 <table class="w-full text-sm mt-1">
                     <tbody>
-                        <tr><td class="text-gray-600 py-1.5 border-b border-gray-200">Date Issued:</td><td class="text-right font-medium text-gray-900 border-b border-gray-200"><?= date('F d, Y', strtotime($ticket['dispatch_date'])); ?></td></tr>
-                        <tr><td class="text-gray-600 py-1.5 border-b border-gray-200">Current Status:</td><td class="text-right font-medium text-gray-900 border-b border-gray-200 uppercase"><?= htmlspecialchars($ticket['status']); ?></td></tr>
-                        <tr><td class="text-gray-600 py-1.5 border-b border-gray-200">Cargo Wgt (lbs):</td><td class="text-right font-medium text-gray-900 border-b border-gray-200"><?= number_format($ticket['weight'], 2); ?></td></tr>
-                        <tr><td class="text-gray-600 py-1.5">Est. Driver Pay:</td><td class="text-right font-bold text-gray-900">₱<?= number_format($ticket['pay_amount'], 2); ?></td></tr>
+                        <tr>
+                            <td class="text-gray-600 py-1.5 border-b border-gray-200">Date Issued:</td>
+                            <td class="text-right font-medium text-gray-900 border-b border-gray-200"><?= date('F d, Y', strtotime($ticket['dispatch_date'])); ?></td>
+                        </tr>
+                        <tr>
+                            <td class="text-gray-600 py-1.5 border-b border-gray-200">Current Status:</td>
+                            <td class="text-right font-medium text-gray-900 border-b border-gray-200 uppercase"><?= htmlspecialchars($ticket['status']); ?></td>
+                        </tr>
+                        <tr>
+                            <td class="text-gray-600 py-1.5 border-b border-gray-200">Cargo Wgt (lbs):</td>
+                            <td class="text-right font-medium text-gray-900 border-b border-gray-200"><?= number_format($ticket['weight'], 2); ?></td>
+                        </tr>
+                        <tr>
+                            <td class="text-gray-600 py-1.5">Est. Driver Pay:</td>
+                            <td class="text-right font-bold text-gray-900">₱<?= number_format($ticket['pay_amount'], 2); ?></td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Route Section -->
         <div class="border border-gray-300 rounded overflow-hidden mb-12">
             <div class="bg-gray-100 px-4 py-2 border-b border-gray-300">
                 <h3 class="text-sm font-bold uppercase tracking-wider text-gray-700">Routing Information</h3>
@@ -134,9 +148,9 @@ if (!$ticket) {
                         <p class="text-lg font-semibold text-gray-800"><?= htmlspecialchars($ticket['origin']); ?></p>
                     </div>
                 </div>
-                
+
                 <div class="w-0.5 h-12 bg-gray-200 absolute left-12 top-16"></div>
-                
+
                 <div class="flex items-center space-x-6">
                     <div class="w-12 h-12 bg-gray-900 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-md">B</div>
                     <div class="flex-1">
@@ -147,7 +161,6 @@ if (!$ticket) {
             </div>
         </div>
 
-        <!-- Footer / Signatures -->
         <div class="grid grid-cols-2 gap-12 mt-20 pt-8 border-t border-gray-300">
             <div class="text-center">
                 <div class="border-b border-gray-900 w-full h-12 mb-2"></div>
@@ -168,12 +181,12 @@ if (!$ticket) {
     </div>
 
     <script>
-        // Trigger print immediately when layout completes loading
         window.onload = function() {
             setTimeout(function() {
                 window.print();
-            }, 800); 
+            }, 800);
         };
     </script>
 </body>
+
 </html>

@@ -401,48 +401,6 @@
                     }
                 }
             });
-            new Chart(document.getElementById('fuelReportChart').getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: fuelData.map(d => d.day_name),
-                    datasets: [{
-                        label: 'Fuel (Gallons)',
-                        data: fuelData.map(d => d.gallons),
-                        borderColor: '#f59e0b',
-                        backgroundColor: '#fef3c7',
-                        borderWidth: 2,
-                        pointBackgroundColor: '#ffffff',
-                        pointBorderColor: '#f59e0b',
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 800,
-                            grid: {
-                                borderDash: [4, 4]
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                usePointStyle: true,
-                                boxWidth: 8
-                            }
-                        }
-                    }
-                }
-            });
         }
     } catch (err) {
         console.error("Reports Charts Error:", err);
@@ -487,20 +445,29 @@
 
     document.addEventListener("DOMContentLoaded", function() {
 
-        // 1. Weight to Pay Calculation
-        const weightInput = document.getElementById('weightInput');
+        // Destination Pay Calculation Logic
+        const destSelect = document.getElementById('destinationSelect');
         const payOutput = document.getElementById('payOutput');
-        const RATE_PER_LB = 0.01; // Set your desired rate per lb here
 
-        if (weightInput && payOutput) {
-            weightInput.addEventListener('input', function() {
-                const weight = parseFloat(this.value) || 0;
-                const pay = weight * RATE_PER_LB;
-                payOutput.value = '₱' + pay.toFixed(2);
+        if (destSelect && payOutput) {
+            const rates = {
+                'San Leonardo': 150,
+                'Tarlac': 800,
+                'Laur': 900,
+                'Gabaldon': 1000
+            };
+
+            destSelect.addEventListener('change', function() {
+                const dest = this.value;
+                if (rates[dest]) {
+                    payOutput.value = '₱' + rates[dest].toFixed(2);
+                } else {
+                    payOutput.value = '₱0.00';
+                }
             });
         }
 
-        // 2. RFID Scanner Logic
+        // RFID Scanner Logic
         const rfidInput = document.getElementById('rfidInput');
         const truckPlate = document.getElementById('truckPlate');
         const hiddenTruckId = document.getElementById('hiddenTruckId');
@@ -551,7 +518,7 @@
     document.addEventListener("DOMContentLoaded", function() {
         function updateLoadingTimers() {
             const containers = document.querySelectorAll('.loading-timer-container');
-            const LOADING_DURATION_MS = 20* 60 * 1000;
+            const LOADING_DURATION_MS = 20 * 60 * 1000;
 
             containers.forEach(container => {
                 const truckCode = container.getAttribute('data-truck-id');
@@ -569,14 +536,12 @@
                 const remaining = Math.max(0, LOADING_DURATION_MS - elapsed);
 
                 if (remaining > 0) {
-                    // Still Loading
                     const mins = Math.floor(remaining / 60000);
                     const secs = Math.floor((remaining % 60000) / 1000);
                     timerText.innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
                     const percent = (elapsed / LOADING_DURATION_MS) * 100;
                     timerProgress.style.width = percent + '%';
                 } else {
-                    // TIME IS UP!
                     timerText.innerText = 'Ready!';
                     timerLabel.innerHTML = '<i class="fa-solid fa-check text-green-600 mr-1"></i> Loading Complete';
                     timerLabel.classList.replace('text-indigo-700', 'text-green-700');
@@ -584,12 +549,9 @@
                     timerProgress.style.width = '100%';
                     timerProgress.classList.replace('bg-indigo-600', 'bg-green-500');
 
-                    // Check if we've already updated this truck to prevent spamming the database
                     if (!localStorage.getItem('loading_complete_' + truckCode)) {
-                        // Mark as complete locally so we don't fire this again
                         localStorage.setItem('loading_complete_' + truckCode, 'true');
 
-                        // Send AJAX request to update database silently
                         fetch('update_transit_status.php', {
                                 method: 'POST',
                                 headers: {
@@ -600,8 +562,6 @@
                             .then(response => response.json())
                             .then(data => {
                                 if (data.success) {
-                                    // THE FIX: Force the page to refresh immediately 
-                                    // so the Admin sees the status change to "In Transit"
                                     window.location.reload();
                                 } else {
                                     console.error("Backend Error: ", data.error);
@@ -613,7 +573,6 @@
             });
         }
 
-        // Only run the timer loop if we are actually on a page with timers
         if (document.querySelector('.loading-timer-container')) {
             setInterval(updateLoadingTimers, 1000);
             updateLoadingTimers();
@@ -624,5 +583,11 @@
         document.getElementById('dd-ticket-number').innerText = ticketNumber;
         document.getElementById('delete_dispatch_id').value = dispatchId;
         toggleModal('deleteDispatchModal', true);
+    }
+
+    function markDispatchDelivered(dispatchId, ticketNumber) {
+        document.getElementById('cd-ticket-number').innerText = ticketNumber;
+        document.getElementById('complete_dispatch_id').value = dispatchId;
+        toggleModal('completeDispatchModal', true);
     }
 </script>

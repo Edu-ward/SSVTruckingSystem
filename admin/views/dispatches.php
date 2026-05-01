@@ -36,10 +36,16 @@
                             <span class="<?= $statusClass; ?> text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase shadow-sm">
                                 <?= htmlspecialchars($ticket['status']); ?>
                             </span>
-                            <div class="flex space-x-2 border-l border-gray-200 dark:border-gray-600 pl-3 ml-1">
+                            <div class="flex items-center space-x-2 border-l border-gray-200 dark:border-gray-600 pl-3 ml-1">
+                                <!-- NEW: Mark as Delivered Button -->
+                                <button onclick="markDispatchDelivered(<?= $ticket['id']; ?>, '<?= htmlspecialchars($ticket['ticket_number']); ?>')" class="text-green-500 hover:text-green-600 transition focus:outline-none" title="Mark as Delivered">
+                                    <i class="fa-solid fa-circle-check text-lg"></i>
+                                </button>
+                                <!-- Print Button -->
                                 <button onclick="window.open('print_ticket.php?id=<?= $ticket['id']; ?>', '_blank')" class="text-gray-400 hover:text-blue-500 transition focus:outline-none" title="Print Waybill Ticket">
                                     <i class="fa-solid fa-print"></i>
                                 </button>
+                                <!-- Delete Button -->
                                 <button onclick="openDeleteDispatchModal(<?= $ticket['id']; ?>, '<?= htmlspecialchars($ticket['ticket_number']); ?>')" class="text-gray-400 hover:text-red-500 transition focus:outline-none" title="Cancel/Void Dispatch">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>

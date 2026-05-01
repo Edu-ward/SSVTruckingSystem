@@ -9,10 +9,10 @@
         </button>
     </div>
 
-    <div class="grid grid-cols-4 gap-6 mb-6">
+    <div class="grid grid-cols-3 gap-6 mb-6">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 flex flex-col items-center justify-center">
             <i class="fa-solid fa-users text-blue-500 text-2xl mb-2"></i>
-            <div class="text-2xl font-bold text-gray-800 dark:text-gray-200"><?= $driverStats['total_drivers']; ?></div>
+            <div class="text-2xl font-bold text-gray-800 dark:text-gray-200"><?= $driverStats['total_drivers'] ?? 0; ?></div>
             <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total Drivers</div>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 flex flex-col items-center justify-center">
@@ -22,13 +22,8 @@
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 flex flex-col items-center justify-center">
             <i class="fa-solid fa-medal text-yellow-500 text-2xl mb-2"></i>
-            <div class="text-2xl font-bold text-gray-800 dark:text-gray-200"><?= number_format($driverStats['avg_rating'], 1); ?></div>
+            <div class="text-2xl font-bold text-gray-800 dark:text-gray-200"><?= number_format($driverStats['avg_rating'] ?? 5.0, 1); ?></div>
             <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Avg Rating</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 flex flex-col items-center justify-center">
-            <i class="fa-regular fa-clock text-purple-500 text-2xl mb-2"></i>
-            <div class="text-2xl font-bold text-gray-800 dark:text-gray-200"><?= number_format($driverStats['avg_hours'], 1); ?></div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Avg Hours/Week</div>
         </div>
     </div>
 
@@ -38,7 +33,6 @@
             if ($driver['status'] == 'Active') $badgeClass = 'bg-green-500';
             if ($driver['status'] == 'Dispatched') $badgeClass = 'bg-blue-500';
 
-            $progressPct = ($driver['hours_this_week'] / 60) * 100;
             $driverJson = htmlspecialchars(json_encode($driver), ENT_QUOTES, 'UTF-8');
         ?>
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 relative group">
@@ -78,31 +72,13 @@
                     <span class="font-bold text-blue-600"><?= htmlspecialchars($driver['truck_code'] ?? 'None'); ?></span>
                 </div>
 
-                <div class="grid grid-cols-3 gap-2 bg-gray-50 dark:bg-gray-900 rounded-lg p-3 text-center mb-4">
+                <div class="grid grid-cols-1 bg-gray-50 dark:bg-gray-900 rounded-lg p-3 text-center mb-4">
                     <div>
                         <div class="font-bold text-gray-800 dark:text-gray-200 text-sm">
                             <i class="fa-solid fa-star text-yellow-400 text-xs mr-1"></i>
-                            <?= number_format($driver['rating'], 1); ?>
+                            <?= number_format($driver['rating'] ?? 5.0, 1); ?>
                         </div>
                         <div class="text-xs text-gray-500 dark:text-gray-400">Rating</div>
-                    </div>
-                    <div>
-                        <div class="font-bold text-gray-800 dark:text-gray-200 text-sm"><?= number_format($driver['total_deliveries']); ?></div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">Deliveries</div>
-                    </div>
-                    <div>
-                        <div class="font-bold text-green-600 text-sm"><?= $driver['on_time_pct']; ?>%</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">On-Time</div>
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                        <span>Hours This Week</span>
-                        <span class="font-bold text-gray-800 dark:text-gray-200"><?= $driver['hours_this_week']; ?> / 60</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-1.5">
-                        <div class="bg-blue-600 h-1.5 rounded-full" style="width: <?= min(100, $progressPct); ?>%"></div>
                     </div>
                 </div>
 

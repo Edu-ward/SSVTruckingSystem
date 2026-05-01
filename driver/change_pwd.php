@@ -36,19 +36,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // OTP belongs to them and matches! Update the password for the connected user
     $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-    
+
     // driver_id maps exactly to users id according to admin implementation
     $stmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
     if ($stmt->execute([$hashed_password, $driver_id])) {
         // success! Clear the OTP session
         unset($_SESSION['reset_otp']);
         unset($_SESSION['otp_expiry']);
-        
+
         echo json_encode(['success' => true, 'message' => 'Password updated successfully!']);
     } else {
         echo json_encode(['success' => false, 'message' => 'Database error. Failed to update password.']);
     }
-
 } else {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
 }

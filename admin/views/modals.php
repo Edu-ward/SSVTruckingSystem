@@ -8,6 +8,7 @@
 
         <form action="dashboard.php" method="POST" class="space-y-4">
             <input type="hidden" name="action" value="add_driver">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
 
             <h4 class="font-semibold text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600 pb-1">Personal Details</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -32,19 +33,43 @@
                     <input type="text" name="username" required class="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Password</label>
-                    <input type="password" name="password" required class="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Password</label>
+                    <div class="flex">
+                        <input type="text" id="driverPasswordInput" name="password" required readonly placeholder="Click generate to create" class="p-2 w-full border border-gray-300 dark:border-gray-600 rounded-l-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm cursor-not-allowed">
+                        <button type="button" onclick="generateDriverPassword()" class="px-4 py-2 bg-blue-100 dark:bg-blue-900 border border-l-0 border-blue-300 dark:border-blue-700 rounded-r-md hover:bg-blue-200 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 transition font-medium" title="Generate Random Password">
+                            Generate
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <div class="flex justify-end mt-6">
-                <button type="button" onclick="document.getElementById('addDriverModal').classList.add('hidden')" class="mr-3 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel
+                <button type="button" onclick="document.getElementById('addDriverModal').classList.add('hidden')" class="mr-3 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition dark:bg-black">Cancel
                 </button>
                 <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 border border-transparent">Save Driver</button>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+function generateDriverPassword() {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let pwd = "";
+    // Ensure at least one uppercase, one lowercase, one number
+    pwd += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 26)];
+    pwd += "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)];
+    pwd += "0123456789"[Math.floor(Math.random() * 10)];
+    // Fill the rest to make it 10 chars long
+    for (let i = 0; i < 7; i++) {
+        pwd += chars[Math.floor(Math.random() * chars.length)];
+    }
+    // Shuffle the characters so the pattern isn't obvious
+    pwd = pwd.split('').sort(function(){return 0.5-Math.random()}).join('');
+    
+    document.getElementById('driverPasswordInput').value = pwd;
+}
+</script>
 
 <div id="dispatchModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl overflow-hidden relative">
@@ -53,7 +78,7 @@
         </button>
         <div class="p-6 border-b border-gray-100 dark:border-gray-700">
             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Create New Dispatch Ticket</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Scan the truck's RFID to auto-fill details, then enter weight to calculate pay.</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Scan the truck's RFID to auto-fill details, then select destination to calculate pay.</p>
         </div>
         <form method="POST" action="" class="p-6" id="dispatchForm">
             <input type="hidden" name="action" value="create_dispatch">
@@ -90,7 +115,13 @@
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Destination</label>
-                    <input type="text" name="destination" placeholder="e.g. Cabanatuan City" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
+                    <select name="destination" id="destinationSelect" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100">
+                        <option value="">Select Destination</option>
+                        <option value="San Leonardo">San Leonardo</option>
+                        <option value="Tarlac">Tarlac</option>
+                        <option value="Laur">Laur</option>
+                        <option value="Gabaldon">Gabaldon</option>
+                    </select>
                 </div>
             </div>
 
@@ -184,7 +215,7 @@
                 </select>
             </div>
             <div class="flex space-x-3">
-                <button type="button" onclick="toggleModal('updateStatusModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition">Cancel</button>
+                <button type="button" onclick="toggleModal('updateStatusModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition dark:bg-black">Cancel</button>
                 <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Update Status</button>
             </div>
         </form>
@@ -205,7 +236,7 @@
             <input type="hidden" name="action" value="delete_driver">
             <input type="hidden" name="driver_id" id="delete_driver_id" value="">
             <div class="flex space-x-3">
-                <button type="button" onclick="toggleModal('deleteDriverModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition">Cancel</button>
+                <button type="button" onclick="toggleModal('deleteDriverModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition dark:bg-black">Cancel</button>
                 <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">Yes, Remove</button>
             </div>
         </form>
@@ -230,7 +261,7 @@
                 <input type="hidden" name="truck_id" id="delete_truck_id">
 
                 <div class="flex justify-center space-x-3">
-                    <button type="button" onclick="toggleModal('deleteTruckModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition">Cancel</button>
+                    <button type="button" onclick="toggleModal('deleteTruckModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition dark:bg-black">Cancel</button>
                     <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">Yes, Remove</button>
                 </div>
             </form>
@@ -265,7 +296,7 @@
             </div>
 
             <div class="flex space-x-3">
-                <button type="button" onclick="toggleModal('updateDriverStatusModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition">Cancel</button>
+                <button type="button" onclick="toggleModal('updateDriverStatusModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition dark:bg-black">Cancel</button>
                 <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Update Status</button>
             </div>
         </form>
@@ -303,7 +334,7 @@
             </div>
 
             <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
-                <button type="button" onclick="toggleModal('addTruckModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition">Cancel</button>
+                <button type="button" onclick="toggleModal('addTruckModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-black transition">Cancel</button>
                 <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-black hover:bg-gray-800 transition">Save Truck</button>
             </div>
         </form>
@@ -344,6 +375,32 @@
                 <div class="flex justify-center space-x-3">
                     <button type="button" onclick="toggleModal('deleteDispatchModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition">Keep Ticket</button>
                     <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">Void Ticket</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="completeDispatchModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden relative">
+        <div class="p-6 text-center">
+            <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-check-double text-3xl text-green-600"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Mark as Delivered</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-6">
+                Are you sure you want to finalize ticket
+                <strong id="cd-ticket-number" class="text-gray-800 dark:text-gray-200"></strong>?
+                This will move it to the completed log and free up the truck and driver.
+            </p>
+
+            <form method="POST" action="dashboard.php">
+                <input type="hidden" name="action" value="complete_dispatch">
+                <input type="hidden" name="dispatch_id" id="complete_dispatch_id">
+
+                <div class="flex justify-center space-x-3">
+                    <button type="button" onclick="toggleModal('completeDispatchModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition">Cancel</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-green-600 hover:bg-green-700 transition">Yes, Mark Delivered</button>
                 </div>
             </form>
         </div>

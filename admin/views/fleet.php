@@ -89,14 +89,10 @@
                     <?php endif; ?>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3 mt-auto">
+                <div class="grid grid-cols-1 gap-3 mt-auto">
                     <button onclick="focusTruck(<?= $truck['latitude'] ?? 0; ?>, <?= $truck['longitude'] ?? 0; ?>)" class="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition flex items-center justify-center space-x-2">
                         <i class="fa-solid fa-location-crosshairs text-gray-500 dark:text-gray-400"></i>
                         <span>Track</span>
-                    </button>
-                    <button class="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition flex items-center justify-center space-x-2">
-                        <i class="fa-regular fa-user text-gray-500 dark:text-gray-400"></i>
-                        <span>Details</span>
                     </button>
                 </div>
             </div>
