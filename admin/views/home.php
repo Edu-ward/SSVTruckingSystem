@@ -1,4 +1,14 @@
 <div id="view-dashboard" class="tab-content block">
+    <?php
+        $recentDispatches = $recentDispatches ?? [];
+        $totalFleet = $totalFleet ?? 0;
+        $activeNow = $activeNow ?? 0;
+        $inProgress = $inProgress ?? 0;
+        $completedToday = $completedToday ?? 0;
+        $idleTrucks = $idleTrucks ?? 0;
+        $onTimeRate = $onTimeRate ?? 0;
+        $rfidActive = $rfidActive ?? 0;
+    ?>
     <div class="grid grid-cols-4 gap-6 mb-6">
         <div class="bg-blue-500 rounded-xl p-6 text-white relative overflow-hidden shadow">
             <div class="text-sm text-blue-100 mb-1">Total Fleet</div>
@@ -60,7 +70,7 @@
                         <i class="fa-solid fa-truck text-blue-500 w-6"></i> Idle Trucks
                     </div>
                     <div class="font-bold text-blue-700">
-                        <?= $idleTrucks; ?>
+                        <?= $idleTrucks ?? 0; ?>
                     </div>
                 </div>
                 <div class="flex justify-between items-center p-3 bg-green-50 rounded-lg dark:bg-gray-700">
@@ -68,7 +78,7 @@
                         <i class="fa-regular fa-circle-check text-green-500 w-6"></i> On-Time Rate
                     </div>
                     <div class="font-bold text-green-700">
-                        <?= $onTimeRate; ?>%
+                        <?= $onTimeRate ?? 0; ?>%
                     </div>
                 </div>
                 <div class="flex justify-between items-center p-3 bg-purple-50 rounded-lg dark:bg-gray-700">
@@ -76,7 +86,7 @@
                         <i class="fa-solid fa-wifi text-purple-500 w-6"></i> RFID Active
                     </div>
                     <div class="font-bold text-purple-700">
-                        <?= $rfidActive; ?>
+                        <?= $rfidActive ?? 0; ?>
                     </div>
                 </div>
             </div>

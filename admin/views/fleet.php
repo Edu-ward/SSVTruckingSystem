@@ -1,3 +1,4 @@
+<?php $fleetData = $fleetData ?? []; ?>
 <div id="view-fleet" class="tab-content hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 mb-6 flex justify-between items-center">
         <div class="flex items-center space-x-2 text-xl font-bold text-gray-800 dark:text-gray-200">

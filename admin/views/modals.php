@@ -1,3 +1,45 @@
+<?php
+$gravelTypes = [
+    "S1_regular" => "S1 Regular",
+    "S1_crushed" => "S1 Crushed",
+
+    "3_4_regular" => "3/4 Regular",
+    "3_4_crushed" => "3/4 Crushed",
+
+    "G1_regular" => "G1 Regular",
+    "G1_crushed" => "G1 Crushed",
+
+    "38_regular" => "3/8 Regular",
+    "38_crushed" => "3/8 Crushed",
+
+    "base_course" => "Base Course",
+    "river_mix" => "River Mix",
+    "garden_soil" => "Garden Soil"
+];
+
+$gravelPrices = [
+    "S1_regular" => 1500,
+    "S1_crushed" => 1600,
+
+    "3_4_regular" => 1400,
+    "3_4_crushed" => 1500,
+
+    "G1_regular" => 1700,
+    "G1_crushed" => 1800,
+
+    "38_regular" => 1300,
+    "38_crushed" => 1400,
+
+    "base_course" => 1200,  
+    "river_mix" => 1100,
+    "garden_soil" => 1000
+];
+
+if (!isset($allDrivers)) {
+    $stmt = $pdo->query("SELECT id, name, status FROM drivers ORDER BY name ASC");
+    $allDrivers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+?>
 <div id="addDriverModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
     <div class="relative top-20 mx-auto p-5 border w-96 md:w-1/2 shadow-lg rounded-md bg-white dark:bg-gray-800">
 
@@ -93,16 +135,36 @@
                     <input type="text" name="destination" placeholder="e.g. Cabanatuan City" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
                 </div>
             </div>
-
-            <div class="grid grid-cols-2 gap-6 mb-8">
+            <div class="grid grid-cols-2 gap-6 mb-4">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Weight (lbs)</label>
-                    <input type="number" id="weightInput" name="weight" placeholder="e.g. 10000" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Calculated Pay (₱)</label>
-                    <input type="text" id="payOutput" name="calculated_pay" readonly placeholder="₱0.00" class="w-full border border-green-200 dark:border-green-700 rounded-lg px-4 py-2.5 bg-green-50 dark:bg-green-900 text-green-700 dark:text-green-300 font-bold focus:outline-none cursor-not-allowed">
-                </div>
+                    <label class="block text-sm font-semibold text-gray-800 mb-2">
+                        Gravel Type <span class="text-red-500">*</span>
+                    </label>
+                
+                    <select id="gravelType" name="gravel_type" required
+                        class="w-full border rounded-lg px-4 py-2.5">
+                
+                        <option value="">Select gravel type</option>
+                
+                        <?php foreach ($gravelTypes as $value => $label): ?>
+                            <option value="<?= $value; ?>">
+                                <?= htmlspecialchars($label); ?>
+                            </option>
+                        <?php endforeach; ?>
+                
+                    </select>
+            </div>
+            
+            <div>
+                   <div>
+                        <label class="block text-sm font-semibold mb-2">
+                            Calculated Pay (₱)
+                        </label>
+                    
+                        <input type="text" id="payOutput" name="calculated_pay"
+                            readonly placeholder="₱0.00"
+                            class="w-full border rounded-lg px-4 py-2.5 bg-green-50 font-bold">
+                   </div>
             </div>
 
             <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">

@@ -17,7 +17,10 @@
                 <h2 class="font-semibold text-gray-800 dark:text-gray-200 text-lg">Active Trucks</h2>
             </div>
             <div class="overflow-y-auto space-y-4">
-                <?php foreach ($trackingTrucks as $truck):
+                <?php if (!isset($trackingTrucks) || !is_array($trackingTrucks)) {
+                    $trackingTrucks = [];
+                }
+                foreach ($trackingTrucks as $truck):
                     $badgeClass = 'bg-gray-500';
                     if ($truck['status'] == 'In Transit') $badgeClass = 'bg-blue-500 dark:bg-gray-700';
                     if ($truck['status'] == 'Idle') $badgeClass = 'bg-yellow-500 dark:bg-gray-700';

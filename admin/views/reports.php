@@ -18,6 +18,7 @@
     </div>
 
     <div class="grid grid-cols-4 gap-6 mb-6">
+        <?php $reportKpis = $reportKpis ?? []; ?>
         <?php foreach ($reportKpis as $kpi): ?>
             <div class="<?= $kpi['color_class']; ?> rounded-xl p-6 text-white relative overflow-hidden shadow-md">
                 <div class="text-sm text-white text-opacity-80 mb-1"><?= htmlspecialchars($kpi['title']); ?></div>
@@ -59,7 +60,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                    <?php foreach ($performanceMetrics as $metric):
+                    <?php $performanceMetrics = $performanceMetrics ?? []; foreach ($performanceMetrics as $metric):
                         $colorClass = $metric['is_positive'] ? 'text-green-500' : 'text-red-500';
                     ?>
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition">

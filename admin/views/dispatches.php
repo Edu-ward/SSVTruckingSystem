@@ -1,3 +1,7 @@
+<?php
+$activeTickets = $activeTickets ?? [];
+$completedTickets = $completedTickets ?? [];
+?>
 <div id="view-dispatches" class="tab-content hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6">
         <div class="flex justify-between items-center mb-6">

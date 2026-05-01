@@ -484,20 +484,25 @@
                 });
         });
     }
+document.addEventListener("DOMContentLoaded", function () {
 
-    document.addEventListener("DOMContentLoaded", function() {
 
-        // 1. Weight to Pay Calculation
-        const weightInput = document.getElementById('weightInput');
-        const payOutput = document.getElementById('payOutput');
-        const RATE_PER_LB = 0.01; // Set your desired rate per lb here
+    // ✅ Gravel logic
+    const prices = <?= json_encode($gravelPrices ?? []); ?>;
 
-        if (weightInput && payOutput) {
-            weightInput.addEventListener('input', function() {
-                const weight = parseFloat(this.value) || 0;
-                const pay = weight * RATE_PER_LB;
-                payOutput.value = '₱' + pay.toFixed(2);
-            });
+    const gravelType = document.getElementById("gravelType");
+    const payOutput = document.getElementById("payOutput");
+
+    if (gravelType && payOutput) {
+        gravelType.addEventListener("change", function () {
+            const selected = this.value;
+
+            if (prices[selected] !== undefined) {
+                payOutput.value = prices[selected];
+            } else {
+                payOutput.value = "paOutout";
+            }
+        });
         }
 
         // 2. RFID Scanner Logic

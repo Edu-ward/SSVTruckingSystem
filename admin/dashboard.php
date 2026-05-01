@@ -11,39 +11,82 @@ require_once '../db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
-    if ($_POST['action'] == 'create_dispatch') {
-        $truck_id = $_POST['truck_id'];
-        $driver_id = $_POST['driver_id'];
-        $rfid_tag = $_POST['rfid_tag'];
-        $origin = $_POST['origin'];
-        $destination = $_POST['destination'];
-        $weight = floatval($_POST['weight']);
+if ($_POST['action'] == 'create_dispatch') {
 
-        // SECURITY: Always calculate money on the backend! 
-        $rate_per_lb = 2.50;
-        $calculated_pay = $weight * $rate_per_lb;
+    $truck_id = $_POST['truck_id'] ?? null;
+    $driver_id = $_POST['driver_id'] ?? null;
+    $origin = $_POST['origin'] ?? '';
+    $destination = $_POST['destination'] ?? '';
+    $gravel_type = $_POST['gravel_type'] ?? '';
 
-        $ticketNum = 'TKT-' . date('Y') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+    // Gravel price list (same as modal)
+    $gravelPrices = [
+        "S1_regular" => 1500,
+        "S1_crushed" => 1600,
+        "3_4_regular" => 1400,
+        "3_4_crushed" => 1500,
+        "G1_regular" => 1700,
+        "G1_crushed" => 1800,
+        "38_regular" => 1300,
+        "38_crushed" => 1400,
+        "base_course" => 1200,
+        "river_mix" => 1100,
+        "garden_soil" => 1000
+    ];
 
-        // 1. Insert into main dispatches table
-        $insert = $pdo->prepare("INSERT INTO dispatches (ticket_number, truck_id, driver_id, status, origin, destination, weight, pay_amount, dispatch_date) VALUES (?, ?, ?, 'Pending', ?, ?, ?, ?, CURDATE())");
-        $insert->execute([$ticketNum, $truck_id, $driver_id, $origin, $destination, $weight, $calculated_pay]);
+    // ✅ Secure backend calculation
+    $calculated_pay = $gravelPrices[$gravel_type] ?? 0;
 
-        // 2. Insert into driver_trips so it shows up on the Driver Panel
-        $trip_insert = $pdo->prepare("INSERT INTO driver_trips (driver_id, destination, trip_date, status) VALUES (?, ?, CURDATE(), 'In Transit')");
-        $trip_insert->execute([$driver_id, $destination]);
+    $ticketNum = 'TKT-' . date('Y') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
 
-        // 3. Update the driver's payroll total
-        $payroll_update = $pdo->prepare("UPDATE driver_payroll SET total_amount = total_amount + ? WHERE driver_id = ?");
-        $payroll_update->execute([$calculated_pay, $driver_id]);
+    // ✅ FIXED INSERT (no weight, includes gravel_type)
+    $insert = $pdo->prepare("
+        INSERT INTO dispatches 
+        (ticket_number, truck_id, driver_id, status, origin, destination, gravel_type, pay_amount, dispatch_date) 
+        VALUES (?, ?, ?, 'Pending', ?, ?, ?, ?, CURDATE())
+    ");
 
-        // 4. Update fleet and driver status
-        $pdo->prepare("UPDATE trucks SET status = 'Loading', current_driver_id = ? WHERE id = ?")->execute([$driver_id, $truck_id]);
-        $pdo->prepare("UPDATE drivers SET status = 'Dispatched' WHERE id = ?")->execute([$driver_id]);
+    $insert->execute([
+        $ticketNum,
+        $truck_id,
+        $driver_id,
+        $origin,
+        $destination,
+        $gravel_type,
+        $calculated_pay
+    ]);
 
-        header("Location: dashboard.php?tab=dispatches");
-        exit;
-    }
+    // Insert into driver trips
+    $trip_insert = $pdo->prepare("
+        INSERT INTO driver_trips (driver_id, destination, trip_date, status) 
+        VALUES (?, ?, CURDATE(), 'In Transit')
+    ");
+    $trip_insert->execute([$driver_id, $destination]);
+
+    // Update payroll
+    $payroll_update = $pdo->prepare("
+        UPDATE driver_payroll 
+        SET total_amount = total_amount + ? 
+        WHERE driver_id = ?
+    ");
+    $payroll_update->execute([$calculated_pay, $driver_id]);
+
+    // Update truck + driver status
+    $pdo->prepare("
+        UPDATE trucks 
+        SET status = 'Loading', current_driver_id = ? 
+        WHERE id = ?
+    ")->execute([$driver_id, $truck_id]);
+
+    $pdo->prepare("
+        UPDATE drivers 
+        SET status = 'Dispatched' 
+        WHERE id = ?
+    ")->execute([$driver_id]);
+
+    header("Location: dashboard.php?tab=dispatches");
+    exit;
+}
 
     if ($_POST['action'] == 'add_driver') {
         $name = $_POST['name'];

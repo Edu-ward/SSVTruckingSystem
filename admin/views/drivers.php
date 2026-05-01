@@ -1,3 +1,12 @@
+<?php
+$driverStats = $driverStats ?? [
+    'total_drivers' => 0,
+    'on_duty' => 0,
+    'avg_rating' => 0,
+    'avg_hours' => 0,
+];
+$allDrivers = $allDrivers ?? [];
+?>
 <div id="view-drivers" class="tab-content hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 flex justify-between items-center mb-6">
         <div class="flex items-center space-x-2 text-xl font-bold text-gray-800 dark:text-gray-200">
