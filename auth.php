@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: admin/dashboard.php");
             exit;
         } elseif ($user['role'] == 'Driver') {
-            header("Location: driver/driver_panel.php");
+            header("Location: driver/dashboard.php");
             exit;
         } else {
             header("Location: index.php?error=unauthorized");

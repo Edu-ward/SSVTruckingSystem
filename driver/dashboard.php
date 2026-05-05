@@ -19,7 +19,7 @@ $stmt2 = $pdo->prepare("SELECT dispatch_date AS trip_date, destination, status, 
 $stmt2->execute([$driver_id]);
 $trips = $stmt2->fetchAll();
 
-include 'includes/header.php';
+include '../includes/header.php';
 ?>
 
 <div class="max-w-7xl mx-auto px-6 py-8">
@@ -29,4 +29,4 @@ include 'includes/header.php';
     ?>
 </div>
 
-<?php include 'includes/scripts.php'; ?>
+<?php include '../includes/scripts.php'; ?>

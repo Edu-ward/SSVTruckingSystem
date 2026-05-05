@@ -8,7 +8,6 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Driver') {
 
 $driver_id = $_SESSION['user_id'];
 
-// Get driver details
 $stmt = $pdo->prepare("SELECT first_name, last_name, cdl_number FROM drivers WHERE id = ?");
 $stmt->execute([$driver_id]);
 $driver = $stmt->fetch();
@@ -93,23 +92,31 @@ $ticket_number = 'PAY-' . date('Y') . '-' . str_pad($driver_id, 3, '0', STR_PAD_
             </div>
             <div class="text-right">
                 <h2 class="text-2xl font-bold text-gray-800 uppercase tracking-widest mb-1">CLAIM TICKET</h2>
-                <p class="text-sm text-gray-500 font-mono tracking-widest mt-2"><?= htmlspecialchars($ticket_number); ?></p>
+                <p class="text-sm text-gray-500 font-mono tracking-widest mt-2">
+                    <?= htmlspecialchars($ticket_number); ?>
+                </p>
             </div>
         </div>
 
         <div class="bg-orange-50 border border-orange-200 p-6 rounded mb-8">
             <div class="flex justify-between items-center mb-4 border-b border-orange-200 pb-4">
                 <h3 class="text-xl font-bold text-orange-800 uppercase tracking-wider">Payroll Claim Amount</h3>
-                <span class="text-4xl font-bold text-gray-900">₱<?= number_format($available_balance, 2); ?></span>
+                <span class="text-4xl font-bold text-gray-900">
+                    ₱<?= number_format($available_balance, 2); ?>
+                </span>
             </div>
             <div class="grid grid-cols-2 gap-4 text-sm">
                 <div>
                     <span class="text-gray-500 block mb-1">Total Lifetime Earnings:</span>
-                    <strong class="text-gray-800">₱<?= number_format($payroll['total_amount'], 2); ?></strong>
+                    <strong class="text-gray-800">
+                        ₱<?= number_format($payroll['total_amount'], 2); ?>
+                    </strong>
                 </div>
                 <div>
                     <span class="text-gray-500 block mb-1">Total Previously Claimed:</span>
-                    <strong class="text-gray-800">₱<?= number_format($payroll['amount_claimed'], 2); ?></strong>
+                    <strong class="text-gray-800">
+                        ₱<?= number_format($payroll['amount_claimed'], 2); ?>
+                    </strong>
                 </div>
             </div>
         </div>
@@ -117,9 +124,15 @@ $ticket_number = 'PAY-' . date('Y') . '-' . str_pad($driver_id, 3, '0', STR_PAD_
         <div class="grid grid-cols-2 gap-8 mb-12">
             <div class="bg-gray-50 p-4 border border-gray-200">
                 <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-2">Driver Details</p>
-                <p class="font-semibold text-xl text-gray-800 mb-1"><?= htmlspecialchars($driver['first_name'] . ' ' . $driver['last_name']); ?></p>
-                <p class="text-sm text-gray-600"><span class="font-medium">Driver ID:</span> DRV-<?= str_pad($driver_id, 4, '0', STR_PAD_LEFT); ?></p>
-                <p class="text-sm text-gray-600 mt-1"><span class="font-medium">CDL Number:</span> <?= htmlspecialchars($driver['cdl_number'] ?? 'N/A'); ?></p>
+                <p class="font-semibold text-xl text-gray-800 mb-1">
+                    <?= htmlspecialchars($driver['first_name'] . ' ' . $driver['last_name']); ?>
+                </p>
+                <p class="text-sm text-gray-600"><span class="font-medium">Driver ID:</span>
+                    DRV-<?= str_pad($driver_id, 4, '0', STR_PAD_LEFT); ?>
+                </p>
+                <p class="text-sm text-gray-600 mt-1"><span class="font-medium">CDL Number:</span>
+                    <?= htmlspecialchars($driver['cdl_number'] ?? 'N/A'); ?>
+                </p>
             </div>
 
             <div class="bg-gray-50 p-4 border border-gray-200">
@@ -128,11 +141,15 @@ $ticket_number = 'PAY-' . date('Y') . '-' . str_pad($driver_id, 3, '0', STR_PAD_
                     <tbody>
                         <tr>
                             <td class="text-gray-600 py-1.5 border-b border-gray-200">Date Generated:</td>
-                            <td class="text-right font-medium text-gray-900 border-b border-gray-200"><?= date('F d, Y - h:i A'); ?></td>
+                            <td class="text-right font-medium text-gray-900 border-b border-gray-200">
+                                <?= date('F d, Y - h:i A'); ?>
+                            </td>
                         </tr>
                         <tr>
                             <td class="text-gray-600 py-1.5 border-b border-gray-200">Valid Until:</td>
-                            <td class="text-right font-medium text-gray-900 border-b border-gray-200"><?= date('F d, Y', strtotime('+3 days')); ?></td>
+                            <td class="text-right font-medium text-gray-900 border-b border-gray-200">
+                                <?= date('F d, Y', strtotime('+3 days')); ?>
+                            </td>
                         </tr>
                         <tr>
                             <td class="text-gray-600 py-1.5">Status:</td>
