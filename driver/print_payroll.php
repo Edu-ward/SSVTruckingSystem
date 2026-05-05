@@ -17,7 +17,6 @@ if (!$driver) {
     die("Driver not found.");
 }
 
-// Get payroll details
 $stmt2 = $pdo->prepare("SELECT * FROM driver_payroll WHERE driver_id = ?");
 $stmt2->execute([$driver_id]);
 $payroll = $stmt2->fetch() ?: ['total_amount' => 0, 'amount_claimed' => 0];
@@ -40,7 +39,7 @@ $ticket_number = 'PAY-' . date('Y') . '-' . str_pad($driver_id, 3, '0', STR_PAD_
     <title>Print Payroll Ticket - <?= htmlspecialchars($ticket_number); ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         @media print {
             body {
@@ -66,12 +65,6 @@ $ticket_number = 'PAY-' . date('Y') . '-' . str_pad($driver_id, 3, '0', STR_PAD_
             padding: 40px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-
-        .barcode {
-            font-family: 'Libre Barcode 39', cursive;
-            font-size: 4.5rem;
-            line-height: 4.5rem;
-        }
     </style>
 </head>
 
@@ -91,14 +84,16 @@ $ticket_number = 'PAY-' . date('Y') . '-' . str_pad($driver_id, 3, '0', STR_PAD_
     <div class="waybill-container mt-20 relative">
         <div class="flex justify-between items-start border-b-2 border-gray-900 pb-6 mb-6">
             <div>
-                <h1 class="text-4xl font-bold tracking-tight mb-1"><i class="fa-solid fa-wallet text-gray-800"></i> SSV Trucking</h1>
+                <div class="flex items-center mb-1">
+                    <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-16 w-auto mr-4">
+                    <h1 class="text-4xl font-bold tracking-tight">SSV Trucking</h1>
+                </div>
                 <p class="text-sm text-gray-600">San Leonardo, Nueva Ecija, Philippines</p>
                 <p class="text-sm text-gray-600">Driver Payroll Authorization</p>
             </div>
             <div class="text-right">
                 <h2 class="text-2xl font-bold text-gray-800 uppercase tracking-widest mb-1">CLAIM TICKET</h2>
-                <div class="barcode">*<?= htmlspecialchars($ticket_number); ?>*</div>
-                <p class="text-xs text-gray-500 font-mono tracking-widest mt-1"><?= htmlspecialchars($ticket_number); ?></p>
+                <p class="text-sm text-gray-500 font-mono tracking-widest mt-2"><?= htmlspecialchars($ticket_number); ?></p>
             </div>
         </div>
 

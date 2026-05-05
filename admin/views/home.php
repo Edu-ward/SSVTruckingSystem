@@ -3,7 +3,7 @@
         <div class="bg-blue-500 rounded-xl p-6 text-white relative overflow-hidden shadow">
             <div class="text-sm text-blue-100 mb-1">Total Fleet</div>
             <div class="text-4xl font-bold mb-1">
-                <?= $totalFleet; ?>
+                <?= $totalFleet ?? 0; ?>
             </div>
             <div class="text-xs text-blue-100">Trucks</div>
             <i class="fa-solid fa-truck absolute right-4 bottom-4 text-6xl text-blue-400 opacity-50"></i>
@@ -11,7 +11,7 @@
         <div class="bg-green-500 rounded-xl p-6 text-white relative overflow-hidden shadow">
             <div class="text-sm text-green-100 mb-1">Active Now</div>
             <div class="text-4xl font-bold mb-1">
-                <?= $activeNow; ?>
+                <?= $activeNow ?? 0; ?>
             </div>
             <div class="text-xs text-green-100">On the road</div>
             <i class="fa-solid fa-arrow-trend-up absolute right-4 bottom-4 text-6xl text-green-400 opacity-50"></i>
@@ -19,7 +19,7 @@
         <div class="bg-orange-500 rounded-xl p-6 text-white relative overflow-hidden shadow">
             <div class="text-sm text-orange-100 mb-1">In Progress</div>
             <div class="text-4xl font-bold mb-1">
-                <?= $inProgress; ?>
+                <?= $inProgress ?? 0; ?>
             </div>
             <div class="text-xs text-orange-100">Active dispatches</div>
             <i class="fa-regular fa-clock absolute right-4 bottom-4 text-6xl text-orange-400 opacity-50"></i>
@@ -27,7 +27,7 @@
         <div class="bg-teal-500 rounded-xl p-6 text-white relative overflow-hidden shadow">
             <div class="text-sm text-teal-100 mb-1">Completed Today</div>
             <div class="text-4xl font-bold mb-1">
-                <?= $completedToday; ?>
+                <?= $completedToday ?? 0; ?>
             </div>
             <div class="text-xs text-teal-100">Deliveries</div>
             <i class="fa-regular fa-circle-check absolute right-4 bottom-4 text-6xl text-teal-400 opacity-50"></i>
@@ -60,7 +60,7 @@
                         <i class="fa-solid fa-truck text-blue-500 w-6"></i> Idle Trucks
                     </div>
                     <div class="font-bold text-blue-700">
-                        <?= $idleTrucks; ?>
+                        <?= $idleTrucks ?? 0; ?>
                     </div>
                 </div>
                 <div class="flex justify-between items-center p-3 bg-green-50 rounded-lg dark:bg-gray-700">
@@ -68,7 +68,7 @@
                         <i class="fa-regular fa-circle-check text-green-500 w-6"></i> On-Time Rate
                     </div>
                     <div class="font-bold text-green-700">
-                        <?= $onTimeRate; ?>%
+                        <?= isset($onTimeRate) ? $onTimeRate : number_format($currMonthQuery['on_time_rate'] ?? 100, 1); ?>%
                     </div>
                 </div>
                 <div class="flex justify-between items-center p-3 bg-purple-50 rounded-lg dark:bg-gray-700">
@@ -76,7 +76,7 @@
                         <i class="fa-solid fa-wifi text-purple-500 w-6"></i> RFID Active
                     </div>
                     <div class="font-bold text-purple-700">
-                        <?= $rfidActive; ?>
+                        <?= $rfidActive ?? 0; ?>
                     </div>
                 </div>
             </div>

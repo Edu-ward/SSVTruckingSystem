@@ -23,17 +23,14 @@
                 }
             }, 250);
         }
-
         window.history.pushState({}, '', '?tab=' + tabName);
     }
-
     switchTab(activeTab);
     const trackingData = <?= json_encode($trackingTrucks ?? []); ?>;
 
     function initMap() {
         const mapDiv = document.getElementById('map');
         if (!mapDiv) return;
-
         try {
             map = L.map('map').setView([15.3621, 120.9632], 12);
             L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
@@ -57,19 +54,14 @@
                         iconAnchor: [15, 15],
                         popupAnchor: [0, -15]
                     });
-
                     L.marker([truck.latitude, truck.longitude], {
-                            icon: customIcon
-                        })
-                        .addTo(map)
-                        .bindPopup(`<b>${truck.truck_code}</b><br><span class="text-xs">${truck.driver_name}</span><br><span class="text-xs">Status: ${truck.status}</span><br><span class="text-xs">Speed: ${truck.speed} mph</span>`);
+                        icon: customIcon
+                    }).addTo(map).bindPopup(`<b>${truck.truck_code}</b><br><span class="text-xs">${truck.driver_name}</span><br><span class="text-xs">Status: ${truck.status}</span><br><span class="text-xs">Speed: ${truck.speed} mph</span>`);
                 }
             });
-
             setTimeout(() => {
                 map.invalidateSize();
             }, 300);
-
         } catch (error) {
             console.error("Map initialization failed:", error);
         }
@@ -88,7 +80,6 @@
             alert("Location data not available for this truck yet.");
         }
     }
-
 
     function switchDispatchTab(tab) {
         document.getElementById('dispatch-grid-active').classList.add('hidden');
@@ -116,13 +107,6 @@
         }
     }
 
-    function updateTruckRFID() {
-        const select = document.getElementById('truckSelect');
-        const rfidField = document.getElementById('rfidInput');
-        const selectedOption = select.options[select.selectedIndex];
-        rfidField.value = selectedOption.value ? (selectedOption.getAttribute('data-rfid') || 'No RFID assigned') : '';
-    }
-
     function getInitialsJS(name) {
         return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     }
@@ -134,8 +118,55 @@
         document.getElementById('vd-status').innerText = driver.status;
         document.getElementById('vd-phone').innerText = driver.phone || 'N/A';
         document.getElementById('vd-truck').innerText = driver.truck_code || 'None assigned';
-        document.getElementById('vd-deliveries').innerText = driver.total_deliveries;
-        document.getElementById('vd-ontime').innerText = driver.on_time_pct + '%';
+
+        let deliveriesCount = driver.total_deliveries ? driver.total_deliveries : 0;
+        let onTimePct = driver.on_time_pct ? parseFloat(driver.on_time_pct).toFixed(1) : '100.0';
+
+        document.getElementById('vd-deliveries').innerText = deliveriesCount;
+        document.getElementById('vd-ontime').innerText = onTimePct + '%';
+
+        let balance = parseFloat(driver.available_balance || 0).toFixed(2);
+        document.getElementById('vd-owed-balance').innerText = balance;
+
+        const settleBtn = document.getElementById('vd-settle-btn');
+        if (parseFloat(balance) > 0) {
+            settleBtn.classList.remove('hidden');
+            settleBtn.onclick = function() {
+                toggleModal('viewDriverModal', false);
+                openSettlePayrollModal(driver.id, driver.name, balance);
+            };
+        } else {
+            settleBtn.classList.add('hidden');
+        }
+
+        const tripsContainer = document.getElementById('vd-recent-trips');
+        if (tripsContainer) {
+            tripsContainer.innerHTML = '';
+            if (driver.recent_trips && driver.recent_trips.length > 0) {
+                driver.recent_trips.forEach(trip => {
+                    const payAmt = parseFloat(trip.display_pay !== undefined ? trip.display_pay : 0).toFixed(2);
+
+                    let statusBadge = '';
+                    if (trip.payment_status === 'Paid') {
+                        statusBadge = `<span class="ml-2 text-green-600 font-semibold bg-green-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wide"><i class="fa-solid fa-check mr-1"></i>Paid</span>`;
+                    } else {
+                        statusBadge = `<span class="ml-2 text-orange-500 font-semibold bg-orange-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wide"><i class="fa-solid fa-clock-rotate-left mr-1"></i>Pending</span>`;
+                    }
+
+                    tripsContainer.innerHTML += `
+                        <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border-l-4 ${trip.payment_status === 'Paid' ? 'border-green-500' : 'border-orange-500'} shadow-sm mb-2">
+                            <div>
+                                <div class="font-bold text-gray-800 dark:text-gray-200">${trip.destination} ${statusBadge}</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5"><i class="fa-regular fa-calendar mr-1"></i> ${trip.trip_date}</div>
+                            </div>
+                            <div class="font-bold ${trip.payment_status === 'Paid' ? 'text-green-600 dark:text-green-400' : 'text-orange-500 dark:text-orange-400'} text-base">₱${payAmt}</div>
+                        </div>
+                    `;
+                });
+            } else {
+                tripsContainer.innerHTML = '<div class="text-xs text-gray-500 dark:text-gray-400 italic mt-2">No trips recorded for this driver.</div>';
+            }
+        }
         toggleModal('viewDriverModal', true);
     }
 
@@ -220,11 +251,9 @@
                     }
                 }
             });
-
             const fleetCounts = fleetStatusData.map(row => row.count);
             const fleetTotal = fleetCounts.reduce((a, b) => a + parseInt(b), 0);
             const pieLabels = fleetStatusData.map(row => `${row.status}: ${fleetTotal > 0 ? Math.round((row.count / fleetTotal) * 100) : 0}%`);
-
             new Chart(document.getElementById('fleetChart').getContext('2d'), {
                 type: 'pie',
                 data: {
@@ -256,14 +285,10 @@
                     datasets: [{
                         label: 'Efficiency %',
                         data: efficiencyData.map(row => row.efficiency_pct),
-
-                        // --- UPDATED COLORS ---
-                        borderColor: '#22c55e', // Tailwind green-500 line
-                        backgroundColor: 'rgba(34, 197, 94, 0.15)', // 15% transparent green fill
-                        pointBorderColor: '#22c55e', // Green ring around the dots
-                        pointBackgroundColor: '#ffffff', // White center for the dots
-                        // ----------------------
-
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                        pointBorderColor: '#22c55e',
+                        pointBackgroundColor: '#ffffff',
                         borderWidth: 2,
                         fill: true,
                         tension: 0.3
@@ -301,11 +326,170 @@
         console.error("Dashboard Charts Error:", err);
     }
 
+    if (document.getElementById('deleteDriverForm')) {
+        document.getElementById('deleteDriverForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            toggleModal('deleteDriverModal', false);
+            const overlay = document.getElementById('loadingOverlay');
+            const loadingState = document.getElementById('loadingState');
+            const successState = document.getElementById('successState');
+            overlay.classList.remove('hidden');
+            loadingState.classList.remove('hidden');
+            successState.classList.add('hidden');
+            fetch('dashboard.php', {
+                    method: 'POST',
+                    body: new FormData(this)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(text => {
+                            throw new Error(text)
+                        });
+                    }
+                    setTimeout(() => {
+                        loadingState.classList.add('hidden');
+                        successState.classList.remove('hidden');
+                        setTimeout(() => window.location.href = 'dashboard.php?tab=drivers', 1500);
+                    }, 1500);
+                })
+                .catch(error => {
+                    alert('Could not remove driver: ' + error.message);
+                    overlay.classList.add('hidden');
+                });
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const destSelect = document.getElementById('destinationSelect');
+        const gravelTypeSelect = document.getElementById('gravelType');
+        const payOutput = document.getElementById('payOutput');
+
+        if (destSelect && payOutput) {
+            const destRates = {
+                'San Leonardo': 150,
+                'Tarlac': 800,
+                'Laur': 900,
+                'Gabaldon': 1000
+            };
+            const gravelPrices = <?= json_encode($gravelPrices ?? ["S1_regular" => 1500, "S1_crushed" => 1600, "3_4_regular" => 1400, "3_4_crushed" => 1500, "G1_regular" => 1700, "G1_crushed" => 1800, "38_regular" => 1300, "38_crushed" => 1400, "base_course" => 1200, "river_mix" => 1100, "garden_soil" => 1000]); ?>;
+
+            function calculateTotalPay() {
+                const dest = destSelect.value;
+                const destPrice = destRates[dest] ? destRates[dest] : 0;
+                let gravelPrice = 0;
+                if (gravelTypeSelect && gravelTypeSelect.value) {
+                    const type = gravelTypeSelect.value;
+                    gravelPrice = gravelPrices[type] !== undefined ? gravelPrices[type] : 0;
+                }
+                if (dest || (gravelTypeSelect && gravelTypeSelect.value)) {
+                    const total = destPrice + gravelPrice;
+                    payOutput.value = '₱' + total.toFixed(2);
+                } else {
+                    payOutput.value = '₱0.00';
+                }
+            }
+            destSelect.addEventListener('change', calculateTotalPay);
+            if (gravelTypeSelect) {
+                gravelTypeSelect.addEventListener('change', calculateTotalPay);
+            }
+        }
+
+        const rfidInput = document.getElementById('rfidInput');
+        const truckPlate = document.getElementById('truckPlate');
+        const hiddenTruckId = document.getElementById('hiddenTruckId');
+        const rfidFeedback = document.getElementById('rfidFeedback');
+        const dispatchForm = document.getElementById('dispatchForm');
+
+        if (dispatchForm && rfidInput) {
+            dispatchForm.addEventListener('submit', function(e) {
+                if (document.activeElement === rfidInput && rfidInput.value !== '') {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+            rfidInput.addEventListener('change', function() {
+                const rfidValue = this.value.trim();
+                if (rfidValue.length > 0) {
+                    rfidFeedback.innerHTML = '<span class="text-blue-500"><i class="fa-solid fa-spinner fa-spin"></i> Finding truck...</span>';
+                    fetch('get_truck_by_rfid.php?rfid=' + encodeURIComponent(rfidValue))
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                truckPlate.value = data.truck_code;
+                                hiddenTruckId.value = data.truck_id;
+                                rfidFeedback.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-check"></i> Truck matched!</span>';
+                                document.querySelector('select[name="driver_id"]').focus();
+                            } else {
+                                truckPlate.value = '';
+                                hiddenTruckId.value = '';
+                                rfidFeedback.innerHTML = '<span class="text-red-500"><i class="fa-solid fa-triangle-exclamation"></i> Unregistered RFID tag!</span>';
+                                rfidInput.value = '';
+                                rfidInput.focus();
+                            }
+                        })
+                        .catch(error => {
+                            rfidFeedback.innerHTML = '<span class="text-red-500">Database connection error.</span>';
+                        });
+                }
+            });
+        }
+    });
+
+    document.addEventListener("DOMContentLoaded", function() {
+        function updateLoadingTimers() {
+            const containers = document.querySelectorAll('.loading-timer-container');
+            const LOADING_DURATION_MS = 20 * 60 * 1000;
+            containers.forEach(container => {
+                const truckCode = container.getAttribute('data-truck-id');
+                const timerText = container.querySelector('.timer-text');
+                const timerProgress = container.querySelector('.timer-progress');
+                const timerLabel = container.querySelector('.timer-label');
+                let startTime = localStorage.getItem('loading_start_' + truckCode);
+                if (!startTime) {
+                    startTime = Date.now();
+                    localStorage.setItem('loading_start_' + truckCode, startTime);
+                }
+                const elapsed = Date.now() - parseInt(startTime);
+                const remaining = Math.max(0, LOADING_DURATION_MS - elapsed);
+                if (remaining > 0) {
+                    const mins = Math.floor(remaining / 60000);
+                    const secs = Math.floor((remaining % 60000) / 1000);
+                    timerText.innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
+                    const percent = (elapsed / LOADING_DURATION_MS) * 100;
+                    timerProgress.style.width = percent + '%';
+                } else {
+                    timerText.innerText = 'Ready!';
+                    timerLabel.innerHTML = '<i class="fa-solid fa-check text-green-600 mr-1"></i> Loading Complete';
+                    timerLabel.classList.replace('text-indigo-700', 'text-green-700');
+                    timerText.classList.replace('text-indigo-700', 'text-green-700');
+                    timerProgress.style.width = '100%';
+                    timerProgress.classList.replace('bg-indigo-600', 'bg-green-500');
+                    if (!localStorage.getItem('loading_complete_' + truckCode)) {
+                        localStorage.setItem('loading_complete_' + truckCode, 'true');
+                        fetch('update_transit_status.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: 'truck_code=' + encodeURIComponent(truckCode)
+                        }).then(response => response.json()).then(data => {
+                            if (data.success) {
+                                window.location.reload();
+                            }
+                        }).catch(error => console.error("Error updating status:", error));
+                    }
+                }
+            });
+        }
+        if (document.querySelector('.loading-timer-container')) {
+            setInterval(updateLoadingTimers, 1000);
+            updateLoadingTimers();
+        }
+    });
+
     try {
         const financeData = <?= json_encode($financeReports ?? []); ?>;
         const deliveryData = <?= json_encode($deliveryPerformance ?? []); ?>;
-        const fuelData = <?= json_encode($fuelConsumption ?? []); ?>;
-
         if (financeData.length > 0 && document.getElementById('revenueReportChart')) {
             new Chart(document.getElementById('revenueReportChart').getContext('2d'), {
                 type: 'line',
@@ -406,203 +590,6 @@
         console.error("Reports Charts Error:", err);
     }
 
-    if (document.getElementById('deleteDriverForm')) {
-        document.getElementById('deleteDriverForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            toggleModal('deleteDriverModal', false);
-
-            const overlay = document.getElementById('loadingOverlay');
-            const loadingState = document.getElementById('loadingState');
-            const successState = document.getElementById('successState');
-
-            overlay.classList.remove('hidden');
-            loadingState.classList.remove('hidden');
-            successState.classList.add('hidden');
-
-            fetch('dashboard.php', {
-                    method: 'POST',
-                    body: new FormData(this)
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.text().then(text => {
-                            throw new Error(text)
-                        });
-                    }
-                    setTimeout(() => {
-                        loadingState.classList.add('hidden');
-                        successState.classList.remove('hidden');
-                        setTimeout(() => window.location.href = 'dashboard.php?tab=drivers', 1500);
-                    }, 1500);
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Could not remove driver: ' + error.message);
-                    overlay.classList.add('hidden');
-                });
-        });
-    }
-
-    document.addEventListener("DOMContentLoaded", function() {
-
-        const destSelect = document.getElementById('destinationSelect');
-        const gravelTypeSelect = document.getElementById('gravelType');
-        const payOutput = document.getElementById('payOutput');
-
-        if (destSelect && payOutput) {
-            const destRates = {
-                'San Leonardo': 150,
-                'Tarlac': 800,
-                'Laur': 900,
-                'Gabaldon': 1000
-            };
-
-            const gravelPrices = <?= json_encode($gravelPrices ?? [
-                                        "S1_regular" => 1500,
-                                        "S1_crushed" => 1600,
-                                        "3_4_regular" => 1400,
-                                        "3_4_crushed" => 1500,
-                                        "G1_regular" => 1700,
-                                        "G1_crushed" => 1800,
-                                        "38_regular" => 1300,
-                                        "38_crushed" => 1400,
-                                        "base_course" => 1200,
-                                        "river_mix" => 1100,
-                                        "garden_soil" => 1000
-                                    ]); ?>;
-
-            function calculateTotalPay() {
-                const dest = destSelect.value;
-                const destPrice = destRates[dest] ? destRates[dest] : 0;
-
-                let gravelPrice = 0;
-                if (gravelTypeSelect && gravelTypeSelect.value) {
-                    const type = gravelTypeSelect.value;
-                    gravelPrice = gravelPrices[type] !== undefined ? gravelPrices[type] : 0;
-                }
-
-                if (dest || (gravelTypeSelect && gravelTypeSelect.value)) {
-                    const total = destPrice + gravelPrice;
-                    payOutput.value = '₱' + total.toFixed(2);
-                } else {
-                    payOutput.value = '₱0.00';
-                }
-            }
-
-            destSelect.addEventListener('change', calculateTotalPay);
-            if (gravelTypeSelect) {
-                gravelTypeSelect.addEventListener('change', calculateTotalPay);
-            }
-        }
-
-        const rfidInput = document.getElementById('rfidInput');
-        const truckPlate = document.getElementById('truckPlate');
-        const hiddenTruckId = document.getElementById('hiddenTruckId');
-        const rfidFeedback = document.getElementById('rfidFeedback');
-        const dispatchForm = document.getElementById('dispatchForm');
-
-        if (dispatchForm && rfidInput) {
-            dispatchForm.addEventListener('submit', function(e) {
-                if (document.activeElement === rfidInput && rfidInput.value !== '') {
-                    e.preventDefault();
-                    return false;
-                }
-            });
-
-            rfidInput.addEventListener('change', function() {
-                const rfidValue = this.value.trim();
-
-                if (rfidValue.length > 0) {
-                    rfidFeedback.innerHTML = '<span class="text-blue-500"><i class="fa-solid fa-spinner fa-spin"></i> Finding truck...</span>';
-
-                    fetch('get_truck_by_rfid.php?rfid=' + encodeURIComponent(rfidValue))
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                truckPlate.value = data.truck_code;
-                                hiddenTruckId.value = data.truck_id;
-                                rfidFeedback.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-check"></i> Truck matched!</span>';
-                                document.querySelector('select[name="driver_id"]').focus();
-                            } else {
-                                truckPlate.value = '';
-                                hiddenTruckId.value = '';
-                                rfidFeedback.innerHTML = '<span class="text-red-500"><i class="fa-solid fa-triangle-exclamation"></i> Unregistered RFID tag!</span>';
-                                rfidInput.value = '';
-                                rfidInput.focus();
-                            }
-                        })
-                        .catch(error => {
-                            rfidFeedback.innerHTML = '<span class="text-red-500">Database connection error.</span>';
-                        });
-                }
-            });
-        }
-    });
-
-    document.addEventListener("DOMContentLoaded", function() {
-        function updateLoadingTimers() {
-            const containers = document.querySelectorAll('.loading-timer-container');
-            const LOADING_DURATION_MS = 20 * 60 * 1000;
-
-            containers.forEach(container => {
-                const truckCode = container.getAttribute('data-truck-id');
-                const timerText = container.querySelector('.timer-text');
-                const timerProgress = container.querySelector('.timer-progress');
-                const timerLabel = container.querySelector('.timer-label');
-
-                let startTime = localStorage.getItem('loading_start_' + truckCode);
-                if (!startTime) {
-                    startTime = Date.now();
-                    localStorage.setItem('loading_start_' + truckCode, startTime);
-                }
-
-                const elapsed = Date.now() - parseInt(startTime);
-                const remaining = Math.max(0, LOADING_DURATION_MS - elapsed);
-
-                if (remaining > 0) {
-                    const mins = Math.floor(remaining / 60000);
-                    const secs = Math.floor((remaining % 60000) / 1000);
-                    timerText.innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
-                    const percent = (elapsed / LOADING_DURATION_MS) * 100;
-                    timerProgress.style.width = percent + '%';
-                } else {
-                    timerText.innerText = 'Ready!';
-                    timerLabel.innerHTML = '<i class="fa-solid fa-check text-green-600 mr-1"></i> Loading Complete';
-                    timerLabel.classList.replace('text-indigo-700', 'text-green-700');
-                    timerText.classList.replace('text-indigo-700', 'text-green-700');
-                    timerProgress.style.width = '100%';
-                    timerProgress.classList.replace('bg-indigo-600', 'bg-green-500');
-
-                    if (!localStorage.getItem('loading_complete_' + truckCode)) {
-                        localStorage.setItem('loading_complete_' + truckCode, 'true');
-
-                        fetch('update_transit_status.php', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/x-www-form-urlencoded',
-                                },
-                                body: 'truck_code=' + encodeURIComponent(truckCode)
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.success) {
-                                    window.location.reload();
-                                } else {
-                                    console.error("Backend Error: ", data.error);
-                                }
-                            })
-                            .catch(error => console.error("Error updating status:", error));
-                    }
-                }
-            });
-        }
-
-        if (document.querySelector('.loading-timer-container')) {
-            setInterval(updateLoadingTimers, 1000);
-            updateLoadingTimers();
-        }
-    });
-
     function openDeleteDispatchModal(dispatchId, ticketNumber) {
         document.getElementById('dd-ticket-number').innerText = ticketNumber;
         document.getElementById('delete_dispatch_id').value = dispatchId;
@@ -613,5 +600,12 @@
         document.getElementById('cd-ticket-number').innerText = ticketNumber;
         document.getElementById('complete_dispatch_id').value = dispatchId;
         toggleModal('completeDispatchModal', true);
+    }
+
+    function openSettlePayrollModal(driverId, driverName, balance) {
+        document.getElementById('sp-driver-name').innerText = driverName;
+        document.getElementById('sp-balance').innerText = '₱' + balance;
+        document.getElementById('settle_driver_id').value = driverId;
+        toggleModal('settlePayrollModal', true);
     }
 </script>

@@ -38,7 +38,7 @@ if (!$ticket) {
     <title>Print Waybill - <?= htmlspecialchars($ticket['ticket_number']); ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         @media print {
             body {
@@ -64,12 +64,6 @@ if (!$ticket) {
             padding: 40px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-
-        .barcode {
-            font-family: 'Libre Barcode 39', cursive;
-            font-size: 4.5rem;
-            line-height: 4.5rem;
-        }
     </style>
 </head>
 
@@ -89,14 +83,16 @@ if (!$ticket) {
     <div class="waybill-container mt-20 relative">
         <div class="flex justify-between items-start border-b-2 border-gray-900 pb-6 mb-6">
             <div>
-                <h1 class="text-4xl font-bold tracking-tight mb-1"><i class="fa-solid fa-truck-fast text-gray-800"></i> SSV Trucking</h1>
+                <div class="flex items-center mb-1">
+                    <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-16 w-auto mr-4">
+                    <h1 class="text-4xl font-bold tracking-tight">SSV Trucking</h1>
+                </div>
                 <p class="text-sm text-gray-600">San Leonardo, Nueva Ecija, Philippines</p>
                 <p class="text-sm text-gray-600">Operations Waybill Record</p>
             </div>
             <div class="text-right">
                 <h2 class="text-2xl font-bold text-gray-800 uppercase tracking-widest mb-1">TICKET</h2>
-                <div class="barcode">*<?= htmlspecialchars($ticket['ticket_number']); ?>*</div>
-                <p class="text-xs text-gray-500 font-mono tracking-widest mt-1"><?= htmlspecialchars($ticket['ticket_number']); ?></p>
+                <p class="text-sm text-gray-500 font-mono tracking-widest mt-2"><?= htmlspecialchars($ticket['ticket_number']); ?></p>
             </div>
         </div>
 
@@ -123,10 +119,7 @@ if (!$ticket) {
                             <td class="text-gray-600 py-1.5 border-b border-gray-200">Current Status:</td>
                             <td class="text-right font-medium text-gray-900 border-b border-gray-200 uppercase"><?= htmlspecialchars($ticket['status']); ?></td>
                         </tr>
-                        <tr>
-                            <td class="text-gray-600 py-1.5 border-b border-gray-200">Cargo Wgt (lbs):</td>
-                            <td class="text-right font-medium text-gray-900 border-b border-gray-200"><?= number_format($ticket['weight'], 2); ?></td>
-                        </tr>
+
                         <tr>
                             <td class="text-gray-600 py-1.5">Est. Driver Pay:</td>
                             <td class="text-right font-bold text-gray-900">₱<?= number_format($ticket['pay_amount'], 2); ?></td>
