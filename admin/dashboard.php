@@ -148,12 +148,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt->execute([$driver_id]);
             $activeTruckId = $stmt->fetchColumn();
 
-            if ($activeTruckId) $pdo->prepare("UPDATE trucks SET status = 'Idle', speed = 0, current_location = 'San Leonardo (Garage)', latitude = 15.3621, longitude = 120.9632 WHERE id = ?")->execute([$activeTruckId]);
+            if ($activeTruckId) {
+                $pdo->prepare("UPDATE trucks SET status = 'Idle', speed = 0, current_location = 'San Leonardo (Garage)', latitude = 15.3621, longitude = 120.9632 WHERE id = ?")->execute([$activeTruckId]);
+            }
+
             $pdo->prepare("UPDATE dispatches SET driver_id = NULL WHERE driver_id = ?")->execute([$driver_id]);
+
             $pdo->prepare("DELETE FROM driver_payroll WHERE driver_id = ?")->execute([$driver_id]);
             $pdo->prepare("DELETE FROM driver_trips WHERE driver_id = ?")->execute([$driver_id]);
+
             $pdo->prepare("DELETE FROM drivers WHERE id = ?")->execute([$driver_id]);
             $pdo->prepare("DELETE FROM users WHERE id = ?")->execute([$driver_id]);
+            
             http_response_code(200);
         } catch (Exception $e) {
             http_response_code(500);

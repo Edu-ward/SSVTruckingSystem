@@ -27,6 +27,45 @@ $gravelPrices = [
     "garden_soil" => 1000
 ];
 ?>
+
+<div id="addTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden relative">
+        <button onclick="toggleModal('addTruckModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200">
+            <i class="fa-solid fa-xmark fa-lg"></i>
+        </button>
+        <div class="p-6 border-b border-gray-100 dark:border-gray-700">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Add New Truck</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Register a new truck to the fleet and assign an RFID tag.</p>
+        </div>
+
+        <form method="POST" action="dashboard.php" class="p-6">
+            <input type="hidden" name="action" value="add_truck">
+
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Truck Code / Plate Number <span class="text-red-500">*</span></label>
+                <input type="text" name="truck_code" placeholder="e.g. TRK-006 or ABC-1234" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
+            </div>
+
+            <div class="mb-8">
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                    <i class="fa-solid fa-wifi mr-1 text-blue-500"></i> Scan RFID Tag <span class="text-red-500">*</span>
+                </label>
+
+                <input type="text" id="newTruckRfidInput" name="rfid_tag" placeholder="Click here and tap card..." required autofocus autocomplete="off" onkeydown="return event.key != 'Enter';" class="w-full border border-blue-300 dark:border-blue-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 dark:bg-blue-900 dark:text-gray-100 transition-colors">
+
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    <i class="fa-solid fa-circle-info text-blue-400"></i> Ensure the blue box is highlighted before scanning.
+                </p>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                <button type="button" onclick="toggleModal('addTruckModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-black transition">Cancel</button>
+                <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-black hover:bg-gray-800 transition">Save Truck</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div id="addDriverModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
     <div class="relative top-20 mx-auto p-5 border w-96 md:w-1/2 shadow-lg rounded-md bg-white dark:bg-gray-800">
         <div class="flex justify-between items-center mb-4">

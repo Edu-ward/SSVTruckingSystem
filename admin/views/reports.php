@@ -47,13 +47,6 @@
         <canvas id="revenueReportChart" height="100"></canvas>
     </div>
 
-    <div class="grid grid-cols-1 gap-6 mb-6">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border border-gray-100 dark:border-gray-700">
-            <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-4">Delivery Performance</h3>
-            <canvas id="deliveryReportChart" height="100"></canvas>
-        </div>
-    </div>
-
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div class="p-6 border-b border-gray-100 dark:border-gray-700">
             <h3 class="font-semibold text-gray-800 dark:text-gray-200">Performance Summary</h3>
