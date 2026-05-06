@@ -1,5 +1,5 @@
 <div id="view-dashboard" class="tab-content block">
-    <div class="grid grid-cols-4 gap-6 mb-6">
+    <div class="grid grid-cols-3 gap-6 mb-6">
         <div class="bg-blue-500 rounded-xl p-6 text-white relative overflow-hidden shadow">
             <div class="text-sm text-blue-100 mb-1">Total Fleet</div>
             <div class="text-4xl font-bold mb-1">
@@ -15,14 +15,6 @@
             </div>
             <div class="text-xs text-green-100">On the road</div>
             <i class="fa-solid fa-arrow-trend-up absolute right-4 bottom-4 text-6xl text-green-400 opacity-50"></i>
-        </div>
-        <div class="bg-orange-500 rounded-xl p-6 text-white relative overflow-hidden shadow">
-            <div class="text-sm text-orange-100 mb-1">In Progress</div>
-            <div class="text-4xl font-bold mb-1">
-                <?= $inProgress ?? 0; ?>
-            </div>
-            <div class="text-xs text-orange-100">Active dispatches</div>
-            <i class="fa-regular fa-clock absolute right-4 bottom-4 text-6xl text-orange-400 opacity-50"></i>
         </div>
         <div class="bg-teal-500 rounded-xl p-6 text-white relative overflow-hidden shadow">
             <div class="text-sm text-teal-100 mb-1">Completed Today</div>

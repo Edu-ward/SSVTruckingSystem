@@ -153,14 +153,25 @@ $gravelTypeLabels = [
             <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                 <div class="flex items-center space-x-3">
                     <div class="w-9 h-9 bg-indigo-100 dark:bg-indigo-900 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-sm">
-                        <?= strtoupper(substr($checker['username'], 0, 2)) ?>
+                        <?= strtoupper(substr($checker['username'], 0, 1)) . strtoupper(substr(explode(' ', $checker['full_name'])[0] ?? '', 0, 1)) ?>
                     </div>
                     <div>
-                        <div class="font-semibold text-gray-800 dark:text-gray-200"><?= htmlspecialchars($checker['username']) ?></div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">Checker · ID #<?= $checker['id'] ?></div>
+                        <div class="font-semibold text-gray-800 dark:text-gray-200">
+                            <?= htmlspecialchars($checker['full_name'] ?: $checker['username']) ?>
+                        </div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                            @<?= htmlspecialchars($checker['username']) ?> · ID #<?= $checker['id'] ?>
+                        </div>
                     </div>
                 </div>
-                <span class="text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-full font-semibold">Checker</span>
+                <div class="flex items-center space-x-4">
+                    <?php if (!empty($checker['phone'])): ?>
+                    <span class="text-xs text-gray-600 dark:text-gray-400">
+                        <i class="fa-solid fa-phone mr-1 opacity-70"></i> <?= htmlspecialchars($checker['phone']) ?>
+                    </span>
+                    <?php endif; ?>
+                    <span class="text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-full font-semibold">Checker</span>
+                </div>
             </div>
             <?php endforeach; ?>
         </div>

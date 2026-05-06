@@ -339,38 +339,7 @@
             console.error("Dashboard Charts Error:", err);
         }
 
-        if (document.getElementById('deleteDriverForm')) {
-            document.getElementById('deleteDriverForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                toggleModal('deleteDriverModal', false);
-                const overlay = document.getElementById('loadingOverlay');
-                const loadingState = document.getElementById('loadingState');
-                const successState = document.getElementById('successState');
-                overlay.classList.remove('hidden');
-                loadingState.classList.remove('hidden');
-                successState.classList.add('hidden');
-                fetch('dashboard.php', {
-                        method: 'POST',
-                        body: new FormData(this)
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            return response.text().then(text => {
-                                throw new Error(text)
-                            });
-                        }
-                        setTimeout(() => {
-                            loadingState.classList.add('hidden');
-                            successState.classList.remove('hidden');
-                            setTimeout(() => window.location.href = 'dashboard.php?tab=drivers', 1500);
-                        }, 1500);
-                    })
-                    .catch(error => {
-                        alert('Could not remove driver: ' + error.message);
-                        overlay.classList.add('hidden');
-                    });
-            });
-        }
+
 
         document.addEventListener("DOMContentLoaded", function() {
             const destSelect = document.getElementById('destinationSelect');
@@ -426,8 +395,15 @@
                                 if (data.success) {
                                     truckPlate.value = data.truck_code;
                                     hiddenTruckId.value = data.truck_id;
+
+                                    const hiddenDriverId = document.getElementById('hiddenDriverId');
+                                    const assignedDriverName = document.getElementById('assignedDriverName');
+                                    if (hiddenDriverId && assignedDriverName) {
+                                        hiddenDriverId.value = data.driver_id || '';
+                                        assignedDriverName.value = data.driver_name || 'No Driver Assigned';
+                                    }
+
                                     rfidFeedback.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-check"></i> Truck matched!</span>';
-                                    document.querySelector('select[name="driver_id"]').focus();
                                 } else {
                                     truckPlate.value = '';
                                     hiddenTruckId.value = '';
@@ -599,7 +575,7 @@
         }
     </script>
 
-<?php elseif ($_SESSION['role'] === 'Driver'): ?>
+<?php elseif ($_SESSION['role'] === 'Driver' || $_SESSION['role'] === 'Checker'): ?>
     <!-- ================= DRIVER SCRIPTS ================= -->
     <script>
         function openChangePasswordModal() {
@@ -690,11 +666,6 @@
                     btn.disabled = false;
                 });
         }
-    </script>
-
-<?php elseif ($_SESSION['role'] === 'Checker'): ?>
-    <!-- ================= CHECKER SCRIPTS ================= -->
-    <script>
         // Theme icon initialisation
         document.addEventListener("DOMContentLoaded", function() {
             const icon = document.getElementById('themeIcon');
@@ -703,4 +674,5 @@
             }
         });
     </script>
+
 <?php endif; ?>

@@ -113,8 +113,10 @@
 
             <?php elseif ($_SESSION['role'] === 'Checker'): ?>
                 <!-- CHECKER NAVIGATION -->
-                <span class="text-blue-100 mr-4">Checker: <strong><?= htmlspecialchars($_SESSION['username'] ?? 'Checker'); ?></strong></span>
-
+                <span class="text-blue-100 mr-4">Checker: <strong><?= htmlspecialchars($checker_full_name ?? $_SESSION['username'] ?? 'Checker'); ?></strong></span>
+                <button onclick="openChangePasswordModal()" class="flex items-center px-3 py-2 text-white bg-blue-700 dark:bg-gray-700 hover:bg-blue-800 dark:hover:bg-gray-600 rounded-md transition shadow-sm">
+                    <i class="fa-solid fa-key mr-2"></i> Change Password
+                </button>
             <?php endif; ?>
 
             <button id="themeToggle" onclick="toggleTheme(event)" class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-700 hover:bg-blue-800 text-white transition-colors focus:outline-none shadow-sm ml-2 relative overflow-hidden">

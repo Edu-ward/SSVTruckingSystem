@@ -9,6 +9,34 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Checker') {
 
 $checker_id = $_SESSION['user_id'];
 
+// --- AUTO-MIGRATE: Ensure checkers table exists ---
+$pdo->exec("CREATE TABLE IF NOT EXISTS checkers (
+    id INT PRIMARY KEY,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    phone VARCHAR(20),
+    FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
+)");
+
+// --- FETCH CHECKER PROFILE ---
+$stmt_profile = $pdo->prepare("SELECT u.username, c.first_name, c.last_name, c.phone FROM users u LEFT JOIN checkers c ON u.id = c.id WHERE u.id = ?");
+$stmt_profile->execute([$checker_id]);
+$checker_profile = $stmt_profile->fetch();
+
+// If no profile record exists yet for this user ID (existing checker), create a blank one
+if ($checker_profile && $checker_profile['first_name'] === null && $checker_profile['last_name'] === null) {
+    $stmt_check_exists = $pdo->prepare("SELECT id FROM checkers WHERE id = ?");
+    $stmt_check_exists->execute([$checker_id]);
+    if (!$stmt_check_exists->fetch()) {
+        $pdo->prepare("INSERT IGNORE INTO checkers (id, first_name, last_name, phone) VALUES (?, '', '', '')")->execute([$checker_id]);
+    }
+}
+
+$checker_full_name = ($checker_profile && !empty($checker_profile['first_name'])) 
+    ? ($checker_profile['first_name'] . ' ' . $checker_profile['last_name']) 
+    : $checker_profile['username'];
+
+
 // --- HANDLE RFID SCAN SUBMISSION ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
@@ -52,6 +80,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $pdo->prepare("UPDATE orders SET status = 'In Progress' WHERE id = ? AND status = 'Pending'")
                         ->execute([$order_id]);
 
+                    // --- Credit driver payroll based on order destination ---
+                    $DRIVER_RATES = ['San Leonardo' => 150, 'Tarlac' => 800, 'Laur' => 900, 'Gabaldon' => 1000];
+                    $driver_pay   = $DRIVER_RATES[$order['destination']] ?? 0;
+
+                    if ($driver_pay > 0) {
+                        // Find the driver permanently assigned to this truck
+                        $driverStmt = $pdo->prepare("SELECT id FROM drivers WHERE truck_id = ?");
+                        $driverStmt->execute([$truck['id']]);
+                        $assignedDriver = $driverStmt->fetch();
+
+                        if ($assignedDriver) {
+                            // Credit the destination fee to the driver's payroll
+                            $pdo->prepare(
+                                "UPDATE driver_payroll SET total_amount = total_amount + ? WHERE driver_id = ?"
+                            )->execute([$driver_pay, $assignedDriver['id']]);
+
+                            // 1. Check if there is an active manual dispatch for this driver/truck
+                            $activeDispatchStmt = $pdo->prepare("SELECT id FROM dispatches WHERE driver_id = ? AND truck_id = ? AND status IN ('In Transit', 'Loading', 'Unloading') ORDER BY id DESC LIMIT 1");
+                            $activeDispatchStmt->execute([$assignedDriver['id'], $truck['id']]);
+                            $activeDispatch = $activeDispatchStmt->fetch();
+
+                            if ($activeDispatch) {
+                                // 2. If manual dispatch exists, complete it
+                                $pdo->prepare("UPDATE dispatches SET status = 'Delivered' WHERE id = ?")->execute([$activeDispatch['id']]);
+                                // Update existing trip record
+                                $pdo->prepare("UPDATE driver_trips SET status = 'Delivered' WHERE driver_id = ? AND status = 'In Transit' ORDER BY id DESC LIMIT 1")->execute([$assignedDriver['id']]);
+                                // Update truck and driver status
+                                $pdo->prepare("UPDATE trucks SET status = 'Idle', current_location = 'San Leonardo (Garage)' WHERE id = ?")->execute([$truck['id']]);
+                                $pdo->prepare("UPDATE drivers SET status = 'Active' WHERE id = ?")->execute([$assignedDriver['id']]);
+                            } else {
+                                // 3. If no manual dispatch, just log a fresh delivered trip
+                                $pdo->prepare(
+                                    "INSERT INTO driver_trips (driver_id, destination, trip_date, status, order_id) VALUES (?, ?, CURDATE(), 'Delivered', ?)"
+                                )->execute([$assignedDriver['id'], $order['destination'], $order_id]);
+
+                            }
+                        }
+                    }
+                    // -----------------------------------------------------------
+
                     // Check if fulfilled
                     $check = $pdo->prepare("SELECT trucks_required, trucks_fulfilled FROM orders WHERE id = ?");
                     $check->execute([$order_id]);
@@ -72,9 +140,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 // --- DATA QUERIES ---
 $myOrders = $pdo->prepare("
-    SELECT o.*, u.username AS checker_name
+    SELECT o.*, COALESCE(CONCAT(c.first_name, ' ', c.last_name), u.username) AS checker_name
     FROM orders o
     LEFT JOIN users u ON u.id = o.checker_id
+    LEFT JOIN checkers c ON u.id = c.id
     WHERE o.checker_id = ? OR o.checker_id IS NULL
     ORDER BY
         FIELD(o.status, 'In Progress', 'Pending', 'Fulfilled', 'Cancelled'),
@@ -154,7 +223,7 @@ $gravelTypeLabels = [
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
+        <?php include 'views/modals.php'; ?>
         <!-- LEFT: RFID Scanner Panel -->
         <div class="lg:col-span-1">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden sticky top-6">
@@ -206,6 +275,29 @@ $gravelTypeLabels = [
                         <span>Confirm Scan</span>
                     </button>
                 </form>
+            </div>
+            
+            <!-- Checker Profile Card -->
+            <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-5">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="w-10 h-10 bg-indigo-100 dark:bg-indigo-900 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold">
+                        <?= strtoupper(substr($checker_profile['first_name'] ?? 'C', 0, 1)) ?>
+                    </div>
+                    <div>
+                        <div class="font-bold text-gray-900 dark:text-gray-100"><?= htmlspecialchars($checker_full_name) ?></div>
+                        <div class="text-xs text-gray-500">Field Checker</div>
+                    </div>
+                </div>
+                <div class="space-y-2 text-sm">
+                    <div class="flex items-center text-gray-600 dark:text-gray-400">
+                        <i class="fa-solid fa-phone w-5 text-indigo-400"></i>
+                        <span><?= htmlspecialchars($checker_profile['phone'] ?? 'No contact') ?></span>
+                    </div>
+                    <div class="flex items-center text-gray-600 dark:text-gray-400">
+                        <i class="fa-solid fa-user w-5 text-indigo-400"></i>
+                        <span>@<?= htmlspecialchars($checker_profile['username']) ?></span>
+                    </div>
+                </div>
             </div>
         </div>
 

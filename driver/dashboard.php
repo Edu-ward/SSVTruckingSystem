@@ -15,9 +15,22 @@ $payroll = $stmt->fetch() ?: ['total_amount' => 0, 'amount_claimed' => 0];
 
 $available_balance = max(0, $payroll['total_amount'] - $payroll['amount_claimed']);
 
-$stmt2 = $pdo->prepare("SELECT dispatch_date AS trip_date, destination, status, pay_amount FROM dispatches WHERE driver_id = ? ORDER BY dispatch_date DESC");
+$driver_rates = [
+    'San Leonardo' => 150,
+    'Tarlac' => 800,
+    'Laur' => 900,
+    'Gabaldon' => 1000
+];
+
+$stmt2 = $pdo->prepare("SELECT trip_date, destination, status FROM driver_trips WHERE driver_id = ? ORDER BY trip_date DESC, id DESC");
 $stmt2->execute([$driver_id]);
-$trips = $stmt2->fetchAll();
+$raw_trips = $stmt2->fetchAll();
+
+$trips = [];
+foreach ($raw_trips as $t) {
+    $t['pay_amount'] = $driver_rates[$t['destination']] ?? 0;
+    $trips[] = $t;
+}
 
 include '../includes/header.php';
 ?>

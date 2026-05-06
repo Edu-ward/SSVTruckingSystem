@@ -4,8 +4,9 @@
             <i class="fa-solid fa-chart-column text-gray-600 dark:text-gray-300 w-5"></i>
             <span>Analytics & Reports</span>
         </div>
-        <form class="flex items-center space-x-3" action="#" method="GET" onsubmit="event.preventDefault(); alert('Backend export endpoint to be implemented.');">
-            <select name="period" onchange="document.getElementById('custom-date-range').classList.toggle('hidden', this.value !== 'custom');" class="border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer">
+        <form class="flex items-center space-x-3" action="export_reports.php" method="GET">
+            <select name="period" id="exportPeriodSelect" onchange="document.getElementById('custom-date-range').classList.toggle('hidden', this.value !== 'custom');" class="border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer">
+                <option value="all">All Time</option>
                 <option value="monthly">This Month</option>
                 <option value="weekly">This Week</option>
                 <option value="yearly">This Year</option>
@@ -26,7 +27,7 @@
 
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 dark:focus:ring-offset-gray-900">
                 <i class="fa-solid fa-file-export"></i>
-                <span>Export</span>
+                <span>Export CSV</span>
             </button>
         </form>
     </div>

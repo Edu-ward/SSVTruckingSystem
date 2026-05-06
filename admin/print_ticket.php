@@ -121,7 +121,7 @@ if (!$ticket) {
                         </tr>
 
                         <tr>
-                            <td class="text-gray-600 py-1.5">Est. Driver Pay:</td>
+                            <td class="text-gray-600 py-1.5">Client's Bill:</td>
                             <td class="text-right font-bold text-gray-900">₱<?= number_format($ticket['pay_amount'], 2); ?></td>
                         </tr>
                     </tbody>
@@ -162,8 +162,8 @@ if (!$ticket) {
             </div>
             <div class="text-center">
                 <div class="border-b border-gray-900 w-full h-12 mb-2"></div>
-                <p class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Admin Authorization</p>
-                <p class="text-xs text-gray-500 mt-1">Stamp & Validated by SSV Fleet Mgmt.</p>
+                <p class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Customer's Checker</p>
+                <p class="text-xs text-gray-500 mt-1">Validated by Customer's Checker</p>
             </div>
         </div>
 

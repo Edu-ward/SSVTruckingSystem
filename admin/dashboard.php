@@ -13,6 +13,28 @@ if (isset($_GET['action']) && $_GET['action'] == 'logout') {
 
 require_once '../db.php';
 
+// --- AUTO-MIGRATE: Create checkers table if not exists ---
+$pdo->exec("CREATE TABLE IF NOT EXISTS checkers (
+    id INT PRIMARY KEY,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    phone VARCHAR(20),
+    FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
+)");
+
+// --- AUTO-MIGRATE: Ensure driver_trips and dispatches have flexible status ---
+$pdo->exec("ALTER TABLE driver_trips MODIFY COLUMN status VARCHAR(50) DEFAULT 'Pending'");
+$pdo->exec("ALTER TABLE dispatches MODIFY COLUMN status VARCHAR(50) DEFAULT 'Pending'");
+$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS order_id INT NULL");
+
+
+
+
+// Sync existing checkers from users table if missing in checkers table
+$pdo->exec("INSERT IGNORE INTO checkers (id, first_name, last_name, phone) 
+            SELECT id, '', '', '' FROM users WHERE role = 'Checker'");
+
+
 // --- GLOBAL DRIVER PAY RATES ---
 $DRIVER_RATES = [
     'San Leonardo' => 150,
@@ -20,6 +42,21 @@ $DRIVER_RATES = [
     'Laur' => 900,
     'Gabaldon' => 1000
 ];
+
+$GRAVEL_PRICES = [
+    "S1_regular" => 1500,
+    "S1_crushed" => 1600,
+    "3_4_regular" => 1400,
+    "3_4_crushed" => 1500,
+    "G1_regular" => 1700,
+    "G1_crushed" => 1800,
+    "38_regular" => 1300,
+    "38_crushed" => 1400,
+    "base_course" => 1200,
+    "river_mix" => 1100,
+    "garden_soil" => 1000
+];
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
@@ -76,9 +113,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $user_insert->execute([$username, $hashed_password]);
 
         $new_user_id = $pdo->lastInsertId();
+        $truck_rfid = trim($_POST['truck_rfid']);
 
-        $driver_insert = $pdo->prepare("INSERT INTO drivers (id, first_name, last_name, cdl_number, phone, status) VALUES (?, ?, ?, ?, ?, 'Off Duty')");
-        $driver_insert->execute([$new_user_id, $firstName, $lastName, $cdl, $phone]);
+        // Look up the truck ID from the provided RFID tag
+        $stmt_truck = $pdo->prepare("SELECT id FROM trucks WHERE rfid_tag = ? LIMIT 1");
+        $stmt_truck->execute([$truck_rfid]);
+        $truck = $stmt_truck->fetch();
+        $truck_id = $truck ? $truck['id'] : null;
+
+        $driver_insert = $pdo->prepare("INSERT INTO drivers (id, first_name, last_name, cdl_number, phone, status, truck_id) VALUES (?, ?, ?, ?, ?, 'Off Duty', ?)");
+        $driver_insert->execute([$new_user_id, $firstName, $lastName, $cdl, $phone, $truck_id]);
 
         $pdo->query("INSERT INTO driver_payroll (driver_id, total_amount, amount_claimed) VALUES ($new_user_id, 0.00, 0.00)");
 
@@ -142,30 +186,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
     if ($_POST['action'] == 'delete_driver') {
+        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+            http_response_code(403);
+            echo "CSRF token validation failed";
+            exit;
+        }
         $driver_id = $_POST['driver_id'];
+        if (!$driver_id) {
+            http_response_code(400);
+            echo "Driver ID is missing";
+            exit;
+        }
         try {
-            $stmt = $pdo->prepare("SELECT truck_id FROM dispatches WHERE driver_id = ? AND status IN ('Pending', 'Loading', 'In Transit', 'Unloading') LIMIT 1");
-            $stmt->execute([$driver_id]);
-            $activeTruckId = $stmt->fetchColumn();
+            $pdo->beginTransaction();
 
-            if ($activeTruckId) {
-                $pdo->prepare("UPDATE trucks SET status = 'Idle', speed = 0, current_location = 'San Leonardo (Garage)', latitude = 15.3621, longitude = 120.9632 WHERE id = ?")->execute([$activeTruckId]);
+            $stmt1 = $pdo->prepare("SELECT truck_id FROM drivers WHERE id = ?");
+            $stmt1->execute([$driver_id]);
+            $assignedTruckId = $stmt1->fetchColumn();
+
+            $stmt2 = $pdo->prepare("SELECT truck_id FROM dispatches WHERE driver_id = ? AND status IN ('Pending', 'Loading', 'In Transit', 'Unloading') LIMIT 1");
+            $stmt2->execute([$driver_id]);
+            $activeTruckId = $stmt2->fetchColumn();
+
+            $truckToReset = $assignedTruckId ?: $activeTruckId;
+            if ($truckToReset) {
+                $pdo->prepare("UPDATE trucks SET status = 'Idle', speed = 0, current_location = 'San Leonardo (Garage)', latitude = 15.3621, longitude = 120.9632 WHERE id = ?")->execute([$truckToReset]);
             }
 
             $pdo->prepare("UPDATE dispatches SET driver_id = NULL WHERE driver_id = ?")->execute([$driver_id]);
-
+            $pdo->prepare("UPDATE orders SET checker_id = NULL WHERE checker_id = ?")->execute([$driver_id]);
             $pdo->prepare("DELETE FROM driver_payroll WHERE driver_id = ?")->execute([$driver_id]);
             $pdo->prepare("DELETE FROM driver_trips WHERE driver_id = ?")->execute([$driver_id]);
-
             $pdo->prepare("DELETE FROM drivers WHERE id = ?")->execute([$driver_id]);
             $pdo->prepare("DELETE FROM users WHERE id = ?")->execute([$driver_id]);
-            
-            http_response_code(200);
+
+            $pdo->commit();
+            header("Location: dashboard.php?tab=drivers");
+            exit;
         } catch (Exception $e) {
-            http_response_code(500);
-            echo $e->getMessage();
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            die("Database error: " . $e->getMessage());
         }
-        exit;
     }
 
     if ($_POST['action'] == 'add_truck') {
@@ -193,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] == 'settle_payroll') {
         $driver_id = $_POST['driver_id'];
 
-        $stmt = $pdo->query("SELECT destination FROM dispatches WHERE driver_id = " . intval($driver_id) . " AND status = 'Delivered'");
+        $stmt = $pdo->query("SELECT destination FROM driver_trips WHERE driver_id = " . intval($driver_id) . " AND status = 'Delivered'");
         $trips = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $total_earned = 0;
@@ -223,10 +284,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] == 'add_checker') {
         $uname = trim($_POST['checker_username']);
         $pwd   = $_POST['checker_password'];
+        $fname = trim($_POST['first_name']);
+        $lname = trim($_POST['last_name']);
+        $phone = trim($_POST['phone']);
+
         if (strlen($pwd) < 8) die("Password must be at least 8 characters.");
-        $hashed = password_hash($pwd, PASSWORD_DEFAULT);
-        $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'Checker')")->execute([$uname, $hashed]);
-        header("Location: dashboard.php?tab=orders");
+        
+        try {
+            $pdo->beginTransaction();
+            
+            $hashed = password_hash($pwd, PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'Checker')");
+            $stmt->execute([$uname, $hashed]);
+            $new_user_id = $pdo->lastInsertId();
+
+            $stmt2 = $pdo->prepare("INSERT INTO checkers (id, first_name, last_name, phone) VALUES (?, ?, ?, ?)");
+            $stmt2->execute([$new_user_id, $fname, $lname, $phone]);
+
+            $pdo->commit();
+            header("Location: dashboard.php?tab=orders");
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            die("Error adding checker: " . $e->getMessage());
+        }
         exit;
     }
 
@@ -253,7 +333,8 @@ $rfidActive = $pdo->query("SELECT COUNT(*) FROM trucks WHERE rfid_active = 1")->
 $fleetStatusData = $pdo->query("SELECT status, COUNT(*) as count FROM trucks GROUP BY status")->fetchAll(PDO::FETCH_ASSOC);
 $recentDispatches = $pdo->query("SELECT d.ticket_number, t.truck_code, CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name, d.status, d.destination FROM dispatches d JOIN trucks t ON d.truck_id = t.id JOIN drivers dr ON d.driver_id = dr.id ORDER BY d.id DESC LIMIT 5")->fetchAll(PDO::FETCH_ASSOC);
 
-$trackingTrucks = $pdo->query("SELECT t.truck_code, t.status, t.current_location, t.speed, t.latitude, t.longitude, CONCAT(d.first_name, ' ', d.last_name) AS driver_name FROM trucks t LEFT JOIN dispatches disp ON t.id = disp.truck_id AND disp.status = 'In Transit' LEFT JOIN drivers d ON disp.driver_id = d.id WHERE t.latitude IS NOT NULL")->fetchAll(PDO::FETCH_ASSOC);
+$trackingTrucks = $pdo->query("SELECT t.truck_code, t.status, t.current_location, t.speed, t.latitude, t.longitude, CONCAT(d.first_name, ' ', d.last_name) AS driver_name FROM trucks t LEFT JOIN drivers d ON t.id = d.truck_id WHERE t.latitude IS NOT NULL")->fetchAll(PDO::FETCH_ASSOC);
+
 
 $allDispatches = $pdo->query("SELECT d.id, d.ticket_number, t.truck_code, CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name, d.status, d.destination FROM dispatches d JOIN trucks t ON d.truck_id = t.id JOIN drivers dr ON d.driver_id = dr.id ORDER BY d.id DESC")->fetchAll(PDO::FETCH_ASSOC);
 $activeTickets = array_filter($allDispatches, function ($d) {
@@ -263,7 +344,7 @@ $completedTickets = array_filter($allDispatches, function ($d) {
     return $d['status'] == 'Delivered';
 });
 
-$fleetData = $pdo->query("SELECT t.id, t.truck_code, t.rfid_tag, t.status, t.speed, t.latitude, t.longitude, t.current_location, CONCAT(d.first_name, ' ', d.last_name) AS driver_name, disp.ticket_number, disp.destination FROM trucks t LEFT JOIN dispatches disp ON t.id = disp.truck_id AND disp.status IN ('Pending', 'In Transit', 'Loading', 'Unloading') LEFT JOIN drivers d ON disp.driver_id = d.id ORDER BY t.truck_code ASC")->fetchAll(PDO::FETCH_ASSOC);
+$fleetData = $pdo->query("SELECT t.id, t.truck_code, t.rfid_tag, t.status, t.speed, t.latitude, t.longitude, t.current_location, CONCAT(d.first_name, ' ', d.last_name) AS driver_name, disp.ticket_number, disp.destination FROM trucks t LEFT JOIN dispatches disp ON t.id = disp.truck_id AND disp.status IN ('Pending', 'In Transit', 'Loading', 'Unloading') LEFT JOIN drivers d ON t.id = d.truck_id ORDER BY t.truck_code ASC")->fetchAll(PDO::FETCH_ASSOC);
 
 $driverStats = $pdo->query("SELECT COUNT(*) as total_drivers, SUM(IF(status='Active', 1, 0)) as on_duty, AVG(rating) as avg_rating FROM drivers")->fetch(PDO::FETCH_ASSOC);
 
@@ -271,19 +352,18 @@ $driverStats = $pdo->query("SELECT COUNT(*) as total_drivers, SUM(IF(status='Act
 $allDrivers = $pdo->query("
     SELECT 
         d.*, CONCAT(d.first_name, ' ', d.last_name) AS name, t.truck_code,
-        (SELECT COUNT(*) FROM dispatches WHERE driver_id = d.id AND status = 'Delivered') AS total_deliveries,
+        (SELECT COUNT(*) FROM driver_trips WHERE driver_id = d.id AND status = 'Delivered') AS total_deliveries,
         (SELECT COALESCE((SUM(is_on_time) / NULLIF(COUNT(*), 0)) * 100, 100) FROM dispatches WHERE driver_id = d.id AND status = 'Delivered') AS on_time_pct,
         COALESCE(dp.amount_claimed, 0) AS amount_claimed
     FROM drivers d 
-    LEFT JOIN dispatches disp ON disp.driver_id = d.id AND disp.status IN ('Pending', 'Loading', 'In Transit', 'Unloading') 
-    LEFT JOIN trucks t ON disp.truck_id = t.id 
+    LEFT JOIN trucks t ON t.id = d.truck_id
     LEFT JOIN driver_payroll dp ON dp.driver_id = d.id
     ORDER BY d.first_name ASC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 foreach ($allDrivers as &$dr) {
     // 1. Fetch all delivered trips
-    $stmt = $pdo->prepare("SELECT destination, dispatch_date AS trip_date FROM dispatches WHERE driver_id = ? AND status = 'Delivered' ORDER BY dispatch_date ASC, id ASC");
+    $stmt = $pdo->prepare("SELECT destination, trip_date, status FROM driver_trips WHERE driver_id = ? AND status = 'Delivered' ORDER BY trip_date ASC, id ASC");
     $stmt->execute([$dr['id']]);
     $all_delivered = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -326,30 +406,73 @@ const ESTIMATED_OP_COST_PCT = 0.40;
 const PLACEHOLDER_CUSTOMER_RATING = 4.8;
 
 try {
-    $currMonthQuery = $pdo->query("SELECT COUNT(id) AS deliveries, SUM(pay_amount) AS revenue, COALESCE((SUM(is_on_time) / NULLIF(COUNT(id), 0)) * 100, 100) AS on_time_rate FROM dispatches WHERE MONTH(dispatch_date) = MONTH(CURDATE()) AND YEAR(dispatch_date) = YEAR(CURDATE())")->fetch(PDO::FETCH_ASSOC);
-    $lastMonthQuery = $pdo->query("SELECT COUNT(id) AS deliveries, SUM(pay_amount) AS revenue FROM dispatches WHERE MONTH(dispatch_date) = MONTH(CURDATE() - INTERVAL 1 MONTH) AND YEAR(dispatch_date) = YEAR(CURDATE())")->fetch(PDO::FETCH_ASSOC);
+    // 1. Manual Dispatch Revenue (Excluding Driver Cut)
+    $currManualRevenue = 0;
+    $currManualDeliveries = 0;
+    $stmt_m_curr = $pdo->query("SELECT pay_amount, destination FROM dispatches WHERE MONTH(dispatch_date) = MONTH(CURDATE()) AND YEAR(dispatch_date) = YEAR(CURDATE()) AND status = 'Delivered'");
+    while ($m = $stmt_m_curr->fetch()) {
+        $driverCut = $DRIVER_RATES[$m['destination']] ?? 0;
+        $currManualRevenue += max(0, $m['pay_amount'] - $driverCut);
+        $currManualDeliveries++;
+    }
 
-    $currRevenue = floatval($currMonthQuery['revenue'] ?? 0);
+    $lastManualRevenue = 0;
+    $lastManualDeliveries = 0;
+    $stmt_m_last = $pdo->query("SELECT pay_amount, destination FROM dispatches WHERE MONTH(dispatch_date) = MONTH(CURDATE() - INTERVAL 1 MONTH) AND YEAR(dispatch_date) = YEAR(CURDATE()) AND status = 'Delivered'");
+    while ($m = $stmt_m_last->fetch()) {
+        $driverCut = $DRIVER_RATES[$m['destination']] ?? 0;
+        $lastManualRevenue += max(0, $m['pay_amount'] - $driverCut);
+        $lastManualDeliveries++;
+    }
+
+    // On-time rate still calculated from dispatches
+    $onTimeQuery = $pdo->query("SELECT COALESCE((SUM(is_on_time) / NULLIF(COUNT(id), 0)) * 100, 100) AS on_time_rate FROM dispatches WHERE MONTH(dispatch_date) = MONTH(CURDATE()) AND YEAR(dispatch_date) = YEAR(CURDATE()) AND status = 'Delivered'")->fetch(PDO::FETCH_ASSOC);
+    $onTimeRate = $onTimeQuery['on_time_rate'] ?? 100;
+
+    // 2. Order-based Revenue (Fulfillment via Checker)
+    $currOrderRevenue = 0;
+    $currOrderDeliveries = 0;
+    $stmt_curr_orders = $pdo->query("SELECT o.gravel_type FROM driver_trips dt JOIN orders o ON o.id = dt.order_id WHERE dt.status = 'Delivered' AND MONTH(dt.trip_date) = MONTH(CURDATE()) AND YEAR(dt.trip_date) = YEAR(CURDATE())");
+    while ($row = $stmt_curr_orders->fetch()) {
+        $currOrderRevenue += $GRAVEL_PRICES[$row['gravel_type']] ?? 0;
+        $currOrderDeliveries++;
+    }
+
+    $lastOrderRevenue = 0;
+    $lastOrderDeliveries = 0;
+    $stmt_last_orders = $pdo->query("SELECT o.gravel_type FROM driver_trips dt JOIN orders o ON o.id = dt.order_id WHERE dt.status = 'Delivered' AND MONTH(dt.trip_date) = MONTH(CURDATE() - INTERVAL 1 MONTH) AND YEAR(dt.trip_date) = YEAR(CURDATE())");
+    while ($row = $stmt_last_orders->fetch()) {
+        $lastOrderRevenue += $GRAVEL_PRICES[$row['gravel_type']] ?? 0;
+        $lastOrderDeliveries++;
+    }
+
+    // 3. Combined Metrics
+    $currRevenue = $currManualRevenue + $currOrderRevenue;
+    $currDeliveries = $currManualDeliveries + $currOrderDeliveries;
+    
+    $lastRevenue = $lastManualRevenue + $lastOrderRevenue;
+    $lastDeliveries = $lastManualDeliveries + $lastOrderDeliveries;
+
     $estimatedCost = $currRevenue * ESTIMATED_OP_COST_PCT;
     $currProfit = $currRevenue - $estimatedCost;
     $currProfitMargin = $currRevenue > 0 ? ($currProfit / $currRevenue) * 100 : 0;
 
-    $lastDeliveries = $lastMonthQuery['deliveries'] ?? 0;
-    $lastRevenue = floatval($lastMonthQuery['revenue'] ?? 0);
-    $deliveriesChange = ($lastDeliveries > 0) ? (($currMonthQuery['deliveries'] - $lastDeliveries) / $lastDeliveries) * 100 : 100;
+
+    $deliveriesChange = ($lastDeliveries > 0) ? (($currDeliveries - $lastDeliveries) / $lastDeliveries) * 100 : 100;
     $revenueChange = ($lastRevenue > 0) ? (($currRevenue - $lastRevenue) / $lastRevenue) * 100 : 100;
 
     $reportKpis = [
         ['title' => 'Total Revenue', 'value' => '₱' . number_format($currRevenue / 1000, 1) . 'K', 'subtext' => number_format($revenueChange, 1) . '% from last period', 'color_class' => 'bg-blue-500', 'icon_class' => 'fa-peso-sign'],
         ['title' => 'Profit Margin', 'value' => number_format($currProfitMargin, 1) . '%', 'subtext' => 'Live Estimated Margin', 'color_class' => 'bg-green-500', 'icon_class' => 'fa-arrow-trend-up'],
-        ['title' => 'Deliveries', 'value' => number_format($currMonthQuery['deliveries'] ?? 0), 'subtext' => 'This month (Live Data)', 'color_class' => 'bg-orange-500', 'icon_class' => 'fa-truck-fast'],
-        ['title' => 'On-Time Rate', 'value' => number_format($currMonthQuery['on_time_rate'] ?? 100, 1) . '%', 'subtext' => 'Live performance analysis', 'color_class' => 'bg-purple-500', 'icon_class' => 'fa-calendar']
+        ['title' => 'Deliveries', 'value' => number_format($currDeliveries), 'subtext' => 'This month (Live Data)', 'color_class' => 'bg-orange-500', 'icon_class' => 'fa-truck-fast'],
+        ['title' => 'On-Time Rate', 'value' => number_format($onTimeRate, 1) . '%', 'subtext' => 'Live performance analysis', 'color_class' => 'bg-purple-500', 'icon_class' => 'fa-calendar']
     ];
 
     $performanceMetrics = [
-        ['metric' => 'Total Deliveries', 'this_month' => number_format($currMonthQuery['deliveries'] ?? 0), 'last_month' => number_format($lastDeliveries), 'change_str' => number_format($deliveriesChange, 1) . '%', 'is_positive' => $deliveriesChange >= 0],
+        ['metric' => 'Total Deliveries', 'this_month' => number_format($currDeliveries), 'last_month' => number_format($lastDeliveries), 'change_str' => number_format($deliveriesChange, 1) . '%', 'is_positive' => $deliveriesChange >= 0],
         ['metric' => 'Revenue per Mile (Placeholder)', 'this_month' => '₱3.45', 'last_month' => '₱3.32', 'change_str' => '+3.9%', 'is_positive' => 1],
-        ['metric' => 'On-Time Deliveries', 'this_month' => number_format($currMonthQuery['on_time_rate'] ?? 100, 1) . '%', 'last_month' => '93.1%', 'change_str' => '+1.1%', 'is_positive' => 1],
+        ['metric' => 'On-Time Deliveries', 'this_month' => number_format($onTimeRate, 1) . '%', 'last_month' => '93.1%', 'change_str' => '+1.1%', 'is_positive' => 1],
+
         ['metric' => 'Customer Feedback', 'this_month' => PLACEHOLDER_CUSTOMER_RATING . '/5', 'last_month' => '4.7/5', 'change_str' => '+2.1%', 'is_positive' => 1]
     ];
 } catch (PDOException $e) {
@@ -398,11 +521,18 @@ function getInitials($name)
 }
 
 // --- ORDERS & CHECKERS ---
-$allCheckers = $pdo->query("SELECT id, username FROM users WHERE role = 'Checker' ORDER BY username ASC")->fetchAll(PDO::FETCH_ASSOC);
+$allCheckers = $pdo->query("
+    SELECT u.id, u.username, c.first_name, c.last_name, c.phone, CONCAT(c.first_name, ' ', c.last_name) AS full_name 
+    FROM users u 
+    LEFT JOIN checkers c ON u.id = c.id 
+    WHERE u.role = 'Checker' 
+    ORDER BY u.username ASC
+")->fetchAll(PDO::FETCH_ASSOC);
 $allOrders = $pdo->query("
-    SELECT o.*, u.username AS checker_name
+    SELECT o.*, COALESCE(CONCAT(c.first_name, ' ', c.last_name), u.username) AS checker_name
     FROM orders o
     LEFT JOIN users u ON u.id = o.checker_id
+    LEFT JOIN checkers c ON u.id = c.id
     ORDER BY o.created_at DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 

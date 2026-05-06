@@ -66,8 +66,18 @@ $gravelPrices = [
         <form action="dashboard.php" method="POST" class="space-y-4">
             <input type="hidden" name="action" value="add_driver">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+            <h4 class="font-semibold text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600 pb-1 mt-4">Truck Assignment</h4>
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Scan Truck RFID <span class="text-red-500">*</span></label>
+                <div class="flex space-x-2">
+                    <input type="text" name="truck_rfid" id="driverTruckRfidInput" required placeholder="Scan truck RFID tag..." autocomplete="off" class="flex-1 border border-blue-300 dark:border-blue-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 dark:bg-blue-900 dark:text-gray-100 transition-colors">
+                    <input type="text" id="driverTruckCodeDisplay" readonly placeholder="Truck Code" class="w-32 border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 focus:outline-none cursor-not-allowed text-center font-bold">
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Focus this field and scan the truck's RFID card.</p>
+            </div>
             <h4 class="font-semibold text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600 pb-1">Personal Details</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Full Name</label>
                     <input type="text" name="name" required class="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
@@ -121,6 +131,39 @@ $gravelPrices = [
 
         document.getElementById('driverPasswordInput').value = pwd;
     }
+
+    // Auto-fill Truck Code when RFID is scanned in Add Driver Modal
+    const driverTruckRfidInput = document.getElementById('driverTruckRfidInput');
+    const driverTruckCodeDisplay = document.getElementById('driverTruckCodeDisplay');
+
+    if (driverTruckRfidInput) {
+        let rfidTimeout;
+        driverTruckRfidInput.addEventListener('input', function() {
+            clearTimeout(rfidTimeout);
+            const rfid = this.value.trim();
+            if (rfid.length < 3) {
+                driverTruckCodeDisplay.value = '';
+                return;
+            }
+            
+            rfidTimeout = setTimeout(() => {
+                fetch(`get_truck_by_rfid.php?rfid=${rfid}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            driverTruckCodeDisplay.value = data.truck_code;
+                            driverTruckCodeDisplay.classList.remove('text-red-500');
+                            driverTruckCodeDisplay.classList.add('text-green-600');
+                        } else {
+                            driverTruckCodeDisplay.value = 'Invalid';
+                            driverTruckCodeDisplay.classList.remove('text-green-600');
+                            driverTruckCodeDisplay.classList.add('text-red-500');
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            }, 300); // 300ms debounce
+        });
+    }
 </script>
 
 <div id="dispatchModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
@@ -142,17 +185,13 @@ $gravelPrices = [
             </div>
             <div class="grid grid-cols-2 gap-6 mb-4">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Connected Truck</label>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Truck Plate Number</label>
                     <input type="text" id="truckPlate" readonly placeholder="Auto-filled after scan" class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 focus:outline-none cursor-not-allowed">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Assign Driver</label>
-                    <select name="driver_id" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100">
-                        <option value="">Select a driver</option>
-                        <?php foreach ($allDrivers as $driver): ?>
-                            <option value="<?= $driver['id']; ?>"><?= htmlspecialchars($driver['name']); ?> (<?= $driver['status']; ?>)</option>
-                        <?php endforeach; ?>
-                    </select>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Assigned Driver</label>
+                    <input type="hidden" name="driver_id" id="hiddenDriverId" required>
+                    <input type="text" id="assignedDriverName" readonly placeholder="Auto-filled after scan" class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 focus:outline-none cursor-not-allowed">
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-6 mb-4">
@@ -329,8 +368,9 @@ $gravelPrices = [
         </div>
         <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Remove Driver</h3>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to remove <strong id="dd-name" class="text-gray-800 dark:text-gray-200"></strong> from the system? This action cannot be undone.</p>
-        <form id="deleteDriverForm" method="POST" action="">
+        <form method="POST" action="dashboard.php">
             <input type="hidden" name="action" value="delete_driver">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="driver_id" id="delete_driver_id" value="">
             <div class="flex space-x-3">
                 <button type="button" onclick="toggleModal('deleteDriverModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition dark:bg-black">Cancel</button>
@@ -478,6 +518,20 @@ $gravelPrices = [
         </div>
         <form method="POST" action="dashboard.php" class="p-6 space-y-4">
             <input type="hidden" name="action" value="add_checker">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">First Name <span class="text-red-500">*</span></label>
+                    <input type="text" name="first_name" required placeholder="Juan" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Last Name <span class="text-red-500">*</span></label>
+                    <input type="text" name="last_name" required placeholder="Dela Cruz" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Phone Number <span class="text-red-500">*</span></label>
+                <input type="text" name="phone" required placeholder="09123456789" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+            </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Username <span class="text-red-500">*</span></label>
                 <input type="text" name="checker_username" required placeholder="e.g. checker_juan" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
@@ -525,7 +579,10 @@ $gravelPrices = [
                 <select name="checker_id" required class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                     <option value="">— Select —</option>
                     <?php foreach ($allCheckers ?? [] as $chk): ?>
-                        <option value="<?= $chk['id'] ?>"><?= htmlspecialchars($chk['username']) ?></option>
+                        <option value="<?= $chk['id'] ?>">
+                            <?= htmlspecialchars($chk['full_name'] ?: $chk['username']) ?> 
+                            (<?= htmlspecialchars($chk['username']) ?>)
+                        </option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -547,7 +604,7 @@ $gravelPrices = [
             <input type="hidden" name="action" value="cancel_order">
             <input type="hidden" name="order_id" id="co_order_id">
             <div class="flex space-x-3">
-                <button type="button" onclick="toggleModal('cancelOrderModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition">Keep Order</button>
+                <button type="button" onclick="toggleModal('cancelOrderModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-black hover:bg-gray-200 transition">Keep Order</button>
                 <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">Yes, Cancel</button>
             </div>
         </form>

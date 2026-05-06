@@ -57,13 +57,17 @@
                                     <td class="py-4 px-2 font-medium"><?= htmlspecialchars($trip['destination']); ?></td>
                                     <td class="py-4 px-2 font-semibold text-green-600 dark:text-green-400">₱<?= number_format($trip['pay_amount'] ?? 0, 2); ?></td>
                                     <td class="py-4 px-2">
-                                        <?php if ($trip['status'] == 'Completed' || $trip['status'] == 'Delivered'): ?>
+                                        <?php 
+                                        $s = isset($trip['status']) ? trim($trip['status']) : '';
+                                        // If it's empty, we assume it's a completed trip from the scan
+                                        if (empty($s) || strtolower($s) === 'delivered' || strtolower($s) === 'completed'): 
+                                        ?>
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                <i class="fa-solid fa-check mr-1"></i> Completed
+                                                <i class="fa-solid fa-check mr-1"></i> Delivered
                                             </span>
                                         <?php else: ?>
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                <i class="fa-solid fa-truck-fast mr-1"></i> <?= htmlspecialchars($trip['status']); ?>
+                                                <i class="fa-solid fa-truck-fast mr-1"></i> <?= htmlspecialchars($s); ?>
                                             </span>
                                         <?php endif; ?>
                                     </td>
