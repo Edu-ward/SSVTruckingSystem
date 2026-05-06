@@ -211,6 +211,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         header("Location: dashboard.php?tab=drivers");
         exit;
     }
+    if ($_POST['action'] == 'add_order') {
+        $orderNum = 'ORD-' . date('Ymd') . '-' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
+        $stmt = $pdo->prepare("INSERT INTO orders (order_number, client_name, gravel_type, destination, trucks_required, checker_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $checker_id = !empty($_POST['checker_id']) ? intval($_POST['checker_id']) : null;
+        $stmt->execute([$orderNum, $_POST['client_name'], $_POST['gravel_type'], $_POST['destination'], intval($_POST['trucks_required']), $checker_id, $_POST['notes'] ?? '']);
+        header("Location: dashboard.php?tab=orders");
+        exit;
+    }
+
+    if ($_POST['action'] == 'add_checker') {
+        $uname = trim($_POST['checker_username']);
+        $pwd   = $_POST['checker_password'];
+        if (strlen($pwd) < 8) die("Password must be at least 8 characters.");
+        $hashed = password_hash($pwd, PASSWORD_DEFAULT);
+        $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'Checker')")->execute([$uname, $hashed]);
+        header("Location: dashboard.php?tab=orders");
+        exit;
+    }
+
+    if ($_POST['action'] == 'assign_checker') {
+        $pdo->prepare("UPDATE orders SET checker_id = ? WHERE id = ?")->execute([intval($_POST['checker_id']), intval($_POST['order_id'])]);
+        header("Location: dashboard.php?tab=orders");
+        exit;
+    }
+
+    if ($_POST['action'] == 'cancel_order') {
+        $pdo->prepare("UPDATE orders SET status = 'Cancelled' WHERE id = ?")->execute([intval($_POST['order_id'])]);
+        header("Location: dashboard.php?tab=orders");
+        exit;
+    }
 }
 
 $totalFleet = $pdo->query("SELECT COUNT(*) FROM trucks")->fetchColumn();
@@ -367,6 +397,15 @@ function getInitials($name)
     return strtoupper(substr($i, 0, 2));
 }
 
+// --- ORDERS & CHECKERS ---
+$allCheckers = $pdo->query("SELECT id, username FROM users WHERE role = 'Checker' ORDER BY username ASC")->fetchAll(PDO::FETCH_ASSOC);
+$allOrders = $pdo->query("
+    SELECT o.*, u.username AS checker_name
+    FROM orders o
+    LEFT JOIN users u ON u.id = o.checker_id
+    ORDER BY o.created_at DESC
+")->fetchAll(PDO::FETCH_ASSOC);
+
 include '../includes/header.php';
 ?>
 <div class="max-w-7xl mx-auto px-6 py-8 relative">
@@ -375,6 +414,7 @@ include '../includes/header.php';
     include 'views/dispatches.php';
     include 'views/fleet.php';
     include 'views/drivers.php';
+    include 'views/orders.php';
     include 'views/reports.php';
     include 'views/modals.php'; ?>
 </div>

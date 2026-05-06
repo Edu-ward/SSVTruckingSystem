@@ -27,40 +27,31 @@ $gravelPrices = [
     "garden_soil" => 1000
 ];
 ?>
-
 <div id="addTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden relative">
-        <button onclick="toggleModal('addTruckModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200">
-            <i class="fa-solid fa-xmark fa-lg"></i>
-        </button>
-        <div class="p-6 border-b border-gray-100 dark:border-gray-700">
-            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Add New Truck</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Register a new truck to the fleet and assign an RFID tag.</p>
+        <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+            <div>
+                <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Add New Truck</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Register a new truck and link its RFID tag.</p>
+            </div>
+            <button onclick="toggleModal('addTruckModal', false)" class="text-gray-400 hover:text-gray-700 dark:text-gray-200">
+                <i class="fa-solid fa-xmark fa-lg"></i>
+            </button>
         </div>
-
-        <form method="POST" action="dashboard.php" class="p-6">
+        <form method="POST" action="dashboard.php" class="p-6 space-y-4">
             <input type="hidden" name="action" value="add_truck">
-
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Truck Code / Plate Number <span class="text-red-500">*</span></label>
-                <input type="text" name="truck_code" placeholder="e.g. TRK-006 or ABC-1234" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
+            <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Truck Code <span class="text-red-500">*</span></label>
+                <input type="text" name="truck_code" required placeholder="e.g. SSV-001" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
             </div>
-
-            <div class="mb-8">
-                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                    <i class="fa-solid fa-wifi mr-1 text-blue-500"></i> Scan RFID Tag <span class="text-red-500">*</span>
-                </label>
-
-                <input type="text" id="newTruckRfidInput" name="rfid_tag" placeholder="Click here and tap card..." required autofocus autocomplete="off" onkeydown="return event.key != 'Enter';" class="w-full border border-blue-300 dark:border-blue-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 dark:bg-blue-900 dark:text-gray-100 transition-colors">
-
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    <i class="fa-solid fa-circle-info text-blue-400"></i> Ensure the blue box is highlighted before scanning.
-                </p>
+            <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">RFID Tag <span class="text-red-500">*</span></label>
+                <input type="text" name="rfid_tag" id="newTruckRfidInput" required placeholder="Scan or type RFID tag..." autocomplete="off" class="w-full border border-blue-300 dark:border-blue-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 dark:bg-blue-900 dark:text-gray-100 transition-colors">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Click the field and scan the RFID card, or type the tag manually.</p>
             </div>
-
-            <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
-                <button type="button" onclick="toggleModal('addTruckModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-black transition">Cancel</button>
-                <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-black hover:bg-gray-800 transition">Save Truck</button>
+            <div class="flex justify-end space-x-3 pt-2">
+                <button type="button" onclick="toggleModal('addTruckModal', false)" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
+                <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-gray-900 hover:bg-black transition">Add Truck</button>
             </div>
         </form>
     </div>
@@ -306,6 +297,31 @@ $gravelPrices = [
     </div>
 </div>
 
+<div id="updateDriverStatusModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative p-6 text-center">
+        <button onclick="toggleModal('updateDriverStatusModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200"><i class="fa-solid fa-xmark fa-lg"></i></button>
+        <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-id-card"></i></div>
+        <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Update Driver Status</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Manually override the current status for <strong id="uds-driver-name" class="text-gray-800 dark:text-gray-200"></strong>.</p>
+        <form method="POST" action="dashboard.php">
+            <input type="hidden" name="action" value="update_driver_status">
+            <input type="hidden" name="driver_id" id="update_status_driver_id" value="">
+            <div class="mb-6 text-left">
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Select New Status</label>
+                <select name="new_status" id="update_driver_status_select" required class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900 font-medium text-gray-700 dark:text-gray-200">
+                    <option value="Active">Active</option>
+                    <option value="Off Duty">Off Duty</option>
+                    <option value="Dispatched">Dispatched</option>
+                </select>
+            </div>
+            <div class="flex space-x-3">
+                <button type="button" onclick="toggleModal('updateDriverStatusModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition dark:bg-black">Cancel</button>
+                <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Update Status</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div id="deleteDriverModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative p-6 text-center">
         <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
@@ -377,6 +393,162 @@ $gravelPrices = [
             <div class="flex space-x-3">
                 <button type="button" onclick="toggleModal('settlePayrollModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition dark:bg-black">Cancel</button>
                 <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-green-600 hover:bg-green-700 transition">Confirm Payment</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== ADD ORDER MODAL ==================== -->
+<div id="addOrderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg overflow-hidden relative">
+        <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+            <div>
+                <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Place New Order</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Create a gravel delivery order for a client.</p>
+            </div>
+            <button onclick="toggleModal('addOrderModal', false)" class="text-gray-400 hover:text-gray-700 dark:text-gray-200">
+                <i class="fa-solid fa-xmark fa-lg"></i>
+            </button>
+        </div>
+        <form method="POST" action="dashboard.php" class="p-6 space-y-4">
+            <input type="hidden" name="action" value="add_order">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Client Name <span class="text-red-500">*</span></label>
+                    <input type="text" name="client_name" required placeholder="e.g. Juan dela Cruz" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Destination <span class="text-red-500">*</span></label>
+                    <select name="destination" required class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                        <option value="">Select destination</option>
+                        <option value="San Leonardo">San Leonardo</option>
+                        <option value="Tarlac">Tarlac</option>
+                        <option value="Laur">Laur</option>
+                        <option value="Gabaldon">Gabaldon</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Gravel Type <span class="text-red-500">*</span></label>
+                    <select name="gravel_type" required class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                        <option value="">Select type</option>
+                        <?php foreach ($gravelTypes as $val => $lbl): ?>
+                            <option value="<?= $val ?>"><?= htmlspecialchars($lbl) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Number of Trucks <span class="text-red-500">*</span></label>
+                    <input type="number" name="trucks_required" required min="1" max="100" placeholder="e.g. 5" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Assign Checker <span class="text-gray-400 font-normal">(optional)</span></label>
+                <select name="checker_id" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <option value="">— Assign later —</option>
+                    <?php foreach ($allCheckers ?? [] as $chk): ?>
+                        <option value="<?= $chk['id'] ?>"><?= htmlspecialchars($chk['username']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Notes <span class="text-gray-400 font-normal">(optional)</span></label>
+                <textarea name="notes" rows="2" placeholder="Special instructions, remarks..." class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none"></textarea>
+            </div>
+            <div class="flex justify-end space-x-3 pt-2">
+                <button type="button" onclick="toggleModal('addOrderModal', false)" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 transition">Cancel</button>
+                <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-gray-900 hover:bg-black transition">Place Order</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== ADD CHECKER MODAL ==================== -->
+<div id="addCheckerModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden relative">
+        <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+            <div>
+                <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Add Checker Account</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Create a login for a new field checker.</p>
+            </div>
+            <button onclick="toggleModal('addCheckerModal', false)" class="text-gray-400 hover:text-gray-700 dark:text-gray-200">
+                <i class="fa-solid fa-xmark fa-lg"></i>
+            </button>
+        </div>
+        <form method="POST" action="dashboard.php" class="p-6 space-y-4">
+            <input type="hidden" name="action" value="add_checker">
+            <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Username <span class="text-red-500">*</span></label>
+                <input type="text" name="checker_username" required placeholder="e.g. checker_juan" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Password <span class="text-red-500">*</span></label>
+                <div class="flex">
+                    <input type="text" id="checkerPasswordInput" name="checker_password" required readonly placeholder="Click Generate" class="p-2 w-full border border-gray-300 dark:border-gray-600 rounded-l-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm cursor-not-allowed">
+                    <button type="button" onclick="generateCheckerPassword()" class="px-4 py-2 bg-blue-100 dark:bg-blue-900 border border-l-0 border-blue-300 dark:border-blue-700 rounded-r-md hover:bg-blue-200 text-blue-700 dark:text-blue-300 transition font-medium">Generate</button>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 pt-2">
+                <button type="button" onclick="toggleModal('addCheckerModal', false)" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 transition">Cancel</button>
+                <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Create Checker</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    function generateCheckerPassword() {
+        const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
+        let pwd = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 26)];
+        pwd += "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)];
+        pwd += "0123456789"[Math.floor(Math.random() * 10)];
+        for (let i = 0; i < 7; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
+        pwd = pwd.split('').sort(() => 0.5 - Math.random()).join('');
+        document.getElementById('checkerPasswordInput').value = pwd;
+    }
+</script>
+
+<!-- ==================== ASSIGN CHECKER MODAL ==================== -->
+<div id="assignCheckerModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative p-6">
+        <button onclick="toggleModal('assignCheckerModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200"><i class="fa-solid fa-xmark fa-lg"></i></button>
+        <div class="w-14 h-14 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
+            <i class="fa-solid fa-user-shield"></i>
+        </div>
+        <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 text-center mb-1">Assign Checker</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 text-center mb-5">Order: <strong id="ac-order-number" class="text-gray-800 dark:text-gray-200"></strong></p>
+        <form method="POST" action="dashboard.php">
+            <input type="hidden" name="action" value="assign_checker">
+            <input type="hidden" name="order_id" id="ac_order_id">
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Select Checker</label>
+                <select name="checker_id" required class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <option value="">— Select —</option>
+                    <?php foreach ($allCheckers ?? [] as $chk): ?>
+                        <option value="<?= $chk['id'] ?>"><?= htmlspecialchars($chk['username']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="flex space-x-3">
+                <button type="button" onclick="toggleModal('assignCheckerModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition">Cancel</button>
+                <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Assign</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== CANCEL ORDER MODAL ==================== -->
+<div id="cancelOrderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative p-6 text-center">
+        <div class="w-14 h-14 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-ban"></i></div>
+        <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Cancel Order</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to cancel order <strong id="co-order-number" class="text-gray-800 dark:text-gray-200"></strong>?</p>
+        <form method="POST" action="dashboard.php">
+            <input type="hidden" name="action" value="cancel_order">
+            <input type="hidden" name="order_id" id="co_order_id">
+            <div class="flex space-x-3">
+                <button type="button" onclick="toggleModal('cancelOrderModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition">Keep Order</button>
+                <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">Yes, Cancel</button>
             </div>
         </form>
     </div>

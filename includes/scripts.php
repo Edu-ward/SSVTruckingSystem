@@ -205,6 +205,18 @@
             toggleModal('settlePayrollModal', true);
         }
 
+        function openAssignCheckerModal(orderId, orderNumber) {
+            document.getElementById('ac-order-number').innerText = orderNumber;
+            document.getElementById('ac_order_id').value = orderId;
+            toggleModal('assignCheckerModal', true);
+        }
+
+        function openCancelOrderModal(orderId, orderNumber) {
+            document.getElementById('co-order-number').innerText = orderNumber;
+            document.getElementById('co_order_id').value = orderId;
+            toggleModal('cancelOrderModal', true);
+        }
+
         try {
             const weeklyData = <?= json_encode($weeklyData ?? []); ?>;
             const fleetStatusData = <?= json_encode($fleetStatusData ?? []); ?>;
@@ -679,4 +691,16 @@
                 });
         }
     </script>
-<?php endif; ?>
+
+<?php elseif ($_SESSION['role'] === 'Checker'): ?>
+    <!-- ================= CHECKER SCRIPTS ================= -->
+    <script>
+        // Theme icon initialisation
+        document.addEventListener("DOMContentLoaded", function() {
+            const icon = document.getElementById('themeIcon');
+            if (icon && document.documentElement.classList.contains('dark')) {
+                icon.classList.replace('fa-moon', 'fa-sun');
+            }
+        });
+    </script>
+<?php endif; ?>

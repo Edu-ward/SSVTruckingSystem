@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Dynamic Title -->
-    <title><?= ($_SESSION['role'] === 'Admin') ? 'SSV Trucking - Admin System' : 'Driver Panel - SSV Trucking' ?></title>
+    <title><?= ($_SESSION['role'] === 'Admin') ? 'SSV Trucking - Admin System' : (($_SESSION['role'] === 'Checker') ? 'Checker Panel - SSV Trucking' : 'Driver Panel - SSV Trucking') ?></title>
 
     <script>
         if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -101,6 +101,7 @@
                 <button onclick="switchTab('dispatches')" id="nav-dispatches" class="nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition"><i class="fa-regular fa-file-lines"></i><span>Dispatches</span></button>
                 <button onclick="switchTab('fleet')" id="nav-fleet" class="nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition"><i class="fa-solid fa-truck-fast"></i><span>Fleet</span></button>
                 <button onclick="switchTab('drivers')" id="nav-drivers" class="nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition"><i class="fa-regular fa-user"></i><span>Drivers</span></button>
+                <button onclick="switchTab('orders')" id="nav-orders" class="nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition"><i class="fa-solid fa-clipboard-list"></i><span>Orders</span></button>
                 <button onclick="switchTab('reports')" id="nav-reports" class="nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition"><i class="fa-solid fa-chart-column"></i><span>Reports</span></button>
 
             <?php elseif ($_SESSION['role'] === 'Driver'): ?>
@@ -109,6 +110,11 @@
                 <button onclick="openChangePasswordModal()" class="flex items-center px-3 py-2 text-white bg-blue-700 dark:bg-gray-700 hover:bg-blue-800 dark:hover:bg-gray-600 rounded-md transition shadow-sm">
                     <i class="fa-solid fa-key mr-2"></i> Change Password
                 </button>
+
+            <?php elseif ($_SESSION['role'] === 'Checker'): ?>
+                <!-- CHECKER NAVIGATION -->
+                <span class="text-blue-100 mr-4">Checker: <strong><?= htmlspecialchars($_SESSION['username'] ?? 'Checker'); ?></strong></span>
+
             <?php endif; ?>
 
             <button id="themeToggle" onclick="toggleTheme(event)" class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-700 hover:bg-blue-800 text-white transition-colors focus:outline-none shadow-sm ml-2 relative overflow-hidden">
