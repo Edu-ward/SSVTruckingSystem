@@ -77,7 +77,7 @@ $gravelPrices = [
             </div>
             <h4 class="font-semibold text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600 pb-1">Personal Details</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Full Name</label>
                     <input type="text" name="name" required class="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
@@ -145,7 +145,7 @@ $gravelPrices = [
                 driverTruckCodeDisplay.value = '';
                 return;
             }
-            
+
             rfidTimeout = setTimeout(() => {
                 fetch(`get_truck_by_rfid.php?rfid=${rfid}`)
                     .then(response => response.json())
@@ -288,9 +288,14 @@ $gravelPrices = [
             </div>
         </div>
         <div class="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex justify-between">
-            <button id="vd-settle-btn" class="px-6 py-2 rounded-lg text-sm font-semibold text-white bg-green-600 hover:bg-green-700 transition shadow-sm hidden">
-                <i class="fa-solid fa-money-bill-wave mr-1"></i> Settle Payroll
-            </button>
+            <div class="flex space-x-2">
+                <button id="vd-settle-btn" class="px-6 py-2 rounded-lg text-sm font-semibold text-white bg-green-600 hover:bg-green-700 transition shadow-sm hidden">
+                    <i class="fa-solid fa-money-bill-wave mr-1"></i> Settle Payroll
+                </button>
+                <a id="vd-print-btn" href="#" target="_blank" class="px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition shadow-sm hidden">
+                    <i class="fa-solid fa-print mr-1"></i> Print Ticket
+                </a>
+            </div>
             <button onclick="toggleModal('viewDriverModal', false)" class="px-6 py-2 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition ml-auto">Close</button>
         </div>
     </div>
@@ -553,9 +558,9 @@ $gravelPrices = [
 <script>
     function generateCheckerPassword() {
         const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
-        let pwd = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 26)];
-        pwd += "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)];
-        pwd += "0123456789"[Math.floor(Math.random() * 10)];
+        let pwd = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" [Math.floor(Math.random() * 26)];
+        pwd += "abcdefghijklmnopqrstuvwxyz" [Math.floor(Math.random() * 26)];
+        pwd += "0123456789" [Math.floor(Math.random() * 10)];
         for (let i = 0; i < 7; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
         pwd = pwd.split('').sort(() => 0.5 - Math.random()).join('');
         document.getElementById('checkerPasswordInput').value = pwd;
@@ -580,7 +585,7 @@ $gravelPrices = [
                     <option value="">— Select —</option>
                     <?php foreach ($allCheckers ?? [] as $chk): ?>
                         <option value="<?= $chk['id'] ?>">
-                            <?= htmlspecialchars($chk['full_name'] ?: $chk['username']) ?> 
+                            <?= htmlspecialchars($chk['full_name'] ?: $chk['username']) ?>
                             (<?= htmlspecialchars($chk['username']) ?>)
                         </option>
                     <?php endforeach; ?>
