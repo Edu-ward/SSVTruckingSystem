@@ -26,7 +26,12 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS checkers (
 $pdo->exec("ALTER TABLE driver_trips MODIFY COLUMN status VARCHAR(50) DEFAULT 'Pending'");
 $pdo->exec("ALTER TABLE dispatches MODIFY COLUMN status VARCHAR(50) DEFAULT 'Pending'");
 $pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS order_id INT NULL");
-
+$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS transit_start_time DATETIME DEFAULT NULL");
+$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS transit_end_time DATETIME DEFAULT NULL");
+$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+$pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS transit_start_time DATETIME DEFAULT NULL");
+$pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS transit_end_time DATETIME DEFAULT NULL");
+$pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
 
 
 
@@ -61,9 +66,15 @@ $GRAVEL_PRICES = [
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     if ($_POST['action'] == 'create_dispatch') {
-        $truck_id = $_POST['truck_id'];
-        $driver_id = $_POST['driver_id'];
+        $truck_id = !empty($_POST['truck_id']) ? $_POST['truck_id'] : null;
+        $driver_id = !empty($_POST['driver_id']) ? $_POST['driver_id'] : null;
         $rfid_tag = $_POST['rfid_tag'];
+        
+        if (!$truck_id || !$driver_id) {
+            $_SESSION['scan_err'] = "Cannot create dispatch. The scanned truck does not have an assigned driver.";
+            header("Location: dashboard.php?tab=dispatches");
+            exit;
+        }
         $origin = $_POST['origin'];
         $destination = $_POST['destination'];
 
@@ -78,15 +89,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $insert = $pdo->prepare("INSERT INTO dispatches (ticket_number, truck_id, driver_id, status, origin, destination, pay_amount, dispatch_date) VALUES (?, ?, ?, 'Pending', ?, ?, ?, CURDATE())");
         $insert->execute([$ticketNum, $truck_id, $driver_id, $origin, $destination, $client_bill]);
 
-        $trip_insert = $pdo->prepare("INSERT INTO driver_trips (driver_id, destination, trip_date, status) VALUES (?, ?, CURDATE(), 'In Transit')");
+        $trip_insert = $pdo->prepare("INSERT INTO driver_trips (driver_id, destination, trip_date, status) VALUES (?, ?, CURDATE(), 'Pending')");
         $trip_insert->execute([$driver_id, $destination]);
 
-        // Only add the explicit driver_pay to their payroll
-        $payroll_update = $pdo->prepare("UPDATE driver_payroll SET total_amount = total_amount + ? WHERE driver_id = ?");
-        $payroll_update->execute([$driver_pay, $driver_id]);
+        // Destination pay will be added to driver_payroll ONLY when the dispatch is Delivered via RFID scan.
 
-        $pdo->prepare("UPDATE trucks SET status = 'Loading' WHERE id = ?")->execute([$truck_id]);
-        $pdo->prepare("UPDATE drivers SET status = 'Dispatched' WHERE id = ?")->execute([$driver_id]);
+        $pdo->prepare("UPDATE trucks SET status = 'Pending' WHERE id = ?")->execute([$truck_id]);
+        $pdo->prepare("UPDATE drivers SET status = 'Pending' WHERE id = ?")->execute([$driver_id]);
 
         header("Location: dashboard.php?tab=dispatches");
         exit;
@@ -141,6 +150,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         header("Location: dashboard.php?tab=fleet");
         exit;
     }
+
+    if ($_POST['action'] == 'dispatch_scan_rfid') {
+        $rfid_tag = trim($_POST['rfid_tag']);
+        
+        // Find truck
+        $ts = $pdo->prepare("SELECT id, truck_code FROM trucks WHERE rfid_tag = ?");
+        $ts->execute([$rfid_tag]);
+        $truck = $ts->fetch();
+
+        if ($truck) {
+            // Find active manual dispatch
+            $ds = $pdo->prepare("SELECT * FROM dispatches WHERE truck_id = ? AND status IN ('Pending', 'In Transit') ORDER BY id DESC LIMIT 1");
+            $ds->execute([$truck['id']]);
+            $dispatch = $ds->fetch();
+
+            if ($dispatch) {
+                $driver_pay = isset($DRIVER_RATES[$dispatch['destination']]) ? $DRIVER_RATES[$dispatch['destination']] : 0;
+                
+                if ($dispatch['status'] === 'Pending') {
+                    // DEPARTURE SCAN -> In Transit
+                    $pdo->prepare("UPDATE dispatches SET status = 'In Transit', transit_start_time = NOW() WHERE id = ?")->execute([$dispatch['id']]);
+                    $pdo->prepare("UPDATE trucks SET status = 'In Transit' WHERE id = ?")->execute([$truck['id']]);
+                    $pdo->prepare("UPDATE drivers SET status = 'In Transit' WHERE id = ?")->execute([$dispatch['driver_id']]);
+                    $pdo->prepare("UPDATE driver_trips SET status = 'In Transit', transit_start_time = NOW() WHERE driver_id = ? AND destination = ? AND status = 'Pending' ORDER BY id DESC LIMIT 1")->execute([$dispatch['driver_id'], $dispatch['destination']]);
+                    $_SESSION['scan_msg'] = "✅ <strong>{$truck['truck_code']}</strong> departed. Timer started!";
+                } elseif ($dispatch['status'] === 'In Transit') {
+                    // ARRIVAL SCAN -> Delivered
+                    $pdo->prepare("UPDATE dispatches SET status = 'Delivered', transit_end_time = NOW() WHERE id = ?")->execute([$dispatch['id']]);
+                    $pdo->prepare("UPDATE trucks SET status = 'Idle', current_location = 'San Leonardo (Garage)' WHERE id = ?")->execute([$truck['id']]);
+                    $pdo->prepare("UPDATE drivers SET status = 'Active' WHERE id = ?")->execute([$dispatch['driver_id']]);
+                    $pdo->prepare("UPDATE driver_trips SET status = 'Delivered', transit_end_time = NOW() WHERE driver_id = ? AND destination = ? AND status = 'In Transit' ORDER BY id DESC LIMIT 1")->execute([$dispatch['driver_id'], $dispatch['destination']]);
+                    $pdo->prepare("UPDATE driver_payroll SET total_amount = total_amount + ? WHERE driver_id = ?")->execute([$driver_pay, $dispatch['driver_id']]);
+                    $_SESSION['scan_msg'] = "✅ <strong>{$truck['truck_code']}</strong> arrived. Trip completed!";
+                }
+            } else {
+                $_SESSION['scan_err'] = "❌ No active dispatch found for truck <strong>{$truck['truck_code']}</strong>.";
+            }
+        } else {
+            $_SESSION['scan_err'] = "❌ Unknown RFID tag.";
+        }
+        header("Location: dashboard.php?tab=dispatches");
+        exit;
+    }
+
 
     if ($_POST['action'] == 'update_driver_status') {
         $driver_id = $_POST['driver_id'];
@@ -331,12 +384,12 @@ $idleTrucks = $pdo->query("SELECT COUNT(*) FROM trucks WHERE status = 'Idle'")->
 $rfidActive = $pdo->query("SELECT COUNT(*) FROM trucks WHERE rfid_active = 1")->fetchColumn();
 
 $fleetStatusData = $pdo->query("SELECT status, COUNT(*) as count FROM trucks GROUP BY status")->fetchAll(PDO::FETCH_ASSOC);
-$recentDispatches = $pdo->query("SELECT d.ticket_number, t.truck_code, CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name, d.status, d.destination FROM dispatches d JOIN trucks t ON d.truck_id = t.id JOIN drivers dr ON d.driver_id = dr.id ORDER BY d.id DESC LIMIT 5")->fetchAll(PDO::FETCH_ASSOC);
+$recentDispatches = $pdo->query("SELECT d.ticket_number, t.truck_code, CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name, d.status, d.destination FROM dispatches d LEFT JOIN trucks t ON d.truck_id = t.id LEFT JOIN drivers dr ON d.driver_id = dr.id ORDER BY d.id DESC LIMIT 5")->fetchAll(PDO::FETCH_ASSOC);
 
 $trackingTrucks = $pdo->query("SELECT t.truck_code, t.status, t.current_location, t.speed, t.latitude, t.longitude, CONCAT(d.first_name, ' ', d.last_name) AS driver_name FROM trucks t LEFT JOIN drivers d ON t.id = d.truck_id WHERE t.latitude IS NOT NULL")->fetchAll(PDO::FETCH_ASSOC);
 
 
-$allDispatches = $pdo->query("SELECT d.id, d.ticket_number, t.truck_code, CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name, d.status, d.destination FROM dispatches d JOIN trucks t ON d.truck_id = t.id JOIN drivers dr ON d.driver_id = dr.id ORDER BY d.id DESC")->fetchAll(PDO::FETCH_ASSOC);
+$allDispatches = $pdo->query("SELECT d.id, d.ticket_number, t.truck_code, CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name, d.status, d.destination, d.created_at, d.transit_start_time, d.transit_end_time FROM dispatches d LEFT JOIN trucks t ON d.truck_id = t.id LEFT JOIN drivers dr ON d.driver_id = dr.id ORDER BY d.id DESC")->fetchAll(PDO::FETCH_ASSOC);
 $activeTickets = array_filter($allDispatches, function ($d) {
     return in_array($d['status'], ['Pending', 'In Transit', 'Loading', 'Unloading']);
 });

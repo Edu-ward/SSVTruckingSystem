@@ -2,11 +2,15 @@
 session_start();
 require '../db.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Driver') {
-    die("Unauthorized Access");
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+    die("Unauthorized Access. Admin only.");
 }
 
-$driver_id = $_SESSION['user_id'];
+if (!isset($_GET['driver_id'])) {
+    die("No driver selected.");
+}
+
+$driver_id = $_GET['driver_id'];
 
 $stmt = $pdo->prepare("SELECT first_name, last_name, cdl_number FROM drivers WHERE id = ?");
 $stmt->execute([$driver_id]);

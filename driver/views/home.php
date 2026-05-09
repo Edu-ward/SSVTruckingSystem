@@ -2,36 +2,29 @@
 
             <div class="bg-[#4a8df8] rounded-xl p-6 text-white relative overflow-hidden shadow-sm">
                 <div class="relative z-10">
-                    <p class="text-blue-100 text-sm font-medium mb-1">Total Payroll Amount</p>
-                    <h3 class="text-4xl font-bold tracking-tight">₱<?= number_format($payroll['total_amount'], 2); ?></h3>
-                    <p class="text-blue-100 text-sm mt-2">Lifetime earnings</p>
+                    <p class="text-blue-100 text-sm font-medium mb-1">This Week's Earnings</p>
+                    <h3 class="text-4xl font-bold tracking-tight">₱<?= number_format($weekly_salary, 2); ?></h3>
+                    <p class="text-blue-100 text-sm mt-2">Current week (Mon-Sun)</p>
                 </div>
-                <i class="fa-solid fa-wallet absolute -right-6 -bottom-6 text-9xl text-white opacity-20 transform -rotate-12"></i>
+                <i class="fa-solid fa-calendar-week absolute -right-6 -bottom-6 text-9xl text-white opacity-20 transform -rotate-12"></i>
             </div>
 
             <div class="bg-[#2ccb72] rounded-xl p-6 text-white relative overflow-hidden shadow-sm">
                 <div class="relative z-10">
-                    <p class="text-green-100 text-sm font-medium mb-1">Payroll Claimed</p>
-                    <h3 class="text-4xl font-bold tracking-tight">₱<?= number_format($payroll['amount_claimed'], 2); ?></h3>
-                    <p class="text-green-100 text-sm mt-2">Successfully withdrawn</p>
+                    <p class="text-green-100 text-sm font-medium mb-1">This Month's Earnings</p>
+                    <h3 class="text-4xl font-bold tracking-tight">₱<?= number_format($monthly_salary, 2); ?></h3>
+                    <p class="text-green-100 text-sm mt-2">Total for <?= date('F'); ?></p>
                 </div>
-                <i class="fa-solid fa-hand-holding-dollar absolute -right-6 -bottom-6 text-9xl text-white opacity-20 transform -rotate-12"></i>
+                <i class="fa-solid fa-calendar-days absolute -right-6 -bottom-6 text-9xl text-white opacity-20 transform -rotate-12"></i>
             </div>
 
             <div class="bg-[#fa7d20] rounded-xl p-6 text-white relative overflow-hidden shadow-sm">
                 <div class="relative z-10">
-                    <p class="text-orange-100 text-sm font-medium mb-1">Available Balance</p>
-                    <h3 class="text-4xl font-bold tracking-tight">₱<?= number_format($available_balance, 2); ?></h3>
-                    <div class="flex items-center justify-between mt-2">
-                        <p class="text-orange-100 text-sm">Ready to claim</p>
-                        <?php if ($available_balance > 0): ?>
-                        <a href="print_payroll.php" target="_blank" class="text-sm bg-white text-[#fa7d20] px-3 py-1.5 rounded hover:bg-orange-50 font-medium transition flex items-center shadow-sm relative z-20">
-                            <i class="fa-solid fa-eye mr-1.5"></i> View Ticket
-                        </a>
-                        <?php endif; ?>
-                    </div>
+                    <p class="text-orange-100 text-sm font-medium mb-1">Next Payday</p>
+                    <h3 class="text-4xl font-bold tracking-tight"><?= $next_payday; ?></h3>
+                    <p class="text-orange-100 text-sm mt-2">Salary distributions every Saturday</p>
                 </div>
-                <i class="fa-solid fa-coins absolute -right-6 -bottom-6 text-9xl text-white opacity-20 transform -rotate-12"></i>
+                <i class="fa-solid fa-money-bill-wave absolute -right-6 -bottom-6 text-9xl text-white opacity-20 transform -rotate-12"></i>
             </div>
 
         </div>
@@ -43,8 +36,9 @@
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="text-gray-500 dark:text-gray-400 text-sm border-b border-gray-200 dark:border-gray-700">
-                            <th class="pb-3 px-2 font-medium">Date</th>
+                            <th class="pb-3 px-2 font-medium">Date & Time</th>
                             <th class="pb-3 px-2 font-medium">Destination</th>
+                            <th class="pb-3 px-2 font-medium">Duration</th>
                             <th class="pb-3 px-2 font-medium">Earned</th>
                             <th class="pb-3 px-2 font-medium">Status</th>
                         </tr>
@@ -52,9 +46,21 @@
                     <tbody class="text-gray-700 dark:text-gray-200">
                         <?php if (count($trips) > 0): ?>
                             <?php foreach ($trips as $trip): ?>
+                                <?php
+                                    $duration = 'N/A';
+                                    if (!empty($trip['transit_start_time']) && !empty($trip['transit_end_time'])) {
+                                        $start = new DateTime($trip['transit_start_time']);
+                                        $end = new DateTime($trip['transit_end_time']);
+                                        $diff = $start->diff($end);
+                                        $duration = '';
+                                        if ($diff->h > 0) $duration .= $diff->h . 'h ';
+                                        $duration .= $diff->i . 'm';
+                                    }
+                                ?>
                                 <tr class="border-b border-gray-50 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors">
-                                    <td class="py-4 px-2"><?= date('M d, Y', strtotime($trip['trip_date'])); ?></td>
+                                    <td class="py-4 px-2"><?= date('M d, Y h:i A', strtotime($trip['created_at'] ?? $trip['trip_date'])); ?></td>
                                     <td class="py-4 px-2 font-medium"><?= htmlspecialchars($trip['destination']); ?></td>
+                                    <td class="py-4 px-2 text-gray-500 dark:text-gray-400 font-mono text-sm"><?= $duration; ?></td>
                                     <td class="py-4 px-2 font-semibold text-green-600 dark:text-green-400">₱<?= number_format($trip['pay_amount'] ?? 0, 2); ?></td>
                                     <td class="py-4 px-2">
                                         <?php 
