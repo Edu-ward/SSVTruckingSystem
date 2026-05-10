@@ -46,6 +46,10 @@
                         <?= htmlspecialchars($driver['status']); ?>
                     </span>
 
+                    <button onclick="openSwitchTruckModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', '<?= htmlspecialchars($driver['truck_code'] ?? 'None'); ?>')" class="text-gray-400 hover:text-blue-500 transition" title="Switch Truck">
+                        <i class="fa-solid fa-truck-arrow-right"></i>
+                    </button>
+
                     <button onclick="openUpdateDriverStatusModal(<?= $driver['id']; ?>, '<?= htmlspecialchars($driver['status']); ?>', '<?= addslashes($driver['name']); ?>')" class="text-gray-400 hover:text-blue-600 transition" title="Change Driver Status">
                         <i class="fa-solid fa-pen-to-square"></i>
                     </button>

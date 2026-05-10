@@ -65,11 +65,18 @@
                                     <td class="py-4 px-2">
                                         <?php 
                                         $s = isset($trip['status']) ? trim($trip['status']) : '';
-                                        // If it's empty, we assume it's a completed trip from the scan
                                         if (empty($s) || strtolower($s) === 'delivered' || strtolower($s) === 'completed'): 
                                         ?>
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                                 <i class="fa-solid fa-check mr-1"></i> Delivered
+                                            </span>
+                                        <?php elseif ($s === 'Cancellation Requested'): ?>
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 animate-pulse">
+                                                <i class="fa-solid fa-clock mr-1"></i> Pending Cancel
+                                            </span>
+                                        <?php elseif ($s === 'Cancelled'): ?>
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                <i class="fa-solid fa-ban mr-1"></i> Cancelled
                                             </span>
                                         <?php else: ?>
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">

@@ -31,3 +31,54 @@
             </div>
         </div>
     </div>
+
+    <!-- Cancel Trip Modal -->
+    <div id="cancelTripModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden justify-center items-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 transform scale-95 opacity-0 transition-all duration-300" id="cancelTripModalContent">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                <i class="fa-solid fa-ban text-orange-500 mr-2"></i> Request Cancellation
+            </h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Did your truck break down? You can request a trip cancellation. This will notify the Admin for approval.
+            </p>
+            <form method="POST" action="dashboard.php" id="cancelTripForm">
+                <input type="hidden" name="action" value="request_cancel_trip">
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Reason for Request</label>
+                    <input type="text" name="reason" required placeholder="e.g. Engine failure, flat tire..." class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeCancelTripModal()" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition">Go Back</button>
+                    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-orange-600 hover:bg-orange-700 transition">Send Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openCancelTripModal() {
+            const modal = document.getElementById('cancelTripModal');
+            const content = document.getElementById('cancelTripModalContent');
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 50);
+        }
+
+        function closeCancelTripModal() {
+            const modal = document.getElementById('cancelTripModal');
+            const content = document.getElementById('cancelTripModalContent');
+            
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+    </script>

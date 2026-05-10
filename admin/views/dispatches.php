@@ -56,6 +56,12 @@
             <button id="btn-tab-active" onclick="switchDispatchTab('active')" class="px-6 py-2 rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition">
                 Active (<?= count($activeTickets); ?>)
             </button>
+            <button id="btn-tab-requests" onclick="switchDispatchTab('requests')" class="px-6 py-2 rounded-full hover:text-gray-900 dark:text-gray-100 transition relative">
+                Requests (<?= count($cancellationRequests); ?>)
+                <?php if (count($cancellationRequests) > 0): ?>
+                    <span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping"></span>
+                <?php endif; ?>
+            </button>
             <button id="btn-tab-completed" onclick="switchDispatchTab('completed')" class="px-6 py-2 rounded-full hover:text-gray-900 dark:text-gray-100 transition">
                 Completed (<?= count($completedTickets); ?>)
             </button>
@@ -74,14 +80,28 @@
                         </div>
 
                         <div class="flex items-center space-x-3">
-                            <span class="<?= $statusClass; ?> text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase shadow-sm">
-                                <?= htmlspecialchars($ticket['status']); ?>
-                            </span>
+                            <?php if ($ticket['status'] === 'Cancellation Requested'): ?>
+                                <span class="bg-orange-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase shadow-sm animate-pulse">
+                                    cancellation requested
+                                </span>
+                            <?php else: ?>
+                                <span class="<?= $statusClass; ?> text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase shadow-sm">
+                                    <?= htmlspecialchars($ticket['status']); ?>
+                                </span>
+                            <?php endif; ?>
+
                             <div class="flex items-center space-x-2 border-l border-gray-200 dark:border-gray-600 pl-3 ml-1">
-                                <!-- NEW: Mark as Delivered Button -->
-                                <button onclick="markDispatchDelivered(<?= $ticket['id']; ?>, '<?= htmlspecialchars($ticket['ticket_number']); ?>')" class="text-green-500 hover:text-green-600 transition focus:outline-none" title="Mark as Delivered">
-                                    <i class="fa-solid fa-circle-check text-lg"></i>
-                                </button>
+                                <?php if ($ticket['status'] === 'Cancellation Requested'): ?>
+                                    <!-- Approve Cancellation Button -->
+                                    <button onclick="openApproveCancelModal(<?= $ticket['id']; ?>, '<?= htmlspecialchars($ticket['ticket_number']); ?>')" class="text-orange-500 hover:text-orange-600 transition focus:outline-none" title="Approve Cancellation Request">
+                                        <i class="fa-solid fa-circle-check text-lg"></i>
+                                    </button>
+                                <?php else: ?>
+                                    <!-- Mark as Delivered Button -->
+                                    <button onclick="markDispatchDelivered(<?= $ticket['id']; ?>, '<?= htmlspecialchars($ticket['ticket_number']); ?>')" class="text-green-500 hover:text-green-600 transition focus:outline-none" title="Mark as Delivered">
+                                        <i class="fa-solid fa-circle-check text-lg"></i>
+                                    </button>
+                                <?php endif; ?>
                                 <!-- Print Button -->
                                 <button onclick="window.open('print_ticket.php?id=<?= $ticket['id']; ?>', '_blank')" class="text-gray-400 hover:text-blue-500 transition focus:outline-none" title="Print Waybill Ticket">
                                     <i class="fa-solid fa-print"></i>
@@ -143,6 +163,43 @@
             <?php endforeach; ?>
         </div>
 
+        <div id="dispatch-grid-requests" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
+            <?php foreach ($cancellationRequests as $ticket): ?>
+                <div class="border-2 border-orange-200 dark:border-orange-900 rounded-xl p-6 shadow-sm bg-orange-50/30 dark:bg-orange-900/10 hover:shadow-md transition">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center space-x-2 font-bold text-gray-800 dark:text-gray-200">
+                            <i class="fa-solid fa-triangle-exclamation text-orange-500"></i>
+                            <span><?= htmlspecialchars($ticket['ticket_number']); ?></span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span class="bg-orange-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase shadow-sm animate-pulse">pending cancel</span>
+                            <div class="flex items-center space-x-2 border-l border-gray-200 dark:border-gray-600 pl-3 ml-1">
+                                <button onclick="openApproveCancelModal(<?= $ticket['id']; ?>, '<?= htmlspecialchars($ticket['ticket_number']); ?>')" class="text-orange-500 hover:text-orange-600 transition" title="Approve Cancellation">
+                                    <i class="fa-solid fa-circle-check text-lg"></i>
+                                </button>
+                                <button onclick="openSwitchTruckModal(<?= $ticket['driver_id']; ?>, '<?= addslashes($ticket['driver_name']); ?>', '<?= htmlspecialchars($ticket['truck_code']); ?>')" class="text-blue-500 hover:text-blue-600 transition focus:outline-none" title="Resolve by Switching Truck">
+                                    <i class="fa-solid fa-truck-arrow-right text-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-3 mb-4 text-sm">
+                        <div class="flex items-center space-x-2"><i class="fa-solid fa-truck text-gray-500 dark:text-gray-400 w-5 flex justify-center"></i><span class="text-gray-600 dark:text-gray-300"><span class="font-bold text-gray-800 dark:text-gray-200">Truck:</span> <?= htmlspecialchars($ticket['truck_code']); ?></span></div>
+                        <div class="flex items-center space-x-2"><i class="fa-regular fa-user text-gray-500 dark:text-gray-400 w-5 flex justify-center"></i><span class="text-gray-600 dark:text-gray-300"><span class="font-bold text-gray-800 dark:text-gray-200">Driver:</span> <?= htmlspecialchars($ticket['driver_name']); ?></span></div>
+                    </div>
+                    <div class="text-xs text-orange-600 dark:text-orange-400 italic bg-orange-100 dark:bg-orange-900/20 p-2 rounded-lg">
+                        <i class="fa-solid fa-info-circle mr-1"></i> Waiting for admin to approve or re-assign truck.
+                    </div>
+                </div>
+            <?php endforeach; ?>
+            <?php if (count($cancellationRequests) == 0): ?>
+                <div class="col-span-full py-12 text-center text-gray-500 dark:text-gray-400">
+                    <i class="fa-solid fa-check-circle text-4xl mb-3 text-gray-200 block"></i>
+                    No pending cancellation requests.
+                </div>
+            <?php endif; ?>
+        </div>
+
         <div id="dispatch-grid-completed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
             <?php foreach ($completedTickets as $ticket): ?>
                 <div class="border border-gray-100 dark:border-gray-700 rounded-xl p-6 shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition">
@@ -152,7 +209,11 @@
                             <span><?= htmlspecialchars($ticket['ticket_number']); ?></span>
                         </div>
                         <div class="flex items-center space-x-3">
-                            <span class="bg-green-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase shadow-sm">delivered</span>
+                            <?php if ($ticket['status'] == 'Cancelled'): ?>
+                                <span class="bg-red-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase shadow-sm">cancelled</span>
+                            <?php else: ?>
+                                <span class="bg-green-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase shadow-sm">delivered</span>
+                            <?php endif; ?>
                             <div class="border-l border-gray-200 dark:border-gray-600 pl-3 ml-1 flex items-center">
                                 <button onclick="window.open('print_ticket.php?id=<?= $ticket['id']; ?>', '_blank')" class="text-gray-400 hover:text-blue-500 transition focus:outline-none" title="Print Waybill Ticket">
                                     <i class="fa-solid fa-print"></i>

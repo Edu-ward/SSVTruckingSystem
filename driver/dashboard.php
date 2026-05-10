@@ -9,6 +9,60 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Driver') {
 
 $driver_id = $_SESSION['user_id'];
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'request_cancel_trip') {
+    $reason = trim($_POST['reason']);
+    if (empty($reason)) {
+        $reason = "Maintenance Required";
+    }
+
+    try {
+        $pdo->beginTransaction();
+
+        // 1. Get driver's active dispatch
+        $stmt = $pdo->prepare("SELECT id, truck_id, status FROM dispatches WHERE driver_id = ? AND status NOT IN ('Delivered', 'Cancelled', 'Completed')");
+        $stmt->execute([$driver_id]);
+        $active_dispatches = $stmt->fetchAll();
+
+        // Check if already requested
+        $already_requested = false;
+        foreach ($active_dispatches as $dispatch) {
+            if ($dispatch['status'] === 'Cancellation Requested') {
+                $already_requested = true;
+                break;
+            }
+        }
+
+        if ($already_requested) {
+            $_SESSION['error'] = "A cancellation request is already pending for your current trip.";
+            $pdo->rollBack();
+            header("Location: dashboard.php");
+            exit;
+        }
+
+        // 2. Mark active dispatches as Cancellation Requested
+        foreach ($active_dispatches as $dispatch) {
+            $stmtUpdate = $pdo->prepare("UPDATE dispatches SET status = 'Cancellation Requested' WHERE id = ?");
+            $stmtUpdate->execute([$dispatch['id']]);
+        }
+
+        // 3. Update the driver trip if there's any active driver trip
+        $stmtUpdateTrip = $pdo->prepare("UPDATE driver_trips SET status = 'Cancellation Requested' WHERE driver_id = ? AND status NOT IN ('Delivered', 'Cancelled', 'Completed')");
+        $stmtUpdateTrip->execute([$driver_id]);
+
+        $pdo->commit();
+        if (count($active_dispatches) > 0) {
+            $_SESSION['success'] = "Cancellation requested. Please wait for Admin approval.";
+        } else {
+            $_SESSION['error'] = "No active trip found to cancel.";
+        }
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        $_SESSION['error'] = "An error occurred while processing your request.";
+    }
+    
+    header("Location: dashboard.php");
+    exit;
+}
 $stmt = $pdo->prepare("SELECT * FROM driver_payroll WHERE driver_id = ?");
 $stmt->execute([$driver_id]);
 $payroll = $stmt->fetch() ?: ['total_amount' => 0, 'amount_claimed' => 0];
@@ -50,10 +104,29 @@ foreach ($raw_trips as $t) {
 
 $next_payday = (date('w') == 6) ? 'Today' : date('l, M j', strtotime('next Saturday'));
 
+// Check for pending cancellation
+$stmtCancel = $pdo->prepare("SELECT id FROM dispatches WHERE driver_id = ? AND status = 'Cancellation Requested' LIMIT 1");
+$stmtCancel->execute([$driver_id]);
+$has_pending_cancellation = $stmtCancel->fetch() ? true : false;
+
 include '../includes/header.php';
 ?>
 
 <div class="max-w-7xl mx-auto px-6 py-8">
+    <?php if (isset($_SESSION['success'])): ?>
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
+            <p><?= htmlspecialchars($_SESSION['success']); ?></p>
+        </div>
+        <?php unset($_SESSION['success']); ?>
+    <?php endif; ?>
+
+    <?php if (isset($_SESSION['error'])): ?>
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+            <p><?= htmlspecialchars($_SESSION['error']); ?></p>
+        </div>
+        <?php unset($_SESSION['error']); ?>
+    <?php endif; ?>
+
     <?php
     include 'views/home.php';
     include 'views/modals.php';
