@@ -120,14 +120,18 @@
             document.getElementById('vd-owed-balance').innerText = balance;
 
             const settleBtn = document.getElementById('vd-settle-btn');
+            const printBtn = document.getElementById('vd-print-btn');
             if (parseFloat(balance) > 0) {
                 settleBtn.classList.remove('hidden');
                 settleBtn.onclick = function() {
                     toggleModal('viewDriverModal', false);
                     openSettlePayrollModal(driver.id, driver.name, balance);
                 };
+                printBtn.classList.remove('hidden');
+                printBtn.href = 'print_payroll.php?driver_id=' + driver.id;
             } else {
                 settleBtn.classList.add('hidden');
+                printBtn.classList.add('hidden');
             }
 
             const tripsContainer = document.getElementById('vd-recent-trips');
