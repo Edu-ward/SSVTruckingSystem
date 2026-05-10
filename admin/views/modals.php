@@ -57,59 +57,66 @@ $gravelPrices = [
     </div>
 </div>
 
-<div id="addDriverModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-    <div class="relative top-20 mx-auto p-5 border w-96 md:w-1/2 shadow-lg rounded-md bg-white dark:bg-gray-800">
-        <div class="flex justify-between items-center mb-4">
+<div id="addDriverModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl overflow-hidden relative">
+        <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
             <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200">Add New Driver</h3>
-            <button onclick="document.getElementById('addDriverModal').classList.add('hidden')" class="text-gray-500 dark:text-gray-400 hover:text-red-500 text-2xl font-bold">&times;</button>
+            <button onclick="toggleModal('addDriverModal', false)" class="text-gray-500 dark:text-gray-400 hover:text-red-500 transition">
+                <i class="fa-solid fa-xmark fa-lg"></i>
+            </button>
         </div>
-        <form action="dashboard.php" method="POST" class="space-y-4">
+        <form action="dashboard.php" method="POST" class="p-6 space-y-4">
             <input type="hidden" name="action" value="add_driver">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
-            <h4 class="font-semibold text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600 pb-1 mt-4">Truck Assignment</h4>
-            <div class="mt-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Scan Truck RFID <span class="text-red-500">*</span></label>
-                <div class="flex space-x-2">
-                    <input type="text" name="truck_rfid" id="driverTruckRfidInput" required placeholder="Scan truck RFID tag..." autocomplete="off" class="flex-1 border border-blue-300 dark:border-blue-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 dark:bg-blue-900 dark:text-gray-100 transition-colors">
-                    <input type="text" id="driverTruckCodeDisplay" readonly placeholder="Truck Code" class="w-32 border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 focus:outline-none cursor-not-allowed text-center font-bold">
-                </div>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Focus this field and scan the truck's RFID card.</p>
-            </div>
-            <h4 class="font-semibold text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600 pb-1">Personal Details</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Full Name</label>
-                    <input type="text" name="name" required class="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">CDL Number</label>
-                    <input type="text" name="cdl_number" required class="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Phone</label>
-                    <input type="text" name="phone" required class="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                </div>
-            </div>
-            <h4 class="font-semibold text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600 pb-1 mt-4">Login Credentials</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Username</label>
-                    <input type="text" name="username" required class="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Password</label>
-                    <div class="flex">
-                        <input type="text" id="driverPasswordInput" name="password" required readonly placeholder="Click generate to create" class="p-2 w-full border border-gray-300 dark:border-gray-600 rounded-l-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm cursor-not-allowed">
-                        <button type="button" onclick="generateDriverPassword()" class="px-4 py-2 bg-blue-100 dark:bg-blue-900 border border-l-0 border-blue-300 dark:border-blue-700 rounded-r-md hover:bg-blue-200 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 transition font-medium" title="Generate Random Password">
-                            Generate
-                        </button>
+            
+            <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800 mb-2">
+                <h4 class="font-bold text-blue-700 dark:text-blue-400 text-sm mb-3 flex items-center">
+                    <i class="fa-solid fa-truck-fast mr-2"></i> Truck Assignment
+                </h4>
+                <div class="flex space-x-3">
+                    <div class="flex-1">
+                        <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Scan Truck RFID <span class="text-red-500">*</span></label>
+                        <input type="text" name="truck_rfid" id="driverTruckRfidInput" required placeholder="Scan tag..." autocomplete="off" class="w-full border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 transition-colors">
+                    </div>
+                    <div class="w-24">
+                        <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Code</label>
+                        <input type="text" id="driverTruckCodeDisplay" readonly placeholder="---" class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-2 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 focus:outline-none cursor-not-allowed text-center font-bold">
                     </div>
                 </div>
             </div>
-            <div class="flex justify-end mt-6">
-                <button type="button" onclick="document.getElementById('addDriverModal').classList.add('hidden')" class="mr-3 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition dark:bg-black">Cancel</button>
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 border border-transparent">Save Driver</button>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Full Name</label>
+                    <input type="text" name="name" required placeholder="Juan Dela Cruz" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">CDL Number</label>
+                    <input type="text" name="cdl_number" required placeholder="N01-XX-XXXXXX" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Phone</label>
+                    <input type="text" name="phone" required placeholder="0912-345-6789" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Username</label>
+                    <input type="text" name="username" required placeholder="juan.dela.cruz" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Password</label>
+                <div class="flex">
+                    <input type="text" id="driverPasswordInput" name="password" required readonly placeholder="Click generate" class="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded-l-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm">
+                    <button type="button" onclick="generateDriverPassword()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-r-lg transition font-medium">Generate</button>
+                </div>
+            </div>
+            
+            <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                <button type="button" onclick="toggleModal('addDriverModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 transition">Cancel</button>
+                <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Save Driver</button>
             </div>
         </form>
     </div>
@@ -331,6 +338,7 @@ $gravelPrices = [
                     <option value="Loading">Loading</option>
                     <option value="In Transit">In Transit (On Trip)</option>
                     <option value="Unloading">Unloading</option>
+                    <option value="Maintenance">Maintenance (Broken)</option>
                 </select>
             </div>
             <div class="flex space-x-3">
@@ -361,6 +369,69 @@ $gravelPrices = [
             <div class="flex space-x-3">
                 <button type="button" onclick="toggleModal('updateDriverStatusModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition dark:bg-black">Cancel</button>
                 <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Update Status</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="switchTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative p-6 text-center">
+        <button onclick="toggleModal('switchTruckModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200"><i class="fa-solid fa-xmark fa-lg"></i></button>
+        <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-truck-arrow-right"></i></div>
+        <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Switch Truck</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Assign a new Idle truck to <strong id="st-driver-name" class="text-gray-800 dark:text-gray-200"></strong>. Current truck: <strong id="st-truck-code"></strong>.</p>
+        <form method="POST" action="dashboard.php">
+            <input type="hidden" name="action" value="switch_truck">
+            <input type="hidden" name="driver_id" id="switch_truck_driver_id" value="">
+            <input type="hidden" name="redirect_tab" id="switch_truck_redirect_tab" value="drivers">
+            <div class="mb-6 text-left">
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Select New Truck</label>
+                <select name="new_truck_id" required class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900 font-medium text-gray-700 dark:text-gray-200">
+                    <option value="">— Select Idle Truck —</option>
+                    <?php foreach ($availableTrucks ?? [] as $t): ?>
+                        <option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['truck_code']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Active dispatches will automatically transfer to the new truck.</p>
+            </div>
+            <div class="flex space-x-3">
+                <button type="button" onclick="toggleModal('switchTruckModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition dark:bg-black">Cancel</button>
+                <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Switch Truck</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Approve Cancellation Modal -->
+<div id="approveCancelModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex justify-center items-center z-50 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
+        <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-orange-50 dark:bg-gray-700">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+                    <i class="fa-solid fa-triangle-exclamation text-orange-600"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">Approve Cancellation</h3>
+                    <p class="text-xs text-orange-600 dark:text-orange-400 font-medium">Ticket: <span id="ac-ticket-number"></span></p>
+                </div>
+            </div>
+            <button onclick="toggleModal('approveCancelModal', false)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <form method="POST" action="dashboard.php">
+            <input type="hidden" name="action" value="approve_cancel">
+            <input type="hidden" name="dispatch_id" id="approve_cancel_dispatch_id">
+            <div class="p-8 text-center">
+                <p class="text-gray-600 dark:text-gray-300 mb-6">Are you sure you want to approve this cancellation request? This will mark the truck for <span class="font-bold text-orange-600">Maintenance</span> and the dispatch as <span class="font-bold text-red-600">Cancelled</span>.</p>
+                <div class="flex flex-col space-y-3">
+                    <button type="submit" class="w-full py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-lg shadow-orange-200 dark:shadow-none transition transform hover:-translate-y-0.5">
+                        Yes, Approve Cancellation
+                    </button>
+                    <button type="button" onclick="toggleModal('approveCancelModal', false)" class="w-full py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+                        No, Keep it Active
+                    </button>
+                </div>
             </div>
         </form>
     </div>
@@ -651,4 +722,21 @@ $gravelPrices = [
             </div>
         </form>
     </div>
+</div>
+
+<!-- ==================== DELETE CHECKER MODAL ==================== -->
+<div id="deleteCheckerModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative p-6 text-center">
+        <button onclick="toggleModal('deleteCheckerModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200"><i class="fa-solid fa-xmark fa-lg"></i></button>
+        <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-user-minus"></i></div>
+        <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Delete Checker?</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to remove <strong id="dc-name" class="text-gray-800 dark:text-gray-200"></strong>? This action cannot be undone.</p>
+        <form method="POST" action="dashboard.php" class="flex justify-center space-x-3">
+            <input type="hidden" name="action" value="delete_checker">
+            <input type="hidden" name="checker_id" id="delete_checker_id" required>
+            <button type="button" onclick="toggleModal('deleteCheckerModal', false)" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition w-full">Cancel</button>
+            <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition w-full">Delete</button>
+        </form>
+    </div>
+</div>
 </div>

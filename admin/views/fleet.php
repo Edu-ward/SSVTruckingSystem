@@ -20,6 +20,7 @@
             if ($truck['status'] == 'Idle') $badgeClass = 'bg-yellow-500';
             if ($truck['status'] == 'Loading') $badgeClass = 'bg-blue-500';
             if ($truck['status'] == 'Unloading') $badgeClass = 'bg-orange-500';
+            if ($truck['status'] == 'Maintenance') $badgeClass = 'bg-red-600';
         ?>
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 flex flex-col h-full relative hover:shadow-md transition">
                 <div class="flex justify-between items-start mb-5">
@@ -29,11 +30,11 @@
                         </div>
                         <div>
                             <h3 class="font-bold text-gray-900 dark:text-gray-100 text-lg"><?= htmlspecialchars($truck['truck_code']); ?></h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400"><?= htmlspecialchars($truck['driver_name'] ?? 'No Driver Assigned'); ?></p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400"><?= htmlspecialchars($truck['driver_name'] ?? 'No Driver Assigned'); ?></p>
                         </div>
                     </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="<?= $badgeClass; ?> text-white text-xs font-semibold px-2.5 py-1 rounded-full w-25">
+                    <div class="flex items-center space-x-2 ml-30">
+                        <span class="<?= $badgeClass; ?> text-white text-xs font-semibold px-2.5 py-1 rounded-full w-30">
                             <?= htmlspecialchars($truck['status']); ?>
                         </span>
 

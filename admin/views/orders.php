@@ -171,8 +171,13 @@ $gravelTypeLabels = [
                     </span>
                     <?php endif; ?>
                     <span class="text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-full font-semibold">Checker</span>
+<<<<<<< HEAD
                     <button onclick="openDeleteCheckerModal(<?= $checker['id'] ?>, '<?= addslashes($checker['full_name'] ?: $checker['username']) ?>')" title="Remove Checker" class="text-gray-400 hover:text-red-500 transition focus:outline-none">
                         <i class="fa-solid fa-trash-can"></i>
+=======
+                    <button onclick="openDeleteCheckerModal(<?= $checker['id'] ?>, '<?= addslashes($checker['full_name'] ?: $checker['username']) ?>')" class="text-gray-400 hover:text-red-500 transition ml-2" title="Delete Checker">
+                        <i class="fa-solid fa-trash"></i>
+>>>>>>> 382d880d02cfff27c7e54e62e0cefbf7d7e2cc90
                     </button>
                 </div>
             </div>

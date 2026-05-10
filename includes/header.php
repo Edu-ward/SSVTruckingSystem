@@ -107,6 +107,15 @@
             <?php elseif ($_SESSION['role'] === 'Driver'): ?>
                 <!-- DRIVER NAVIGATION -->
                 <span class="text-blue-100 mr-4">Welcome, <?= htmlspecialchars($_SESSION['username'] ?? 'Driver'); ?></span>
+                <?php if ($has_pending_cancellation ?? false): ?>
+                    <button class="flex items-center px-3 py-2 text-gray-500 bg-gray-200 dark:bg-gray-700 rounded-md cursor-not-allowed transition shadow-sm mr-2" disabled>
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Cancellation Pending...
+                    </button>
+                <?php else: ?>
+                    <button onclick="openCancelTripModal()" class="flex items-center px-3 py-2 text-white bg-orange-600 dark:bg-orange-700 hover:bg-orange-700 dark:hover:bg-orange-600 rounded-md transition shadow-sm mr-2">
+                        <i class="fa-solid fa-ban mr-2"></i> Request Cancellation
+                    </button>
+                <?php endif; ?>
                 <button onclick="openChangePasswordModal()" class="flex items-center px-3 py-2 text-white bg-blue-700 dark:bg-gray-700 hover:bg-blue-800 dark:hover:bg-gray-600 rounded-md transition shadow-sm">
                     <i class="fa-solid fa-key mr-2"></i> Change Password
                 </button>

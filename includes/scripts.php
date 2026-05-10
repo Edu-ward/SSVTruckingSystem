@@ -78,12 +78,19 @@
 
         function switchDispatchTab(tab) {
             document.getElementById('dispatch-grid-active').classList.add('hidden');
+            document.getElementById('dispatch-grid-requests').classList.add('hidden');
             document.getElementById('dispatch-grid-completed').classList.add('hidden');
+            
             document.getElementById('btn-tab-active').className = "px-6 py-2 rounded-full hover:text-gray-900 dark:text-gray-100 transition";
+            document.getElementById('btn-tab-requests').className = "px-6 py-2 rounded-full hover:text-gray-900 dark:text-gray-100 transition relative";
             document.getElementById('btn-tab-completed').className = "px-6 py-2 rounded-full hover:text-gray-900 dark:text-gray-100 transition";
+            
             if (tab === 'active') {
                 document.getElementById('dispatch-grid-active').classList.remove('hidden');
                 document.getElementById('btn-tab-active').className = "px-6 py-2 rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition";
+            } else if (tab === 'requests') {
+                document.getElementById('dispatch-grid-requests').classList.remove('hidden');
+                document.getElementById('btn-tab-requests').className = "px-6 py-2 rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition relative";
             } else {
                 document.getElementById('dispatch-grid-completed').classList.remove('hidden');
                 document.getElementById('btn-tab-completed').className = "px-6 py-2 rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition";
@@ -170,6 +177,12 @@
             toggleModal('deleteDriverModal', true);
         }
 
+        function openDeleteCheckerModal(id, name) {
+            document.getElementById('dc-name').innerText = name;
+            document.getElementById('delete_checker_id').value = id;
+            toggleModal('deleteCheckerModal', true);
+        }
+
         function openDeleteTruckModal(truckId, truckCode) {
             document.getElementById('dt-truck-code').innerText = truckCode;
             document.getElementById('delete_truck_id').value = truckId;
@@ -188,6 +201,27 @@
             document.getElementById('update_status_driver_id').value = driverId;
             document.getElementById('update_driver_status_select').value = currentStatus;
             toggleModal('updateDriverStatusModal', true);
+        }
+
+        function openSwitchTruckModal(driverId, driverName, truckCode) {
+            document.getElementById('st-driver-name').innerText = driverName;
+            document.getElementById('st-truck-code').innerText = truckCode || 'None';
+            document.getElementById('switch_truck_driver_id').value = driverId;
+            
+            // Auto-detect redirect tab
+            const activeTabContent = document.querySelector('.tab-content:not(.hidden)');
+            if (activeTabContent) {
+                const tabId = activeTabContent.id.replace('view-', '');
+                document.getElementById('switch_truck_redirect_tab').value = tabId;
+            }
+            
+            toggleModal('switchTruckModal', true);
+        }
+
+        function openApproveCancelModal(dispatchId, ticketNumber) {
+            document.getElementById('ac-ticket-number').innerText = ticketNumber;
+            document.getElementById('approve_cancel_dispatch_id').value = dispatchId;
+            toggleModal('approveCancelModal', true);
         }
 
         function openDeleteDispatchModal(dispatchId, ticketNumber) {
@@ -403,6 +437,22 @@
                         fetch('get_truck_by_rfid.php?rfid=' + encodeURIComponent(rfidValue)).then(response => response.json())
                             .then(data => {
                                 if (data.success) {
+                                    if (data.status === 'Maintenance') {
+                                        rfidFeedback.innerHTML = '<span class="text-red-500 font-bold"><i class="fa-solid fa-screwdriver-wrench"></i> This truck is in Maintenance!</span>';
+                                        truckPlate.value = '';
+                                        hiddenTruckId.value = '';
+                                        rfidInput.value = '';
+                                        return;
+                                    }
+                                    
+                                    if (data.status !== 'Idle') {
+                                        rfidFeedback.innerHTML = `<span class="text-orange-500 font-bold"><i class="fa-solid fa-circle-exclamation"></i> Truck is currently ${data.status}!</span>`;
+                                        truckPlate.value = '';
+                                        hiddenTruckId.value = '';
+                                        rfidInput.value = '';
+                                        return;
+                                    }
+
                                     truckPlate.value = data.truck_code;
                                     hiddenTruckId.value = data.truck_id;
 
