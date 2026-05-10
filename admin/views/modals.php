@@ -400,6 +400,26 @@ $gravelPrices = [
     </div>
 </div>
 
+<div id="deleteDispatchModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden relative">
+        <div class="p-6 text-center">
+            <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-ban text-3xl text-red-600"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Void / Cancel Dispatch</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to void ticket <strong id="dd-ticket-number" class="text-gray-800 dark:text-gray-200"></strong>? This will release the truck and driver and reverse any payroll added for this trip.</p>
+            <form method="POST" action="dashboard.php">
+                <input type="hidden" name="action" value="delete_dispatch">
+                <input type="hidden" name="dispatch_id" id="delete_dispatch_id">
+                <div class="flex justify-center space-x-3">
+                    <button type="button" onclick="toggleModal('deleteDispatchModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition">Keep Dispatch</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">Yes, Void It</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <div id="completeDispatchModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden relative">
         <div class="p-6 text-center">
@@ -562,7 +582,6 @@ $gravelPrices = [
     }
 </script>
 
-<!-- ==================== ASSIGN CHECKER MODAL ==================== -->
 <div id="assignCheckerModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative p-6">
         <button onclick="toggleModal('assignCheckerModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200"><i class="fa-solid fa-xmark fa-lg"></i></button>
@@ -589,6 +608,24 @@ $gravelPrices = [
             <div class="flex space-x-3">
                 <button type="button" onclick="toggleModal('assignCheckerModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition">Cancel</button>
                 <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Assign</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="deleteCheckerModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative p-6 text-center">
+        <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Remove Checker</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to remove <strong id="dc-checker-name" class="text-gray-800 dark:text-gray-200"></strong> from the system? Their account will be permanently deleted.</p>
+        <form method="POST" action="dashboard.php">
+            <input type="hidden" name="action" value="delete_checker">
+            <input type="hidden" name="checker_id" id="delete_checker_id">
+            <div class="flex space-x-3">
+                <button type="button" onclick="toggleModal('deleteCheckerModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition">Keep Account</button>
+                <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">Yes, Remove</button>
             </div>
         </form>
     </div>

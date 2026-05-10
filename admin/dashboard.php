@@ -321,6 +321,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         header("Location: dashboard.php?tab=orders");
         exit;
     }
+
+    if ($_POST['action'] == 'delete_checker') {
+        $checker_id = intval($_POST['checker_id']);
+        if ($checker_id > 0) {
+            try {
+                $pdo->beginTransaction();
+                // Unassign checker from any orders they were assigned to
+                $pdo->prepare("UPDATE orders SET checker_id = NULL WHERE checker_id = ?")->execute([$checker_id]);
+                // Remove checker profile row
+                $pdo->prepare("DELETE FROM checkers WHERE id = ?")->execute([$checker_id]);
+                // Remove the user account
+                $pdo->prepare("DELETE FROM users WHERE id = ? AND role = 'Checker'")->execute([$checker_id]);
+                $pdo->commit();
+            } catch (Exception $e) {
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                die("Error removing checker: " . $e->getMessage());
+            }
+        }
+        header("Location: dashboard.php?tab=orders");
+        exit;
+    }
 }
 
 $totalFleet = $pdo->query("SELECT COUNT(*) FROM trucks")->fetchColumn();
