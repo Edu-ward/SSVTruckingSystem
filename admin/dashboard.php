@@ -248,19 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-    if ($_POST['action'] == 'delete_checker') {
-        $checker_id = $_POST['checker_id'];
-        if ($checker_id) {
-            // Delete checker profile and associated user login
-            $pdo->prepare("DELETE FROM checkers WHERE id = ?")->execute([$checker_id]);
-            $pdo->prepare("DELETE FROM users WHERE id = ?")->execute([$checker_id]);
-            $_SESSION['success'] = "Checker deleted successfully.";
-        } else {
-            $_SESSION['error'] = "Failed to delete checker.";
-        }
-        header("Location: dashboard.php?tab=orders");
-        exit;
-    }
+
 
     if ($_POST['action'] == 'delete_driver') {
         if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
@@ -428,7 +416,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         header("Location: dashboard.php?tab=orders");
         exit;
     }
-<<<<<<< HEAD
 
     if ($_POST['action'] == 'delete_checker') {
         $checker_id = intval($_POST['checker_id']);
@@ -442,13 +429,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 // Remove the user account
                 $pdo->prepare("DELETE FROM users WHERE id = ? AND role = 'Checker'")->execute([$checker_id]);
                 $pdo->commit();
+                $_SESSION['success'] = "Checker deleted successfully.";
             } catch (Exception $e) {
                 if ($pdo->inTransaction()) $pdo->rollBack();
-                die("Error removing checker: " . $e->getMessage());
+                $_SESSION['error'] = "Failed to delete checker: " . $e->getMessage();
             }
+        } else {
+            $_SESSION['error'] = "Failed to delete checker: Invalid ID.";
         }
         header("Location: dashboard.php?tab=orders");
-=======
+        exit;
+    }
+
     if ($_POST['action'] == 'switch_truck') {
         $driver_id = $_POST['driver_id'];
         $new_truck_id = $_POST['new_truck_id'];
@@ -537,7 +529,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         header("Location: dashboard.php?tab=dispatches");
->>>>>>> 382d880d02cfff27c7e54e62e0cefbf7d7e2cc90
         exit;
     }
 }
