@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $truck = $ts->fetch();
 
         if (!$truck) {
-            $scanError = "❌ No truck found for RFID tag: " . htmlspecialchars($rfid_tag);
+            $_SESSION['error'] = "❌ No truck found for RFID tag: " . htmlspecialchars($rfid_tag);
         } else {
             // Fetch order
             $os = $pdo->prepare("SELECT * FROM orders WHERE id = ? AND status IN ('Pending','In Progress')");
@@ -58,15 +58,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $order = $os->fetch();
 
             if (!$order) {
-                $scanError = "❌ Order not found or already fulfilled/cancelled.";
+                $_SESSION['error'] = "❌ Order not found or already fulfilled/cancelled.";
             } elseif ($order['checker_id'] && $order['checker_id'] != $checker_id) {
-                $scanError = "❌ You are not the assigned checker for this order.";
+                $_SESSION['error'] = "❌ You are not the assigned checker for this order.";
             } else {
                 // Check for duplicate scan in same order
                 $dup = $pdo->prepare("SELECT id FROM order_scans WHERE order_id = ? AND truck_id = ?");
                 $dup->execute([$order_id, $truck['id']]);
                 if ($dup->fetch()) {
-                    $scanError = "⚠️ Truck <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> has already been scanned for this order.";
+                    $_SESSION['error'] = "⚠️ Truck <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> has already been scanned for this order.";
                 } else {
                     // Record scan
                     $pdo->prepare("INSERT INTO order_scans (order_id, truck_id, checker_id) VALUES (?, ?, ?)")
@@ -127,15 +127,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     if ($updated['trucks_fulfilled'] >= $updated['trucks_required']) {
                         $pdo->prepare("UPDATE orders SET status = 'Fulfilled' WHERE id = ?")
                             ->execute([$order_id]);
-                        $scanSuccess = "✅ <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> scanned. Order <strong>Fulfilled!</strong>";
+                        $_SESSION['success'] = "✅ <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> scanned. Order <strong>Fulfilled!</strong>";
                     } else {
                         $remaining = $updated['trucks_required'] - $updated['trucks_fulfilled'];
-                        $scanSuccess = "✅ <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> scanned. <strong>$remaining truck(s)</strong> remaining.";
+                        $_SESSION['success'] = "✅ <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> scanned. <strong>$remaining truck(s)</strong> remaining.";
                     }
                 }
             }
         }
     }
+    header("Location: dashboard.php");
+    exit;
 }
 
 // --- DATA QUERIES ---
@@ -185,18 +187,7 @@ $gravelTypeLabels = [
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Scan truck RFID tags to confirm gravel deliveries against active orders.</p>
     </div>
 
-    <!-- Flash messages -->
-    <?php if (isset($scanSuccess)): ?>
-    <div class="mb-6 bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-200 rounded-xl px-5 py-4 flex items-start space-x-3 shadow-sm">
-        <i class="fa-solid fa-circle-check text-xl mt-0.5 flex-shrink-0"></i>
-        <p class="text-sm font-medium"><?= $scanSuccess ?></p>
-    </div>
-    <?php elseif (isset($scanError)): ?>
-    <div class="mb-6 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-200 rounded-xl px-5 py-4 flex items-start space-x-3 shadow-sm">
-        <i class="fa-solid fa-triangle-exclamation text-xl mt-0.5 flex-shrink-0"></i>
-        <p class="text-sm font-medium"><?= $scanError ?></p>
-    </div>
-    <?php endif; ?>
+
 
     <!-- Stats -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">

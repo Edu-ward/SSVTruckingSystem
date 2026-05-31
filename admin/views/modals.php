@@ -41,8 +41,8 @@ $gravelPrices = [
         <form method="POST" action="dashboard.php" class="p-6 space-y-4">
             <input type="hidden" name="action" value="add_truck">
             <div>
-                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Truck Code <span class="text-red-500">*</span></label>
-                <input type="text" name="truck_code" required placeholder="e.g. SSV-001" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Plate Number <span class="text-red-500">*</span></label>
+                <input type="text" name="truck_code" id="newTruckPlateInput" required placeholder="e.g. ABC 1234" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
             </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">RFID Tag <span class="text-red-500">*</span></label>
@@ -91,7 +91,7 @@ $gravelPrices = [
                     <input type="text" name="name" required placeholder="Juan Dela Cruz" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">CDL Number</label>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Licence Number</label>
                     <input type="text" name="cdl_number" required placeholder="N01-XX-XXXXXX" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 </div>
             </div>
@@ -246,7 +246,7 @@ $gravelPrices = [
         <div class="bg-blue-600 p-6 text-center">
             <div class="w-20 h-20 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center text-2xl font-bold text-blue-600 mx-auto mb-3 shadow-lg" id="vd-initials">--</div>
             <h3 class="text-xl font-bold text-white" id="vd-name">Driver Name</h3>
-            <p class="text-blue-100 text-sm mt-1" id="vd-cdl">CDL-XXXXX</p>
+            <p class="text-blue-100 text-sm mt-1" id="vd-cdl">Licence #</p>
         </div>
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-2 gap-4">
@@ -470,6 +470,38 @@ $gravelPrices = [
                 <div class="flex justify-center space-x-3">
                     <button type="button" onclick="toggleModal('deleteTruckModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition dark:bg-black">Cancel</button>
                     <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">Yes, Remove</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- ==================== MARK AS FIXED MODAL ==================== -->
+<div id="markFixedModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-60 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden relative transform transition-all">
+        <div class="bg-green-600 p-6 text-center">
+            <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-3xl mx-auto mb-3">
+                <i class="fa-solid fa-screwdriver-wrench text-white"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white">Mark Truck as Fixed?</h3>
+            <p class="text-green-100 text-sm mt-1">This will set the truck status back to <strong>Idle</strong>.</p>
+        </div>
+        <div class="p-6">
+            <p class="text-gray-600 dark:text-gray-300 text-sm text-center mb-6">
+                Confirm that <strong id="mf-truck-code" class="text-gray-900 dark:text-gray-100"></strong> has been repaired and is ready to operate.
+            </p>
+            <form method="POST" action="dashboard.php">
+                <input type="hidden" name="action" value="update_truck_status">
+                <input type="hidden" name="new_status" value="Idle">
+                <input type="hidden" name="truck_id" id="mf_truck_id">
+                <div class="flex space-x-3">
+                    <button type="button" onclick="toggleModal('markFixedModal', false)" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-green-600 hover:bg-green-700 transition shadow-md shadow-green-200 dark:shadow-none">
+                        <i class="fa-solid fa-check mr-1"></i> Yes, Mark Fixed
+                    </button>
                 </div>
             </form>
         </div>

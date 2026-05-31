@@ -1,4 +1,13 @@
 <div id="view-fleet" class="tab-content hidden">
+
+    <?php if (isset($_GET['open']) && $_GET['open'] === 'addTruck'): ?>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            toggleModal('addTruckModal', true);
+        });
+    </script>
+    <?php endif; ?>
+
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 mb-6 flex justify-between items-center">
         <div class="flex items-center space-x-2 text-xl font-bold text-gray-800 dark:text-gray-200">
             <i class="fa-solid fa-truck-fast text-gray-700 dark:text-gray-200"></i>
@@ -95,6 +104,12 @@
                         <i class="fa-solid fa-location-crosshairs text-gray-500 dark:text-gray-400"></i>
                         <span>Track</span>
                     </button>
+                    <?php if ($truck['status'] === 'Maintenance'): ?>
+                    <button onclick="openMarkFixedModal(<?= $truck['id']; ?>, '<?= htmlspecialchars($truck['truck_code']); ?>')" class="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white rounded-lg py-2 text-sm font-semibold transition flex items-center justify-center space-x-2 shadow-sm shadow-green-200 dark:shadow-none">
+                        <i class="fa-solid fa-wrench"></i>
+                        <span>Mark as Fixed</span>
+                    </button>
+                    <?php endif; ?>
                 </div>
             </div>
         <?php endforeach; ?>

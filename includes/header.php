@@ -184,3 +184,158 @@
             document.cookie = "theme=" + (isNowDark ? "dark" : "light") + "; path=/; max-age=" + (60 * 60 * 24 * 365);
         }
     </script>
+
+    <!-- ===== GLOBAL TOAST NOTIFICATION SYSTEM ===== -->
+    <style>
+        #toast-container {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 0.6rem;
+            pointer-events: none;
+            width: 22rem;
+            max-width: calc(100vw - 3rem);
+        }
+        .toast-item {
+            pointer-events: all;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.85rem;
+            padding: 1rem 1.1rem;
+            border-radius: 0.85rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08);
+            font-size: 0.9rem;
+            font-weight: 500;
+            line-height: 1.5;
+            border-left: 5px solid transparent;
+            animation: toast-slide-in 0.4s cubic-bezier(.21,1.02,.73,1) forwards;
+            position: relative;
+            overflow: hidden;
+        }
+        .toast-item::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            height: 3px;
+            animation: toast-progress linear forwards;
+            opacity: 0.6;
+        }
+        .toast-item.toast-success { background:#f0fdf4; color:#14532d; border-color:#22c55e; }
+        .toast-item.toast-success::after { background:#22c55e; }
+        .toast-item.toast-error   { background:#fef2f2; color:#7f1d1d; border-color:#ef4444; }
+        .toast-item.toast-error::after   { background:#ef4444; }
+        .toast-item.toast-info    { background:#eff6ff; color:#1e3a8a; border-color:#3b82f6; }
+        .toast-item.toast-info::after    { background:#3b82f6; }
+        .toast-item.toast-warning { background:#fffbeb; color:#78350f; border-color:#f59e0b; }
+        .toast-item.toast-warning::after { background:#f59e0b; }
+        .dark .toast-item.toast-success { background:#052e16; color:#bbf7d0; }
+        .dark .toast-item.toast-error   { background:#450a0a; color:#fecaca; }
+        .dark .toast-item.toast-info    { background:#0f172a; color:#bfdbfe; }
+        .dark .toast-item.toast-warning { background:#1c1008; color:#fde68a; }
+        .toast-icon {
+            flex-shrink: 0;
+            font-size: 1.1rem;
+            margin-top: 2px;
+        }
+        .toast-msg  { flex: 1; }
+        .toast-close {
+            flex-shrink: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+            opacity: 0.45;
+            font-size: 0.9rem;
+            padding: 0;
+            line-height: 1;
+            color: inherit;
+            margin-top: 3px;
+            transition: opacity 0.15s;
+        }
+        .toast-close:hover { opacity: 1; }
+        @keyframes toast-slide-in {
+            from { opacity: 0; transform: translateY(20px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes toast-slide-out {
+            from { opacity: 1; transform: translateY(0) scale(1);   max-height: 120px; margin-bottom: 0; }
+            to   { opacity: 0; transform: translateY(12px) scale(0.95); max-height: 0; padding: 0; }
+        }
+        @keyframes toast-progress {
+            from { width: 100%; }
+            to   { width: 0%; }
+        }
+        .toast-item.removing {
+            animation: toast-slide-out 0.35s ease forwards;
+            pointer-events: none;
+        }
+    </style>
+    <div id="toast-container"></div>
+    <script>
+        function showToast(message, type = 'info', duration = 4500) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const icons = {
+                success: 'fa-circle-check',
+                error:   'fa-triangle-exclamation',
+                warning: 'fa-circle-exclamation',
+                info:    'fa-circle-info'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `toast-item toast-${type}`;
+            toast.style.setProperty('--dur', duration + 'ms');
+            toast.innerHTML = `
+                <i class="fa-solid ${icons[type] || icons.info} toast-icon"></i>
+                <span class="toast-msg">${message}</span>
+                <button class="toast-close" onclick="removeToast(this.parentElement)" title="Dismiss">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>`;
+            toast.querySelector('.toast-item::after');
+            toast.style.cssText += `--dur:${duration}ms`;
+            // Apply progress bar duration via inline style on ::after pseudo-element via a workaround
+            const style = document.createElement('style');
+            const id = 'toast-' + Date.now() + Math.random().toString(36).slice(2);
+            toast.id = id;
+            style.textContent = `#${id}::after { animation-duration: ${duration}ms; }`;
+            document.head.appendChild(style);
+
+            container.appendChild(toast);
+
+            const timer = setTimeout(() => removeToast(toast), duration);
+            toast._timer = timer;
+            toast._style = style;
+        }
+
+        function removeToast(el) {
+            if (!el || el.classList.contains('removing')) return;
+            clearTimeout(el._timer);
+            el.classList.add('removing');
+            el.addEventListener('animationend', () => {
+                el.remove();
+                if (el._style) el._style.remove();
+            }, { once: true });
+        }
+
+        // Fire PHP session flash messages as toasts
+        document.addEventListener('DOMContentLoaded', function () {
+            <?php
+            $toasts = [];
+            if (!empty($_SESSION['scan_msg']))  { $toasts[] = ['msg' => $_SESSION['scan_msg'],  'type' => 'success']; unset($_SESSION['scan_msg']); }
+            if (!empty($_SESSION['scan_err']))  { $toasts[] = ['msg' => $_SESSION['scan_err'],  'type' => 'error'];   unset($_SESSION['scan_err']); }
+            if (!empty($_SESSION['fleet_err'])) { $toasts[] = ['msg' => $_SESSION['fleet_err'], 'type' => 'error'];   unset($_SESSION['fleet_err']); }
+            if (!empty($_SESSION['success']))   { $toasts[] = ['msg' => $_SESSION['success'],   'type' => 'success']; unset($_SESSION['success']); }
+            if (!empty($_SESSION['error']))     { $toasts[] = ['msg' => $_SESSION['error'],     'type' => 'error'];   unset($_SESSION['error']); }
+            if (!empty($_SESSION['flash_info'])){ $toasts[] = ['msg' => $_SESSION['flash_info'],'type' => 'info'];    unset($_SESSION['flash_info']); }
+            foreach ($toasts as $i => $t) {
+                $msg  = addslashes(strip_tags($t['msg'], '<strong><em><b>'));
+                $type = htmlspecialchars($t['type']);
+                $delay = $i * 200;
+                echo "            setTimeout(() => showToast(`{$msg}`, '{$type}'), {$delay});\n";
+            }
+            ?>
+        });
+    </script>

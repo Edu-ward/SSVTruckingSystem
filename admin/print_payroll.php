@@ -134,7 +134,7 @@ $ticket_number = 'PAY-' . date('Y') . '-' . str_pad($driver_id, 3, '0', STR_PAD_
                 <p class="text-sm text-gray-600"><span class="font-medium">Driver ID:</span>
                     DRV-<?= str_pad($driver_id, 4, '0', STR_PAD_LEFT); ?>
                 </p>
-                <p class="text-sm text-gray-600 mt-1"><span class="font-medium">CDL Number:</span>
+                <p class="text-sm text-gray-600 mt-1"><span class="font-medium">Licence Number:</span>
                     <?= htmlspecialchars($driver['cdl_number'] ?? 'N/A'); ?>
                 </p>
             </div>

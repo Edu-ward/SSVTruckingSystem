@@ -113,20 +113,6 @@ include '../includes/header.php';
 ?>
 
 <div class="max-w-7xl mx-auto px-6 py-8">
-    <?php if (isset($_SESSION['success'])): ?>
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
-            <p><?= htmlspecialchars($_SESSION['success']); ?></p>
-        </div>
-        <?php unset($_SESSION['success']); ?>
-    <?php endif; ?>
-
-    <?php if (isset($_SESSION['error'])): ?>
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-            <p><?= htmlspecialchars($_SESSION['error']); ?></p>
-        </div>
-        <?php unset($_SESSION['error']); ?>
-    <?php endif; ?>
-
     <?php
     include 'views/home.php';
     include 'views/modals.php';

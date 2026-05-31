@@ -189,6 +189,12 @@
             toggleModal('deleteTruckModal', true);
         }
 
+        function openMarkFixedModal(truckId, truckCode) {
+            document.getElementById('mf-truck-code').innerText = truckCode;
+            document.getElementById('mf_truck_id').value = truckId;
+            toggleModal('markFixedModal', true);
+        }
+
         function openUpdateStatusModal(truckId, currentStatus, truckCode) {
             document.getElementById('us-truck-code').innerText = truckCode;
             document.getElementById('update_status_truck_id').value = truckId;
@@ -447,6 +453,16 @@
                                         return;
                                     }
 
+                                    // Block dispatch if truck has no assigned driver
+                                    if (!data.driver_id) {
+                                        rfidFeedback.innerHTML = '<span class="text-red-500 font-bold"><i class="fa-solid fa-user-slash"></i> No driver assigned to this truck! Assign a driver before dispatching.</span>';
+                                        truckPlate.value = '';
+                                        hiddenTruckId.value = '';
+                                        rfidInput.value = '';
+                                        rfidInput.focus();
+                                        return;
+                                    }
+
                                     truckPlate.value = data.truck_code;
                                     hiddenTruckId.value = data.truck_id;
 
@@ -665,18 +681,18 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        alert("SIMULATED SMS: Your SSV Trucking OTP code is " + data.simulated_otp);
+                        showToast("SIMULATED SMS: Your SSV Trucking OTP code is <strong>" + data.simulated_otp + "</strong>", "info", 8000);
                         document.getElementById('otpPhoneText').innerText = "***-***-" + data.phone_last_4;
                         btn.innerHTML = 'Send OTP';
                         btn.disabled = false;
                         showStep('stepVerify');
                     } else {
-                        alert('Error: ' + data.message);
+                        showToast(data.message, "error");
                         btn.innerHTML = 'Send OTP';
                         btn.disabled = false;
                     }
                 }).catch(e => {
-                    alert('Network Error');
+                    showToast("Network Error", "error");
                     btn.innerHTML = 'Send OTP';
                     btn.disabled = false;
                 });
@@ -686,7 +702,7 @@
             const otp = document.getElementById('otpInput').value;
             const pwd = document.getElementById('newPasswordInput').value;
             if (!otp || !pwd) {
-                alert("Please fill all fields");
+                showToast("Please fill all fields", "warning");
                 return;
             }
 
@@ -705,17 +721,17 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        alert(data.message);
+                        showToast(data.message, "success");
                         closeOtpModal();
                         document.getElementById('otpInput').value = '';
                         document.getElementById('newPasswordInput').value = '';
                     } else {
-                        alert('Error: ' + data.message);
+                        showToast(data.message, "error");
                     }
                     btn.innerHTML = 'Update';
                     btn.disabled = false;
                 }).catch(e => {
-                    alert("Network Error");
+                    showToast("Network Error", "error");
                     btn.innerHTML = 'Update';
                     btn.disabled = false;
                 });
