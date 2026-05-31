@@ -261,6 +261,12 @@
             toggleModal('cancelOrderModal', true);
         }
 
+        function openDeleteCheckerModal(checkerId, checkerName) {
+            document.getElementById('dc-checker-name').innerText = checkerName;
+            document.getElementById('delete_checker_id').value = checkerId;
+            toggleModal('deleteCheckerModal', true);
+        }
+
         try {
             const weeklyData = <?= json_encode($weeklyData ?? []); ?>;
             const fleetStatusData = <?= json_encode($fleetStatusData ?? []); ?>;
