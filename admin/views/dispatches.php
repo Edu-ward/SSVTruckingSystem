@@ -13,6 +13,7 @@
         <div class="p-6 md:w-2/3 bg-white dark:bg-gray-800 flex items-center">
             <form method="POST" action="dashboard.php" class="w-full flex space-x-3">
                 <input type="hidden" name="action" value="dispatch_scan_rfid">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                 <div class="flex-grow">
                     <input type="text" name="rfid_tag" required autocomplete="off"
                         placeholder="Click here and scan RFID card..."

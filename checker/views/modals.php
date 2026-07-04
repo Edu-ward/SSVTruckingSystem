@@ -1,6 +1,6 @@
-<div id="otpModalOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden justify-center items-center z-50">
+<div id="otpModalOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden justify-center items-center z-50 p-4">
     <!-- Step 1: Request OTP -->
-    <div id="stepRequest" class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6 text-center transform scale-95 opacity-0 transition-all duration-300 hidden">
+    <div id="stepRequest" class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-[92%] max-w-sm p-6 text-center transform scale-95 opacity-0 transition-all duration-300 hidden">
         <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
             <i class="fa-solid fa-mobile-screen-button"></i>
         </div>
@@ -14,7 +14,7 @@
     </div>
 
     <!-- Step 2: Verify OTP & Change Password -->
-    <div id="stepVerify" class="hidden bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6 transform scale-95 opacity-0 transition-all duration-300">
+    <div id="stepVerify" class="hidden bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-[92%] max-w-sm p-6 transform scale-95 opacity-0 transition-all duration-300">
         <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 text-center">Enter OTP</h3>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 text-center">Code sent to <strong id="otpPhoneText" class="text-gray-800 dark:text-gray-200"></strong>. Enter it below.</p>
 

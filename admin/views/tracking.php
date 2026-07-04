@@ -1,10 +1,16 @@
-<div id="view-tracking" class="tab-content hidden">
+        <div id="view-tracking" class="tab-content hidden">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-4 flex flex-col">
-            <div class="flex items-center space-x-2 mb-4">
-                <i class="fa-solid fa-tower-broadcast text-purple-500"></i>
-                <h2 class="font-semibold text-gray-800 dark:text-gray-200 text-lg">Live GPS Tracking</h2>
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-tower-broadcast text-purple-500"></i>
+                    <h2 class="font-semibold text-gray-800 dark:text-gray-200 text-lg">Live GPS Tracking</h2>
+                    <span class="flex items-center gap-1.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs font-semibold px-2.5 py-1 rounded-full">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse inline-block"></span> LIVE
+                    </span>
+                </div>
+                <span id="map-last-updated" class="text-xs text-gray-400 dark:text-gray-500 italic"></span>
             </div>
             <div class="flex-grow border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden relative" style="min-height: 500px;">
                 <div id="map" class="absolute inset-0 w-full h-full"></div>

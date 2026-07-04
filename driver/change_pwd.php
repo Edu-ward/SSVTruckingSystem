@@ -34,6 +34,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    if (strlen($new_password) < 8 || !preg_match('/[A-Z]/', $new_password) || !preg_match('/[a-z]/', $new_password) || !preg_match('/[0-9]/', $new_password)) {
+        echo json_encode(['success' => false, 'message' => 'Password must be at least 8 characters long and contain uppercase, lowercase, and numbers.']);
+        exit;
+    }
+
     $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
 
     $stmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");

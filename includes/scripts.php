@@ -36,31 +36,82 @@
                     maxZoom: 20,
                     subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
                 }).addTo(map);
-                trackingData.forEach(truck => {
-                    if (truck.latitude && truck.longitude) {
-                        let markerClass = 'bg-gray-500';
-                        if (truck.status === 'In Transit') markerClass = 'bg-transit';
-                        if (truck.status === 'Idle') markerClass = 'bg-yellow-500';
-                        if (truck.status === 'Loading') markerClass = 'bg-blue-500';
-                        if (truck.status === 'Unloading') markerClass = 'bg-orange-500';
-                        const customIcon = L.divIcon({
-                            className: 'custom-div-icon',
-                            html: `<div class="marker-pin ${markerClass}"><i class="fa-solid fa-truck fa-xs"></i></div>`,
-                            iconSize: [30, 30],
-                            iconAnchor: [15, 15]
-                        });
-                        L.marker([truck.latitude, truck.longitude], {
-                            icon: customIcon
-                        }).addTo(map).bindPopup(`<b>${truck.truck_code}</b><br><span class="text-xs">${truck.driver_name}</span><br><span class="text-xs">Status: ${truck.status}</span>`);
-                    }
-                });
-                setTimeout(() => {
-                    map.invalidateSize();
-                }, 300);
+
+                // Initial render from PHP data
+                renderMapMarkers(trackingData);
+
+                setTimeout(() => { map.invalidateSize(); }, 300);
+
+                // Start live polling every 10 seconds
+                setInterval(refreshMap, 10000);
             } catch (error) {
                 console.error("Map initialization failed:", error);
             }
         }
+
+        // Holds active Leaflet marker objects keyed by truck_code
+        let truckMarkers = {};
+
+        function renderMapMarkers(trucks) {
+            // Remove markers for trucks no longer In Transit
+            const activeCodes = trucks.map(t => t.truck_code);
+            Object.keys(truckMarkers).forEach(code => {
+                if (!activeCodes.includes(code)) {
+                    map.removeLayer(truckMarkers[code]);
+                    delete truckMarkers[code];
+                }
+            });
+
+            trucks.forEach(truck => {
+                if (!truck.latitude || !truck.longitude) return;
+
+                let markerClass = 'bg-gray-500';
+                if (truck.status === 'In Transit') markerClass = 'bg-transit';
+                if (truck.status === 'Idle')       markerClass = 'bg-yellow-500';
+                if (truck.status === 'Loading')    markerClass = 'bg-blue-500';
+                if (truck.status === 'Unloading')  markerClass = 'bg-orange-500';
+
+                const customIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div class="marker-pin ${markerClass}"><i class="fa-solid fa-truck fa-xs"></i></div>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+
+                const popupContent = `<b>${truck.truck_code}</b><br><span class="text-xs">${truck.driver_name || ''}</span><br><span class="text-xs">Status: ${truck.status}</span>${truck.destination ? '<br><span class="text-xs">→ ' + truck.destination + '</span>' : ''}`;
+                const latLng = [parseFloat(truck.latitude), parseFloat(truck.longitude)];
+
+                if (truckMarkers[truck.truck_code]) {
+                    // Smoothly update existing marker position
+                    truckMarkers[truck.truck_code].setLatLng(latLng);
+                    truckMarkers[truck.truck_code].setPopupContent(popupContent);
+                } else {
+                    // Create new marker
+                    truckMarkers[truck.truck_code] = L.marker(latLng, { icon: customIcon })
+                        .addTo(map)
+                        .bindPopup(popupContent);
+                }
+            });
+        }
+
+        function refreshMap() {
+            if (!map) return;
+            fetch('get_tracking_data.php')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        renderMapMarkers(data.trucks);
+                        // Update the last-refreshed badge if it exists
+                        const badge = document.getElementById('map-last-updated');
+                        if (badge) {
+                            const now = new Date();
+                            badge.textContent = 'Last updated: ' + now.toLocaleTimeString();
+                        }
+                    }
+                })
+                .catch(err => console.warn('Map refresh error:', err));
+        }
+
 
         function focusTruck(lat, lng) {
             switchTab('tracking');
@@ -652,8 +703,135 @@
     </script>
 
 <?php elseif ($_SESSION['role'] === 'Driver' || $_SESSION['role'] === 'Checker'): ?>
-    <!-- ================= DRIVER SCRIPTS ================= -->
+    <!-- ================= DRIVER / CHECKER SCRIPTS ================= -->
     <script>
+<?php if ($_SESSION['role'] === 'Driver' && !empty($active_dispatch)): ?>
+        // ===== LIVE GPS TRACKING (Driver — Any Dispatched Status) =====
+        (function() {
+            const PUSH_INTERVAL_MS = 10000; // push every 10 seconds
+            let lastPushTime = 0;
+            let watchId = null;
+            let gpsBadge = null;
+            const isTransit = <?= ($active_dispatch['status'] === 'In Transit') ? 'true' : 'false'; ?>;
+
+            function createGpsBadge(statusMsg, colorHex = '#22c55e') {
+                let badge = document.getElementById('gps-status-badge');
+                if (!badge) {
+                    badge = document.createElement('div');
+                    badge.id = 'gps-status-badge';
+                    badge.style.cssText = 'position:fixed;bottom:1.2rem;left:1.2rem;z-index:9999;display:flex;align-items:center;gap:0.5rem;background:rgba(0,0,0,0.85);color:#fff;font-size:0.78rem;font-weight:600;padding:0.5rem 1rem;border-radius:999px;backdrop-filter:blur(4px);box-shadow:0 4px 12px rgba(0,0,0,0.15);pointer-events:none;transition:all 0.3s;';
+                    const style = document.createElement('style');
+                    style.textContent = '@keyframes gps-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(1.35)}}';
+                    document.head.appendChild(style);
+                    document.body.appendChild(badge);
+                }
+                badge.innerHTML = `<span style="width:8.5px;height:8.5px;border-radius:50%;background:${colorHex};display:inline-block;animation:gps-pulse 1.4s ease-in-out infinite;"></span> ${statusMsg}`;
+                gpsBadge = badge;
+            }
+
+            function pushLocation(lat, lng, speed) {
+                if (!isTransit) return; // Only push updates when actively In Transit
+                const now = Date.now();
+                if (now - lastPushTime < PUSH_INTERVAL_MS) return;
+                lastPushTime = now;
+
+                const fd = new FormData();
+                fd.append('latitude',  lat.toFixed(7));
+                fd.append('longitude', lng.toFixed(7));
+                fd.append('speed',     (speed || 0).toFixed(2));
+
+                fetch('update_location.php', { method: 'POST', body: fd })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (gpsBadge) {
+                            if (data.tracking) {
+                                gpsBadge.style.background = 'rgba(22,101,52,0.92)';
+                            } else {
+                                gpsBadge.style.background = 'rgba(0,0,0,0.85)';
+                            }
+                        }
+                    })
+                    .catch(() => {});
+            }
+
+            function startGPS() {
+                // HTTPS / Security Context Check
+                if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                    showToast("⚠️ GPS Warning: Geolocation requires HTTPS to work on mobile devices. Location updates may be blocked.", "warning", 15000);
+                }
+
+                if (!navigator.geolocation) {
+                    showToast("❌ Geolocation is not supported by your browser or device.", "error", 10000);
+                    createGpsBadge('GPS Unavailable', '#ef4444');
+                    return;
+                }
+
+                // Initial request to force prompt the browser dialog immediately
+                createGpsBadge('Requesting GPS Permission...', '#f59e0b');
+                
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) {
+                        if (isTransit) {
+                            createGpsBadge('GPS Active — Sharing Location', '#22c55e');
+                            pushLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.speed ? pos.coords.speed * 3.6 : 0);
+                        } else {
+                            createGpsBadge('GPS Authorized — Ready for Trip', '#3b82f6');
+                        }
+                    },
+                    function(err) {
+                        let msg = "GPS Status: ";
+                        let badgeColor = '#ef4444';
+                        if (err.code === err.PERMISSION_DENIED) {
+                            msg = "Location Access Denied. Please enable location permissions in your browser/device settings.";
+                            showToast("❌ " + msg, "error", 15000);
+                            createGpsBadge('GPS Permission Denied', badgeColor);
+                        } else {
+                            msg = "GPS Error: " + err.message;
+                            showToast("⚠️ " + msg, "warning", 10000);
+                            createGpsBadge('GPS Error', '#f59e0b');
+                        }
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+
+                // Continuous tracking watch loop
+                watchId = navigator.geolocation.watchPosition(
+                    function(pos) {
+                        if (isTransit) {
+                            pushLocation(
+                                pos.coords.latitude,
+                                pos.coords.longitude,
+                                pos.coords.speed ? pos.coords.speed * 3.6 : 0
+                            );
+                        }
+                    },
+                    function(err) {
+                        console.warn('GPS watch error:', err.message);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 5000
+                    }
+                );
+            }
+
+            // Start as soon as DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', startGPS);
+            } else {
+                startGPS();
+            }
+
+            // Clean up watch on page unload
+            window.addEventListener('beforeunload', function() {
+                if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+            });
+        })();
+<?php endif; ?>
+
+
+
         function openChangePasswordModal() {
             document.getElementById('otpModalOverlay').classList.remove('hidden');
             document.getElementById('otpModalOverlay').classList.add('flex');

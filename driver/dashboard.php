@@ -10,6 +10,11 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Driver') {
 $driver_id = $_SESSION['user_id'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'request_cancel_trip') {
+    // CSRF protection
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+        http_response_code(403);
+        die("CSRF token validation failed.");
+    }
     $reason = trim($_POST['reason']);
     if (empty($reason)) {
         $reason = "Maintenance Required";
@@ -109,10 +114,33 @@ $stmtCancel = $pdo->prepare("SELECT id FROM dispatches WHERE driver_id = ? AND s
 $stmtCancel->execute([$driver_id]);
 $has_pending_cancellation = $stmtCancel->fetch() ? true : false;
 
+// Check for active In Transit dispatch (needed to start GPS tracking)
+$stmtTransit = $pdo->prepare("
+    SELECT d.id, d.destination, d.truck_id 
+    FROM dispatches d 
+    WHERE d.driver_id = ? AND d.status = 'In Transit' 
+    LIMIT 1
+");
+$stmtTransit->execute([$driver_id]);
+$active_transit = $stmtTransit->fetch();
+$is_in_transit   = $active_transit ? true : false;
+$active_truck_id = $active_transit ? $active_transit['truck_id'] : null;
+
+// Check for any active dispatch assigned (Pending, Loading, In Transit, Unloading, Cancellation Requested)
+$stmtActive = $pdo->prepare("
+    SELECT d.id, d.ticket_number, d.destination, d.status, t.truck_code 
+    FROM dispatches d 
+    JOIN trucks t ON d.truck_id = t.id 
+    WHERE d.driver_id = ? AND d.status IN ('Pending', 'Loading', 'In Transit', 'Unloading', 'Cancellation Requested')
+    LIMIT 1
+");
+$stmtActive->execute([$driver_id]);
+$active_dispatch = $stmtActive->fetch();
+
 include '../includes/header.php';
 ?>
 
-<div class="max-w-7xl mx-auto px-6 py-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
     <?php
     include 'views/home.php';
     include 'views/modals.php';

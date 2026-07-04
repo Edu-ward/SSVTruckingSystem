@@ -40,6 +40,7 @@ $gravelPrices = [
         </div>
         <form method="POST" action="dashboard.php" class="p-6 space-y-4">
             <input type="hidden" name="action" value="add_truck">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <div>
                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Plate Number <span class="text-red-500">*</span></label>
                 <input type="text" name="truck_code" id="newTruckPlateInput" required placeholder="e.g. ABC 1234" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
@@ -182,8 +183,9 @@ $gravelPrices = [
             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Create New Dispatch Ticket</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Scan the truck's RFID to auto-fill details, then select destination and gravel type to calculate pay.</p>
         </div>
-        <form method="POST" action="" class="p-6" id="dispatchForm">
+        <form method="POST" action="dashboard.php" class="p-6" id="dispatchForm">
             <input type="hidden" name="action" value="create_dispatch">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="truck_id" id="hiddenTruckId" required>
             <div class="mb-4">
                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Scan Truck RFID Tag <span class="text-red-500">*</span></label>
@@ -328,8 +330,9 @@ $gravelPrices = [
         <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-rotate-right"></i></div>
         <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Update Truck Status</h3>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Manually override the current status for <strong id="us-truck-code" class="text-gray-800 dark:text-gray-200"></strong>.</p>
-        <form method="POST" action="">
+        <form method="POST" action="dashboard.php">
             <input type="hidden" name="action" value="update_truck_status">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="truck_id" id="update_status_truck_id" value="">
             <div class="mb-6 text-left">
                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Select New Status</label>
@@ -357,6 +360,7 @@ $gravelPrices = [
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Manually override the current status for <strong id="uds-driver-name" class="text-gray-800 dark:text-gray-200"></strong>.</p>
         <form method="POST" action="dashboard.php">
             <input type="hidden" name="action" value="update_driver_status">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="driver_id" id="update_status_driver_id" value="">
             <div class="mb-6 text-left">
                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Select New Status</label>
@@ -382,6 +386,7 @@ $gravelPrices = [
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Assign a new Idle truck to <strong id="st-driver-name" class="text-gray-800 dark:text-gray-200"></strong>. Current truck: <strong id="st-truck-code"></strong>.</p>
         <form method="POST" action="dashboard.php">
             <input type="hidden" name="action" value="switch_truck">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="driver_id" id="switch_truck_driver_id" value="">
             <input type="hidden" name="redirect_tab" id="switch_truck_redirect_tab" value="drivers">
             <div class="mb-6 text-left">
@@ -421,6 +426,7 @@ $gravelPrices = [
         </div>
         <form method="POST" action="dashboard.php">
             <input type="hidden" name="action" value="approve_cancel">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="dispatch_id" id="approve_cancel_dispatch_id">
             <div class="p-8 text-center">
                 <p class="text-gray-600 dark:text-gray-300 mb-6">Are you sure you want to approve this cancellation request? This will mark the truck for <span class="font-bold text-orange-600">Maintenance</span> and the dispatch as <span class="font-bold text-red-600">Cancelled</span>.</p>
@@ -466,6 +472,7 @@ $gravelPrices = [
             <p class="text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to remove <strong id="dt-truck-code" class="text-gray-800 dark:text-gray-200"></strong>? This action cannot be undone.</p>
             <form method="POST" action="dashboard.php">
                 <input type="hidden" name="action" value="delete_truck">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                 <input type="hidden" name="truck_id" id="delete_truck_id">
                 <div class="flex justify-center space-x-3">
                     <button type="button" onclick="toggleModal('deleteTruckModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition dark:bg-black">Cancel</button>
@@ -493,6 +500,7 @@ $gravelPrices = [
             </p>
             <form method="POST" action="dashboard.php">
                 <input type="hidden" name="action" value="update_truck_status">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                 <input type="hidden" name="new_status" value="Idle">
                 <input type="hidden" name="truck_id" id="mf_truck_id">
                 <div class="flex space-x-3">
@@ -518,6 +526,7 @@ $gravelPrices = [
             <p class="text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to void ticket <strong id="dd-ticket-number" class="text-gray-800 dark:text-gray-200"></strong>? This will release the truck and driver and reverse any payroll added for this trip.</p>
             <form method="POST" action="dashboard.php">
                 <input type="hidden" name="action" value="delete_dispatch">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                 <input type="hidden" name="dispatch_id" id="delete_dispatch_id">
                 <div class="flex justify-center space-x-3">
                     <button type="button" onclick="toggleModal('deleteDispatchModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition">Keep Dispatch</button>
@@ -538,6 +547,7 @@ $gravelPrices = [
             <p class="text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to finalize ticket <strong id="cd-ticket-number" class="text-gray-800 dark:text-gray-200"></strong>? This will move it to the completed log and free up the truck and driver.</p>
             <form method="POST" action="dashboard.php">
                 <input type="hidden" name="action" value="complete_dispatch">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                 <input type="hidden" name="dispatch_id" id="complete_dispatch_id">
                 <div class="flex justify-center space-x-3">
                     <button type="button" onclick="toggleModal('completeDispatchModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition">Cancel</button>
@@ -557,6 +567,7 @@ $gravelPrices = [
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to mark <strong id="sp-driver-name" class="text-gray-800 dark:text-gray-200"></strong>'s balance of <strong id="sp-balance" class="text-green-600 dark:text-green-400"></strong> as paid?</p>
         <form method="POST" action="dashboard.php">
             <input type="hidden" name="action" value="settle_payroll">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="driver_id" id="settle_driver_id">
             <div class="flex space-x-3">
                 <button type="button" onclick="toggleModal('settlePayrollModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition dark:bg-black">Cancel</button>
@@ -580,6 +591,7 @@ $gravelPrices = [
         </div>
         <form method="POST" action="dashboard.php" class="p-6 space-y-4">
             <input type="hidden" name="action" value="add_order">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Client Name <span class="text-red-500">*</span></label>
@@ -646,6 +658,7 @@ $gravelPrices = [
         </div>
         <form method="POST" action="dashboard.php" class="p-6 space-y-4">
             <input type="hidden" name="action" value="add_checker">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">First Name <span class="text-red-500">*</span></label>
@@ -700,6 +713,7 @@ $gravelPrices = [
         <p class="text-sm text-gray-500 dark:text-gray-400 text-center mb-5">Order: <strong id="ac-order-number" class="text-gray-800 dark:text-gray-200"></strong></p>
         <form method="POST" action="dashboard.php">
             <input type="hidden" name="action" value="assign_checker">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="order_id" id="ac_order_id">
             <div class="mb-4">
                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Select Checker</label>
@@ -730,6 +744,7 @@ $gravelPrices = [
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to remove <strong id="dc-checker-name" class="text-gray-800 dark:text-gray-200"></strong> from the system? Their account will be permanently deleted.</p>
         <form method="POST" action="dashboard.php">
             <input type="hidden" name="action" value="delete_checker">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="checker_id" id="delete_checker_id">
             <div class="flex space-x-3">
                 <button type="button" onclick="toggleModal('deleteCheckerModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition">Keep Account</button>
@@ -747,6 +762,7 @@ $gravelPrices = [
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to cancel order <strong id="co-order-number" class="text-gray-800 dark:text-gray-200"></strong>?</p>
         <form method="POST" action="dashboard.php">
             <input type="hidden" name="action" value="cancel_order">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="order_id" id="co_order_id">
             <div class="flex space-x-3">
                 <button type="button" onclick="toggleModal('cancelOrderModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-black hover:bg-gray-200 transition">Keep Order</button>
@@ -765,6 +781,7 @@ $gravelPrices = [
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to remove <strong id="dc-name" class="text-gray-800 dark:text-gray-200"></strong>? This action cannot be undone.</p>
         <form method="POST" action="dashboard.php" class="flex justify-center space-x-3">
             <input type="hidden" name="action" value="delete_checker">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="checker_id" id="delete_checker_id" required>
             <button type="button" onclick="toggleModal('deleteCheckerModal', false)" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition w-full">Cancel</button>
             <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition w-full">Delete</button>

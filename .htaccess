@@ -1,0 +1,10 @@
+# Apache: Deny direct HTTP access to sensitive PHP config files.
+# These files should only be included server-side via require/include.
+<Files "config.php">
+    Order allow,deny
+    Deny from all
+</Files>
+<Files "db.php">
+    Order allow,deny
+    Deny from all
+</Files>

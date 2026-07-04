@@ -1,14 +1,14 @@
 <?php
 session_start();
 
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-
-if (isset($_GET['action']) && $_GET['action'] == 'logout') {
-    session_destroy();
+// --- ADMIN AUTHENTICATION GUARD ---
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: ../index.php");
     exit;
+}
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 require_once '../db.php';
@@ -65,6 +65,12 @@ $GRAVEL_PRICES = [
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
+    // --- GLOBAL CSRF CHECK (applies to every POST action) ---
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        http_response_code(403);
+        die("CSRF token validation failed.");
+    }
+
     if ($_POST['action'] == 'create_dispatch') {
         $truck_id = !empty($_POST['truck_id']) ? $_POST['truck_id'] : null;
         $driver_id = !empty($_POST['driver_id']) ? $_POST['driver_id'] : null;
@@ -103,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
     if ($_POST['action'] == 'add_driver') {
-        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) die("CSRF token validation failed");
+        // CSRF already validated globally above
 
         $name = $_POST['name'];
         $nameParts = explode(' ', trim($name), 2);
@@ -134,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $driver_insert = $pdo->prepare("INSERT INTO drivers (id, first_name, last_name, cdl_number, phone, status, truck_id) VALUES (?, ?, ?, ?, ?, 'Off Duty', ?)");
         $driver_insert->execute([$new_user_id, $firstName, $lastName, $cdl, $phone, $truck_id]);
 
-        $pdo->query("INSERT INTO driver_payroll (driver_id, total_amount, amount_claimed) VALUES ($new_user_id, 0.00, 0.00)");
+        $pdo->prepare("INSERT INTO driver_payroll (driver_id, total_amount, amount_claimed) VALUES (?, 0.00, 0.00)")->execute([$new_user_id]);
 
         $_SESSION['success'] = "Driver <strong>" . htmlspecialchars($name) . "</strong> added successfully.";
         header("Location: dashboard.php?tab=drivers");
@@ -251,11 +257,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 
     if ($_POST['action'] == 'delete_driver') {
-        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-            http_response_code(403);
-            echo "CSRF token validation failed";
-            exit;
-        }
+        // CSRF already validated globally above
         $driver_id = $_POST['driver_id'];
         if (!$driver_id) {
             http_response_code(400);
@@ -341,10 +343,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
     if ($_POST['action'] == 'settle_payroll') {
-        $driver_id = $_POST['driver_id'];
+        $driver_id = intval($_POST['driver_id']);
 
-        $stmt = $pdo->query("SELECT destination FROM driver_trips WHERE driver_id = " . intval($driver_id) . " AND status = 'Delivered'");
-        $trips = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = $pdo->prepare("SELECT destination FROM driver_trips WHERE driver_id = ? AND status = 'Delivered'");
+        $stmt->execute([$driver_id]);
+        $trips = $stmt->fetchAll();
 
         $total_earned = 0;
         foreach ($trips as $t) {
@@ -750,7 +753,7 @@ $allOrders = $pdo->query("
 
 include '../includes/header.php';
 ?>
-<div class="max-w-7xl mx-auto px-6 py-8 relative">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 relative">
     <?php include 'views/home.php';
     include 'views/tracking.php';
     include 'views/dispatches.php';

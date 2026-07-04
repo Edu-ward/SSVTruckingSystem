@@ -1,5 +1,5 @@
-    <div id="otpModalOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden justify-center items-center z-50">
-        <div id="stepRequest" class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6 text-center transform scale-95 opacity-0 transition-all duration-300 hidden">
+    <div id="otpModalOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden justify-center items-center z-50 p-4">
+        <div id="stepRequest" class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-[92%] max-w-sm p-6 text-center transform scale-95 opacity-0 transition-all duration-300 hidden">
             <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
                 <i class="fa-solid fa-mobile-screen-button"></i>
             </div>
@@ -12,7 +12,7 @@
             </div>
         </div>
 
-        <div id="stepVerify" class="hidden bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6 transform scale-95 opacity-0 transition-all duration-300">
+        <div id="stepVerify" class="hidden bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-[92%] max-w-sm p-6 transform scale-95 opacity-0 transition-all duration-300">
             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 text-center">Enter OTP</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 text-center">Code sent to <strong id="otpPhoneText" class="text-gray-800 dark:text-gray-200"></strong>. Enter it below.</p>
 
@@ -33,16 +33,17 @@
     </div>
 
     <!-- Cancel Trip Modal -->
-    <div id="cancelTripModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden justify-center items-center z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 transform scale-95 opacity-0 transition-all duration-300" id="cancelTripModalContent">
+    <div id="cancelTripModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden justify-center items-center z-50 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-[92%] max-w-md p-6 transform scale-95 opacity-0 transition-all duration-300" id="cancelTripModalContent">
             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
                 <i class="fa-solid fa-ban text-orange-500 mr-2"></i> Request Cancellation
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <p class="text-sm text-gray-655 dark:text-gray-400 mb-4">
                 Did your truck break down? You can request a trip cancellation. This will notify the Admin for approval.
             </p>
             <form method="POST" action="dashboard.php" id="cancelTripForm">
                 <input type="hidden" name="action" value="request_cancel_trip">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                 <div class="mb-6">
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Reason for Request</label>
                     <input type="text" name="reason" required placeholder="e.g. Engine failure, flat tire..." class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">

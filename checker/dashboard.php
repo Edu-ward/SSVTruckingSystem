@@ -176,7 +176,7 @@ $gravelTypeLabels = [
 ];
 ?>
 
-<div class="max-w-7xl mx-auto px-6 py-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
     <!-- Page Title -->
     <div class="mb-6">

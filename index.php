@@ -35,31 +35,32 @@ if (empty($_SESSION['csrf_token'])) {
         <i id="themeIcon" class="fa-solid fa-moon text-lg"></i>
     </button>
 
-    <div class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl w-96 border-t-4 border-blue-600">
-        <div class="text-center mb-6">
-            <img src="src/ssvLogo.png" alt="SSV Trucking Logo" class="mx-auto h-16 mb-2 block dark:hidden">
-            <img src="src/ssvLogoLight.png" alt="SSV Trucking Logo" class="mx-auto h-16 mb-2 hidden dark:block">
-            <h1 class="text-2xl font-bold text-slate-800 dark:text-gray-200">SSV Trucking Login</h1>
+    <div class="bg-white dark:bg-gray-800 p-8 sm:p-10 rounded-2xl shadow-2xl w-[92%] max-w-md border-t-4 border-blue-600 transition-all duration-300">
+        <div class="text-center mb-8">
+            <img src="src/ssvLogo.png" alt="SSV Trucking Logo" class="mx-auto h-20 mb-3 block dark:hidden">
+            <img src="src/ssvLogoLight.png" alt="SSV Trucking Logo" class="mx-auto h-20 mb-3 hidden dark:block">
+            <h1 class="text-3xl font-extrabold text-slate-800 dark:text-gray-100 tracking-tight">SSV Trucking</h1>
+            <p class="text-slate-500 dark:text-gray-400 mt-1.5 text-sm">Sign in to access your portal</p>
         </div>
 
-        <?php if (isset($_GET['error']) && $_GET['error'] == 'invalid'): ?>
-            <div class="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm text-center border border-red-200">
-                <i class="fa-solid fa-circle-exclamation mr-1"></i> Invalid Username or Password
+        <?php if (isset($_GET['error']) && htmlspecialchars($_GET['error']) == 'invalid'): ?>
+            <div class="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 p-4 rounded-xl mb-6 text-sm text-center border border-red-100 dark:border-red-900/50">
+                <i class="fa-solid fa-circle-exclamation mr-1.5 text-base"></i> Invalid Username or Password
             </div>
         <?php endif; ?>
 
-        <form action="auth.php" method="POST">
+        <form action="auth.php" method="POST" class="space-y-6">
             <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
-            <div class="mb-4">
-                <label class="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1">Username</label>
-                <input type="text" name="username" required class="w-full border p-2 rounded focus:outline-none focus:border-blue-500" placeholder="Username">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">Username</label>
+                <input type="text" name="username" required class="w-full border border-gray-300 dark:border-gray-600 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 transition-all duration-200 placeholder-gray-400 dark:placeholder-gray-500" placeholder="Enter username">
             </div>
-            <div class="mb-6">
-                <label class="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1">Password</label>
-                <input type="password" name="password" required class="w-full border p-2 rounded focus:outline-none focus:border-blue-500" placeholder="••••••">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">Password</label>
+                <input type="password" name="password" required class="w-full border border-gray-300 dark:border-gray-600 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 transition-all duration-200 placeholder-gray-400 dark:placeholder-gray-500" placeholder="••••••••">
             </div>
-            <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded transition shadow-lg">
-                Login
+            <button class="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold py-3.5 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                Login to Portal
             </button>
         </form>
     </div>

@@ -92,7 +92,8 @@
             <span>SSV Trucking</span>
         </div>
 
-        <div class="flex space-x-2 text-sm font-medium text-blue-100 items-center">
+        <!-- Desktop Navigation (hidden on mobile, shown on lg screens) -->
+        <div class="hidden lg:flex space-x-2 text-sm font-medium text-blue-100 items-center">
 
             <?php if ($_SESSION['role'] === 'Admin'): ?>
                 <!-- ADMIN NAVIGATION -->
@@ -112,18 +113,18 @@
                         <i class="fa-solid fa-spinner fa-spin mr-2"></i> Cancellation Pending...
                     </button>
                 <?php else: ?>
-                    <button onclick="openCancelTripModal()" class="flex items-center px-3 py-2 text-white bg-orange-600 dark:bg-orange-700 hover:bg-orange-700 dark:hover:bg-orange-600 rounded-md transition shadow-sm mr-2">
+                    <button onclick="openCancelTripModal()" class="flex items-center px-3 py-2 text-white bg-orange-600 dark:bg-orange-700 hover:bg-orange-705 rounded-md transition shadow-sm mr-2">
                         <i class="fa-solid fa-ban mr-2"></i> Request Cancellation
                     </button>
                 <?php endif; ?>
-                <button onclick="openChangePasswordModal()" class="flex items-center px-3 py-2 text-white bg-blue-700 dark:bg-gray-700 hover:bg-blue-800 dark:hover:bg-gray-600 rounded-md transition shadow-sm">
+                <button onclick="openChangePasswordModal()" class="flex items-center px-3 py-2 text-white bg-blue-700 dark:bg-gray-700 hover:bg-blue-800 dark:hover:bg-gray-655 rounded-md transition shadow-sm">
                     <i class="fa-solid fa-key mr-2"></i> Change Password
                 </button>
 
             <?php elseif ($_SESSION['role'] === 'Checker'): ?>
                 <!-- CHECKER NAVIGATION -->
                 <span class="text-blue-100 mr-4">Checker: <strong><?= htmlspecialchars($checker_full_name ?? $_SESSION['username'] ?? 'Checker'); ?></strong></span>
-                <button onclick="openChangePasswordModal()" class="flex items-center px-3 py-2 text-white bg-blue-700 dark:bg-gray-700 hover:bg-blue-800 dark:hover:bg-gray-600 rounded-md transition shadow-sm">
+                <button onclick="openChangePasswordModal()" class="flex items-center px-3 py-2 text-white bg-blue-700 dark:bg-gray-700 hover:bg-blue-800 dark:hover:bg-gray-655 rounded-md transition shadow-sm">
                     <i class="fa-solid fa-key mr-2"></i> Change Password
                 </button>
             <?php endif; ?>
@@ -138,20 +139,97 @@
                 <i class="fa-solid fa-right-from-bracket"></i><span>Logout</span>
             </a>
         </div>
+
+        <!-- Mobile Navigation Controls (hidden on desktop, shown on mobile) -->
+        <div class="flex items-center lg:hidden space-x-3">
+            <button onclick="toggleTheme(event)" class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-750 dark:bg-gray-700 text-white hover:bg-blue-800 focus:outline-none shadow-sm relative overflow-hidden">
+                <i class="themeIconMobile fa-solid fa-moon text-base"></i>
+            </button>
+            <button onclick="toggleMobileMenu()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-750 dark:bg-gray-700 text-white hover:bg-blue-800 focus:outline-none">
+                <i class="fa-solid fa-bars text-lg" id="hamburger-icon"></i>
+            </button>
+        </div>
     </nav>
+
+    <!-- Mobile Navigation Dropdown Menu -->
+    <div id="mobile-menu" class="hidden lg:hidden bg-blue-600 dark:bg-gray-800 border-t border-blue-500 dark:border-gray-700 shadow-lg px-4 py-4 space-y-3 transition-all duration-300">
+        <?php if ($_SESSION['role'] === 'Admin'): ?>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="switchTabAndCloseMobile('dashboard')" class="flex items-center justify-center space-x-2 bg-blue-700 hover:bg-blue-850 text-white p-3 rounded-xl transition text-xs font-semibold"><i class="fa-solid fa-border-all"></i><span>Dashboard</span></button>
+                <button onclick="switchTabAndCloseMobile('tracking')" class="flex items-center justify-center space-x-2 bg-blue-700 hover:bg-blue-850 text-white p-3 rounded-xl transition text-xs font-semibold"><i class="fa-solid fa-map-location-dot"></i><span>Tracking</span></button>
+                <button onclick="switchTabAndCloseMobile('dispatches')" class="flex items-center justify-center space-x-2 bg-blue-700 hover:bg-blue-850 text-white p-3 rounded-xl transition text-xs font-semibold"><i class="fa-regular fa-file-lines"></i><span>Dispatches</span></button>
+                <button onclick="switchTabAndCloseMobile('fleet')" class="flex items-center justify-center space-x-2 bg-blue-700 hover:bg-blue-850 text-white p-3 rounded-xl transition text-xs font-semibold"><i class="fa-solid fa-truck-fast"></i><span>Fleet</span></button>
+                <button onclick="switchTabAndCloseMobile('drivers')" class="flex items-center justify-center space-x-2 bg-blue-700 hover:bg-blue-850 text-white p-3 rounded-xl transition text-xs font-semibold"><i class="fa-regular fa-user"></i><span>Drivers</span></button>
+                <button onclick="switchTabAndCloseMobile('orders')" class="flex items-center justify-center space-x-2 bg-blue-700 hover:bg-blue-850 text-white p-3 rounded-xl transition text-xs font-semibold"><i class="fa-solid fa-clipboard-list"></i><span>Orders</span></button>
+                <button onclick="switchTabAndCloseMobile('reports')" class="flex items-center justify-center space-x-2 bg-blue-700 hover:bg-blue-850 text-white p-3 rounded-xl transition text-xs font-semibold col-span-2"><i class="fa-solid fa-chart-column"></i><span>Reports</span></button>
+            </div>
+        <?php elseif ($_SESSION['role'] === 'Driver'): ?>
+            <div class="px-2 py-1 text-blue-100 text-sm border-b border-blue-500/30 pb-2 flex items-center justify-between">
+                <span>Welcome, <strong class="text-white"><?= htmlspecialchars($_SESSION['username'] ?? 'Driver'); ?></strong></span>
+                <span class="text-[10px] bg-blue-700 text-blue-100 px-2 py-0.5 rounded-full font-bold uppercase">Driver</span>
+            </div>
+            <div class="flex flex-col space-y-2">
+                <?php if ($has_pending_cancellation ?? false): ?>
+                    <button class="w-full flex items-center justify-center py-3 text-gray-400 bg-gray-200 dark:bg-gray-700 rounded-xl cursor-not-allowed text-sm font-semibold" disabled>
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Cancellation Pending...
+                    </button>
+                <?php else: ?>
+                    <button onclick="openCancelTripModal(); toggleMobileMenu();" class="w-full flex items-center justify-center py-3 text-white bg-orange-655 dark:bg-orange-700 hover:bg-orange-700 rounded-xl transition text-sm font-semibold">
+                        <i class="fa-solid fa-ban mr-2"></i> Request Cancellation
+                    </button>
+                <?php endif; ?>
+                <button onclick="openChangePasswordModal(); toggleMobileMenu();" class="w-full flex items-center justify-center py-3 text-white bg-blue-700 dark:bg-gray-700 hover:bg-blue-800 rounded-xl transition text-sm font-semibold">
+                    <i class="fa-solid fa-key mr-2"></i> Change Password
+                </button>
+            </div>
+        <?php elseif ($_SESSION['role'] === 'Checker'): ?>
+            <div class="px-2 py-1 text-blue-100 text-sm border-b border-blue-500/30 pb-2 flex items-center justify-between">
+                <span>Checker: <strong class="text-white"><?= htmlspecialchars($checker_full_name ?? $_SESSION['username'] ?? 'Checker'); ?></strong></span>
+                <span class="text-[10px] bg-blue-700 text-blue-100 px-2 py-0.5 rounded-full font-bold uppercase">Checker</span>
+            </div>
+            <button onclick="openChangePasswordModal(); toggleMobileMenu();" class="w-full flex items-center justify-center py-3 text-white bg-blue-700 dark:bg-gray-700 hover:bg-blue-800 rounded-xl transition text-sm font-semibold">
+                <i class="fa-solid fa-key mr-2"></i> Change Password
+            </button>
+        <?php endif; ?>
+
+        <div class="border-t border-blue-500/30 pt-3">
+            <a href="../logout.php" class="w-full flex items-center justify-center space-x-2 py-3 bg-red-600 hover:bg-red-750 text-white rounded-xl font-bold transition text-sm shadow-md">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+            </a>
+        </div>
+    </div>
+
     <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            const icon = document.getElementById('hamburger-icon');
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                icon.classList.remove('fa-bars');
+                icon.classList.add('fa-xmark');
+            } else {
+                menu.classList.add('hidden');
+                icon.classList.remove('fa-xmark');
+                icon.classList.add('fa-bars');
+            }
+        }
+        function switchTabAndCloseMobile(tab) {
+            switchTab(tab);
+            toggleMobileMenu();
+        }
         document.addEventListener("DOMContentLoaded", function() {
+            const icons = document.querySelectorAll('#themeIcon, .themeIconMobile');
             if (document.documentElement.classList.contains('dark')) {
-                document.getElementById('themeIcon').classList.replace('fa-moon', 'fa-sun');
+                icons.forEach(i => i.classList.replace('fa-moon', 'fa-sun'));
             }
         });
-
         function toggleTheme(event) {
             const htmlTag = document.documentElement;
-            const themeIcon = document.getElementById('themeIcon');
+            const icons = document.querySelectorAll('#themeIcon, .themeIconMobile');
             if (event) {
-                const x = event.clientX;
-                const y = event.clientY;
+                const x = event.clientX || window.innerWidth / 2;
+                const y = event.clientY || 50;
                 const circle = document.createElement('div');
                 circle.className = 'fixed rounded-full pointer-events-none z-[9999] transition-all duration-[700ms] ease-out';
                 circle.style.left = x + 'px';
@@ -173,13 +251,15 @@
                 setTimeout(() => circle.remove(), 700);
             }
             const isNowDark = htmlTag.classList.toggle('dark');
-            if (isNowDark) {
-                themeIcon.classList.remove('fa-moon');
-                themeIcon.classList.add('fa-sun');
-            } else {
-                themeIcon.classList.remove('fa-sun');
-                themeIcon.classList.add('fa-moon');
-            }
+            icons.forEach(icon => {
+                if (isNowDark) {
+                    icon.classList.remove('fa-moon');
+                    icon.classList.add('fa-sun');
+                } else {
+                    icon.classList.remove('fa-sun');
+                    icon.classList.add('fa-moon');
+                }
+            });
             localStorage.setItem('theme', isNowDark ? "dark" : "light");
             document.cookie = "theme=" + (isNowDark ? "dark" : "light") + "; path=/; max-age=" + (60 * 60 * 24 * 365);
         }
