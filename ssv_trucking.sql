@@ -150,5 +150,65 @@ INSERT INTO `users` (`username`, `password`, `role`) VALUES
 ON DUPLICATE KEY UPDATE `username` = `username`;
 
 -- ============================================================
+-- 10. DESTINATIONS TABLE (delivery locations + driver pay rates)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `destinations` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(255) NOT NULL UNIQUE,
+    `driver_rate` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    `is_active` TINYINT(1) DEFAULT 1,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+INSERT INTO `destinations` (`name`, `driver_rate`) VALUES
+('San Leonardo', 150.00),
+('Tarlac', 800.00),
+('Laur', 900.00),
+('Gabaldon', 1000.00)
+ON DUPLICATE KEY UPDATE `driver_rate` = VALUES(`driver_rate`);
+
+-- ============================================================
+-- 11. GRAVEL TYPES TABLE (display labels only, no pricing)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `gravel_types` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `type_key` VARCHAR(50) NOT NULL UNIQUE,
+    `label` VARCHAR(100) NOT NULL,
+    `is_active` TINYINT(1) DEFAULT 1,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+INSERT INTO `gravel_types` (`type_key`, `label`) VALUES
+('S1_regular',  'S1 Regular'),
+('S1_crushed',  'S1 Crushed'),
+('3_4_regular', '3/4 Regular'),
+('3_4_crushed', '3/4 Crushed'),
+('G1_regular',  'G1 Regular'),
+('G1_crushed',  'G1 Crushed'),
+('38_regular',  '3/8 Regular'),
+('38_crushed',  '3/8 Crushed'),
+('base_course', 'Base Course'),
+('river_mix',   'River Mix'),
+('garden_soil', 'Garden Soil')
+ON DUPLICATE KEY UPDATE `label` = VALUES(`label`);
+
+-- ============================================================
+-- 12. SYSTEM SETTINGS TABLE
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `system_settings` (
+    `setting_key` VARCHAR(100) PRIMARY KEY,
+    `setting_value` VARCHAR(255) NOT NULL,
+    `description` VARCHAR(255) DEFAULT NULL
+) ENGINE=InnoDB;
+
+INSERT INTO `system_settings` (`setting_key`, `setting_value`, `description`) VALUES
+('garage_name',    'San Leonardo (Garage)', 'Default garage/origin location name'),
+('garage_lat',     '15.3621',               'Garage latitude coordinate'),
+('garage_lng',     '120.9632',              'Garage longitude coordinate'),
+('op_cost_pct',    '0.40',                  'Estimated operational cost as a decimal fraction'),
+('payday_day',     'Saturday',              'Day of the week when drivers are paid')
+ON DUPLICATE KEY UPDATE `setting_value` = VALUES(`setting_value`);
+
+-- ============================================================
 -- DONE! Your database is now ready.
 -- ============================================================

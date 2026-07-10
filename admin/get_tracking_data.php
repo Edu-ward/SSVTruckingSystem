@@ -28,8 +28,8 @@ $stmt = $pdo->query("
     FROM trucks t
     LEFT JOIN drivers d   ON t.id = d.truck_id
     LEFT JOIN dispatches disp ON t.id = disp.truck_id 
-        AND disp.status = 'In Transit'
-    WHERE t.status = 'In Transit'
+        AND disp.status IN ('Pending', 'Loading', 'In Transit', 'Unloading')
+    WHERE t.status != 'Idle'
       AND t.latitude IS NOT NULL
       AND t.longitude IS NOT NULL
     ORDER BY t.truck_code ASC

@@ -40,20 +40,23 @@
                 // Initial render from PHP data
                 renderMapMarkers(trackingData);
 
-                setTimeout(() => { map.invalidateSize(); }, 300);
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 300);
 
-                // Start live polling every 10 seconds
-                setInterval(refreshMap, 10000);
+                // Start live polling every 5 seconds
+                setInterval(refreshMap, 5000);
+
+                // Auto-detect and pin admin location
+                setTimeout(locateMe, 800);
             } catch (error) {
                 console.error("Map initialization failed:", error);
             }
         }
 
-        // Holds active Leaflet marker objects keyed by truck_code
         let truckMarkers = {};
 
         function renderMapMarkers(trucks) {
-            // Remove markers for trucks no longer In Transit
             const activeCodes = trucks.map(t => t.truck_code);
             Object.keys(truckMarkers).forEach(code => {
                 if (!activeCodes.includes(code)) {
@@ -67,9 +70,9 @@
 
                 let markerClass = 'bg-gray-500';
                 if (truck.status === 'In Transit') markerClass = 'bg-transit';
-                if (truck.status === 'Idle')       markerClass = 'bg-yellow-500';
-                if (truck.status === 'Loading')    markerClass = 'bg-blue-500';
-                if (truck.status === 'Unloading')  markerClass = 'bg-orange-500';
+                if (truck.status === 'Idle') markerClass = 'bg-yellow-500';
+                if (truck.status === 'Loading') markerClass = 'bg-blue-500';
+                if (truck.status === 'Unloading') markerClass = 'bg-orange-500';
 
                 const customIcon = L.divIcon({
                     className: 'custom-div-icon',
@@ -87,7 +90,9 @@
                     truckMarkers[truck.truck_code].setPopupContent(popupContent);
                 } else {
                     // Create new marker
-                    truckMarkers[truck.truck_code] = L.marker(latLng, { icon: customIcon })
+                    truckMarkers[truck.truck_code] = L.marker(latLng, {
+                            icon: customIcon
+                        })
                         .addTo(map)
                         .bindPopup(popupContent);
                 }
@@ -113,29 +118,117 @@
         }
 
 
-        function focusTruck(lat, lng) {
+        function focusTruck(lat, lng, truckCode) {
             switchTab('tracking');
             if (lat != 0 && lng != 0) {
                 setTimeout(() => {
-                    if (map) map.setView([lat, lng], 15, {
-                        animate: true,
-                        duration: 1
-                    });
+                    if (map) {
+                        map.setView([lat, lng], 16, {
+                            animate: true,
+                            duration: 1
+                        });
+                        // Open the marker's popup to highlight the exact truck
+                        if (truckCode && truckMarkers && truckMarkers[truckCode]) {
+                            truckMarkers[truckCode].openPopup();
+                        }
+                    }
                 }, 300);
             } else {
                 alert("Location data not available for this truck yet.");
             }
         }
 
+        // ===== LOCATE ME =====
+        let myLocationMarker = null;
+
+        function locateMe() {
+            if (!map) { switchTab('tracking'); setTimeout(locateMe, 400); return; }
+
+            const btn  = document.getElementById('locateMeBtn');
+            const icon = document.getElementById('locateMeIcon');
+
+            // Show spinner while waiting
+            if (icon) {
+                icon.className = 'fa-solid fa-spinner fa-spin text-blue-500 text-lg';
+            }
+            if (btn) btn.disabled = true;
+
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser.');
+                if (icon) icon.className = 'fa-solid fa-location-crosshairs text-blue-500 text-lg';
+                if (btn) btn.disabled = false;
+                return;
+            }
+
+            function setAdminLocation(lat, lng, isIp = false) {
+                // Remove old marker
+                if (myLocationMarker) { map.removeLayer(myLocationMarker); myLocationMarker = null; }
+
+                // "You are here" marker with person icon
+                const youIcon = L.divIcon({
+                    className: '',
+                    html: `<div style="
+                        width:30px;height:30px;
+                        background:#3b82f6;
+                        border:3px solid #fff;
+                        border-radius:50%;
+                        box-shadow:0 2px 8px rgba(59,130,246,0.5);
+                        display:flex;align-items:center;justify-content:center;
+                        animation:gps-pulse 1.6s ease-in-out infinite;
+                    "><i class='fa-solid fa-person' style='color:#fff;font-size:13px;'></i></div>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+
+                myLocationMarker = L.marker([lat, lng], { icon: youIcon })
+                    .addTo(map);
+
+                map.setView([lat, lng], 15, { animate: true, duration: 1 });
+
+                if (icon) icon.className = 'fa-solid fa-location-crosshairs text-green-500 text-lg';
+                if (btn) { 
+                    btn.disabled = false; 
+                    btn.title = isIp ? 'Your location (IP Geolocation Fallback)' : 'Your location'; 
+                }
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    setAdminLocation(pos.coords.latitude, pos.coords.longitude, false);
+                },
+                function(err) {
+                    // Fallback to IP Geolocation on error
+                    fetch('https://ipapi.co/json/')
+                        .then(r => r.json())
+                        .then(ipData => {
+                            if (ipData.latitude && ipData.longitude) {
+                                setAdminLocation(ipData.latitude, ipData.longitude, true);
+                            } else {
+                                throw new Error();
+                            }
+                        })
+                        .catch(() => {
+                            let msg = 'Could not get your location.';
+                            if (err.code === err.PERMISSION_DENIED) msg = 'Location access denied. Please enable it in settings.';
+                            alert(msg);
+                            if (icon) icon.className = 'fa-solid fa-location-crosshairs text-red-500 text-lg';
+                            if (btn) btn.disabled = false;
+                        });
+                },
+                { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+            );
+        }
+
+
         function switchDispatchTab(tab) {
             document.getElementById('dispatch-grid-active').classList.add('hidden');
             document.getElementById('dispatch-grid-requests').classList.add('hidden');
             document.getElementById('dispatch-grid-completed').classList.add('hidden');
-            
+
             document.getElementById('btn-tab-active').className = "px-6 py-2 rounded-full hover:text-gray-900 dark:text-gray-100 transition";
             document.getElementById('btn-tab-requests').className = "px-6 py-2 rounded-full hover:text-gray-900 dark:text-gray-100 transition relative";
             document.getElementById('btn-tab-completed').className = "px-6 py-2 rounded-full hover:text-gray-900 dark:text-gray-100 transition";
-            
+
             if (tab === 'active') {
                 document.getElementById('dispatch-grid-active').classList.remove('hidden');
                 document.getElementById('btn-tab-active').className = "px-6 py-2 rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition";
@@ -228,6 +321,17 @@
             toggleModal('deleteDriverModal', true);
         }
 
+        function openResetPasswordModal(id, name) {
+            document.getElementById('rp-name').innerText = name;
+            document.getElementById('reset_password_driver_id').value = id;
+            const pwdInput = document.getElementById('new_driver_password');
+            if (pwdInput) {
+                pwdInput.value = '';
+                pwdInput.dispatchEvent(new Event('input'));
+            }
+            toggleModal('resetPasswordModal', true);
+        }
+
         function openDeleteCheckerModal(id, name) {
             document.getElementById('dc-name').innerText = name;
             document.getElementById('delete_checker_id').value = id;
@@ -264,14 +368,14 @@
             document.getElementById('st-driver-name').innerText = driverName;
             document.getElementById('st-truck-code').innerText = truckCode || 'None';
             document.getElementById('switch_truck_driver_id').value = driverId;
-            
+
             // Auto-detect redirect tab
             const activeTabContent = document.querySelector('.tab-content:not(.hidden)');
             if (activeTabContent) {
                 const tabId = activeTabContent.id.replace('view-', '');
                 document.getElementById('switch_truck_redirect_tab').value = tabId;
             }
-            
+
             toggleModal('switchTruckModal', true);
         }
 
@@ -442,39 +546,93 @@
 
 
 
+        // ===== REAL-TIME PLATE NUMBER DUPLICATE CHECK =====
         document.addEventListener("DOMContentLoaded", function() {
-            const destSelect = document.getElementById('destinationSelect');
-            const gravelTypeSelect = document.getElementById('gravelType');
-            const payOutput = document.getElementById('payOutput');
-            if (destSelect && payOutput) {
-                const destRates = {
-                    'San Leonardo': 150,
-                    'Tarlac': 800,
-                    'Laur': 900,
-                    'Gabaldon': 1000
-                };
-                const gravelPrices = <?= json_encode($gravelPrices ?? ["S1_regular" => 1500, "S1_crushed" => 1600, "3_4_regular" => 1400, "3_4_crushed" => 1500, "G1_regular" => 1700, "G1_crushed" => 1800, "38_regular" => 1300, "38_crushed" => 1400, "base_course" => 1200, "river_mix" => 1100, "garden_soil" => 1000]); ?>;
+            const plateInput    = document.getElementById('newTruckPlateInput');
+            const plateFeedback = document.getElementById('plateCheckFeedback');
+            const addTruckSubmitBtn = document.querySelector('#addTruckModal button[type="submit"]');
+            if (!plateInput || !plateFeedback) return;
 
-                function calculateTotalPay() {
-                    const dest = destSelect.value;
-                    const destPrice = destRates[dest] ? destRates[dest] : 0;
-                    let gravelPrice = 0;
-                    if (gravelTypeSelect && gravelTypeSelect.value) {
-                        const type = gravelTypeSelect.value;
-                        gravelPrice = gravelPrices[type] !== undefined ? gravelPrices[type] : 0;
+            let plateCheckTimer = null;
+
+            plateInput.addEventListener('input', function() {
+                const val = this.value.trim();
+                clearTimeout(plateCheckTimer);
+
+                // Reset state
+                plateFeedback.innerHTML = '';
+                plateInput.classList.remove('border-red-500', 'border-green-500');
+                plateInput.classList.add('border-gray-300');
+                if (addTruckSubmitBtn) addTruckSubmitBtn.disabled = false;
+
+                if (val.length === 0) return;
+
+                plateFeedback.innerHTML = '<span class="text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Checking...</span>';
+
+                plateCheckTimer = setTimeout(() => {
+                    fetch('check_plate.php?plate=' + encodeURIComponent(val))
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.exists) {
+                                plateFeedback.innerHTML = '<span class="text-red-500 font-semibold"><i class="fa-solid fa-circle-xmark mr-1"></i>Plate number already registered.</span>';
+                                plateInput.classList.remove('border-gray-300', 'border-green-500');
+                                plateInput.classList.add('border-red-500', 'focus:ring-red-500');
+                                if (addTruckSubmitBtn) addTruckSubmitBtn.disabled = true;
+                            } else {
+                                plateFeedback.innerHTML = '<span class="text-green-600 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i>Available.</span>';
+                                plateInput.classList.remove('border-gray-300', 'border-red-500');
+                                plateInput.classList.add('border-green-500');
+                                if (addTruckSubmitBtn) addTruckSubmitBtn.disabled = false;
+                            }
+                        })
+                        .catch(() => { plateFeedback.innerHTML = ''; });
+                }, 400);
+            });
+        });
+
+        // ===== REAL-TIME PASSWORD COMPLEXITY CHECK =====
+        document.addEventListener("DOMContentLoaded", function() {
+            const pwdInput = document.getElementById('new_driver_password');
+            const submitBtn = document.getElementById('resetPasswordSubmitBtn');
+            if (!pwdInput || !submitBtn) return;
+
+            const reqLength = document.getElementById('req-length');
+            const reqUpper  = document.getElementById('req-uppercase');
+            const reqLower  = document.getElementById('req-lowercase');
+            const reqNumber = document.getElementById('req-number');
+
+            function updateRequirement(el, isValid) {
+                const icon = el.querySelector('i');
+                if (isValid) {
+                    el.className = 'flex items-center text-green-600 dark:text-green-400 font-semibold';
+                    if (icon) {
+                        icon.className = 'fa-solid fa-check mr-2';
                     }
-                    if (dest || (gravelTypeSelect && gravelTypeSelect.value)) {
-                        payOutput.value = '₱' + (destPrice + gravelPrice).toFixed(2);
-                    } else {
-                        payOutput.value = '₱0.00';
+                } else {
+                    el.className = 'flex items-center text-gray-500 dark:text-gray-400';
+                    if (icon) {
+                        icon.className = 'fa-solid fa-circle text-[6px] mr-2';
                     }
-                }
-                destSelect.addEventListener('change', calculateTotalPay);
-                if (gravelTypeSelect) {
-                    gravelTypeSelect.addEventListener('change', calculateTotalPay);
                 }
             }
 
+            pwdInput.addEventListener('input', function() {
+                const val = this.value;
+                const hasLength = val.length >= 8;
+                const hasUpper  = /[A-Z]/.test(val);
+                const hasLower  = /[a-z]/.test(val);
+                const hasNumber = /[0-9]/.test(val);
+
+                updateRequirement(reqLength, hasLength);
+                updateRequirement(reqUpper, hasUpper);
+                updateRequirement(reqLower, hasLower);
+                updateRequirement(reqNumber, hasNumber);
+
+                submitBtn.disabled = !(hasLength && hasUpper && hasLower && hasNumber);
+            });
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
             const rfidInput = document.getElementById('rfidInput');
             const truckPlate = document.getElementById('truckPlate');
             const hiddenTruckId = document.getElementById('hiddenTruckId');
@@ -501,7 +659,7 @@
                                         rfidInput.value = '';
                                         return;
                                     }
-                                    
+
                                     if (data.status !== 'Idle') {
                                         rfidFeedback.innerHTML = `<span class="text-orange-500 font-bold"><i class="fa-solid fa-circle-exclamation"></i> Truck is currently ${data.status}!</span>`;
                                         truckPlate.value = '';
@@ -600,31 +758,24 @@
 
         try {
             const financeData = <?= json_encode($financeReports ?? []); ?>;
-            const deliveryData = <?= json_encode($deliveryPerformance ?? []); ?>;
+            const deliveryData = [];
             if (financeData.length > 0 && document.getElementById('revenueReportChart')) {
                 new Chart(document.getElementById('revenueReportChart').getContext('2d'), {
                     type: 'line',
                     data: {
                         labels: financeData.map(d => d.month_name),
                         datasets: [{
-                            label: 'Revenue',
-                            data: financeData.map(d => d.revenue),
-                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                            label: 'Driver Salaries Paid (₱)',
+                            data: financeData.map(d => d.payroll),
+                            backgroundColor: 'rgba(59, 130, 246, 0.15)',
                             borderColor: '#3b82f6',
                             fill: true,
                             tension: 0.4
                         }, {
-                            label: 'Expenses',
-                            data: financeData.map(d => d.expenses),
-                            backgroundColor: 'rgba(239, 68, 68, 0.7)',
-                            borderColor: '#ef4444',
-                            fill: true,
-                            tension: 0.4
-                        }, {
-                            label: 'Profit',
-                            data: financeData.map(d => d.profit),
-                            backgroundColor: 'rgba(34, 197, 94, 0.7)',
-                            borderColor: '#22c55e',
+                            label: 'Delivered Trips Count',
+                            data: financeData.map(d => d.deliveries),
+                            backgroundColor: 'rgba(249, 115, 22, 0.15)',
+                            borderColor: '#f97316',
                             fill: true,
                             tension: 0.4
                         }]
@@ -633,7 +784,7 @@
                         responsive: true,
                         scales: {
                             y: {
-                                stacked: true,
+                                stacked: false,
                                 beginAtZero: true,
                                 grid: {
                                     borderDash: [4, 4]
@@ -656,46 +807,48 @@
                         }
                     }
                 });
-                new Chart(document.getElementById('deliveryReportChart').getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels: deliveryData.map(d => d.week_name),
-                        datasets: [{
-                            label: 'On Time',
-                            data: deliveryData.map(d => d.on_time),
-                            backgroundColor: '#22c55e'
-                        }, {
-                            label: 'Delayed',
-                            data: deliveryData.map(d => d.delayed),
-                            backgroundColor: '#ef4444'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    borderDash: [4, 4]
+                if (document.getElementById('deliveryReportChart')) {
+                    new Chart(document.getElementById('deliveryReportChart').getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: deliveryData.map(d => d.week_name),
+                            datasets: [{
+                                label: 'On Time',
+                                data: deliveryData.map(d => d.on_time),
+                                backgroundColor: '#22c55e'
+                            }, {
+                                label: 'Delayed',
+                                data: deliveryData.map(d => d.delayed),
+                                backgroundColor: '#ef4444'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        borderDash: [4, 4]
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    }
                                 }
                             },
-                            x: {
-                                grid: {
-                                    display: false
-                                }
-                            }
-                        },
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    usePointStyle: true,
-                                    boxWidth: 8
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        usePointStyle: true,
+                                        boxWidth: 8
+                                    }
                                 }
                             }
                         }
-                    }
-                });
+                    });
+                }
             }
         } catch (err) {
             console.error("Reports Charts Error:", err);
@@ -705,130 +858,199 @@
 <?php elseif ($_SESSION['role'] === 'Driver' || $_SESSION['role'] === 'Checker'): ?>
     <!-- ================= DRIVER / CHECKER SCRIPTS ================= -->
     <script>
-<?php if ($_SESSION['role'] === 'Driver' && !empty($active_dispatch)): ?>
-        // ===== LIVE GPS TRACKING (Driver — Any Dispatched Status) =====
-        (function() {
-            const PUSH_INTERVAL_MS = 10000; // push every 10 seconds
-            let lastPushTime = 0;
-            let watchId = null;
-            let gpsBadge = null;
-            const isTransit = <?= ($active_dispatch['status'] === 'In Transit') ? 'true' : 'false'; ?>;
+        <?php if ($_SESSION['role'] === 'Driver' && !empty($active_dispatch)): ?>
+                // ===== LIVE GPS TRACKING (Driver — Any Dispatched Status) =====
+                (function() {
+                    const PUSH_INTERVAL_MS = 10000; // push every 10 seconds
+                    let lastPushTime = 0;
+                    let watchId = null;
+                    let simIntervalId = null;
+                    let gpsBadge = null;
+                    const isTransit = <?= ($active_dispatch['status'] === 'In Transit') ? 'true' : 'false'; ?>;
+                    const activeDest = <?= json_encode($active_dispatch['destination'] ?? ''); ?>;
 
-            function createGpsBadge(statusMsg, colorHex = '#22c55e') {
-                let badge = document.getElementById('gps-status-badge');
-                if (!badge) {
-                    badge = document.createElement('div');
-                    badge.id = 'gps-status-badge';
-                    badge.style.cssText = 'position:fixed;bottom:1.2rem;left:1.2rem;z-index:9999;display:flex;align-items:center;gap:0.5rem;background:rgba(0,0,0,0.85);color:#fff;font-size:0.78rem;font-weight:600;padding:0.5rem 1rem;border-radius:999px;backdrop-filter:blur(4px);box-shadow:0 4px 12px rgba(0,0,0,0.15);pointer-events:none;transition:all 0.3s;';
-                    const style = document.createElement('style');
-                    style.textContent = '@keyframes gps-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(1.35)}}';
-                    document.head.appendChild(style);
-                    document.body.appendChild(badge);
-                }
-                badge.innerHTML = `<span style="width:8.5px;height:8.5px;border-radius:50%;background:${colorHex};display:inline-block;animation:gps-pulse 1.4s ease-in-out infinite;"></span> ${statusMsg}`;
-                gpsBadge = badge;
-            }
-
-            function pushLocation(lat, lng, speed) {
-                if (!isTransit) return; // Only push updates when actively In Transit
-                const now = Date.now();
-                if (now - lastPushTime < PUSH_INTERVAL_MS) return;
-                lastPushTime = now;
-
-                const fd = new FormData();
-                fd.append('latitude',  lat.toFixed(7));
-                fd.append('longitude', lng.toFixed(7));
-                fd.append('speed',     (speed || 0).toFixed(2));
-
-                fetch('update_location.php', { method: 'POST', body: fd })
-                    .then(r => r.json())
-                    .then(data => {
-                        if (gpsBadge) {
-                            if (data.tracking) {
-                                gpsBadge.style.background = 'rgba(22,101,52,0.92)';
-                            } else {
-                                gpsBadge.style.background = 'rgba(0,0,0,0.85)';
-                            }
+                    function createGpsBadge(statusMsg, colorHex = '#22c55e') {
+                        let badge = document.getElementById('gps-status-badge');
+                        if (!badge) {
+                            badge = document.createElement('div');
+                            badge.id = 'gps-status-badge';
+                            badge.style.cssText = 'position:fixed;bottom:1.2rem;left:1.2rem;z-index:9999;display:flex;align-items:center;gap:0.5rem;background:rgba(0,0,0,0.85);color:#fff;font-size:0.78rem;font-weight:600;padding:0.5rem 1rem;border-radius:999px;backdrop-filter:blur(4px);box-shadow:0 4px 12px rgba(0,0,0,0.15);pointer-events:none;transition:all 0.3s;';
+                            const style = document.createElement('style');
+                            style.textContent = '@keyframes gps-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(1.35)}}';
+                            document.head.appendChild(style);
+                            document.body.appendChild(badge);
                         }
-                    })
-                    .catch(() => {});
-            }
-
-            function startGPS() {
-                // HTTPS / Security Context Check
-                if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-                    showToast("⚠️ GPS Warning: Geolocation requires HTTPS to work on mobile devices. Location updates may be blocked.", "warning", 15000);
-                }
-
-                if (!navigator.geolocation) {
-                    showToast("❌ Geolocation is not supported by your browser or device.", "error", 10000);
-                    createGpsBadge('GPS Unavailable', '#ef4444');
-                    return;
-                }
-
-                // Initial request to force prompt the browser dialog immediately
-                createGpsBadge('Requesting GPS Permission...', '#f59e0b');
-                
-                navigator.geolocation.getCurrentPosition(
-                    function(pos) {
-                        if (isTransit) {
-                            createGpsBadge('GPS Active — Sharing Location', '#22c55e');
-                            pushLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.speed ? pos.coords.speed * 3.6 : 0);
-                        } else {
-                            createGpsBadge('GPS Authorized — Ready for Trip', '#3b82f6');
-                        }
-                    },
-                    function(err) {
-                        let msg = "GPS Status: ";
-                        let badgeColor = '#ef4444';
-                        if (err.code === err.PERMISSION_DENIED) {
-                            msg = "Location Access Denied. Please enable location permissions in your browser/device settings.";
-                            showToast("❌ " + msg, "error", 15000);
-                            createGpsBadge('GPS Permission Denied', badgeColor);
-                        } else {
-                            msg = "GPS Error: " + err.message;
-                            showToast("⚠️ " + msg, "warning", 10000);
-                            createGpsBadge('GPS Error', '#f59e0b');
-                        }
-                    },
-                    { enableHighAccuracy: true, timeout: 10000 }
-                );
-
-                // Continuous tracking watch loop
-                watchId = navigator.geolocation.watchPosition(
-                    function(pos) {
-                        if (isTransit) {
-                            pushLocation(
-                                pos.coords.latitude,
-                                pos.coords.longitude,
-                                pos.coords.speed ? pos.coords.speed * 3.6 : 0
-                            );
-                        }
-                    },
-                    function(err) {
-                        console.warn('GPS watch error:', err.message);
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 15000,
-                        maximumAge: 5000
+                        badge.innerHTML = `<span style="width:8.5px;height:8.5px;border-radius:50%;background:${colorHex};display:inline-block;animation:gps-pulse 1.4s ease-in-out infinite;"></span> ${statusMsg}`;
+                        gpsBadge = badge;
                     }
-                );
-            }
 
-            // Start as soon as DOM is ready
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', startGPS);
-            } else {
-                startGPS();
-            }
+                    function pushLocation(lat, lng, speed) {
+                        if (!isTransit) return; // Only push updates when actively In Transit
+                        const now = Date.now();
+                        if (now - lastPushTime < PUSH_INTERVAL_MS) return;
+                        lastPushTime = now;
 
-            // Clean up watch on page unload
-            window.addEventListener('beforeunload', function() {
-                if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-            });
-        })();
-<?php endif; ?>
+                        const fd = new FormData();
+                        fd.append('latitude', lat.toFixed(7));
+                        fd.append('longitude', lng.toFixed(7));
+                        fd.append('speed', (speed || 0).toFixed(2));
+
+                        fetch('update_location.php', {
+                                method: 'POST',
+                                body: fd
+                            })
+                            .then(r => r.json())
+                            .then(data => {
+                                if (gpsBadge) {
+                                    if (data.tracking) {
+                                        gpsBadge.style.background = 'rgba(22,101,52,0.92)';
+                                    } else {
+                                        gpsBadge.style.background = 'rgba(0,0,0,0.85)';
+                                    }
+                                }
+                            })
+                            .catch(() => {});
+                    }
+
+                    function startSimulatedGps() {
+                        if (simIntervalId !== null) return;
+                        
+                        showToast("ℹ️ Simulated GPS active (Local Testing Fallback). Fetching IP location...", "info", 5000);
+                        
+                        let startLat = 15.3621;
+                        let startLng = 120.9632;
+
+                        fetch('https://ipapi.co/json/')
+                            .then(r => r.json())
+                            .then(ipData => {
+                                if (ipData.latitude && ipData.longitude) {
+                                    startLat = ipData.latitude;
+                                    startLng = ipData.longitude;
+                                    showToast("✅ Simulation aligned with your local network location.", "success", 4000);
+                                }
+                                runSimulation();
+                            })
+                            .catch(() => {
+                                runSimulation();
+                            });
+
+                        function runSimulation() {
+                            const destCoords = {
+                                'San Leonardo': { lat: 15.3621, lng: 120.9632 },
+                                'Tarlac':       { lat: 15.4828, lng: 120.5963 },
+                                'Laur':         { lat: 15.4385, lng: 121.1895 },
+                                'Gabaldon':     { lat: 15.4533, lng: 121.3283 }
+                            };
+                            
+                            const target = destCoords[activeDest] || { lat: startLat, lng: startLng };
+                            
+                            if (isTransit) {
+                                createGpsBadge('GPS Simulated — Sharing Location', '#0284c7');
+                            } else {
+                                createGpsBadge('GPS Simulated — Ready for Trip', '#3b82f6');
+                                return;
+                            }
+
+                            function stepSimulation() {
+                                let progress = parseFloat(localStorage.getItem('sim_progress_' + activeDest)) || 0;
+                                
+                                const curLat = startLat + (target.lat - startLat) * progress;
+                                const curLng = startLng + (target.lng - startLng) * progress;
+                                const curSpeed = progress < 1 ? 55 + Math.random() * 5 : 0;
+                                
+                                pushLocation(curLat, curLng, curSpeed);
+                                
+                                if (progress < 1) {
+                                    progress += 0.05; // 5% per 10 seconds (~3.3 mins total)
+                                    if (progress > 1) progress = 1;
+                                    localStorage.setItem('sim_progress_' + activeDest, progress);
+                                } else {
+                                    createGpsBadge('GPS Simulated — Arrived', '#22c55e');
+                                }
+                            }
+
+                            stepSimulation();
+                            simIntervalId = setInterval(stepSimulation, PUSH_INTERVAL_MS);
+                        }
+                    }
+
+                    function startGPS() {
+                        // HTTPS / Security Context Check
+                        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                            showToast("⚠️ GPS Warning: Geolocation requires HTTPS on mobile devices. Activating simulated fallback...", "warning", 10000);
+                        }
+
+                        if (!navigator.geolocation) {
+                            showToast("❌ Geolocation not supported. Activating simulated fallback...", "warning", 8000);
+                            startSimulatedGps();
+                            return;
+                        }
+
+                        createGpsBadge('Requesting GPS Permission...', '#f59e0b');
+
+                        navigator.geolocation.getCurrentPosition(
+                            function(pos) {
+                                if (isTransit) {
+                                    createGpsBadge('GPS Active — Sharing Location', '#22c55e');
+                                    pushLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.speed ? pos.coords.speed * 3.6 : 0);
+                                } else {
+                                    createGpsBadge('GPS Authorized — Ready for Trip', '#3b82f6');
+                                }
+                            },
+                            function(err) {
+                                let msg = "GPS Status: ";
+                                let badgeColor = '#ef4444';
+                                if (err.code === err.PERMISSION_DENIED) {
+                                    msg = "Location Access Denied. Activating simulated fallback...";
+                                    showToast("⚠️ " + msg, "warning", 10000);
+                                } else {
+                                    msg = "GPS Error: " + err.message + ". Activating simulated fallback...";
+                                    showToast("⚠️ " + msg, "warning", 10000);
+                                }
+                                startSimulatedGps();
+                            }, {
+                                enableHighAccuracy: true,
+                                timeout: 10000
+                            }
+                        );
+
+                        // Continuous tracking watch loop
+                        watchId = navigator.geolocation.watchPosition(
+                            function(pos) {
+                                if (isTransit) {
+                                    pushLocation(
+                                        pos.coords.latitude,
+                                        pos.coords.longitude,
+                                        pos.coords.speed ? pos.coords.speed * 3.6 : 0
+                                    );
+                                }
+                            },
+                            function(err) {
+                                console.warn('GPS watch error:', err.message);
+                                // Fall back to simulation if watch fails
+                                startSimulatedGps();
+                            }, {
+                                enableHighAccuracy: true,
+                                timeout: 15000,
+                                maximumAge: 5000
+                            }
+                        );
+                    }
+
+                    // Start as soon as DOM is ready
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', startGPS);
+                    } else {
+                        startGPS();
+                    }
+
+                    // Clean up watch on page unload
+                    window.addEventListener('beforeunload', function() {
+                        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+                        if (simIntervalId !== null) clearInterval(simIntervalId);
+                    });
+                })();
+        <?php endif; ?>
 
 
 
@@ -929,4 +1151,4 @@
         });
     </script>
 
-<?php endif; ?>
+<?php endif; ?>

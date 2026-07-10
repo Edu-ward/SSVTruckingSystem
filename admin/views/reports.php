@@ -44,7 +44,7 @@
     </div>
 
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border border-gray-100 dark:border-gray-700 mb-6">
-        <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-4">Revenue & Profit Analysis</h3>
+        <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-4">Payroll & Deliveries Analysis</h3>
         <canvas id="revenueReportChart" height="100"></canvas>
     </div>
 

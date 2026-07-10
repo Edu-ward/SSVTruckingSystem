@@ -1,32 +1,7 @@
 <?php
-$gravelTypes = [
-    "S1_regular" => "S1 Regular",
-    "S1_crushed" => "S1 Crushed",
-    "3_4_regular" => "3/4 Regular",
-    "3_4_crushed" => "3/4 Crushed",
-    "G1_regular" => "G1 Regular",
-    "G1_crushed" => "G1 Crushed",
-    "38_regular" => "3/8 Regular",
-    "38_crushed" => "3/8 Crushed",
-    "base_course" => "Base Course",
-    "river_mix" => "River Mix",
-    "garden_soil" => "Garden Soil"
-];
-
-$gravelPrices = [
-    "S1_regular" => 1500,
-    "S1_crushed" => 1600,
-    "3_4_regular" => 1400,
-    "3_4_crushed" => 1500,
-    "G1_regular" => 1700,
-    "G1_crushed" => 1800,
-    "38_regular" => 1300,
-    "38_crushed" => 1400,
-    "base_course" => 1200,
-    "river_mix" => 1100,
-    "garden_soil" => 1000
-];
+// $gravelTypes and $destinations are loaded from the DB in admin/dashboard.php
 ?>
+
 <div id="addTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden relative">
         <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
@@ -43,7 +18,9 @@ $gravelPrices = [
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <div>
                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Plate Number <span class="text-red-500">*</span></label>
-                <input type="text" name="truck_code" id="newTruckPlateInput" required placeholder="e.g. ABC 1234" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                <input type="text" name="truck_code" id="newTruckPlateInput" required placeholder="e.g. ABC 1234" autocomplete="off"
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors">
+                <p id="plateCheckFeedback" class="text-xs mt-1.5 min-h-[1rem]"></p>
             </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">RFID Tag <span class="text-red-500">*</span></label>
@@ -212,27 +189,20 @@ $gravelPrices = [
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Destination</label>
                     <select name="destination" id="destinationSelect" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100">
                         <option value="">Select Destination</option>
-                        <option value="San Leonardo">San Leonardo</option>
-                        <option value="Tarlac">Tarlac</option>
-                        <option value="Laur">Laur</option>
-                        <option value="Gabaldon">Gabaldon</option>
-                    </select>
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-6 mb-8">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Gravel Type <span class="text-red-500">*</span></label>
-                    <select id="gravelType" name="gravel_type" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100">
-                        <option value="">Select gravel type</option>
-                        <?php foreach ($gravelTypes as $value => $label): ?>
-                            <option value="<?= $value; ?>"><?= htmlspecialchars($label); ?></option>
+                        <?php foreach ($destinations as $_dest): ?>
+                            <option value="<?= htmlspecialchars($_dest['name']); ?>"><?= htmlspecialchars($_dest['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Total Client Bill (₱)</label>
-                    <input type="text" id="payOutput" name="calculated_pay" readonly placeholder="₱0.00" class="w-full border border-green-200 dark:border-green-700 rounded-lg px-4 py-2.5 bg-green-50 dark:bg-green-900 text-green-700 dark:text-green-300 font-bold focus:outline-none cursor-not-allowed">
-                </div>
+            </div>
+            <div class="mb-8">
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Gravel Type <span class="text-red-500">*</span></label>
+                <select id="gravelType" name="gravel_type" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100">
+                    <option value="">Select gravel type</option>
+                    <?php foreach ($gravelTypes as $value => $label): ?>
+                        <option value="<?= $value; ?>"><?= htmlspecialchars($label); ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
             <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button type="button" onclick="toggleModal('dispatchModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition">Cancel</button>
@@ -462,6 +432,48 @@ $gravelPrices = [
     </div>
 </div>
 
+<div id="resetPasswordModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative p-6 text-center">
+        <button onclick="toggleModal('resetPasswordModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200"><i class="fa-solid fa-xmark fa-lg"></i></button>
+        <div class="w-16 h-16 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
+            <i class="fa-solid fa-key"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Reset Password</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Enter a new password for <strong id="rp-name" class="text-gray-800 dark:text-gray-200"></strong>.</p>
+        <form method="POST" action="dashboard.php" class="text-left space-y-4">
+            <input type="hidden" name="action" value="reset_driver_password">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+            <input type="hidden" name="driver_id" id="reset_password_driver_id" value="">
+            
+            <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">New Password <span class="text-red-500">*</span></label>
+                <input type="password" name="new_password" id="new_driver_password" required placeholder="At least 8 characters..."
+                       class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors">
+                
+                <div class="mt-3 space-y-1.5 text-xs text-left" id="pw-requirements">
+                    <div id="req-length" class="flex items-center text-gray-500 dark:text-gray-400">
+                        <i class="fa-solid fa-circle text-[6px] mr-2"></i> At least 8 characters
+                    </div>
+                    <div id="req-uppercase" class="flex items-center text-gray-500 dark:text-gray-400">
+                        <i class="fa-solid fa-circle text-[6px] mr-2"></i> At least one uppercase letter (A-Z)
+                    </div>
+                    <div id="req-lowercase" class="flex items-center text-gray-500 dark:text-gray-400">
+                        <i class="fa-solid fa-circle text-[6px] mr-2"></i> At least one lowercase letter (a-z)
+                    </div>
+                    <div id="req-number" class="flex items-center text-gray-500 dark:text-gray-400">
+                        <i class="fa-solid fa-circle text-[6px] mr-2"></i> At least one number (0-9)
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex space-x-3 pt-2">
+                <button type="button" onclick="toggleModal('resetPasswordModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition dark:bg-black">Cancel</button>
+                <button type="submit" id="resetPasswordSubmitBtn" disabled class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed">Update Password</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div id="deleteTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden relative">
         <div class="p-6 text-center">
@@ -601,10 +613,9 @@ $gravelPrices = [
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Destination <span class="text-red-500">*</span></label>
                     <select name="destination" required class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                         <option value="">Select destination</option>
-                        <option value="San Leonardo">San Leonardo</option>
-                        <option value="Tarlac">Tarlac</option>
-                        <option value="Laur">Laur</option>
-                        <option value="Gabaldon">Gabaldon</option>
+                        <?php foreach ($destinations as $_dest): ?>
+                            <option value="<?= htmlspecialchars($_dest['name']); ?>"><?= htmlspecialchars($_dest['name']); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
             </div>

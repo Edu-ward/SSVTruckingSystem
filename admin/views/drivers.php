@@ -46,6 +46,10 @@
                         <?= htmlspecialchars($driver['status']); ?>
                     </span>
 
+                    <button onclick="openResetPasswordModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>')" class="text-gray-400 hover:text-orange-500 transition" title="Reset Password">
+                        <i class="fa-solid fa-key"></i>
+                    </button>
+
                     <button onclick="openSwitchTruckModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', '<?= htmlspecialchars($driver['truck_code'] ?? 'None'); ?>')" class="text-gray-400 hover:text-blue-500 transition" title="Switch Truck">
                         <i class="fa-solid fa-truck-arrow-right"></i>
                     </button>

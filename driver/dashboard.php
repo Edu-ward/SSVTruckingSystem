@@ -74,12 +74,12 @@ $payroll = $stmt->fetch() ?: ['total_amount' => 0, 'amount_claimed' => 0];
 
 $available_balance = max(0, $payroll['total_amount'] - $payroll['amount_claimed']);
 
-$driver_rates = [
-    'San Leonardo' => 150,
-    'Tarlac' => 800,
-    'Laur' => 900,
-    'Gabaldon' => 1000
-];
+// Load driver pay rates from destinations table
+$_dest_rows  = $pdo->query("SELECT name, driver_rate FROM destinations WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
+$driver_rates = [];
+foreach ($_dest_rows as $_d) {
+    $driver_rates[$_d['name']] = floatval($_d['driver_rate']);
+}
 
 $stmt2 = $pdo->prepare("SELECT trip_date, destination, status, created_at, transit_start_time, transit_end_time FROM driver_trips WHERE driver_id = ? ORDER BY trip_date DESC, id DESC");
 $stmt2->execute([$driver_id]);

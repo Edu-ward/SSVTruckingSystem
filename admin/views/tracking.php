@@ -14,6 +14,12 @@
             </div>
             <div class="flex-grow border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden relative" style="min-height: 500px;">
                 <div id="map" class="absolute inset-0 w-full h-full"></div>
+                <!-- Locate Me button -->
+                <button onclick="locateMe()" id="locateMeBtn"
+                    title="Show my location on map"
+                    class="absolute bottom-4 right-4 z-[999] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 shadow-lg hover:shadow-xl hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full w-11 h-11 flex items-center justify-center transition-all duration-200 group">
+                    <i id="locateMeIcon" class="fa-solid fa-location-crosshairs text-blue-500 text-lg group-hover:scale-110 transition-transform"></i>
+                </button>
             </div>
         </div>
 
@@ -67,7 +73,7 @@
                             </div>
                         <?php endif; ?>
 
-                        <button onclick="focusTruck(<?= $truck['latitude']; ?>, <?= $truck['longitude']; ?>)" class="mt-4 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-semibold py-2 rounded-lg transition flex items-center justify-center space-x-2 shadow-sm">
+                        <button onclick="focusTruck(<?= $truck['latitude']; ?>, <?= $truck['longitude']; ?>, '<?= htmlspecialchars($truck['truck_code']); ?>')" class="mt-4 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-semibold py-2 rounded-lg transition flex items-center justify-center space-x-2 shadow-sm">
                             <i class="fa-solid fa-location-crosshairs text-blue-500"></i><span>Track on Map</span>
                         </button>
                     </div>
