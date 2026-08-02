@@ -33,7 +33,7 @@
                 <i class="fa-regular fa-file-lines text-blue-500"></i>
                 <span>Dispatch Tickets</span>
             </div>
-            <button onclick="toggleModal('dispatchModal', true)" class="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2">
+            <button onclick="toggleModal('dispatchModal', true)" class="btn-primary text-sm">
                 <i class="fa-solid fa-plus"></i>
                 <span>Create Dispatch</span>
             </button>

@@ -4,7 +4,7 @@
             <i class="fa-solid fa-users text-gray-700 dark:text-gray-200"></i>
             <span>Driver Management</span>
         </div>
-        <button onclick="toggleModal('addDriverModal', true)" class="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2">
+        <button onclick="toggleModal('addDriverModal', true)" class="btn-primary text-sm">
             <i class="fa-solid fa-user-plus"></i><span>Add Driver</span>
         </button>
     </div>

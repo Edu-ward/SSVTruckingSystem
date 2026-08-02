@@ -46,7 +46,7 @@
         <form action="dashboard.php" method="POST" class="p-6 space-y-4">
             <input type="hidden" name="action" value="add_driver">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
-            
+
             <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800 mb-2">
                 <h4 class="font-bold text-blue-700 dark:text-blue-400 text-sm mb-3 flex items-center">
                     <i class="fa-solid fa-truck-fast mr-2"></i> Truck Assignment
@@ -83,7 +83,7 @@
                     <input type="text" name="username" required placeholder="juan.dela.cruz" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 </div>
             </div>
-            
+
             <div>
                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Password</label>
                 <div class="flex">
@@ -91,7 +91,7 @@
                     <button type="button" onclick="generateDriverPassword()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-r-lg transition font-medium">Generate</button>
                 </div>
             </div>
-            
+
             <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button type="button" onclick="toggleModal('addDriverModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 transition">Cancel</button>
                 <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Save Driver</button>
@@ -206,7 +206,7 @@
             </div>
             <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button type="button" onclick="toggleModal('dispatchModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition">Cancel</button>
-                <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-black hover:bg-gray-800 transition">Create Dispatch</button>
+                <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-gray-900 hover:bg-black transition">Create Dispatch</button>
             </div>
         </form>
     </div>
@@ -444,12 +444,12 @@
             <input type="hidden" name="action" value="reset_driver_password">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="driver_id" id="reset_password_driver_id" value="">
-            
+
             <div>
                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">New Password <span class="text-red-500">*</span></label>
                 <input type="password" name="new_password" id="new_driver_password" required placeholder="At least 8 characters..."
-                       class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors">
-                
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors">
+
                 <div class="mt-3 space-y-1.5 text-xs text-left" id="pw-requirements">
                     <div id="req-length" class="flex items-center text-gray-500 dark:text-gray-400">
                         <i class="fa-solid fa-circle text-[6px] mr-2"></i> At least 8 characters

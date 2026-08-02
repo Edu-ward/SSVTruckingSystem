@@ -590,45 +590,51 @@
             });
         });
 
-        // ===== REAL-TIME PASSWORD COMPLEXITY CHECK =====
+        // ===== REAL-TIME PASSWORD COMPLEXITY CHECK FOR ALL PASSWORD RESETS =====
         document.addEventListener("DOMContentLoaded", function() {
-            const pwdInput = document.getElementById('new_driver_password');
-            const submitBtn = document.getElementById('resetPasswordSubmitBtn');
-            if (!pwdInput || !submitBtn) return;
+            const pwdInputs = document.querySelectorAll('#new_driver_password, #newPasswordInput, .pw-complexity-input');
+            pwdInputs.forEach(pwdInput => {
+                const container = pwdInput.closest('div');
+                if (!container) return;
+                const reqLength = container.querySelector('#req-length, .req-length') || container.parentElement.querySelector('#req-length, .req-length');
+                const reqUpper  = container.querySelector('#req-uppercase, .req-uppercase') || container.parentElement.querySelector('#req-uppercase, .req-uppercase');
+                const reqLower  = container.querySelector('#req-lowercase, .req-lowercase') || container.parentElement.querySelector('#req-lowercase, .req-lowercase');
+                const reqNumber = container.querySelector('#req-number, .req-number') || container.parentElement.querySelector('#req-number, .req-number');
+                const modalOrForm = pwdInput.closest('form, div.bg-white, div.bg-gray-800');
+                const submitBtn = modalOrForm ? modalOrForm.querySelector('button[type="submit"], #resetPasswordSubmitBtn, #btnVerifyOtp') : null;
 
-            const reqLength = document.getElementById('req-length');
-            const reqUpper  = document.getElementById('req-uppercase');
-            const reqLower  = document.getElementById('req-lowercase');
-            const reqNumber = document.getElementById('req-number');
-
-            function updateRequirement(el, isValid) {
-                const icon = el.querySelector('i');
-                if (isValid) {
-                    el.className = 'flex items-center text-green-600 dark:text-green-400 font-semibold';
-                    if (icon) {
-                        icon.className = 'fa-solid fa-check mr-2';
-                    }
-                } else {
-                    el.className = 'flex items-center text-gray-500 dark:text-gray-400';
-                    if (icon) {
-                        icon.className = 'fa-solid fa-circle text-[6px] mr-2';
+                function updateRequirement(el, isValid) {
+                    if (!el) return;
+                    const icon = el.querySelector('i');
+                    if (isValid) {
+                        el.className = 'flex items-center text-green-600 dark:text-green-400 font-semibold';
+                        if (icon) {
+                            icon.className = 'fa-solid fa-check mr-2';
+                        }
+                    } else {
+                        el.className = 'flex items-center text-gray-500 dark:text-gray-400';
+                        if (icon) {
+                            icon.className = 'fa-solid fa-circle text-[6px] mr-2';
+                        }
                     }
                 }
-            }
 
-            pwdInput.addEventListener('input', function() {
-                const val = this.value;
-                const hasLength = val.length >= 8;
-                const hasUpper  = /[A-Z]/.test(val);
-                const hasLower  = /[a-z]/.test(val);
-                const hasNumber = /[0-9]/.test(val);
+                pwdInput.addEventListener('input', function() {
+                    const val = this.value;
+                    const hasLength = val.length >= 8;
+                    const hasUpper  = /[A-Z]/.test(val);
+                    const hasLower  = /[a-z]/.test(val);
+                    const hasNumber = /[0-9]/.test(val);
 
-                updateRequirement(reqLength, hasLength);
-                updateRequirement(reqUpper, hasUpper);
-                updateRequirement(reqLower, hasLower);
-                updateRequirement(reqNumber, hasNumber);
+                    updateRequirement(reqLength, hasLength);
+                    updateRequirement(reqUpper, hasUpper);
+                    updateRequirement(reqLower, hasLower);
+                    updateRequirement(reqNumber, hasNumber);
 
-                submitBtn.disabled = !(hasLength && hasUpper && hasLower && hasNumber);
+                    if (submitBtn) {
+                        submitBtn.disabled = !(hasLength && hasUpper && hasLower && hasNumber);
+                    }
+                });
             });
         });
 

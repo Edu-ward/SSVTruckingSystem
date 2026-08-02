@@ -20,9 +20,24 @@
                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">6-Digit OTP</label>
                 <input type="text" id="otpInput" maxlength="6" placeholder="XXXXXX" class="w-full text-center tracking-widest text-lg border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
             </div>
-            <div class="mb-6">
-                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">New Password</label>
-                <input type="password" id="newPasswordInput" class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
+            <div class="mb-5">
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1 text-left">New Password <span class="text-red-500">*</span></label>
+                <input type="password" id="newPasswordInput" placeholder="At least 8 characters..." class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors text-sm">
+                
+                <div class="mt-3 space-y-1.5 text-xs text-left">
+                    <div class="flex items-center text-gray-500 dark:text-gray-400">
+                        <i class="fa-solid fa-circle text-[6px] mr-2"></i> At least 8 characters
+                    </div>
+                    <div class="flex items-center text-gray-500 dark:text-gray-400">
+                        <i class="fa-solid fa-circle text-[6px] mr-2"></i> At least one uppercase letter (A-Z)
+                    </div>
+                    <div class="flex items-center text-gray-500 dark:text-gray-400">
+                        <i class="fa-solid fa-circle text-[6px] mr-2"></i> At least one lowercase letter (a-z)
+                    </div>
+                    <div class="flex items-center text-gray-500 dark:text-gray-400">
+                        <i class="fa-solid fa-circle text-[6px] mr-2"></i> At least one number (0-9)
+                    </div>
+                </div>
             </div>
 
             <div class="flex space-x-3">

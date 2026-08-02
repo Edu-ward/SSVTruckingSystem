@@ -50,13 +50,25 @@ $stmt->execute($params);
 $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 
-// Rate mapping
-$rates = ['San Leonardo' => 150, 'Tarlac' => 800, 'Laur' => 900, 'Gabaldon' => 1000];
+// Rate mapping from DB
+$_dest_rows = $pdo->query("SELECT name, driver_rate FROM destinations WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
+$rates = [];
+foreach ($_dest_rows as $_d) {
+    $rates[$_d['name']] = floatval($_d['driver_rate']);
+}
+
+// Gravel type reference prices from DB
+$_gravel_rows = $pdo->query("SELECT type_key, label FROM gravel_types WHERE is_active = 1 ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
 $gravelPrices = [
     "S1_regular" => 1500, "S1_crushed" => 1600, "3_4_regular" => 1400, "3_4_crushed" => 1500,
     "G1_regular" => 1700, "G1_crushed" => 1800, "38_regular" => 1300, "38_crushed" => 1400,
     "base_course" => 1200, "river_mix" => 1100, "garden_soil" => 1000
 ];
+foreach ($_gravel_rows as $_g) {
+    if (!isset($gravelPrices[$_g['type_key']])) {
+        $gravelPrices[$_g['type_key']] = 1500;
+    }
+}
 
 // 2. Prepare CSV
 $filename = "SSV_Trip_Report_" . ($period) . "_" . date('Ymd') . ".csv";

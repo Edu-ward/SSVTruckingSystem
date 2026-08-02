@@ -1,12 +1,13 @@
 <?php
-$gravelTypeLabels = [
-    "S1_regular" => "S1 Regular", "S1_crushed" => "S1 Crushed",
-    "3_4_regular" => "3/4 Regular", "3_4_crushed" => "3/4 Crushed",
-    "G1_regular" => "G1 Regular", "G1_crushed" => "G1 Crushed",
-    "38_regular" => "3/8 Regular", "38_crushed" => "3/8 Crushed",
-    "base_course" => "Base Course", "river_mix" => "River Mix",
-    "garden_soil" => "Garden Soil"
-];
+if (isset($gravelTypes) && is_array($gravelTypes)) {
+    $gravelTypeLabels = $gravelTypes;
+} else {
+    $_gravel_rows = $pdo->query("SELECT type_key, label FROM gravel_types WHERE is_active = 1 ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $gravelTypeLabels = [];
+    foreach ($_gravel_rows as $_g) {
+        $gravelTypeLabels[$_g['type_key']] = $_g['label'];
+    }
+}
 ?>
 <div id="view-orders" class="tab-content hidden">
 
@@ -17,10 +18,10 @@ $gravelTypeLabels = [
             <span>Orders Management</span>
         </div>
         <div class="flex items-center space-x-3">
-            <button onclick="toggleModal('addCheckerModal', true)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2">
+            <button onclick="toggleModal('addCheckerModal', true)" class="btn-secondary text-sm">
                 <i class="fa-solid fa-user-shield"></i><span>Add Checker</span>
             </button>
-            <button onclick="toggleModal('addOrderModal', true)" class="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2">
+            <button onclick="toggleModal('addOrderModal', true)" class="btn-primary text-sm">
                 <i class="fa-solid fa-plus"></i><span>Place Order</span>
             </button>
         </div>

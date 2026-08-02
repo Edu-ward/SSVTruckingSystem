@@ -19,14 +19,11 @@ $stmt->execute([$order_id]);
 $order = $stmt->fetch();
 if (!$order) die("Order not found.");
 
-$gravelTypeLabels = [
-    "S1_regular" => "S1 Regular", "S1_crushed" => "S1 Crushed",
-    "3_4_regular" => "3/4 Regular", "3_4_crushed" => "3/4 Crushed",
-    "G1_regular" => "G1 Regular", "G1_crushed" => "G1 Crushed",
-    "38_regular" => "3/8 Regular", "38_crushed" => "3/8 Crushed",
-    "base_course" => "Base Course", "river_mix" => "River Mix",
-    "garden_soil" => "Garden Soil"
-];
+$_gravel_rows = $pdo->query("SELECT type_key, label FROM gravel_types WHERE is_active = 1 ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+$gravelTypeLabels = [];
+foreach ($_gravel_rows as $_g) {
+    $gravelTypeLabels[$_g['type_key']] = $_g['label'];
+}
 $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type'];
 ?>
 <!DOCTYPE html>

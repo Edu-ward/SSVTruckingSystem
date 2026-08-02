@@ -19,7 +19,19 @@
         tailwind.config = {
             darkMode: 'class',
             theme: {
-                extend: {}
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
             }
         }
     </script>
@@ -30,17 +42,35 @@
     <?php endif; ?>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
+    <style type="text/tailwindcss">
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
         body {
             font-family: 'Inter', sans-serif;
         }
 
+        @layer components {
+            .btn-primary {
+                @apply bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold px-4 py-2.5 rounded-xl shadow-sm hover:shadow transition-all duration-200 inline-flex items-center justify-center space-x-2 active:scale-[0.98];
+            }
+            .btn-secondary {
+                @apply bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold px-4 py-2.5 rounded-xl transition-all duration-200 inline-flex items-center justify-center space-x-2 active:scale-[0.98];
+            }
+            .btn-danger {
+                @apply bg-rose-600 hover:bg-rose-700 text-white font-semibold px-4 py-2.5 rounded-xl shadow-sm hover:shadow transition-all duration-200 inline-flex items-center justify-center space-x-2 active:scale-[0.98];
+            }
+            .btn-success {
+                @apply bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2.5 rounded-xl shadow-sm hover:shadow transition-all duration-200 inline-flex items-center justify-center space-x-2 active:scale-[0.98];
+            }
+            .input-field {
+                @apply w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-colors text-sm;
+            }
+        }
+
         <?php if ($_SESSION['role'] === 'Admin'): ?>#map {
             height: 700px;
             width: 100%;
-            border-radius: 0.5rem;
+            border-radius: 0.75rem;
             z-index: 10;
         }
 
@@ -83,7 +113,7 @@
 </head>
 
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-200">
-    <nav class="bg-blue-600 dark:bg-gray-800 text-white px-6 py-4 flex items-center justify-between shadow-md">
+    <nav class="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-white px-6 py-4 flex items-center justify-between shadow-lg">
         <div class="flex items-center space-x-2 text-xl font-bold">
             <div class="flex-shrink-0">
                 <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-8 block dark:hidden">

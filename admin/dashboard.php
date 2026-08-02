@@ -318,8 +318,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $driver_id = $_POST['driver_id'];
         $new_password = $_POST['new_password'];
 
-        if (!$driver_id || empty($new_password)) {
-            $_SESSION['error'] = "Driver ID and new password are required.";
+        if (strlen($new_password) < 8 || !preg_match('/[A-Z]/', $new_password) || !preg_match('/[a-z]/', $new_password) || !preg_match('/[0-9]/', $new_password)) {
+            $_SESSION['error'] = "Password must be at least 8 characters long and contain uppercase, lowercase, and numeric characters.";
             header("Location: dashboard.php?tab=drivers");
             exit;
         }

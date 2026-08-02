@@ -15,7 +15,7 @@
         </div>
         <div class="flex items-center space-x-4">
             <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">Total: <?= count($fleetData); ?> trucks</div>
-            <button onclick="toggleModal('addTruckModal', true)" class="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2">
+            <button onclick="toggleModal('addTruckModal', true)" class="btn-primary text-sm">
                 <i class="fa-solid fa-plus"></i>
                 <span>Add Truck</span>
             </button>

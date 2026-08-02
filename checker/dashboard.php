@@ -69,7 +69,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $pdo->prepare("UPDATE orders SET status = 'In Progress' WHERE id = ? AND status = 'Pending'")
                         ->execute([$order_id]);
 
-                    $DRIVER_RATES = ['San Leonardo' => 150, 'Tarlac' => 800, 'Laur' => 900, 'Gabaldon' => 1000];
+                    $_dest_rows = $pdo->query("SELECT name, driver_rate FROM destinations WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
+                    $DRIVER_RATES = [];
+                    foreach ($_dest_rows as $_d) {
+                        $DRIVER_RATES[$_d['name']] = floatval($_d['driver_rate']);
+                    }
                     $driver_pay   = $DRIVER_RATES[$order['destination']] ?? 0;
 
                     if ($driver_pay > 0) {
@@ -141,19 +145,11 @@ $activeOrders = array_filter($myOrders, fn($o) => in_array($o['status'], ['Pendi
 
 include '../includes/header.php';
 
-$gravelTypeLabels = [
-    "S1_regular" => "S1 Regular",
-    "S1_crushed" => "S1 Crushed",
-    "3_4_regular" => "3/4 Regular",
-    "3_4_crushed" => "3/4 Crushed",
-    "G1_regular" => "G1 Regular",
-    "G1_crushed" => "G1 Crushed",
-    "38_regular" => "3/8 Regular",
-    "38_crushed" => "3/8 Crushed",
-    "base_course" => "Base Course",
-    "river_mix" => "River Mix",
-    "garden_soil" => "Garden Soil"
-];
+$_gravel_rows = $pdo->query("SELECT type_key, label FROM gravel_types WHERE is_active = 1 ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+$gravelTypeLabels = [];
+foreach ($_gravel_rows as $_g) {
+    $gravelTypeLabels[$_g['type_key']] = $_g['label'];
+}
 ?>
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
