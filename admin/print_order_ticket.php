@@ -93,10 +93,14 @@ $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type']
             <div class="bg-gray-50 p-4 border border-gray-200">
                 <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-2">Order Details</p>
                 <table class="w-full text-sm">
+                    <?php
+                    $reqCm = floatval($order['cubic_meters_required'] ?? 0) > 0 ? floatval($order['cubic_meters_required']) : floatval($order['trucks_required']);
+                    $doneCm = floatval($order['cubic_meters_fulfilled'] ?? 0) > 0 ? floatval($order['cubic_meters_fulfilled']) : floatval($order['trucks_fulfilled']);
+                    ?>
                     <tr><td class="text-gray-600 py-1.5 border-b border-gray-200">Status:</td><td class="text-right font-semibold uppercase"><?= htmlspecialchars($order['status']) ?></td></tr>
                     <tr><td class="text-gray-600 py-1.5 border-b border-gray-200">Gravel Type:</td><td class="text-right font-semibold"><?= htmlspecialchars($gravelLabel) ?></td></tr>
-                    <tr><td class="text-gray-600 py-1.5 border-b border-gray-200">Trucks Required:</td><td class="text-right font-bold text-lg"><?= $order['trucks_required'] ?></td></tr>
-                    <tr><td class="text-gray-600 py-1.5">Trucks Fulfilled:</td><td class="text-right font-bold text-green-700"><?= $order['trucks_fulfilled'] ?></td></tr>
+                    <tr><td class="text-gray-600 py-1.5 border-b border-gray-200">Cubic Meters Required:</td><td class="text-right font-bold text-lg"><?= number_format($reqCm, 2) ?> cu.m</td></tr>
+                    <tr><td class="text-gray-600 py-1.5">Cubic Meters Fulfilled:</td><td class="text-right font-bold text-green-700"><?= number_format($doneCm, 2) ?> cu.m</td></tr>
                 </table>
             </div>
         </div>
@@ -113,7 +117,7 @@ $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type']
         <div class="border border-gray-300 rounded overflow-hidden mb-12">
             <div class="bg-gray-100 px-4 py-2 border-b border-gray-300 flex justify-between items-center">
                 <h3 class="text-sm font-bold uppercase tracking-wider text-gray-700">Truck Delivery Log</h3>
-                <span class="text-xs text-gray-500"><?= $order['trucks_fulfilled'] ?> of <?= $order['trucks_required'] ?> trucks fulfilled</span>
+                <span class="text-xs text-gray-500"><?= number_format($doneCm, 2) ?> of <?= number_format($reqCm, 2) ?> cu.m fulfilled</span>
             </div>
             <table class="w-full text-sm">
                 <thead class="bg-gray-50 text-xs text-gray-500 uppercase">

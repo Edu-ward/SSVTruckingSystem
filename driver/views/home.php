@@ -39,24 +39,45 @@
                         </span>
                     </div>
                     <div class="p-6">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
                             <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
                                 <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Destination</span>
-                                <span class="text-xl font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                                <span class="text-lg font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-2">
                                     <i class="fa-solid fa-location-dot text-red-500"></i>
                                     <?= htmlspecialchars($active_dispatch['destination']); ?>
                                 </span>
                             </div>
                             <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
                                 <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Assigned Truck</span>
-                                <span class="text-xl font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                                <span class="text-lg font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-2">
                                     <i class="fa-solid fa-truck text-blue-500"></i>
                                     <?= htmlspecialchars($active_dispatch['truck_code']); ?>
                                 </span>
                             </div>
                             <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+                                <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Load Volume</span>
+                                <span class="text-lg font-extrabold text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
+                                    <i class="fa-solid fa-cube text-indigo-500"></i>
+                                    <?= number_format($active_dispatch['cubic_meters'] ?? 0, 2); ?> cu.m
+                                </span>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+                                <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Dispatch Time</span>
+                                <span class="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1 mt-1">
+                                    <i class="fa-solid fa-clock text-blue-500"></i>
+                                    <?= !empty($active_dispatch['transit_start_time']) ? date('M d, Y h:i A', strtotime($active_dispatch['transit_start_time'])) : (!empty($active_dispatch['created_at']) ? date('M d, Y h:i A', strtotime($active_dispatch['created_at'])) : 'Pending Dispatch') ?>
+                                </span>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+                                <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Arrival Time</span>
+                                <span class="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1 mt-1">
+                                    <i class="fa-solid fa-flag-checkered text-green-500"></i>
+                                    <?= !empty($active_dispatch['transit_end_time']) ? date('M d, Y h:i A', strtotime($active_dispatch['transit_end_time'])) : ($active_dispatch['status'] === 'In Transit' ? 'In Transit...' : 'Pending Arrival') ?>
+                                </span>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
                                 <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Dispatch Rate</span>
-                                <span class="text-xl font-extrabold text-green-600 dark:text-green-400 flex items-center gap-2">
+                                <span class="text-lg font-extrabold text-green-600 dark:text-green-400 flex items-center gap-2">
                                     <i class="fa-solid fa-money-bill-wave"></i>
                                     ₱<?= number_format($driver_rates[$active_dispatch['destination']] ?? 0, 2); ?>
                                 </span>
@@ -169,11 +190,16 @@
                                 if ($diff->h > 0) $duration .= $diff->h . 'h ';
                                 $duration .= $diff->i . 'm';
                             }
+                            $dispTimeStr = !empty($trip['transit_start_time']) ? date('M d, Y h:i A', strtotime($trip['transit_start_time'])) : (!empty($trip['created_at']) ? date('M d, Y h:i A', strtotime($trip['created_at'])) : date('M d, Y', strtotime($trip['trip_date'])));
+                            $arrTimeStr = !empty($trip['transit_end_time']) ? date('M d, Y h:i A', strtotime($trip['transit_end_time'])) : ($trip['status'] === 'Delivered' ? 'Delivered' : 'N/A');
                         ?>
                         <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-150 dark:border-gray-800 shadow-sm space-y-2">
                             <div class="flex justify-between items-center">
-                                <span class="text-xs text-gray-400 dark:text-gray-500 font-mono"><?= date('M d, Y h:i A', strtotime($trip['created_at'] ?? $trip['trip_date'])); ?></span>
+                                <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">Dispatch: <?= $dispTimeStr; ?></span>
                                 <span class="font-bold text-green-600 dark:text-green-400">₱<?= number_format($trip['pay_amount'] ?? 0, 2); ?></span>
+                            </div>
+                            <div class="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                                Arrival: <?= $arrTimeStr; ?>
                             </div>
                             <div class="flex justify-between items-end pt-1">
                                 <div>
@@ -219,7 +245,8 @@
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="text-gray-500 dark:text-gray-400 text-sm border-b border-gray-200 dark:border-gray-700">
-                            <th class="pb-3 px-2 font-medium">Date & Time</th>
+                            <th class="pb-3 px-2 font-medium">Dispatch Date & Time</th>
+                            <th class="pb-3 px-2 font-medium">Arrival Date & Time</th>
                             <th class="pb-3 px-2 font-medium">Destination</th>
                             <th class="pb-3 px-2 font-medium">Duration</th>
                             <th class="pb-3 px-2 font-medium">Earned</th>
@@ -239,9 +266,12 @@
                                         if ($diff->h > 0) $duration .= $diff->h . 'h ';
                                         $duration .= $diff->i . 'm';
                                     }
+                                    $dispTimeStr = !empty($trip['transit_start_time']) ? date('M d, Y h:i A', strtotime($trip['transit_start_time'])) : (!empty($trip['created_at']) ? date('M d, Y h:i A', strtotime($trip['created_at'])) : date('M d, Y', strtotime($trip['trip_date'])));
+                                    $arrTimeStr = !empty($trip['transit_end_time']) ? date('M d, Y h:i A', strtotime($trip['transit_end_time'])) : ($trip['status'] === 'Delivered' ? 'Delivered' : '—');
                                 ?>
                                 <tr class="border-b border-gray-50 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors">
-                                    <td class="py-4 px-2"><?= date('M d, Y h:i A', strtotime($trip['created_at'] ?? $trip['trip_date'])); ?></td>
+                                    <td class="py-4 px-2 text-sm font-medium text-gray-800 dark:text-gray-200"><?= $dispTimeStr; ?></td>
+                                    <td class="py-4 px-2 text-sm font-medium text-gray-600 dark:text-gray-400"><?= $arrTimeStr; ?></td>
                                     <td class="py-4 px-2 font-medium"><?= htmlspecialchars($trip['destination']); ?></td>
                                     <td class="py-4 px-2 text-gray-500 dark:text-gray-400 font-mono text-sm"><?= $duration; ?></td>
                                     <td class="py-4 px-2 font-semibold text-green-600 dark:text-green-400">₱<?= number_format($trip['pay_amount'] ?? 0, 2); ?></td>
@@ -271,7 +301,7 @@
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="5" class="py-8 px-2 text-center text-gray-550 dark:text-gray-400">
+                                <td colspan="6" class="py-8 px-2 text-center text-gray-550 dark:text-gray-400">
                                     <i class="fa-solid fa-road text-4xl mb-3 text-gray-300 block"></i>
                                     No trips recorded yet.
                                 </td>

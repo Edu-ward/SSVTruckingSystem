@@ -22,6 +22,12 @@
                     }
                 }, 250);
             }
+            if (tabName === 'dispatches') {
+                setTimeout(() => {
+                    const input = document.getElementById('dispatchScannerRfidInput');
+                    if (input) input.focus();
+                }, 200);
+            }
             window.history.pushState({}, '', '?tab=' + tabName);
         }
         switchTab(activeTab);
@@ -536,6 +542,74 @@
                                     boxWidth: 8
                                 }
                             }
+                        }
+                    }
+                });
+            }
+
+            const financeReports = <?= json_encode($financeReports ?? []); ?>;
+            if (document.getElementById('deliveredTripsReportChart') && financeReports.length > 0) {
+                new Chart(document.getElementById('deliveredTripsReportChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: financeReports.map(row => row.month_name),
+                        datasets: [{
+                            label: 'Delivered Trips',
+                            data: financeReports.map(row => row.deliveries),
+                            backgroundColor: '#f97316',
+                            borderColor: '#ea580c',
+                            borderWidth: 1,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { precision: 0 },
+                                grid: { borderDash: [4, 4] }
+                            },
+                            x: { grid: { display: false } }
+                        },
+                        plugins: {
+                            legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } }
+                        }
+                    }
+                });
+            }
+
+            if (document.getElementById('driverPayrollReportChart') && financeReports.length > 0) {
+                new Chart(document.getElementById('driverPayrollReportChart').getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: financeReports.map(row => row.month_name),
+                        datasets: [{
+                            label: 'Driver Payroll (₱)',
+                            data: financeReports.map(row => row.payroll),
+                            borderColor: '#22c55e',
+                            backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#22c55e'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) { return '₱' + value.toLocaleString(); }
+                                },
+                                grid: { borderDash: [4, 4] }
+                            },
+                            x: { grid: { display: false } }
+                        },
+                        plugins: {
+                            legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } }
                         }
                     }
                 });

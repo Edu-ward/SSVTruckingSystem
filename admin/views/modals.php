@@ -29,7 +29,7 @@
             </div>
             <div class="flex justify-end space-x-3 pt-2">
                 <button type="button" onclick="toggleModal('addTruckModal', false)" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
-                <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-gray-900 hover:bg-black transition">Add Truck</button>
+                <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Add Truck</button>
             </div>
         </form>
     </div>
@@ -117,7 +117,6 @@
         document.getElementById('driverPasswordInput').value = pwd;
     }
 
-    // Auto-fill Truck Code when RFID is scanned in Add Driver Modal
     const driverTruckRfidInput = document.getElementById('driverTruckRfidInput');
     const driverTruckCodeDisplay = document.getElementById('driverTruckCodeDisplay');
 
@@ -180,6 +179,26 @@
                     <input type="text" id="assignedDriverName" readonly placeholder="Auto-filled after scan" class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 focus:outline-none cursor-not-allowed">
                 </div>
             </div>
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Fulfill Existing Order <span class="text-gray-400 font-normal">(optional)</span></label>
+                <select name="order_id" id="dispatchOrderSelect" onchange="autoFillOrderDetails(this)" class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
+                    <option value="">— General Dispatch (No Order Link) —</option>
+                    <?php
+                    $activeOrdersForDispatch = array_filter($allOrders ?? [], fn($o) => in_array($o['status'], ['Pending', 'In Progress']));
+                    foreach ($activeOrdersForDispatch as $_ao):
+                        $req = floatval($_ao['cubic_meters_required'] > 0 ? $_ao['cubic_meters_required'] : $_ao['trucks_required']);
+                        $done = floatval($_ao['cubic_meters_fulfilled'] > 0 ? $_ao['cubic_meters_fulfilled'] : $_ao['trucks_fulfilled']);
+                        $rem = max(0, $req - $done);
+                    ?>
+                        <option value="<?= $_ao['id'] ?>"
+                            data-destination="<?= htmlspecialchars($_ao['destination']) ?>"
+                            data-gravel="<?= htmlspecialchars($_ao['gravel_type']) ?>"
+                            data-remaining="<?= $rem ?>">
+                            <?= htmlspecialchars($_ao['order_number']) ?> · <?= htmlspecialchars($_ao['client_name']) ?> (<?= htmlspecialchars($_ao['destination']) ?> - <?= number_format($rem, 2) ?> cu.m remaining)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
             <div class="grid grid-cols-2 gap-6 mb-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Origin</label>
@@ -195,14 +214,20 @@
                     </select>
                 </div>
             </div>
-            <div class="mb-8">
-                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Gravel Type <span class="text-red-500">*</span></label>
-                <select id="gravelType" name="gravel_type" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100">
-                    <option value="">Select gravel type</option>
-                    <?php foreach ($gravelTypes as $value => $label): ?>
-                        <option value="<?= $value; ?>"><?= htmlspecialchars($label); ?></option>
-                    <?php endforeach; ?>
-                </select>
+            <div class="grid grid-cols-2 gap-6 mb-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Gravel Type <span class="text-red-500">*</span></label>
+                    <select id="gravelType" name="gravel_type" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100">
+                        <option value="">Select gravel type</option>
+                        <?php foreach ($gravelTypes as $value => $label): ?>
+                            <option value="<?= $value; ?>"><?= htmlspecialchars($label); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Cubic Meter (cu.m) <span class="text-red-500">*</span></label>
+                    <input type="number" step="0.01" min="0.1" name="cubic_meters" required placeholder="e.g. 10.00" class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100">
+                </div>
             </div>
             <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button type="button" onclick="toggleModal('dispatchModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition">Cancel</button>
@@ -211,6 +236,21 @@
         </form>
     </div>
 </div>
+<script>
+    function autoFillOrderDetails(selectElem) {
+        const opt = selectElem.options[selectElem.selectedIndex];
+        if (!opt || !opt.value) return;
+
+        const dest = opt.dataset.destination;
+        const gravel = opt.dataset.gravel;
+
+        const destSelect = document.getElementById('destinationSelect');
+        if (destSelect && dest) destSelect.value = dest;
+
+        const gravelSelect = document.getElementById('gravelType');
+        if (gravelSelect && gravel) gravelSelect.value = gravel;
+    }
+</script>
 
 <div id="viewDriverModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden relative">
@@ -630,8 +670,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Number of Trucks <span class="text-red-500">*</span></label>
-                    <input type="number" name="trucks_required" required min="1" max="100" placeholder="e.g. 5" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Cubic Meter (cu.m) <span class="text-red-500">*</span></label>
+                    <input type="number" step="0.01" min="0.1" name="cubic_meters_required" required placeholder="e.g. 50.00" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 </div>
             </div>
             <div>

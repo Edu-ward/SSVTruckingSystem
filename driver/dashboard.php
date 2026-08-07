@@ -121,7 +121,7 @@ $is_in_transit   = $active_transit ? true : false;
 $active_truck_id = $active_transit ? $active_transit['truck_id'] : null;
 
 $stmtActive = $pdo->prepare("
-    SELECT d.id, d.ticket_number, d.destination, d.status, t.truck_code 
+    SELECT d.id, d.ticket_number, d.destination, d.status, d.cubic_meters, d.created_at, d.transit_start_time, d.transit_end_time, t.truck_code 
     FROM dispatches d 
     JOIN trucks t ON d.truck_id = t.id 
     WHERE d.driver_id = ? AND d.status IN ('Pending', 'Loading', 'In Transit', 'Unloading', 'Cancellation Requested')

@@ -28,6 +28,12 @@ if ($checker_profile && $checker_profile['first_name'] === null && $checker_prof
     }
 }
 
+$pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS cubic_meters DECIMAL(10,2) DEFAULT 0.00");
+$pdo->exec("ALTER TABLE orders ADD COLUMN IF NOT EXISTS cubic_meters_required DECIMAL(10,2) DEFAULT 0.00");
+$pdo->exec("ALTER TABLE orders ADD COLUMN IF NOT EXISTS cubic_meters_fulfilled DECIMAL(10,2) DEFAULT 0.00");
+$pdo->exec("UPDATE orders SET cubic_meters_required = trucks_required WHERE (cubic_meters_required IS NULL OR cubic_meters_required = 0.00) AND trucks_required > 0");
+$pdo->exec("UPDATE orders SET cubic_meters_fulfilled = trucks_fulfilled WHERE (cubic_meters_fulfilled IS NULL OR cubic_meters_fulfilled = 0.00) AND trucks_fulfilled > 0");
+
 $checker_full_name = ($checker_profile && !empty($checker_profile['first_name']))
     ? ($checker_profile['first_name'] . ' ' . $checker_profile['last_name'])
     : $checker_profile['username'];
@@ -37,14 +43,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     if ($_POST['action'] === 'scan_truck') {
         $order_id  = intval($_POST['order_id']);
-        $rfid_tag  = trim($_POST['rfid_tag']);
+        $truck_id  = intval($_POST['truck_id'] ?? 0);
 
-        $ts = $pdo->prepare("SELECT id, truck_code FROM trucks WHERE rfid_tag = ?");
-        $ts->execute([$rfid_tag]);
+        $ts = $pdo->prepare("SELECT id, truck_code FROM trucks WHERE id = ?");
+        $ts->execute([$truck_id]);
         $truck = $ts->fetch();
 
         if (!$truck) {
-            $_SESSION['error'] = "❌ No truck found for RFID tag: " . htmlspecialchars($rfid_tag);
+            $_SESSION['error'] = "❌ Please select a valid truck.";
         } else {
             $os = $pdo->prepare("SELECT * FROM orders WHERE id = ? AND status IN ('Pending','In Progress')");
             $os->execute([$order_id]);
@@ -60,11 +66,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 if ($dup->fetch()) {
                     $_SESSION['error'] = "⚠️ Truck <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> has already been scanned for this order.";
                 } else {
+                    $dispStmt = $pdo->prepare("SELECT cubic_meters FROM dispatches WHERE truck_id = ? ORDER BY id DESC LIMIT 1");
+                    $dispStmt->execute([$truck['id']]);
+                    $dispRow = $dispStmt->fetch();
+                    $scannedCm = ($dispRow && floatval($dispRow['cubic_meters']) > 0) ? floatval($dispRow['cubic_meters']) : 10.00;
+
                     $pdo->prepare("INSERT INTO order_scans (order_id, truck_id, checker_id) VALUES (?, ?, ?)")
                         ->execute([$order_id, $truck['id'], $checker_id]);
 
-                    $pdo->prepare("UPDATE orders SET trucks_fulfilled = trucks_fulfilled + 1 WHERE id = ?")
-                        ->execute([$order_id]);
+                    $pdo->prepare("UPDATE orders SET trucks_fulfilled = trucks_fulfilled + 1, cubic_meters_fulfilled = cubic_meters_fulfilled + ? WHERE id = ?")
+                        ->execute([$scannedCm, $order_id]);
 
                     $pdo->prepare("UPDATE orders SET status = 'In Progress' WHERE id = ? AND status = 'Pending'")
                         ->execute([$order_id]);
@@ -102,16 +113,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         }
                     }
 
-                    $check = $pdo->prepare("SELECT trucks_required, trucks_fulfilled FROM orders WHERE id = ?");
+                    $check = $pdo->prepare("SELECT trucks_required, trucks_fulfilled, cubic_meters_required, cubic_meters_fulfilled FROM orders WHERE id = ?");
                     $check->execute([$order_id]);
                     $updated = $check->fetch();
-                    if ($updated['trucks_fulfilled'] >= $updated['trucks_required']) {
+                    $reqCm = floatval($updated['cubic_meters_required'] > 0 ? $updated['cubic_meters_required'] : $updated['trucks_required']);
+                    $doneCm = floatval($updated['cubic_meters_fulfilled'] > 0 ? $updated['cubic_meters_fulfilled'] : $updated['trucks_fulfilled']);
+
+                    if ($doneCm >= $reqCm) {
                         $pdo->prepare("UPDATE orders SET status = 'Fulfilled' WHERE id = ?")
                             ->execute([$order_id]);
-                        $_SESSION['success'] = "✅ <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> scanned. Order <strong>Fulfilled!</strong>";
+                        $_SESSION['success'] = "✅ <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> logged (" . number_format($scannedCm, 2) . " cu.m). Order <strong>Fulfilled!</strong>";
                     } else {
-                        $remaining = $updated['trucks_required'] - $updated['trucks_fulfilled'];
-                        $_SESSION['success'] = "✅ <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> scanned. <strong>$remaining truck(s)</strong> remaining.";
+                        $remainingCm = max(0, $reqCm - $doneCm);
+                        $_SESSION['success'] = "✅ <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> logged (" . number_format($scannedCm, 2) . " cu.m). <strong>" . number_format($remainingCm, 2) . " cu.m</strong> remaining.";
                     }
                 }
             }
@@ -142,6 +156,15 @@ $fulfilledToday->execute();
 $fulfilledTodayCount = $fulfilledToday->fetchColumn();
 
 $activeOrders = array_filter($myOrders, fn($o) => in_array($o['status'], ['Pending', 'In Progress']));
+
+$dispatchedTrucks = $pdo->query("
+    SELECT t.id AS truck_id, t.truck_code, d.id AS dispatch_id, d.ticket_number, d.cubic_meters, d.destination,
+           CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name
+    FROM trucks t
+    LEFT JOIN dispatches d ON d.truck_id = t.id AND d.status IN ('Pending', 'In Transit', 'Loading', 'Unloading')
+    LEFT JOIN drivers dr ON dr.id = d.driver_id
+    ORDER BY (d.id IS NOT NULL) DESC, t.truck_code ASC
+")->fetchAll(PDO::FETCH_ASSOC);
 
 include '../includes/header.php';
 
@@ -193,10 +216,10 @@ foreach ($_gravel_rows as $_g) {
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden sticky top-6">
                 <div class="bg-indigo-600 p-5 text-white">
                     <div class="flex items-center space-x-2 mb-1">
-                        <i class="fa-solid fa-wifi text-indigo-200 text-xl"></i>
-                        <h2 class="font-bold text-lg">RFID Scanner</h2>
+                        <i class="fa-solid fa-truck-ramp-box text-indigo-200 text-xl"></i>
+                        <h2 class="font-bold text-lg">Log Delivery</h2>
                     </div>
-                    <p class="text-indigo-200 text-xs">Select an order then scan the truck's RFID card.</p>
+                    <p class="text-indigo-200 text-xs">Select an active order and choose the arrived truck.</p>
                 </div>
                 <form method="POST" action="dashboard.php" class="p-5 space-y-4" id="scanForm">
                     <input type="hidden" name="action" value="scan_truck">
@@ -205,11 +228,14 @@ foreach ($_gravel_rows as $_g) {
                         <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Select Order <span class="text-red-500">*</span></label>
                         <select name="order_id" id="scanOrderSelect" required class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
                             <option value="">— Select active order —</option>
-                            <?php foreach ($activeOrders as $ao): ?>
+                            <?php foreach ($activeOrders as $ao):
+                                $aoReqCm = floatval($ao['cubic_meters_required'] ?? 0) > 0 ? floatval($ao['cubic_meters_required']) : floatval($ao['trucks_required']);
+                                $aoDoneCm = floatval($ao['cubic_meters_fulfilled'] ?? 0) > 0 ? floatval($ao['cubic_meters_fulfilled']) : floatval($ao['trucks_fulfilled']);
+                            ?>
                                 <option value="<?= $ao['id'] ?>"
-                                    data-trucks-req="<?= $ao['trucks_required'] ?>"
-                                    data-trucks-done="<?= $ao['trucks_fulfilled'] ?>">
-                                    <?= htmlspecialchars($ao['order_number']) ?> · <?= htmlspecialchars($ao['destination']) ?> (<?= $ao['trucks_fulfilled'] ?>/<?= $ao['trucks_required'] ?>)
+                                    data-cm-req="<?= $aoReqCm ?>"
+                                    data-cm-done="<?= $aoDoneCm ?>">
+                                    <?= htmlspecialchars($ao['order_number']) ?> · <?= htmlspecialchars($ao['destination']) ?> (<?= number_format($aoDoneCm, 2) ?>/<?= number_format($aoReqCm, 2) ?> cu.m)
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -226,16 +252,25 @@ foreach ($_gravel_rows as $_g) {
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Scan Truck RFID <span class="text-red-500">*</span></label>
-                        <input type="text" name="rfid_tag" id="rfidScanInput" required autofocus autocomplete="off"
-                            placeholder="Click here and scan RFID card..."
-                            class="w-full border border-indigo-300 dark:border-indigo-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-indigo-50 dark:bg-indigo-900 dark:text-gray-100 font-mono text-sm transition-colors">
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" id="rfidScanFeedback">Waiting for scan...</p>
+                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Select Dispatched Truck <span class="text-red-500">*</span></label>
+                        <select name="truck_id" id="truckSelect" required class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                            <option value="">— Select dispatched truck —</option>
+                            <?php foreach ($dispatchedTrucks as $dt): ?>
+                                <option value="<?= $dt['truck_id'] ?>">
+                                    <?= htmlspecialchars($dt['truck_code']) ?>
+                                    <?php if (!empty($dt['ticket_number'])): ?>
+                                        · Ticket <?= htmlspecialchars($dt['ticket_number']) ?> (<?= number_format($dt['cubic_meters'] ?? 0, 2) ?> cu.m)<?= !empty($dt['driver_name']) ? ' · ' . htmlspecialchars($dt['driver_name']) : '' ?>
+                                    <?php else: ?>
+                                        · (Idle / Unassigned)
+                                    <?php endif; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
 
                     <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition flex items-center justify-center space-x-2 text-sm">
                         <i class="fa-solid fa-check-circle"></i>
-                        <span>Confirm Scan</span>
+                        <span>Confirm Delivery</span>
                     </button>
                 </form>
             </div>
@@ -274,7 +309,9 @@ foreach ($_gravel_rows as $_g) {
                 </div>
             <?php else: ?>
                 <?php foreach ($myOrders as $order):
-                    $pct = $order['trucks_required'] > 0 ? round(($order['trucks_fulfilled'] / $order['trucks_required']) * 100) : 0;
+                    $reqCm = floatval($order['cubic_meters_required'] ?? 0) > 0 ? floatval($order['cubic_meters_required']) : floatval($order['trucks_required']);
+                    $doneCm = floatval($order['cubic_meters_fulfilled'] ?? 0) > 0 ? floatval($order['cubic_meters_fulfilled']) : floatval($order['trucks_fulfilled']);
+                    $pct = $reqCm > 0 ? round(($doneCm / $reqCm) * 100) : 0;
                     $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type'];
                     $statusColors = [
                         'Pending'     => ['bar' => 'bg-yellow-500', 'badge' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200', 'border' => 'border-l-yellow-400'],
@@ -304,8 +341,8 @@ foreach ($_gravel_rows as $_g) {
                                     <span><?= htmlspecialchars($gravelLabel) ?></span>
                                 </span>
                                 <span class="flex items-center space-x-1">
-                                    <i class="fa-solid fa-truck text-gray-400"></i>
-                                    <span><?= $order['trucks_fulfilled'] ?>/<?= $order['trucks_required'] ?> trucks</span>
+                                    <i class="fa-solid fa-cube text-gray-400"></i>
+                                    <span><?= number_format($doneCm, 2) ?>/<?= number_format($reqCm, 2) ?> cu.m</span>
                                 </span>
                                 <?php if ($order['checker_name']): ?>
                                     <span class="flex items-center space-x-1">
@@ -352,8 +389,6 @@ foreach ($_gravel_rows as $_g) {
     const scanProgress = document.getElementById('scanProgress');
     const scanProgressBar = document.getElementById('scanProgressBar');
     const scanProgressTxt = document.getElementById('scanProgressText');
-    const rfidScanInput = document.getElementById('rfidScanInput');
-
     if (scanOrderSelect) {
         scanOrderSelect.addEventListener('change', function() {
             const opt = this.options[this.selectedIndex];
@@ -361,19 +396,14 @@ foreach ($_gravel_rows as $_g) {
                 scanProgress.classList.add('hidden');
                 return;
             }
-            const req = parseInt(opt.dataset.trucksReq) || 0;
-            const done = parseInt(opt.dataset.trucksDone) || 0;
+            const req = parseFloat(opt.dataset.cmReq) || 0;
+            const done = parseFloat(opt.dataset.cmDone) || 0;
             const pct = req > 0 ? Math.round((done / req) * 100) : 0;
-            scanProgressText.innerText = done + '/' + req;
-            scanProgressBar.style.width = pct + '%';
+            scanProgressText.innerText = done.toFixed(2) + ' / ' + req.toFixed(2) + ' cu.m';
+            scanProgressBar.style.width = Math.min(100, pct) + '%';
             scanProgress.classList.remove('hidden');
-            rfidScanInput.focus();
-        });
-    }
-
-    if (rfidScanInput) {
-        rfidScanInput.addEventListener('input', function() {
-            document.getElementById('rfidScanFeedback').innerText = 'RFID: ' + this.value;
+            const truckSelect = document.getElementById('truckSelect');
+            if (truckSelect) truckSelect.focus();
         });
     }
 

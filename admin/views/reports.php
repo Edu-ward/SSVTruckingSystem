@@ -43,9 +43,21 @@
         <?php endforeach; ?>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border border-gray-100 dark:border-gray-700 mb-6">
-        <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-4">Payroll & Deliveries Analysis</h3>
-        <canvas id="revenueReportChart" height="100"></canvas>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border border-gray-100 dark:border-gray-700">
+            <div class="flex items-center space-x-2 mb-4">
+                <i class="fa-solid fa-truck-fast text-orange-500"></i>
+                <h3 class="font-semibold text-gray-800 dark:text-gray-200">Monthly Delivered Trips</h3>
+            </div>
+            <canvas id="deliveredTripsReportChart" height="160"></canvas>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border border-gray-100 dark:border-gray-700">
+            <div class="flex items-center space-x-2 mb-4">
+                <i class="fa-solid fa-wallet text-green-500"></i>
+                <h3 class="font-semibold text-gray-800 dark:text-gray-200">Driver Payroll Analysis (₱)</h3>
+            </div>
+            <canvas id="driverPayrollReportChart" height="160"></canvas>
+        </div>
     </div>
 
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">

@@ -74,13 +74,16 @@ CREATE TABLE IF NOT EXISTS `dispatches` (
     `origin` VARCHAR(255) DEFAULT NULL,
     `destination` VARCHAR(255) DEFAULT NULL,
     `pay_amount` DECIMAL(10, 2) DEFAULT 0.00,
+    `cubic_meters` DECIMAL(10, 2) DEFAULT 0.00,
+    `order_id` INT DEFAULT NULL,
     `dispatch_date` DATE DEFAULT NULL,
     `is_on_time` TINYINT(1) DEFAULT 1,
     `transit_start_time` DATETIME DEFAULT NULL,
     `transit_end_time` DATETIME DEFAULT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`truck_id`) REFERENCES `trucks`(`id`) ON DELETE SET NULL,
-    FOREIGN KEY (`driver_id`) REFERENCES `drivers`(`id`) ON DELETE SET NULL
+    FOREIGN KEY (`driver_id`) REFERENCES `drivers`(`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`order_id`) REFERENCES `orders`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- ============================================================
@@ -120,6 +123,8 @@ CREATE TABLE IF NOT EXISTS `orders` (
     `destination` VARCHAR(255) NOT NULL,
     `trucks_required` INT DEFAULT 1,
     `trucks_fulfilled` INT DEFAULT 0,
+    `cubic_meters_required` DECIMAL(10, 2) DEFAULT 0.00,
+    `cubic_meters_fulfilled` DECIMAL(10, 2) DEFAULT 0.00,
     `checker_id` INT DEFAULT NULL,
     `notes` TEXT DEFAULT NULL,
     `status` VARCHAR(50) DEFAULT 'Pending',

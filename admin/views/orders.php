@@ -77,7 +77,7 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                         <th class="px-6 py-3 text-left">Client</th>
                         <th class="px-6 py-3 text-left">Gravel Type</th>
                         <th class="px-6 py-3 text-left">Destination</th>
-                        <th class="px-6 py-3 text-center">Trucks</th>
+                        <th class="px-6 py-3 text-center">Cubic Meter (cu.m)</th>
                         <th class="px-6 py-3 text-left">Checker</th>
                         <th class="px-6 py-3 text-center">Status</th>
                         <th class="px-6 py-3 text-center">Actions</th>
@@ -92,7 +92,9 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                             'Cancelled'   => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
                         ];
                         $sc = $statusColors[$order['status']] ?? 'bg-gray-100 text-gray-800';
-                        $pct = $order['trucks_required'] > 0 ? round(($order['trucks_fulfilled'] / $order['trucks_required']) * 100) : 0;
+                        $reqCm = floatval($order['cubic_meters_required'] ?? 0) > 0 ? floatval($order['cubic_meters_required']) : floatval($order['trucks_required']);
+                        $doneCm = floatval($order['cubic_meters_fulfilled'] ?? 0) > 0 ? floatval($order['cubic_meters_fulfilled']) : floatval($order['trucks_fulfilled']);
+                        $pct = $reqCm > 0 ? round(($doneCm / $reqCm) * 100) : 0;
                         $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type'];
                     ?>
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
@@ -102,9 +104,9 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                         <td class="px-6 py-4 text-gray-700 dark:text-gray-300"><?= htmlspecialchars($order['destination']) ?></td>
                         <td class="px-6 py-4">
                             <div class="flex flex-col items-center">
-                                <span class="font-bold text-gray-800 dark:text-gray-200 text-sm mb-1"><?= $order['trucks_fulfilled'] ?>/<?= $order['trucks_required'] ?></span>
-                                <div class="w-24 bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
-                                    <div class="<?= $pct >= 100 ? 'bg-green-500' : 'bg-blue-500' ?> h-1.5 rounded-full transition-all" style="width:<?= $pct ?>%"></div>
+                                <span class="font-bold text-gray-800 dark:text-gray-200 text-sm mb-1"><?= number_format($doneCm, 2) ?>/<?= number_format($reqCm, 2) ?> cu.m</span>
+                                <div class="w-28 bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+                                    <div class="<?= $pct >= 100 ? 'bg-green-500' : 'bg-blue-500' ?> h-1.5 rounded-full transition-all" style="width:<?= min(100, $pct) ?>%"></div>
                                 </div>
                             </div>
                         </td>

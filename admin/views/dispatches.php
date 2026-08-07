@@ -8,14 +8,14 @@
                 <i class="fa-solid fa-wifi text-3xl text-indigo-200"></i>
                 <h2 class="font-bold text-xl">Dispatch Scanner</h2>
             </div>
-            <p class="text-indigo-200 text-sm">Scan a truck's RFID card to dispatch it or confirm arrival.</p>
+            <p class="text-indigo-200 text-sm">Scan a truck's RFID card to confirm arrival.</p>
         </div>
-        <div class="p-6 md:w-2/3 bg-white dark:bg-gray-800 flex items-center">
+        <div class="p-6 md:w-2/3 bg-white dark:bg-gray-800 flex items-center cursor-pointer" onclick="document.getElementById('dispatchScannerRfidInput')?.focus();">
             <form method="POST" action="dashboard.php" class="w-full flex space-x-3">
                 <input type="hidden" name="action" value="dispatch_scan_rfid">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                 <div class="flex-grow">
-                    <input type="text" name="rfid_tag" required autocomplete="off"
+                    <input type="text" name="rfid_tag" id="dispatchScannerRfidInput" required autocomplete="off"
                         placeholder="Click here and scan RFID card..."
                         class="w-full border border-indigo-300 dark:border-indigo-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-indigo-50 dark:bg-indigo-900 dark:text-gray-100 font-mono text-sm transition-colors">
                 </div>
@@ -117,6 +117,22 @@
                             </span>
                         </div>
                         <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-cube text-gray-500 dark:text-gray-400 w-5 flex justify-center"></i>
+                            <span class="text-gray-600 dark:text-gray-300">
+                                <span class="font-bold text-gray-800 dark:text-gray-200">Volume:</span>
+                                <?= number_format($ticket['cubic_meters'] ?? 0, 2); ?> cu.m
+                            </span>
+                        </div>
+                        <?php if (!empty($ticket['order_number'])): ?>
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-solid fa-clipboard-list text-indigo-500 w-5 flex justify-center"></i>
+                                <span class="text-gray-600 dark:text-gray-300">
+                                    <span class="font-bold text-gray-800 dark:text-gray-200">Order:</span>
+                                    <span class="font-mono text-indigo-600 dark:text-indigo-400 font-semibold"><?= htmlspecialchars($ticket['order_number']); ?></span>
+                                </span>
+                            </div>
+                        <?php endif; ?>
+                        <div class="flex items-center space-x-2">
                             <i class="fa-regular fa-clock text-gray-500 dark:text-gray-400 w-5 flex justify-center"></i>
                             <span class="text-gray-600 dark:text-gray-300 text-xs">
                                 <span class="font-bold text-gray-800 dark:text-gray-200">Created:</span>
@@ -173,6 +189,7 @@
                     <div class="space-y-3 mb-4 text-sm">
                         <div class="flex items-center space-x-2"><i class="fa-solid fa-truck text-gray-500 dark:text-gray-400 w-5 flex justify-center"></i><span class="text-gray-600 dark:text-gray-300"><span class="font-bold text-gray-800 dark:text-gray-200">Truck:</span> <?= htmlspecialchars($ticket['truck_code']); ?></span></div>
                         <div class="flex items-center space-x-2"><i class="fa-regular fa-user text-gray-500 dark:text-gray-400 w-5 flex justify-center"></i><span class="text-gray-600 dark:text-gray-300"><span class="font-bold text-gray-800 dark:text-gray-200">Driver:</span> <?= htmlspecialchars($ticket['driver_name']); ?></span></div>
+                        <div class="flex items-center space-x-2"><i class="fa-solid fa-cube text-gray-500 dark:text-gray-400 w-5 flex justify-center"></i><span class="text-gray-600 dark:text-gray-300"><span class="font-bold text-gray-800 dark:text-gray-200">Volume:</span> <?= number_format($ticket['cubic_meters'] ?? 0, 2); ?> cu.m</span></div>
                     </div>
                     <div class="text-xs text-orange-600 dark:text-orange-400 italic bg-orange-100 dark:bg-orange-900/20 p-2 rounded-lg">
                         <i class="fa-solid fa-info-circle mr-1"></i> Waiting for admin to approve or re-assign truck.
@@ -219,6 +236,12 @@
                             <span class="text-gray-600 dark:text-gray-300">
                                 <span class="font-bold text-gray-800 dark:text-gray-200">Driver:</span>
                                 <?= htmlspecialchars($ticket['driver_name']); ?>
+                            </span>
+                        </div>
+                        <div class="flex items-center space-x-2"><i class="fa-solid fa-cube text-gray-500 dark:text-gray-400 w-5 flex justify-center"></i>
+                            <span class="text-gray-600 dark:text-gray-300">
+                                <span class="font-bold text-gray-800 dark:text-gray-200">Volume:</span>
+                                <?= number_format($ticket['cubic_meters'] ?? 0, 2); ?> cu.m
                             </span>
                         </div>
                         <div class="flex items-center space-x-2 text-xs border-t border-gray-100 dark:border-gray-700 pt-2">
