@@ -986,7 +986,7 @@ $allOrders = $pdo->query("
 
 include '../includes/header.php';
 ?>
-<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 relative">
+<div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 relative">
     <?php include 'views/home.php';
     include 'views/tracking.php';
     include 'views/dispatches.php';
@@ -996,6 +996,7 @@ include '../includes/header.php';
     include 'views/reports.php';
     include 'views/modals.php'; ?>
 </div>
+</div><!-- close #main-content -->
 <?php if (isset($_SESSION['auto_print_id'])): 
     $print_id = intval($_SESSION['auto_print_id']);
     unset($_SESSION['auto_print_id']);

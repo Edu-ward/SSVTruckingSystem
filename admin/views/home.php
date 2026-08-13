@@ -1,5 +1,5 @@
 <div id="view-dashboard" class="tab-content block">
-    <div class="grid grid-cols-3 gap-6 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
         <div class="bg-blue-500 rounded-xl p-6 text-white relative overflow-hidden shadow">
             <div class="text-sm text-blue-100 mb-1">Total Fleet</div>
             <div class="text-4xl font-bold mb-1">
@@ -26,7 +26,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-6 mb-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border border-gray-100 dark:border-gray-700">
             <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-4">Weekly Dispatch Activity</h3>
             <canvas id="weeklyChart" height="200"></canvas>
@@ -34,13 +34,13 @@
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border border-gray-100 dark:border-gray-700">
             <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-4">Fleet Status Distribution</h3>
             <div class="w-full flex justify-center">
-                <div style="width: 400px;"><canvas id="fleetChart"></canvas></div>
+                <div style="width: 400px; max-width: 100%;"><canvas id="fleetChart"></canvas></div>
             </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-3 gap-6 mb-6">
-        <div class="col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow p-6 border border-gray-100 dark:border-gray-700">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow p-6 border border-gray-100 dark:border-gray-700">
             <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-4">Delivery Efficiency Trend</h3>
             <canvas id="efficiencyChart" height="120"></canvas>
         </div>

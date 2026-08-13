@@ -8,11 +8,12 @@
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-btn').forEach(el => el.className = "nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition");
+            // Reset all sidebar nav items
+            document.querySelectorAll('.sidebar-nav-item').forEach(el => el.classList.remove('active'));
             const viewEl = document.getElementById('view-' + tabName);
             if (viewEl) viewEl.classList.remove('hidden');
             const navBtn = document.getElementById('nav-' + tabName);
-            if (navBtn) navBtn.className = "nav-btn flex items-center space-x-1 text-white bg-blue-700 px-3 py-1.5 rounded transition";
+            if (navBtn) navBtn.classList.add('active');
             if (tabName === 'tracking') {
                 setTimeout(() => {
                     if (!map) {
@@ -29,19 +30,75 @@
                 }, 200);
             }
             window.history.pushState({}, '', '?tab=' + tabName);
+            // Close mobile sidebar if open
+            const sidebar = document.getElementById('admin-sidebar');
+            if (sidebar && !sidebar.classList.contains('sidebar-closed') && window.innerWidth < 1024) {
+                toggleSidebar();
+            }
         }
         switchTab(activeTab);
         const trackingData = <?= json_encode($trackingTrucks ?? []); ?>;
+        let streetLayer = null;
+        let darkLayer = null;
+        let satelliteLayer = null;
+        let osmLayer = null;
 
         function initMap() {
             const mapDiv = document.getElementById('map');
             if (!mapDiv) return;
             try {
-                map = L.map('map').setView([15.3621, 120.9632], 12);
-                L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                // High-resolution tile providers over HTTPS
+                streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                     maxZoom: 20,
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-                }).addTo(map);
+                    subdomains: 'abcd',
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+                });
+
+                darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 20,
+                    subdomains: 'abcd',
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+                });
+
+                satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 19,
+                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS User Community'
+                });
+
+                osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                });
+
+                const isDark = document.documentElement.classList.contains('dark');
+                const activeBaseLayer = isDark ? darkLayer : streetLayer;
+
+                map = L.map('map', {
+                    center: [15.3621, 120.9632],
+                    zoom: 13,
+                    layers: [activeBaseLayer],
+                    zoomControl: true
+                });
+
+                // Interactive Layer Control Switcher (top right)
+                const baseMaps = {
+                    "🗺️ High-Def Street": streetLayer,
+                    "🛰️ Satellite View": satelliteLayer,
+                    "🌙 Dark Vector": darkLayer,
+                    "📍 OpenStreetMap": osmLayer
+                };
+                L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
+
+                // Add Central Garage Marker
+                const garageIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div class="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-xl border-2 border-white ring-4 ring-indigo-500/30" title="Central Garage"><i class="fa-solid fa-warehouse text-sm"></i></div>`,
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 20]
+                });
+                L.marker([15.3621, 120.9632], { icon: garageIcon })
+                    .addTo(map)
+                    .bindPopup('<div class="p-1"><b class="text-sm font-bold text-gray-900">SSV Central Garage</b><br><span class="text-xs text-gray-500"><i class="fa-solid fa-location-dot text-red-500 mr-1"></i>San Leonardo, Nueva Ecija</span></div>');
 
                 // Initial render from PHP data
                 renderMapMarkers(trackingData);
@@ -52,9 +109,6 @@
 
                 // Start live polling every 5 seconds
                 setInterval(refreshMap, 5000);
-
-                // Auto-detect and pin admin location
-                setTimeout(locateMe, 800);
             } catch (error) {
                 console.error("Map initialization failed:", error);
             }
@@ -75,19 +129,35 @@
                 if (!truck.latitude || !truck.longitude) return;
 
                 let markerClass = 'bg-gray-500';
-                if (truck.status === 'In Transit') markerClass = 'bg-transit';
-                if (truck.status === 'Idle') markerClass = 'bg-yellow-500';
+                let pulseEffect = '';
+                if (truck.status === 'In Transit') {
+                    markerClass = 'bg-emerald-500';
+                    pulseEffect = '<span class="absolute -inset-1 rounded-full bg-emerald-400 opacity-75 animate-ping"></span>';
+                }
+                if (truck.status === 'Idle') markerClass = 'bg-amber-500';
                 if (truck.status === 'Loading') markerClass = 'bg-blue-500';
                 if (truck.status === 'Unloading') markerClass = 'bg-orange-500';
 
                 const customIcon = L.divIcon({
-                    className: 'custom-div-icon',
-                    html: `<div class="marker-pin ${markerClass}"><i class="fa-solid fa-truck fa-xs"></i></div>`,
-                    iconSize: [30, 30],
-                    iconAnchor: [15, 15]
+                    className: 'custom-div-icon relative',
+                    html: `${pulseEffect}<div class="marker-pin ${markerClass} relative z-10 shadow-lg border-2 border-white"><i class="fa-solid fa-truck text-xs"></i></div>`,
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16]
                 });
 
-                const popupContent = `<b>${truck.truck_code}</b><br><span class="text-xs">${truck.driver_name || ''}</span><br><span class="text-xs">Status: ${truck.status}</span>${truck.destination ? '<br><span class="text-xs">→ ' + truck.destination + '</span>' : ''}`;
+                const statusBadgeBg = truck.status === 'In Transit' ? 'bg-emerald-600' : (truck.status === 'Idle' ? 'bg-amber-600' : 'bg-blue-600');
+                const popupContent = `
+                    <div class="p-1 min-w-[170px]">
+                        <div class="font-bold text-gray-900 text-sm flex items-center justify-between pb-1 border-b border-gray-100">
+                            <span>${truck.truck_code}</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full text-white font-semibold ${statusBadgeBg}">${truck.status}</span>
+                        </div>
+                        <div class="text-xs text-gray-600 mt-1.5 font-medium"><i class="fa-regular fa-user mr-1.5 text-blue-500"></i>${truck.driver_name || 'Unassigned'}</div>
+                        <div class="text-xs text-gray-500 mt-1"><i class="fa-solid fa-location-dot mr-1.5 text-red-500"></i>${truck.current_location || 'San Leonardo'}</div>
+                        ${truck.destination ? '<div class="text-xs text-indigo-600 font-semibold mt-1"><i class="fa-solid fa-arrow-right mr-1.5"></i>To: ' + truck.destination + '</div>' : ''}
+                        ${truck.speed ? '<div class="text-[11px] text-gray-400 mt-1"><i class="fa-solid fa-gauge mr-1.5"></i>Speed: ' + truck.speed + ' mph</div>' : ''}
+                    </div>
+                `;
                 const latLng = [parseFloat(truck.latitude), parseFloat(truck.longitude)];
 
                 if (truckMarkers[truck.truck_code]) {
@@ -123,15 +193,14 @@
                 .catch(err => console.warn('Map refresh error:', err));
         }
 
-
         function focusTruck(lat, lng, truckCode) {
             switchTab('tracking');
             if (lat != 0 && lng != 0) {
                 setTimeout(() => {
                     if (map) {
-                        map.setView([lat, lng], 16, {
+                        map.flyTo([lat, lng], 15, {
                             animate: true,
-                            duration: 1
+                            duration: 1.2
                         });
                         // Open the marker's popup to highlight the exact truck
                         if (truckCode && truckMarkers && truckMarkers[truckCode]) {
@@ -140,89 +209,44 @@
                     }
                 }, 300);
             } else {
-                alert("Location data not available for this truck yet.");
+                if (typeof showToast === 'function') {
+                    showToast("Location data not available for this truck yet.", "warning");
+                } else {
+                    alert("Location data not available for this truck yet.");
+                }
             }
         }
 
-        // ===== LOCATE ME =====
-        let myLocationMarker = null;
+        // ===== RECENTER FLEET MAP =====
+        function recenterMap() {
+            if (!map) { switchTab('tracking'); setTimeout(recenterMap, 300); return; }
 
-        function locateMe() {
-            if (!map) { switchTab('tracking'); setTimeout(locateMe, 400); return; }
+            map.invalidateSize();
 
-            const btn  = document.getElementById('locateMeBtn');
-            const icon = document.getElementById('locateMeIcon');
+            const bounds = L.latLngBounds();
+            bounds.extend([15.3621, 120.9632]); // Central Garage
 
-            // Show spinner while waiting
-            if (icon) {
-                icon.className = 'fa-solid fa-spinner fa-spin text-blue-500 text-lg';
-            }
-            if (btn) btn.disabled = true;
-
-            if (!navigator.geolocation) {
-                alert('Geolocation is not supported by your browser.');
-                if (icon) icon.className = 'fa-solid fa-location-crosshairs text-blue-500 text-lg';
-                if (btn) btn.disabled = false;
-                return;
-            }
-
-            function setAdminLocation(lat, lng, isIp = false) {
-                // Remove old marker
-                if (myLocationMarker) { map.removeLayer(myLocationMarker); myLocationMarker = null; }
-
-                // "You are here" marker with person icon
-                const youIcon = L.divIcon({
-                    className: '',
-                    html: `<div style="
-                        width:30px;height:30px;
-                        background:#3b82f6;
-                        border:3px solid #fff;
-                        border-radius:50%;
-                        box-shadow:0 2px 8px rgba(59,130,246,0.5);
-                        display:flex;align-items:center;justify-content:center;
-                        animation:gps-pulse 1.6s ease-in-out infinite;
-                    "><i class='fa-solid fa-person' style='color:#fff;font-size:13px;'></i></div>`,
-                    iconSize: [30, 30],
-                    iconAnchor: [15, 15]
+            let validTruckCount = 0;
+            if (typeof trackingData !== 'undefined' && Array.isArray(trackingData)) {
+                trackingData.forEach(t => {
+                    const lat = parseFloat(t.latitude);
+                    const lng = parseFloat(t.longitude);
+                    if (lat && lng && lat !== 0) {
+                        bounds.extend([lat, lng]);
+                        validTruckCount++;
+                    }
                 });
-
-                myLocationMarker = L.marker([lat, lng], { icon: youIcon })
-                    .addTo(map);
-
-                map.setView([lat, lng], 15, { animate: true, duration: 1 });
-
-                if (icon) icon.className = 'fa-solid fa-location-crosshairs text-green-500 text-lg';
-                if (btn) { 
-                    btn.disabled = false; 
-                    btn.title = isIp ? 'Your location (IP Geolocation Fallback)' : 'Your location'; 
-                }
             }
 
-            navigator.geolocation.getCurrentPosition(
-                function(pos) {
-                    setAdminLocation(pos.coords.latitude, pos.coords.longitude, false);
-                },
-                function(err) {
-                    // Fallback to IP Geolocation on error
-                    fetch('https://ipapi.co/json/')
-                        .then(r => r.json())
-                        .then(ipData => {
-                            if (ipData.latitude && ipData.longitude) {
-                                setAdminLocation(ipData.latitude, ipData.longitude, true);
-                            } else {
-                                throw new Error();
-                            }
-                        })
-                        .catch(() => {
-                            let msg = 'Could not get your location.';
-                            if (err.code === err.PERMISSION_DENIED) msg = 'Location access denied. Please enable it in settings.';
-                            alert(msg);
-                            if (icon) icon.className = 'fa-solid fa-location-crosshairs text-red-500 text-lg';
-                            if (btn) btn.disabled = false;
-                        });
-                },
-                { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
-            );
+            if (validTruckCount > 0) {
+                map.flyToBounds(bounds, { padding: [60, 60], maxZoom: 15, duration: 1.2 });
+            } else {
+                map.flyTo([15.3621, 120.9632], 13, { duration: 1.2 });
+            }
+
+            if (typeof showToast === 'function') {
+                showToast("Map centered on fleet & garage", "info", 2000);
+            }
         }
 
 

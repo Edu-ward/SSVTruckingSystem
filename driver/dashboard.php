@@ -133,11 +133,12 @@ $active_dispatch = $stmtActive->fetch();
 include '../includes/header.php';
 ?>
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+<div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
     <?php
     include 'views/home.php';
     include 'views/modals.php';
     ?>
 </div>
+</div><!-- close #main-content -->
 
 <?php include '../includes/scripts.php'; ?>

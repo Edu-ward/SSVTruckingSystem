@@ -1,7 +1,7 @@
 <div id="view-drivers" class="tab-content hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 flex justify-between items-center mb-6">
         <div class="flex items-center space-x-2 text-xl font-bold text-gray-800 dark:text-gray-200">
-            <i class="fa-solid fa-users text-gray-700 dark:text-gray-200"></i>
+            <i class="fa-solid fa-users text-blue-600 dark:text-blue-400"></i>
             <span>Driver Management</span>
         </div>
         <button onclick="toggleModal('addDriverModal', true)" class="btn-primary text-sm">
@@ -9,90 +9,107 @@
         </button>
     </div>
 
-    <div class="grid grid-cols-3 gap-6 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 flex flex-col items-center justify-center">
             <i class="fa-solid fa-users text-blue-500 text-2xl mb-2"></i>
             <div class="text-2xl font-bold text-gray-800 dark:text-gray-200"><?= $driverStats['total_drivers'] ?? 0; ?></div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total Drivers</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 uppercase font-semibold tracking-wider">Total Drivers</div>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 flex flex-col items-center justify-center">
-            <i class="fa-solid fa-arrow-trend-up text-green-500 text-2xl mb-2"></i>
+            <i class="fa-solid fa-circle-check text-green-500 text-2xl mb-2"></i>
             <div class="text-2xl font-bold text-gray-800 dark:text-gray-200"><?= $driverStats['on_duty'] ?? 0; ?></div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">On Duty</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 uppercase font-semibold tracking-wider">On Duty</div>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 flex flex-col items-center justify-center">
-            <i class="fa-solid fa-medal text-yellow-500 text-2xl mb-2"></i>
+            <i class="fa-solid fa-star text-yellow-500 text-2xl mb-2"></i>
             <div class="text-2xl font-bold text-gray-800 dark:text-gray-200"><?= number_format($driverStats['avg_rating'] ?? 5.0, 1); ?></div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Avg Rating</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 uppercase font-semibold tracking-wider">Avg Rating</div>
         </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <?php foreach ($allDrivers as $driver):
             $badgeClass = 'bg-gray-500';
-            if ($driver['status'] == 'Active') $badgeClass = 'bg-green-500';
-            if ($driver['status'] == 'Dispatched') $badgeClass = 'bg-blue-500';
+            if ($driver['status'] == 'Active') $badgeClass = 'bg-emerald-500';
+            if ($driver['status'] == 'Dispatched' || $driver['status'] == 'In Transit') $badgeClass = 'bg-blue-600';
 
             $driverJson = htmlspecialchars(json_encode($driver), ENT_QUOTES, 'UTF-8');
         ?>
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 relative group">
-
-                <div class="absolute top-6 right-6 flex items-center space-x-3 pt-10">
-                    <button onclick="openDeleteDriverModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>')" class="text-gray-300 hover:text-red-500 transition" title="Remove Driver">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-
-                    <span class="<?= $badgeClass; ?> text-white text-xs font-semibold px-2 py-1 rounded-md">
-                        <?= htmlspecialchars($driver['status']); ?>
-                    </span>
-
-                    <button onclick="openResetPasswordModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>')" class="text-gray-400 hover:text-orange-500 transition" title="Reset Password">
-                        <i class="fa-solid fa-key"></i>
-                    </button>
-
-                    <button onclick="openSwitchTruckModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', '<?= htmlspecialchars($driver['truck_code'] ?? 'None'); ?>')" class="text-gray-400 hover:text-blue-500 transition" title="Switch Truck">
-                        <i class="fa-solid fa-truck-arrow-right"></i>
-                    </button>
-
-                    <button onclick="openUpdateDriverStatusModal(<?= $driver['id']; ?>, '<?= htmlspecialchars($driver['status']); ?>', '<?= addslashes($driver['name']); ?>')" class="text-gray-400 hover:text-blue-600 transition" title="Change Driver Status">
-                        <i class="fa-solid fa-pen-to-square"></i>
-                    </button>
-                </div>
-
-                <div class="flex items-center space-x-4 mb-4">
-                    <div class="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center text-lg font-bold text-gray-400">
-                        <?= getInitials($driver['name']); ?>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-gray-800 dark:text-gray-200 text-lg"><?= htmlspecialchars($driver['name']); ?></h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400"><?= htmlspecialchars($driver['cdl_number'] ?? 'N/A'); ?></p>
-                    </div>
-                </div>
-
-                <div class="space-y-2 text-sm text-gray-600 dark:text-gray-300 mb-4">
-                    <div class="flex items-center space-x-2"><i class="fa-solid fa-phone w-4 text-center"></i>
-                        <span><?= htmlspecialchars($driver['phone'] ?? 'N/A'); ?></span>
-                    </div>
-                </div>
-
-                <div class="bg-blue-50 dark:bg-gray-700 rounded-lg p-3 text-sm text-gray-600 dark:text-gray-300 mb-4 flex justify-between">
-                    <span>Current Truck:</span>
-                    <span class="font-bold text-blue-600"><?= htmlspecialchars($driver['truck_code'] ?? 'None'); ?></span>
-                </div>
-
-                <div class="grid grid-cols-1 bg-gray-50 dark:bg-gray-900 rounded-lg p-3 text-center mb-4">
-                    <div>
-                        <div class="font-bold text-gray-800 dark:text-gray-200 text-sm">
-                            <i class="fa-solid fa-star text-yellow-400 text-xs mr-1"></i>
-                            <?= number_format($driver['rating'] ?? 5.0, 1); ?>
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 flex flex-col justify-between hover:shadow-md transition-all duration-200">
+                <div>
+                    <!-- Card Top Header -->
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center space-x-3 min-w-0 pr-2">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-base shadow-md shadow-blue-500/20 flex-shrink-0">
+                                <?= getInitials($driver['name']); ?>
+                            </div>
+                            <div class="min-w-0">
+                                <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base truncate" title="<?= htmlspecialchars($driver['name']); ?>"><?= htmlspecialchars($driver['name']); ?></h3>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 font-medium">CDL: <?= htmlspecialchars($driver['cdl_number'] ?? 'N/A'); ?></p>
+                            </div>
                         </div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">Rating</div>
+                        <span class="<?= $badgeClass; ?> text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm flex-shrink-0">
+                            <?= htmlspecialchars($driver['status']); ?>
+                        </span>
+                    </div>
+
+                    <!-- Details -->
+                    <div class="space-y-2.5 text-xs text-gray-600 dark:text-gray-300 mb-4">
+                        <div class="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-900 rounded-xl">
+                            <span class="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+                                <i class="fa-solid fa-truck text-blue-500 w-4 text-center"></i>
+                                <span>Assigned Truck</span>
+                            </span>
+                            <span class="font-bold text-gray-900 dark:text-gray-100"><?= htmlspecialchars($driver['truck_code'] ?? 'Unassigned'); ?></span>
+                        </div>
+                        <div class="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-900 rounded-xl">
+                            <span class="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+                                <i class="fa-solid fa-phone text-indigo-500 w-4 text-center"></i>
+                                <span>Phone Number</span>
+                            </span>
+                            <span class="font-semibold text-gray-900 dark:text-gray-100"><?= htmlspecialchars($driver['phone'] ?? 'N/A'); ?></span>
+                        </div>
+                        <div class="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-900 rounded-xl">
+                            <span class="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+                                <i class="fa-solid fa-star text-amber-400 w-4 text-center"></i>
+                                <span>Performance</span>
+                            </span>
+                            <span class="font-semibold text-gray-900 dark:text-gray-100"><?= number_format($driver['rating'] ?? 5.0, 1); ?> / 5.0</span>
+                        </div>
+                    </div>
+
+                    <!-- Quick Action Bar -->
+                    <div class="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700/60 mb-4">
+                        <span class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Quick Actions</span>
+                        <div class="flex items-center space-x-1">
+                            <button onclick="openUpdateDriverStatusModal(<?= $driver['id']; ?>, '<?= htmlspecialchars($driver['status']); ?>', '<?= addslashes($driver['name']); ?>')" 
+                                    class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors" 
+                                    title="Edit Driver Status">
+                                <i class="fa-solid fa-pen-to-square text-xs"></i>
+                            </button>
+                            <button onclick="openSwitchTruckModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', '<?= htmlspecialchars($driver['truck_code'] ?? 'None'); ?>')" 
+                                    class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-gray-700 transition-colors" 
+                                    title="Switch Assigned Truck">
+                                <i class="fa-solid fa-truck-arrow-right text-xs"></i>
+                            </button>
+                            <button onclick="openResetPasswordModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>')" 
+                                    class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-gray-700 transition-colors" 
+                                    title="Reset Password">
+                                <i class="fa-solid fa-key text-xs"></i>
+                            </button>
+                            <button onclick="openDeleteDriverModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>')" 
+                                    class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-gray-700 transition-colors" 
+                                    title="Delete Driver">
+                                <i class="fa-solid fa-trash text-xs"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3 mt-auto">
-                    <button onclick='openViewDriverModal(<?= $driverJson; ?>)' class="border border-gray-300 dark:border-gray-600 rounded-lg py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition">View Details</button>
-                    <button onclick='openContactDriverModal(<?= $driverJson; ?>)' class="border border-gray-300 dark:border-gray-600 rounded-lg py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition">Contact</button>
+                <!-- Footer Action Buttons -->
+                <div class="grid grid-cols-2 gap-2.5 pt-2">
+                    <button onclick='openViewDriverModal(<?= $driverJson; ?>)' class="w-full py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-semibold rounded-xl transition-all">View Details</button>
+                    <button onclick='openContactDriverModal(<?= $driverJson; ?>)' class="w-full py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 text-xs font-semibold rounded-xl transition-all">Contact</button>
                 </div>
             </div>
         <?php endforeach; ?>

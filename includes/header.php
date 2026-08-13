@@ -109,154 +109,393 @@
         }
 
         <?php endif; ?>
+
+        /* ── Sidebar Styles ── */
+        .sidebar-nav-item {
+            @apply flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer;
+        }
+        .sidebar-nav-item.active {
+            @apply bg-blue-600 text-white shadow-md shadow-blue-500/20;
+        }
+        .sidebar-nav-item:not(.active) {
+            @apply text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200;
+        }
+        .sidebar-nav-item .nav-icon {
+            @apply w-5 text-center text-base;
+        }
+        .sidebar-nav-item.active .nav-icon {
+            @apply text-white;
+        }
+
+        /* ── Bottom Nav (Checker/Driver mobile) ── */
+        .bottom-nav-item {
+            @apply flex flex-col items-center justify-center py-1.5 px-2 text-gray-400 dark:text-gray-500 transition-colors duration-200 text-xs font-medium;
+        }
+        .bottom-nav-item.active {
+            @apply text-blue-600 dark:text-blue-400;
+        }
+        .bottom-nav-item:not(.active):hover {
+            @apply text-gray-600 dark:text-gray-300;
+        }
+
+        /* ── Sidebar backdrop ── */
+        .sidebar-backdrop {
+            transition: opacity 0.3s ease;
+        }
+
+        /* ── Sidebar slide ── */
+        .sidebar-panel {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @media (max-width: 1023px) {
+            .sidebar-panel.sidebar-closed {
+                transform: translateX(-100%);
+            }
+        }
     </style>
 </head>
 
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-200">
-    <nav class="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-white px-6 py-4 flex items-center justify-between shadow-lg">
-        <div class="flex items-center space-x-2 text-xl font-bold">
+
+    <?php if ($_SESSION['role'] === 'Admin'): ?>
+    <!-- ╔══════════════════════════════════════════════════════════╗ -->
+    <!-- ║  ADMIN SIDEBAR                                          ║ -->
+    <!-- ╚══════════════════════════════════════════════════════════╝ -->
+
+    <!-- Mobile Backdrop Overlay -->
+    <div id="sidebar-overlay" class="sidebar-backdrop fixed inset-0 bg-black/50 z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside id="admin-sidebar" class="sidebar-panel sidebar-closed lg:translate-x-0 fixed top-0 left-0 h-screen w-72 z-50 lg:z-30 flex flex-col bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 shadow-xl lg:shadow-none">
+
+        <!-- Logo & Brand -->
+        <div class="flex items-center space-x-3 px-6 py-5 border-b border-gray-100 dark:border-gray-800">
             <div class="flex-shrink-0">
                 <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-8 block dark:hidden">
                 <img src="../src/ssvLogoLight.png" alt="SSV Logo" class="h-8 hidden dark:block">
             </div>
-            <span>SSV Trucking</span>
-        </div>
-
-        <!-- Desktop Navigation (hidden on mobile, shown on lg screens) -->
-        <div class="hidden lg:flex space-x-2 text-sm font-medium text-blue-100 items-center">
-
-            <?php if ($_SESSION['role'] === 'Admin'): ?>
-                <!-- ADMIN NAVIGATION -->
-                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex items-center space-x-1 text-white bg-blue-700 px-3 py-1.5 rounded transition"><i class="fa-solid fa-border-all"></i><span>Dashboard</span></button>
-                <button onclick="switchTab('tracking')" id="nav-tracking" class="nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition"><i class="fa-solid fa-map-location-dot"></i><span>Live Tracking</span></button>
-                <button onclick="switchTab('dispatches')" id="nav-dispatches" class="nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition"><i class="fa-regular fa-file-lines"></i><span>Dispatches</span></button>
-                <button onclick="switchTab('fleet')" id="nav-fleet" class="nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition"><i class="fa-solid fa-truck-fast"></i><span>Fleet</span></button>
-                <button onclick="switchTab('drivers')" id="nav-drivers" class="nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition"><i class="fa-regular fa-user"></i><span>Drivers</span></button>
-                <button onclick="switchTab('orders')" id="nav-orders" class="nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition"><i class="fa-solid fa-clipboard-list"></i><span>Orders</span></button>
-                <button onclick="switchTab('reports')" id="nav-reports" class="nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition"><i class="fa-solid fa-chart-column"></i><span>Reports</span></button>
-
-            <?php elseif ($_SESSION['role'] === 'Driver'): ?>
-                <!-- DRIVER NAVIGATION -->
-                <span class="text-blue-100 mr-4">Welcome, <?= htmlspecialchars($_SESSION['username'] ?? 'Driver'); ?></span>
-                <?php if ($has_pending_cancellation ?? false): ?>
-                    <button class="flex items-center px-3 py-2 text-gray-500 bg-gray-200 dark:bg-gray-700 rounded-md cursor-not-allowed transition shadow-sm mr-2" disabled>
-                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Cancellation Pending...
-                    </button>
-                <?php else: ?>
-                    <button onclick="openCancelTripModal()" class="flex items-center px-3 py-2 text-white bg-orange-600 dark:bg-orange-700 hover:bg-orange-705 rounded-md transition shadow-sm mr-2">
-                        <i class="fa-solid fa-ban mr-2"></i> Request Cancellation
-                    </button>
-                <?php endif; ?>
-                <button onclick="openChangePasswordModal()" class="flex items-center px-3 py-2 text-white bg-blue-700 dark:bg-gray-700 hover:bg-blue-800 dark:hover:bg-gray-655 rounded-md transition shadow-sm">
-                    <i class="fa-solid fa-key mr-2"></i> Change Password
-                </button>
-
-            <?php elseif ($_SESSION['role'] === 'Checker'): ?>
-                <!-- CHECKER NAVIGATION -->
-                <span class="text-blue-100 mr-4">Checker: <strong><?= htmlspecialchars($checker_full_name ?? $_SESSION['username'] ?? 'Checker'); ?></strong></span>
-                <button onclick="openChangePasswordModal()" class="flex items-center px-3 py-2 text-white bg-blue-700 dark:bg-gray-700 hover:bg-blue-800 dark:hover:bg-gray-655 rounded-md transition shadow-sm">
-                    <i class="fa-solid fa-key mr-2"></i> Change Password
-                </button>
-            <?php endif; ?>
-
-            <button id="themeToggle" onclick="toggleTheme(event)" class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-700 hover:bg-blue-800 text-white transition-colors focus:outline-none shadow-sm ml-2 relative overflow-hidden">
-                <i id="themeIcon" class="fa-solid fa-moon text-lg"></i>
-            </button>
-
-            <div class="w-px h-5 bg-blue-400 mx-2 opacity-50"></div>
-
-            <a href="../logout.php" class="flex items-center space-x-1 px-3 py-1.5 rounded transition text-red-200 hover:text-white hover:bg-red-500">
-                <i class="fa-solid fa-right-from-bracket"></i><span>Logout</span>
-            </a>
-        </div>
-
-        <!-- Mobile Navigation Controls (hidden on desktop, shown on mobile) -->
-        <div class="flex items-center lg:hidden space-x-3">
-            <button onclick="toggleTheme(event)" class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-750 dark:bg-gray-700 text-white hover:bg-blue-800 focus:outline-none shadow-sm relative overflow-hidden">
-                <i class="themeIconMobile fa-solid fa-moon text-base"></i>
-            </button>
-            <button onclick="toggleMobileMenu()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-750 dark:bg-gray-700 text-white hover:bg-blue-800 focus:outline-none">
-                <i class="fa-solid fa-bars text-lg" id="hamburger-icon"></i>
+            <div class="min-w-0">
+                <h1 class="text-base font-bold text-gray-900 dark:text-white truncate">SSV Trucking</h1>
+                <p class="text-xs text-gray-400 dark:text-gray-500 font-medium">Admin System</p>
+            </div>
+            <!-- Mobile close button -->
+            <button onclick="toggleSidebar()" class="lg:hidden ml-auto w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400">
+                <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
-    </nav>
 
-    <!-- Mobile Navigation Dropdown Menu -->
-    <div id="mobile-menu" class="hidden lg:hidden bg-blue-600 dark:bg-gray-800 border-t border-blue-500 dark:border-gray-700 shadow-lg px-4 py-4 space-y-3 transition-all duration-300">
-        <?php if ($_SESSION['role'] === 'Admin'): ?>
-            <div class="grid grid-cols-2 gap-2">
-                <button onclick="switchTabAndCloseMobile('dashboard')" class="flex items-center justify-center space-x-2 bg-blue-700 hover:bg-blue-850 text-white p-3 rounded-xl transition text-xs font-semibold"><i class="fa-solid fa-border-all"></i><span>Dashboard</span></button>
-                <button onclick="switchTabAndCloseMobile('tracking')" class="flex items-center justify-center space-x-2 bg-blue-700 hover:bg-blue-850 text-white p-3 rounded-xl transition text-xs font-semibold"><i class="fa-solid fa-map-location-dot"></i><span>Tracking</span></button>
-                <button onclick="switchTabAndCloseMobile('dispatches')" class="flex items-center justify-center space-x-2 bg-blue-700 hover:bg-blue-850 text-white p-3 rounded-xl transition text-xs font-semibold"><i class="fa-regular fa-file-lines"></i><span>Dispatches</span></button>
-                <button onclick="switchTabAndCloseMobile('fleet')" class="flex items-center justify-center space-x-2 bg-blue-700 hover:bg-blue-850 text-white p-3 rounded-xl transition text-xs font-semibold"><i class="fa-solid fa-truck-fast"></i><span>Fleet</span></button>
-                <button onclick="switchTabAndCloseMobile('drivers')" class="flex items-center justify-center space-x-2 bg-blue-700 hover:bg-blue-850 text-white p-3 rounded-xl transition text-xs font-semibold"><i class="fa-regular fa-user"></i><span>Drivers</span></button>
-                <button onclick="switchTabAndCloseMobile('orders')" class="flex items-center justify-center space-x-2 bg-blue-700 hover:bg-blue-850 text-white p-3 rounded-xl transition text-xs font-semibold"><i class="fa-solid fa-clipboard-list"></i><span>Orders</span></button>
-                <button onclick="switchTabAndCloseMobile('reports')" class="flex items-center justify-center space-x-2 bg-blue-700 hover:bg-blue-850 text-white p-3 rounded-xl transition text-xs font-semibold col-span-2"><i class="fa-solid fa-chart-column"></i><span>Reports</span></button>
+        <!-- System Status -->
+        <div class="px-5 py-3">
+            <div class="flex items-center space-x-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg px-3 py-2 border border-emerald-100 dark:border-emerald-800/30">
+                <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse flex-shrink-0"></span>
+                <span class="text-xs font-semibold text-emerald-700 dark:text-emerald-400">System Online</span>
             </div>
-        <?php elseif ($_SESSION['role'] === 'Driver'): ?>
-            <div class="px-2 py-1 text-blue-100 text-sm border-b border-blue-500/30 pb-2 flex items-center justify-between">
-                <span>Welcome, <strong class="text-white"><?= htmlspecialchars($_SESSION['username'] ?? 'Driver'); ?></strong></span>
-                <span class="text-[10px] bg-blue-700 text-blue-100 px-2 py-0.5 rounded-full font-bold uppercase">Driver</span>
-            </div>
-            <div class="flex flex-col space-y-2">
-                <?php if ($has_pending_cancellation ?? false): ?>
-                    <button class="w-full flex items-center justify-center py-3 text-gray-400 bg-gray-200 dark:bg-gray-700 rounded-xl cursor-not-allowed text-sm font-semibold" disabled>
-                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Cancellation Pending...
-                    </button>
-                <?php else: ?>
-                    <button onclick="openCancelTripModal(); toggleMobileMenu();" class="w-full flex items-center justify-center py-3 text-white bg-orange-655 dark:bg-orange-700 hover:bg-orange-700 rounded-xl transition text-sm font-semibold">
-                        <i class="fa-solid fa-ban mr-2"></i> Request Cancellation
-                    </button>
-                <?php endif; ?>
-                <button onclick="openChangePasswordModal(); toggleMobileMenu();" class="w-full flex items-center justify-center py-3 text-white bg-blue-700 dark:bg-gray-700 hover:bg-blue-800 rounded-xl transition text-sm font-semibold">
-                    <i class="fa-solid fa-key mr-2"></i> Change Password
-                </button>
-            </div>
-        <?php elseif ($_SESSION['role'] === 'Checker'): ?>
-            <div class="px-2 py-1 text-blue-100 text-sm border-b border-blue-500/30 pb-2 flex items-center justify-between">
-                <span>Checker: <strong class="text-white"><?= htmlspecialchars($checker_full_name ?? $_SESSION['username'] ?? 'Checker'); ?></strong></span>
-                <span class="text-[10px] bg-blue-700 text-blue-100 px-2 py-0.5 rounded-full font-bold uppercase">Checker</span>
-            </div>
-            <button onclick="openChangePasswordModal(); toggleMobileMenu();" class="w-full flex items-center justify-center py-3 text-white bg-blue-700 dark:bg-gray-700 hover:bg-blue-800 rounded-xl transition text-sm font-semibold">
-                <i class="fa-solid fa-key mr-2"></i> Change Password
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
+            <p class="px-4 text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-widest mb-2">Main Menu</p>
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="sidebar-nav-item active w-full">
+                <i class="fa-solid fa-border-all nav-icon"></i>
+                <span>Dashboard</span>
             </button>
-        <?php endif; ?>
+            <button onclick="switchTab('tracking')" id="nav-tracking" class="sidebar-nav-item w-full">
+                <i class="fa-solid fa-map-location-dot nav-icon"></i>
+                <span>Live Tracking</span>
+            </button>
+            <button onclick="switchTab('dispatches')" id="nav-dispatches" class="sidebar-nav-item w-full">
+                <i class="fa-regular fa-file-lines nav-icon"></i>
+                <span>Dispatches</span>
+            </button>
 
-        <div class="border-t border-blue-500/30 pt-3">
-            <a href="../logout.php" class="w-full flex items-center justify-center space-x-2 py-3 bg-red-600 hover:bg-red-750 text-white rounded-xl font-bold transition text-sm shadow-md">
-                <i class="fa-solid fa-right-from-bracket"></i>
+            <p class="px-4 pt-4 text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-widest mb-2">Management</p>
+            <button onclick="switchTab('fleet')" id="nav-fleet" class="sidebar-nav-item w-full">
+                <i class="fa-solid fa-truck-fast nav-icon"></i>
+                <span>Fleet</span>
+            </button>
+            <button onclick="switchTab('drivers')" id="nav-drivers" class="sidebar-nav-item w-full">
+                <i class="fa-regular fa-user nav-icon"></i>
+                <span>Drivers</span>
+            </button>
+            <button onclick="switchTab('orders')" id="nav-orders" class="sidebar-nav-item w-full">
+                <i class="fa-solid fa-clipboard-list nav-icon"></i>
+                <span>Orders</span>
+            </button>
+            <button onclick="switchTab('reports')" id="nav-reports" class="sidebar-nav-item w-full">
+                <i class="fa-solid fa-chart-column nav-icon"></i>
+                <span>Reports</span>
+            </button>
+        </nav>
+
+        <!-- Sidebar Footer -->
+        <div class="border-t border-gray-100 dark:border-gray-800 px-4 py-4 space-y-3">
+            <!-- Dark Mode Toggle -->
+            <button id="themeToggle" onclick="toggleTheme(event)" class="w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200">
+                <i id="themeIcon" class="fa-solid fa-moon w-5 text-center text-base"></i>
+                <span id="themeLabel">Dark Mode</span>
+            </button>
+            <!-- Logout -->
+            <a href="../logout.php" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 w-full">
+                <i class="fa-solid fa-right-from-bracket w-5 text-center text-base"></i>
                 <span>Logout</span>
             </a>
         </div>
+    </aside>
+
+    <!-- Mobile Top Bar (Admin) -->
+    <div class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <button onclick="toggleSidebar()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-all">
+                <i class="fa-solid fa-bars text-base" id="hamburger-icon"></i>
+            </button>
+            <div class="flex items-center space-x-2">
+                <div class="flex-shrink-0">
+                    <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
+                    <img src="../src/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
+                </div>
+                <span class="font-bold text-sm text-gray-800 dark:text-gray-200">SSV Trucking</span>
+            </div>
+        </div>
+        <button onclick="toggleTheme(event)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all">
+            <i class="themeIconMobile fa-solid fa-moon text-sm"></i>
+        </button>
     </div>
 
+    <!-- Admin Main Content Wrapper -->
+    <div id="main-content" class="lg:ml-72 min-h-screen pt-16 lg:pt-0 transition-all duration-300">
+
+    <?php elseif ($_SESSION['role'] === 'Checker'): ?>
+    <!-- ╔══════════════════════════════════════════════════════════╗ -->
+    <!-- ║  CHECKER LAYOUT                                         ║ -->
+    <!-- ╚══════════════════════════════════════════════════════════╝ -->
+
+    <!-- Desktop Sidebar -->
+    <aside class="hidden lg:flex fixed top-0 left-0 h-screen w-64 z-30 flex-col bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800">
+        <!-- Logo -->
+        <div class="flex items-center space-x-3 px-5 py-5 border-b border-gray-100 dark:border-gray-800">
+            <div class="flex-shrink-0">
+                <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
+                <img src="../src/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
+            </div>
+            <div>
+                <h1 class="text-sm font-bold text-gray-900 dark:text-white">SSV Trucking</h1>
+                <p class="text-xs text-gray-400 dark:text-gray-500 font-medium">Checker Panel</p>
+            </div>
+        </div>
+
+        <!-- Profile Card -->
+        <div class="px-4 py-4 border-b border-gray-100 dark:border-gray-800">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-sm flex-shrink-0">
+                    <?= strtoupper(substr($checker_profile['first_name'] ?? 'C', 0, 1)) ?>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-white truncate"><?= htmlspecialchars($checker_full_name ?? $_SESSION['username'] ?? 'Checker') ?></p>
+                    <p class="text-xs text-gray-400">Field Checker</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <nav class="flex-1 px-3 py-4 space-y-1">
+            <a href="dashboard.php" class="sidebar-nav-item active w-full">
+                <i class="fa-solid fa-clipboard-check nav-icon"></i>
+                <span>Dashboard</span>
+            </a>
+            <button onclick="openChangePasswordModal()" class="sidebar-nav-item w-full">
+                <i class="fa-solid fa-key nav-icon"></i>
+                <span>Change Password</span>
+            </button>
+        </nav>
+
+        <!-- Footer -->
+        <div class="border-t border-gray-100 dark:border-gray-800 px-3 py-4 space-y-1">
+            <button id="themeToggle" onclick="toggleTheme(event)" class="sidebar-nav-item w-full">
+                <i id="themeIcon" class="fa-solid fa-moon nav-icon"></i>
+                <span id="themeLabel">Dark Mode</span>
+            </button>
+            <a href="../logout.php" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 w-full">
+                <i class="fa-solid fa-right-from-bracket w-5 text-center text-base"></i>
+                <span>Logout</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Mobile Top Bar (Checker) -->
+    <div class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+            <div class="flex-shrink-0">
+                <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
+                <img src="../src/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
+            </div>
+            <div>
+                <span class="font-bold text-sm text-gray-800 dark:text-gray-200">SSV Trucking</span>
+                <span class="text-[10px] bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 px-1.5 py-0.5 rounded-full font-bold uppercase ml-1.5">Checker</span>
+            </div>
+        </div>
+        <button onclick="toggleTheme(event)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all">
+            <i class="themeIconMobile fa-solid fa-moon text-sm"></i>
+        </button>
+    </div>
+
+    <!-- Mobile Bottom Nav (Checker) -->
+    <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-2 py-1.5 safe-bottom">
+        <a href="dashboard.php" class="bottom-nav-item active">
+            <i class="fa-solid fa-clipboard-check text-lg mb-0.5"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="#scanForm" class="bottom-nav-item" onclick="document.getElementById('scanForm')?.scrollIntoView({behavior:'smooth',block:'center'})">
+            <i class="fa-solid fa-truck-ramp-box text-lg mb-0.5"></i>
+            <span>Log Delivery</span>
+        </a>
+        <button onclick="openChangePasswordModal()" class="bottom-nav-item">
+            <i class="fa-solid fa-key text-lg mb-0.5"></i>
+            <span>Settings</span>
+        </button>
+        <a href="../logout.php" class="bottom-nav-item text-red-400 dark:text-red-500">
+            <i class="fa-solid fa-right-from-bracket text-lg mb-0.5"></i>
+            <span>Logout</span>
+        </a>
+    </div>
+
+    <!-- Checker Main Content Wrapper -->
+    <div id="main-content" class="lg:ml-64 min-h-screen pt-16 lg:pt-0 pb-20 lg:pb-0 transition-all duration-300">
+
+    <?php elseif ($_SESSION['role'] === 'Driver'): ?>
+    <!-- ╔══════════════════════════════════════════════════════════╗ -->
+    <!-- ║  DRIVER LAYOUT                                          ║ -->
+    <!-- ╚══════════════════════════════════════════════════════════╝ -->
+
+    <!-- Desktop Sidebar -->
+    <aside class="hidden lg:flex fixed top-0 left-0 h-screen w-64 z-30 flex-col bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800">
+        <!-- Logo -->
+        <div class="flex items-center space-x-3 px-5 py-5 border-b border-gray-100 dark:border-gray-800">
+            <div class="flex-shrink-0">
+                <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
+                <img src="../src/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
+            </div>
+            <div>
+                <h1 class="text-sm font-bold text-gray-900 dark:text-white">SSV Trucking</h1>
+                <p class="text-xs text-gray-400 dark:text-gray-500 font-medium">Driver Panel</p>
+            </div>
+        </div>
+
+        <!-- Profile Card -->
+        <div class="px-4 py-4 border-b border-gray-100 dark:border-gray-800">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-sm flex-shrink-0">
+                    <?= strtoupper(substr($_SESSION['username'] ?? 'D', 0, 1)) ?>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-white truncate"><?= htmlspecialchars($_SESSION['username'] ?? 'Driver') ?></p>
+                    <p class="text-xs text-gray-400">Truck Driver</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <nav class="flex-1 px-3 py-4 space-y-1">
+            <a href="dashboard.php" class="sidebar-nav-item active w-full">
+                <i class="fa-solid fa-house nav-icon"></i>
+                <span>Dashboard</span>
+            </a>
+            <?php if ($has_pending_cancellation ?? false): ?>
+                <button class="sidebar-nav-item w-full opacity-50 cursor-not-allowed" disabled>
+                    <i class="fa-solid fa-spinner fa-spin nav-icon"></i>
+                    <span>Cancellation Pending</span>
+                </button>
+            <?php else: ?>
+                <button onclick="openCancelTripModal()" class="sidebar-nav-item w-full !text-orange-600 dark:!text-orange-400 hover:!bg-orange-50 dark:hover:!bg-orange-900/20">
+                    <i class="fa-solid fa-ban nav-icon"></i>
+                    <span>Request Cancellation</span>
+                </button>
+            <?php endif; ?>
+            <button onclick="openChangePasswordModal()" class="sidebar-nav-item w-full">
+                <i class="fa-solid fa-key nav-icon"></i>
+                <span>Change Password</span>
+            </button>
+        </nav>
+
+        <!-- Footer -->
+        <div class="border-t border-gray-100 dark:border-gray-800 px-3 py-4 space-y-1">
+            <button id="themeToggle" onclick="toggleTheme(event)" class="sidebar-nav-item w-full">
+                <i id="themeIcon" class="fa-solid fa-moon nav-icon"></i>
+                <span id="themeLabel">Dark Mode</span>
+            </button>
+            <a href="../logout.php" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 w-full">
+                <i class="fa-solid fa-right-from-bracket w-5 text-center text-base"></i>
+                <span>Logout</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Mobile Top Bar (Driver) -->
+    <div class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+            <div class="flex-shrink-0">
+                <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
+                <img src="../src/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
+            </div>
+            <div>
+                <span class="font-bold text-sm text-gray-800 dark:text-gray-200"><?= htmlspecialchars($_SESSION['username'] ?? 'Driver') ?></span>
+                <span class="text-[10px] bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded-full font-bold uppercase ml-1.5">Driver</span>
+            </div>
+        </div>
+        <button onclick="toggleTheme(event)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all">
+            <i class="themeIconMobile fa-solid fa-moon text-sm"></i>
+        </button>
+    </div>
+
+    <!-- Mobile Bottom Nav (Driver) -->
+    <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-2 py-1.5">
+        <a href="dashboard.php" class="bottom-nav-item active">
+            <i class="fa-solid fa-house text-lg mb-0.5"></i>
+            <span>Home</span>
+        </a>
+        <?php if ($has_pending_cancellation ?? false): ?>
+            <button class="bottom-nav-item opacity-50 cursor-not-allowed" disabled>
+                <i class="fa-solid fa-spinner fa-spin text-lg mb-0.5"></i>
+                <span>Pending...</span>
+            </button>
+        <?php else: ?>
+            <button onclick="openCancelTripModal()" class="bottom-nav-item text-orange-500">
+                <i class="fa-solid fa-ban text-lg mb-0.5"></i>
+                <span>Cancel Trip</span>
+            </button>
+        <?php endif; ?>
+        <button onclick="openChangePasswordModal()" class="bottom-nav-item">
+            <i class="fa-solid fa-key text-lg mb-0.5"></i>
+            <span>Settings</span>
+        </button>
+        <a href="../logout.php" class="bottom-nav-item text-red-400 dark:text-red-500">
+            <i class="fa-solid fa-right-from-bracket text-lg mb-0.5"></i>
+            <span>Logout</span>
+        </a>
+    </div>
+
+    <!-- Driver Main Content Wrapper -->
+    <div id="main-content" class="lg:ml-64 min-h-screen pt-16 lg:pt-0 pb-20 lg:pb-0 transition-all duration-300">
+
+    <?php endif; ?>
+
+    <!-- ╔══════════════════════════════════════════════════════════╗ -->
+    <!-- ║  SHARED SCRIPTS (Theme Toggle + Sidebar)                ║ -->
+    <!-- ╚══════════════════════════════════════════════════════════╝ -->
     <script>
-        function toggleMobileMenu() {
-            const menu = document.getElementById('mobile-menu');
-            const icon = document.getElementById('hamburger-icon');
-            if (menu.classList.contains('hidden')) {
-                menu.classList.remove('hidden');
-                icon.classList.remove('fa-bars');
-                icon.classList.add('fa-xmark');
-            } else {
-                menu.classList.add('hidden');
-                icon.classList.remove('fa-xmark');
-                icon.classList.add('fa-bars');
-            }
-        }
-        function switchTabAndCloseMobile(tab) {
-            switchTab(tab);
-            toggleMobileMenu();
-        }
+        // ── Theme Toggle ──
         document.addEventListener("DOMContentLoaded", function() {
             const icons = document.querySelectorAll('#themeIcon, .themeIconMobile');
             if (document.documentElement.classList.contains('dark')) {
                 icons.forEach(i => i.classList.replace('fa-moon', 'fa-sun'));
+                const label = document.getElementById('themeLabel');
+                if (label) label.textContent = 'Light Mode';
             }
         });
+
         function toggleTheme(event) {
             const htmlTag = document.documentElement;
             const icons = document.querySelectorAll('#themeIcon, .themeIconMobile');
+
             if (event) {
                 const x = event.clientX || window.innerWidth / 2;
                 const y = event.clientY || 50;
@@ -280,6 +519,7 @@
                 });
                 setTimeout(() => circle.remove(), 700);
             }
+
             const isNowDark = htmlTag.classList.toggle('dark');
             icons.forEach(icon => {
                 if (isNowDark) {
@@ -290,8 +530,46 @@
                     icon.classList.add('fa-moon');
                 }
             });
+            const label = document.getElementById('themeLabel');
+            if (label) label.textContent = isNowDark ? 'Light Mode' : 'Dark Mode';
+
+            // Auto-switch map tile layer if map is active
+            if (typeof map !== 'undefined' && map && typeof streetLayer !== 'undefined' && typeof darkLayer !== 'undefined' && streetLayer && darkLayer) {
+                if (isNowDark) {
+                    if (map.hasLayer(streetLayer)) { map.removeLayer(streetLayer); map.addLayer(darkLayer); }
+                } else {
+                    if (map.hasLayer(darkLayer)) { map.removeLayer(darkLayer); map.addLayer(streetLayer); }
+                }
+            }
+
             localStorage.setItem('theme', isNowDark ? "dark" : "light");
             document.cookie = "theme=" + (isNowDark ? "dark" : "light") + "; path=/; max-age=" + (60 * 60 * 24 * 365);
+        }
+
+        // ── Admin Sidebar Toggle (Mobile) ──
+        function toggleSidebar() {
+            const sidebar = document.getElementById('admin-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (!sidebar) return;
+
+            if (sidebar.classList.contains('sidebar-closed')) {
+                sidebar.classList.remove('sidebar-closed');
+                if (overlay) overlay.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            } else {
+                sidebar.classList.add('sidebar-closed');
+                if (overlay) overlay.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        }
+
+        // ── Close sidebar on nav click (mobile) ──
+        function switchTabAndCloseMobile(tab) {
+            switchTab(tab);
+            const sidebar = document.getElementById('admin-sidebar');
+            if (sidebar && window.innerWidth < 1024) {
+                toggleSidebar();
+            }
         }
     </script>
 
@@ -448,4 +726,4 @@
             }
             ?>
         });
-    </script>
+    </script>
