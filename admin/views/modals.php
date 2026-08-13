@@ -205,7 +205,12 @@
                     <input type="text" name="origin" value="Brgy. Burgos San Leonardo, Nueva Ecija" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Destination</label>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Destination</label>
+                        <button type="button" onclick="openNominatimSearch('dispatch')" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-map-location-dot"></i> Search OSM Map
+                        </button>
+                    </div>
                     <select name="destination" id="destinationSelect" required class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100">
                         <option value="">Select Destination</option>
                         <?php foreach ($destinations as $_dest): ?>
@@ -650,7 +655,12 @@
                     <input type="text" name="client_name" required placeholder="e.g. Juan dela Cruz" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Destination <span class="text-red-500">*</span></label>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Destination <span class="text-red-500">*</span></label>
+                        <button type="button" onclick="openNominatimSearch('order')" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-map-location-dot"></i> Search OSM Map
+                        </button>
+                    </div>
                     <select name="destination" required class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                         <option value="">Select destination</option>
                         <?php foreach ($destinations as $_dest): ?>
@@ -839,4 +849,178 @@
         </form>
     </div>
 </div>
+
+<!-- ==================== NOMINATIM OSM SEARCH MODAL ==================== -->
+<div id="nominatimSearchModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-gray-900 bg-opacity-60 hidden p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
+        <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-blue-600 text-white">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-map-location-dot text-lg"></i>
+                <h3 class="text-lg font-bold">OpenStreetMap (Nominatim) Location Search</h3>
+            </div>
+            <button onclick="closeNominatimSearchModal()" class="text-white hover:text-gray-200">
+                <i class="fa-solid fa-xmark fa-lg"></i>
+            </button>
+        </div>
+        <div class="p-4 space-y-3 bg-gray-50 dark:bg-gray-900">
+            <div class="flex space-x-2">
+                <div class="relative flex-1">
+                    <input type="text" id="osmSearchInput" onkeypress="if(event.key==='Enter'){event.preventDefault();executeOsmSearch();}" placeholder="Search city, barangay, highway, or landmark (e.g. Cabanatuan, Gapan)..." 
+                        class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-gray-400"></i>
+                </div>
+                <button type="button" onclick="executeOsmSearch()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-search"></i> Search
+                </button>
+            </div>
+            <div id="osmSearchResults" class="space-y-1.5 max-h-40 overflow-y-auto hidden bg-white dark:bg-gray-800 rounded-xl p-2 border border-gray-200 dark:border-gray-700 text-xs shadow-inner"></div>
+        </div>
+        <div class="flex-grow p-4 min-h-[300px] relative">
+            <div id="osmMiniMap" class="w-full h-full rounded-xl border border-gray-200 dark:border-gray-700 min-h-[280px]"></div>
+        </div>
+        <div class="p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex justify-between items-center">
+            <div id="selectedOsmLocationText" class="text-xs text-gray-500 dark:text-gray-400 font-medium truncate max-w-[65%]">
+                No location selected. Click search or tap on map.
+            </div>
+            <div class="flex space-x-2">
+                <button type="button" onclick="closeNominatimSearchModal()" class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">Cancel</button>
+                <button type="button" id="useOsmLocationBtn" disabled onclick="applySelectedOsmLocation()" class="px-5 py-2 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white rounded-lg disabled:opacity-50 transition shadow-sm">
+                    <i class="fa-solid fa-check mr-1"></i> Use Location
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let osmMiniMap = null;
+    let osmMarker = null;
+    let targetInputContext = null;
+    let activeParentModalId = null;
+    let currentSelectedLocation = null;
+
+    function openNominatimSearch(context) {
+        targetInputContext = context;
+        activeParentModalId = null;
+        if (context === 'dispatch') activeParentModalId = 'dispatchModal';
+        if (context === 'order') activeParentModalId = 'addOrderModal';
+
+        if (activeParentModalId) {
+            toggleModal(activeParentModalId, false);
+        }
+
+        toggleModal('nominatimSearchModal', true);
+        
+        setTimeout(() => {
+            if (!osmMiniMap) {
+                osmMiniMap = L.map('osmMiniMap').setView([15.3621, 120.9632], 12);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(osmMiniMap);
+
+                osmMiniMap.on('click', async function(e) {
+                    const lat = e.latlng.lat;
+                    const lng = e.latlng.lng;
+                    
+                    if (osmMarker) osmMiniMap.removeLayer(osmMarker);
+                    osmMarker = L.marker([lat, lng]).addTo(osmMiniMap);
+
+                    document.getElementById('selectedOsmLocationText').innerText = 'Fetching address from OSM Nominatim...';
+
+                    if (typeof NominatimService !== 'undefined') {
+                        const geoRes = await NominatimService.reverseGeocode(lat, lng);
+                        if (geoRes && geoRes.formatted) {
+                            currentSelectedLocation = geoRes.formatted;
+                            document.getElementById('selectedOsmLocationText').innerText = `📍 ${geoRes.formatted}`;
+                            document.getElementById('useOsmLocationBtn').disabled = false;
+                            return;
+                        }
+                    }
+                    currentSelectedLocation = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                    document.getElementById('selectedOsmLocationText').innerText = `📍 Coords: ${currentSelectedLocation}`;
+                    document.getElementById('useOsmLocationBtn').disabled = false;
+                });
+            } else {
+                osmMiniMap.invalidateSize();
+            }
+        }, 200);
+    }
+
+    function closeNominatimSearchModal() {
+        toggleModal('nominatimSearchModal', false);
+        if (activeParentModalId) {
+            toggleModal(activeParentModalId, true);
+            activeParentModalId = null;
+        }
+    }
+
+    async function executeOsmSearch() {
+        const q = document.getElementById('osmSearchInput').value;
+        const container = document.getElementById('osmSearchResults');
+        if (!q || q.trim().length < 2) return;
+
+        container.classList.remove('hidden');
+        container.innerHTML = '<div class="p-2 text-gray-500 italic flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i> Searching OpenStreetMap Nominatim...</div>';
+
+        if (typeof NominatimService !== 'undefined') {
+            const results = await NominatimService.searchAddress(q);
+            if (results.length === 0) {
+                container.innerHTML = '<div class="p-2 text-red-500 font-medium">No results found. Try a different place name.</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            results.forEach(res => {
+                const item = document.createElement('div');
+                item.className = 'p-2 hover:bg-blue-50 dark:hover:bg-gray-700 cursor-pointer rounded transition flex items-center justify-between border-b border-gray-100 dark:border-gray-700 last:border-0';
+                item.innerHTML = `
+                    <div class="truncate mr-2">
+                        <div class="font-bold text-gray-800 dark:text-gray-200">${res.shortName}</div>
+                        <div class="text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-sm">${res.name}</div>
+                    </div>
+                    <button type="button" class="text-xs bg-blue-600 text-white px-2.5 py-1 rounded-lg font-semibold shrink-0">Select</button>
+                `;
+                item.onclick = function() {
+                    currentSelectedLocation = res.shortName;
+                    document.getElementById('selectedOsmLocationText').innerText = `📍 ${res.shortName}`;
+                    document.getElementById('useOsmLocationBtn').disabled = false;
+
+                    if (osmMiniMap) {
+                        osmMiniMap.setView([res.lat, res.lng], 14);
+                        if (osmMarker) osmMiniMap.removeLayer(osmMarker);
+                        osmMarker = L.marker([res.lat, res.lng]).addTo(osmMiniMap).bindPopup(res.shortName).openPopup();
+                    }
+                };
+                container.appendChild(item);
+            });
+        }
+    }
+
+    function applySelectedOsmLocation() {
+        if (!currentSelectedLocation) return;
+        
+        let destSelect = null;
+        if (targetInputContext === 'dispatch') {
+            destSelect = document.getElementById('destinationSelect');
+        } else if (targetInputContext === 'order') {
+            destSelect = document.querySelector('#addOrderModal select[name="destination"]');
+        }
+        
+        if (destSelect) {
+            let found = false;
+            for (let i = 0; i < destSelect.options.length; i++) {
+                if (destSelect.options[i].value.toLowerCase() === currentSelectedLocation.toLowerCase()) {
+                    destSelect.selectedIndex = i;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                const opt = new Option(currentSelectedLocation, currentSelectedLocation, true, true);
+                destSelect.add(opt);
+            }
+        }
+        closeNominatimSearchModal();
+    }
+</script>
 </div>

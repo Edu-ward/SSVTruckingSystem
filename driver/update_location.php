@@ -44,13 +44,14 @@ if (!$activeDispatch) {
 }
 
 $truck_id = $activeDispatch['truck_id'];
+$location_name = isset($_POST['location_name']) && !empty(trim($_POST['location_name'])) ? trim($_POST['location_name']) : 'In Transit';
 
-// Update the truck's GPS coordinates and speed
+// Update the truck's GPS coordinates, speed, and reverse-geocoded location name
 $stmt = $pdo->prepare("
     UPDATE trucks 
-    SET latitude = ?, longitude = ?, speed = ?, current_location = 'In Transit'
+    SET latitude = ?, longitude = ?, speed = ?, current_location = ?
     WHERE id = ?
 ");
-$stmt->execute([$lat, $lng, $speed, $truck_id]);
+$stmt->execute([$lat, $lng, $speed, $location_name, $truck_id]);
 
-echo json_encode(['success' => true, 'tracking' => true]);
+echo json_encode(['success' => true, 'tracking' => true, 'location' => $location_name]);

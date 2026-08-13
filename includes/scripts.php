@@ -988,16 +988,31 @@
                         gpsBadge = badge;
                     }
 
-                    function pushLocation(lat, lng, speed) {
+                    async function pushLocation(lat, lng, speed) {
                         if (!isTransit) return; // Only push updates when actively In Transit
                         const now = Date.now();
                         if (now - lastPushTime < PUSH_INTERVAL_MS) return;
                         lastPushTime = now;
 
+                        let locationName = '';
+                        if (typeof NominatimService !== 'undefined') {
+                            try {
+                                const geoRes = await NominatimService.reverseGeocode(lat, lng);
+                                if (geoRes && geoRes.formatted) {
+                                    locationName = geoRes.formatted;
+                                }
+                            } catch (e) {
+                                console.warn('Reverse geocode error:', e);
+                            }
+                        }
+
                         const fd = new FormData();
                         fd.append('latitude', lat.toFixed(7));
                         fd.append('longitude', lng.toFixed(7));
                         fd.append('speed', (speed || 0).toFixed(2));
+                        if (locationName) {
+                            fd.append('location_name', locationName);
+                        }
 
                         fetch('update_location.php', {
                                 method: 'POST',
