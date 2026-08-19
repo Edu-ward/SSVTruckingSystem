@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/security_headers.php';
 
 // Destroy all session data
 $_SESSION = [];

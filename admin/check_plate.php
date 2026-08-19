@@ -1,5 +1,5 @@
-﻿<?php
-session_start();
+<?php
+require_once __DIR__ . '/../includes/security_headers.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     http_response_code(403);

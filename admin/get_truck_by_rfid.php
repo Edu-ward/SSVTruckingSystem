@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security_headers.php';
 require_once '../db.php'; // Make sure this path points to your database connection
 
 header('Content-Type: application/json');

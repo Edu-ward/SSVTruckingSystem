@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security_headers.php';
 require '../db.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
@@ -10,7 +10,7 @@ if (!isset($_GET['driver_id'])) {
     die("No driver selected.");
 }
 
-$driver_id = $_GET['driver_id'];
+$driver_id = intval($_GET['driver_id']);
 
 $stmt = $pdo->prepare("SELECT first_name, last_name, cdl_number FROM drivers WHERE id = ?");
 $stmt->execute([$driver_id]);

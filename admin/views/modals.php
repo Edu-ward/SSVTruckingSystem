@@ -913,7 +913,7 @@
         
         setTimeout(() => {
             if (!osmMiniMap) {
-                osmMiniMap = L.map('osmMiniMap').setView([15.3621, 120.9632], 12);
+                osmMiniMap = L.map('osmMiniMap').setView([15.359042, 120.965016], 13);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; OpenStreetMap contributors'
                 }).addTo(osmMiniMap);

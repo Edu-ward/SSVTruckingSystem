@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/security_headers.php';
 require_once 'db.php';
 
 if (empty($_SESSION['csrf_token'])) {
@@ -491,7 +491,7 @@ try {
                         </label>
                         <div class="relative group">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <i class="fa-regular fa-user text-gray-400 dark:text-gray-500 text-sm group-focus-within:text-blue-500 transition-colors duration-200"></i>
+                                <i class="fa-solid fa-user text-gray-400 dark:text-gray-500 text-sm group-focus-within:text-blue-500 transition-colors duration-200"></i>
                             </div>
                             <input type="text" id="username" name="username" required
                                 class="input-glow w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl pl-11 pr-4 py-3.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-blue-500 dark:focus:border-blue-500 focus:bg-white dark:focus:bg-gray-900 transition-all duration-200"
@@ -506,7 +506,7 @@ try {
                         </label>
                         <div class="relative group password-wrapper">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <i class="fa-regular fa-lock text-gray-400 dark:text-gray-500 text-sm group-focus-within:text-blue-500 transition-colors duration-200"></i>
+                                <i class="fa-solid fa-lock text-gray-400 dark:text-gray-500 text-sm group-focus-within:text-blue-500 transition-colors duration-200"></i>
                             </div>
                             <input type="password" id="password" name="password" required
                                 class="input-glow w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl pl-11 pr-12 py-3.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-blue-500 dark:focus:border-blue-500 focus:bg-white dark:focus:bg-gray-900 transition-all duration-200"
@@ -514,7 +514,7 @@ try {
                             <button type="button" onclick="togglePassword()" id="togglePasswordBtn"
                                 class="toggle-password absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-all duration-200"
                                 aria-label="Toggle password visibility">
-                                <i id="passwordIcon" class="fa-regular fa-eye text-sm"></i>
+                                <i id="passwordIcon" class="fa-solid fa-eye text-sm"></i>
                             </button>
                         </div>
                     </div>

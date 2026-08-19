@@ -1,12 +1,13 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security_headers.php';
 require '../db.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     die("Unauthorized Access");
 }
 
-$period = $_GET['period'] ?? 'all';
+$allowedPeriods = ['all', 'weekly', 'monthly', 'yearly', 'custom'];
+$period = in_array($_GET['period'] ?? 'all', $allowedPeriods) ? $_GET['period'] : 'all';
 $start_date = $_GET['start_date'] ?? null;
 $end_date = $_GET['end_date'] ?? null;
 

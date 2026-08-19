@@ -10,5 +10,6 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    die("Database Connection Failed: " . $e->getMessage());
+    error_log("SSV DB Connection Failed: " . $e->getMessage());
+    die("A database error occurred. Please contact the system administrator.");
 }

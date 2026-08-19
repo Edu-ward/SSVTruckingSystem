@@ -65,12 +65,64 @@
             .input-field {
                 @apply w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-colors text-sm;
             }
+            .glass-card {
+                @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-white/20 dark:border-gray-800/60 shadow-xl;
+            }
+            .chip-emerald {
+                @apply bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold px-2.5 py-1 rounded-full text-xs inline-flex items-center gap-1.5;
+            }
+            .chip-amber {
+                @apply bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-semibold px-2.5 py-1 rounded-full text-xs inline-flex items-center gap-1.5;
+            }
+            .chip-blue {
+                @apply bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-semibold px-2.5 py-1 rounded-full text-xs inline-flex items-center gap-1.5;
+            }
+            .chip-rose {
+                @apply bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 font-semibold px-2.5 py-1 rounded-full text-xs inline-flex items-center gap-1.5;
+            }
+        }
+
+        /* ── Pulse Radar Ring Animation ── */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.4); opacity: 0.3; }
+            100% { transform: scale(1.8); opacity: 0; }
+        }
+        .pulse-ring-active {
+            animation: pulse-ring 2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+        }
+
+        /* ── Skeleton Shimmer Loading ── */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .skeleton-shimmer {
+            background: linear-gradient(90deg, rgba(229,231,235,0.4) 25%, rgba(243,244,246,0.8) 50%, rgba(229,231,235,0.4) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        .dark .skeleton-shimmer {
+            background: linear-gradient(90deg, rgba(31,41,55,0.4) 25%, rgba(55,65,81,0.8) 50%, rgba(31,41,55,0.4) 75%);
+            background-size: 200% 100%;
+        }
+
+        /* ── Custom Leaflet Popups ── */
+        .leaflet-popup-content-wrapper {
+            @apply rounded-2xl p-0 overflow-hidden shadow-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-gray-800 dark:text-gray-200 !important;
+        }
+        .leaflet-popup-content {
+            margin: 0 !important;
+            line-height: 1.5 !important;
+        }
+        .leaflet-popup-tip {
+            @apply bg-white dark:bg-gray-900 !important;
         }
 
         <?php if ($_SESSION['role'] === 'Admin'): ?>#map {
             height: 700px;
             width: 100%;
-            border-radius: 0.75rem;
+            border-radius: 1rem;
             z-index: 10;
         }
 
@@ -129,10 +181,10 @@
 
         /* ── Bottom Nav (Checker/Driver mobile) ── */
         .bottom-nav-item {
-            @apply flex flex-col items-center justify-center py-1.5 px-2 text-gray-400 dark:text-gray-500 transition-colors duration-200 text-xs font-medium;
+            @apply flex flex-col items-center justify-center py-1.5 px-2 text-gray-400 dark:text-gray-500 transition-all duration-200 text-xs font-medium relative;
         }
         .bottom-nav-item.active {
-            @apply text-blue-600 dark:text-blue-400;
+            @apply text-blue-600 dark:text-blue-400 scale-105 font-semibold;
         }
         .bottom-nav-item:not(.active):hover {
             @apply text-gray-600 dark:text-gray-300;
@@ -156,6 +208,9 @@
 </head>
 
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-200">
+
+    <!-- Global Toast Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-[9999] flex flex-col space-y-3 pointer-events-none"></div>
 
     <?php if ($_SESSION['role'] === 'Admin'): ?>
     <!-- ╔══════════════════════════════════════════════════════════╗ -->

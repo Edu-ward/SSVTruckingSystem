@@ -1,10 +1,33 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/security_headers.php';
 require 'db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        die("CSRF token validation failed");
+    // ── CSRF Validation (timing-safe) ──
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+        http_response_code(403);
+        die("CSRF token validation failed.");
+    }
+
+    // ── Brute-Force Protection ──
+    $maxAttempts = 5;
+    $lockoutSeconds = 900; // 15 minutes
+
+    if (!isset($_SESSION['login_attempts'])) {
+        $_SESSION['login_attempts'] = 0;
+        $_SESSION['last_failed_login'] = 0;
+    }
+
+    // Check if currently locked out
+    if ($_SESSION['login_attempts'] >= $maxAttempts) {
+        $elapsed = time() - $_SESSION['last_failed_login'];
+        if ($elapsed < $lockoutSeconds) {
+            $remaining = ceil(($lockoutSeconds - $elapsed) / 60);
+            header("Location: index.php?error=locked&minutes=" . $remaining);
+            exit;
+        }
+        // Lockout expired — reset
+        $_SESSION['login_attempts'] = 0;
     }
 
     $username = trim($_POST['username']);
@@ -15,6 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password'])) {
+        // ── Successful login — reset counters & regenerate session ──
+        $_SESSION['login_attempts'] = 0;
         session_regenerate_id(true);
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
@@ -34,6 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
     } else {
+        // ── Failed login — increment counter ──
+        $_SESSION['login_attempts'] = ($_SESSION['login_attempts'] ?? 0) + 1;
+        $_SESSION['last_failed_login'] = time();
         header("Location: index.php?error=invalid");
         exit;
     }

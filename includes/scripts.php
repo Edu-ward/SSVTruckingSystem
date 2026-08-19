@@ -74,8 +74,8 @@
                 const activeBaseLayer = isDark ? darkLayer : streetLayer;
 
                 map = L.map('map', {
-                    center: [15.3621, 120.9632],
-                    zoom: 13,
+                    center: [15.359042, 120.965016],
+                    zoom: 14,
                     layers: [activeBaseLayer],
                     zoomControl: true
                 });
@@ -87,18 +87,32 @@
                     "🌙 Dark Vector": darkLayer,
                     "📍 OpenStreetMap": osmLayer
                 };
-                L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
+                L.control.layers(baseMaps, null, {
+                    position: 'topright'
+                }).addTo(map);
 
                 // Add Central Garage Marker
                 const garageIcon = L.divIcon({
                     className: 'custom-div-icon',
-                    html: `<div class="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-xl border-2 border-white ring-4 ring-indigo-500/30" title="Central Garage"><i class="fa-solid fa-warehouse text-sm"></i></div>`,
+                    html: `<div class="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-xl border-2 border-white ring-4 ring-indigo-500/30 hover:scale-110 transition-transform cursor-pointer" title="SSV Garage (Quarry) — San Leonardo, Nueva Ecija"><i class="fa-solid fa-warehouse text-sm"></i></div>`,
                     iconSize: [40, 40],
                     iconAnchor: [20, 20]
                 });
-                L.marker([15.3621, 120.9632], { icon: garageIcon })
+                L.marker([15.359042, 120.965016], {
+                        icon: garageIcon
+                    })
                     .addTo(map)
-                    .bindPopup('<div class="p-1"><b class="text-sm font-bold text-gray-900">SSV Central Garage</b><br><span class="text-xs text-gray-500"><i class="fa-solid fa-location-dot text-red-500 mr-1"></i>San Leonardo, Nueva Ecija</span></div>');
+                    .bindPopup(`
+                        <div class="p-3 min-w-[200px]">
+                            <div class="font-bold text-gray-900 dark:text-gray-100 text-sm pb-1 border-b border-gray-100 dark:border-gray-800 flex items-center gap-2">
+                                <i class="fa-solid fa-warehouse text-indigo-500"></i> SSV Quarry Site
+                            </div>
+                            <div class="text-xs text-gray-600 dark:text-gray-300 font-medium mt-2 flex items-center gap-1.5">
+                                <i class="fa-solid fa-location-dot text-rose-500"></i>
+                                <span>San Leonardo, Nueva Ecija</span>
+                            </div>
+                        </div>
+                    `);
 
                 // Initial render from PHP data
                 renderMapMarkers(trackingData);
@@ -219,12 +233,16 @@
 
         // ===== RECENTER FLEET MAP =====
         function recenterMap() {
-            if (!map) { switchTab('tracking'); setTimeout(recenterMap, 300); return; }
+            if (!map) {
+                switchTab('tracking');
+                setTimeout(recenterMap, 300);
+                return;
+            }
 
             map.invalidateSize();
 
             const bounds = L.latLngBounds();
-            bounds.extend([15.3621, 120.9632]); // Central Garage
+            bounds.extend([15.359042, 120.965016]); // Central Garage (Quarry)
 
             let validTruckCount = 0;
             if (typeof trackingData !== 'undefined' && Array.isArray(trackingData)) {
@@ -239,9 +257,15 @@
             }
 
             if (validTruckCount > 0) {
-                map.flyToBounds(bounds, { padding: [60, 60], maxZoom: 15, duration: 1.2 });
+                map.flyToBounds(bounds, {
+                    padding: [60, 60],
+                    maxZoom: 15,
+                    duration: 1.2
+                });
             } else {
-                map.flyTo([15.3621, 120.9632], 13, { duration: 1.2 });
+                map.flyTo([15.359042, 120.965016], 14, {
+                    duration: 1.2
+                });
             }
 
             if (typeof showToast === 'function') {
@@ -591,13 +615,27 @@
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                ticks: { precision: 0 },
-                                grid: { borderDash: [4, 4] }
+                                ticks: {
+                                    precision: 0
+                                },
+                                grid: {
+                                    borderDash: [4, 4]
+                                }
                             },
-                            x: { grid: { display: false } }
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
                         },
                         plugins: {
-                            legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } }
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    boxWidth: 8
+                                }
+                            }
                         }
                     }
                 });
@@ -626,14 +664,28 @@
                             y: {
                                 beginAtZero: true,
                                 ticks: {
-                                    callback: function(value) { return '₱' + value.toLocaleString(); }
+                                    callback: function(value) {
+                                        return '₱' + value.toLocaleString();
+                                    }
                                 },
-                                grid: { borderDash: [4, 4] }
+                                grid: {
+                                    borderDash: [4, 4]
+                                }
                             },
-                            x: { grid: { display: false } }
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
                         },
                         plugins: {
-                            legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } }
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    boxWidth: 8
+                                }
+                            }
                         }
                     }
                 });
@@ -646,7 +698,7 @@
 
         // ===== REAL-TIME PLATE NUMBER DUPLICATE CHECK =====
         document.addEventListener("DOMContentLoaded", function() {
-            const plateInput    = document.getElementById('newTruckPlateInput');
+            const plateInput = document.getElementById('newTruckPlateInput');
             const plateFeedback = document.getElementById('plateCheckFeedback');
             const addTruckSubmitBtn = document.querySelector('#addTruckModal button[type="submit"]');
             if (!plateInput || !plateFeedback) return;
@@ -683,7 +735,9 @@
                                 if (addTruckSubmitBtn) addTruckSubmitBtn.disabled = false;
                             }
                         })
-                        .catch(() => { plateFeedback.innerHTML = ''; });
+                        .catch(() => {
+                            plateFeedback.innerHTML = '';
+                        });
                 }, 400);
             });
         });
@@ -695,8 +749,8 @@
                 const container = pwdInput.closest('div');
                 if (!container) return;
                 const reqLength = container.querySelector('#req-length, .req-length') || container.parentElement.querySelector('#req-length, .req-length');
-                const reqUpper  = container.querySelector('#req-uppercase, .req-uppercase') || container.parentElement.querySelector('#req-uppercase, .req-uppercase');
-                const reqLower  = container.querySelector('#req-lowercase, .req-lowercase') || container.parentElement.querySelector('#req-lowercase, .req-lowercase');
+                const reqUpper = container.querySelector('#req-uppercase, .req-uppercase') || container.parentElement.querySelector('#req-uppercase, .req-uppercase');
+                const reqLower = container.querySelector('#req-lowercase, .req-lowercase') || container.parentElement.querySelector('#req-lowercase, .req-lowercase');
                 const reqNumber = container.querySelector('#req-number, .req-number') || container.parentElement.querySelector('#req-number, .req-number');
                 const modalOrForm = pwdInput.closest('form, div.bg-white, div.bg-gray-800');
                 const submitBtn = modalOrForm ? modalOrForm.querySelector('button[type="submit"], #resetPasswordSubmitBtn, #btnVerifyOtp') : null;
@@ -720,8 +774,8 @@
                 pwdInput.addEventListener('input', function() {
                     const val = this.value;
                     const hasLength = val.length >= 8;
-                    const hasUpper  = /[A-Z]/.test(val);
-                    const hasLower  = /[a-z]/.test(val);
+                    const hasUpper = /[A-Z]/.test(val);
+                    const hasLower = /[a-z]/.test(val);
                     const hasNumber = /[0-9]/.test(val);
 
                     updateRequirement(reqLength, hasLength);
@@ -1033,9 +1087,9 @@
 
                     function startSimulatedGps() {
                         if (simIntervalId !== null) return;
-                        
+
                         showToast("ℹ️ Simulated GPS active (Local Testing Fallback). Fetching IP location...", "info", 5000);
-                        
+
                         let startLat = 15.3621;
                         let startLng = 120.9632;
 
@@ -1055,14 +1109,29 @@
 
                         function runSimulation() {
                             const destCoords = {
-                                'San Leonardo': { lat: 15.3621, lng: 120.9632 },
-                                'Tarlac':       { lat: 15.4828, lng: 120.5963 },
-                                'Laur':         { lat: 15.4385, lng: 121.1895 },
-                                'Gabaldon':     { lat: 15.4533, lng: 121.3283 }
+                                'San Leonardo': {
+                                    lat: 15.3621,
+                                    lng: 120.9632
+                                },
+                                'Tarlac': {
+                                    lat: 15.4828,
+                                    lng: 120.5963
+                                },
+                                'Laur': {
+                                    lat: 15.4385,
+                                    lng: 121.1895
+                                },
+                                'Gabaldon': {
+                                    lat: 15.4533,
+                                    lng: 121.3283
+                                }
                             };
-                            
-                            const target = destCoords[activeDest] || { lat: startLat, lng: startLng };
-                            
+
+                            const target = destCoords[activeDest] || {
+                                lat: startLat,
+                                lng: startLng
+                            };
+
                             if (isTransit) {
                                 createGpsBadge('GPS Simulated — Sharing Location', '#0284c7');
                             } else {
@@ -1072,13 +1141,13 @@
 
                             function stepSimulation() {
                                 let progress = parseFloat(localStorage.getItem('sim_progress_' + activeDest)) || 0;
-                                
+
                                 const curLat = startLat + (target.lat - startLat) * progress;
                                 const curLng = startLng + (target.lng - startLng) * progress;
                                 const curSpeed = progress < 1 ? 55 + Math.random() * 5 : 0;
-                                
+
                                 pushLocation(curLat, curLng, curSpeed);
-                                
+
                                 if (progress < 1) {
                                     progress += 0.05; // 5% per 10 seconds (~3.3 mins total)
                                     if (progress > 1) progress = 1;

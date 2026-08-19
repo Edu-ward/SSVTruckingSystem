@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security_headers.php';
 require '../db.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
@@ -10,7 +10,7 @@ if (!isset($_GET['id'])) {
     die("Ticket ID not specified.");
 }
 
-$ticket_id = $_GET['id'];
+$ticket_id = intval($_GET['id']);
 
 $stmt = $pdo->prepare("
     SELECT d.*, 

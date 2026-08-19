@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security_headers.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: ../index.php");
@@ -66,22 +66,22 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS system_settings (
     description VARCHAR(255) DEFAULT NULL
 ) ENGINE=InnoDB");
 $pdo->exec("INSERT IGNORE INTO system_settings (setting_key, setting_value, description) VALUES
-    ('garage_name','San Leonardo (Garage)','Default garage/origin location name'),
-    ('garage_lat','15.3621','Garage latitude coordinate'),
-    ('garage_lng','120.9632','Garage longitude coordinate'),
+    ('garage_name','San Leonardo (Quarry Garage)','Default garage/origin location name'),
+    ('garage_lat','15.359042','Garage latitude coordinate'),
+    ('garage_lng','120.965016','Garage longitude coordinate'),
     ('op_cost_pct','0.40','Estimated operational cost as a decimal fraction'),
     ('payday_day','Saturday','Day of the week when drivers are paid')");
-
-
+$pdo->exec("UPDATE system_settings SET setting_value = '15.359042' WHERE setting_key = 'garage_lat'");
+$pdo->exec("UPDATE system_settings SET setting_value = '120.965016' WHERE setting_key = 'garage_lng'");
 
 $pdo->exec("INSERT IGNORE INTO checkers (id, first_name, last_name, phone) 
             SELECT id, '', '', '' FROM users WHERE role = 'Checker'");
 
 
 $_settings_raw = $pdo->query("SELECT setting_key, setting_value FROM system_settings")->fetchAll(PDO::FETCH_KEY_PAIR);
-$GARAGE_NAME = $_settings_raw['garage_name'] ?? 'San Leonardo (Garage)';
-$GARAGE_LAT  = floatval($_settings_raw['garage_lat'] ?? 15.3621);
-$GARAGE_LNG  = floatval($_settings_raw['garage_lng'] ?? 120.9632);
+$GARAGE_NAME = $_settings_raw['garage_name'] ?? 'San Leonardo (Quarry Garage)';
+$GARAGE_LAT  = floatval($_settings_raw['garage_lat'] ?? 15.359042);
+$GARAGE_LNG  = floatval($_settings_raw['garage_lng'] ?? 120.965016);
 $OP_COST_PCT = floatval($_settings_raw['op_cost_pct'] ?? 0.40);
 
 $_dest_rows  = $pdo->query("SELECT name, driver_rate FROM destinations WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
@@ -403,7 +403,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             exit;
         } catch (Exception $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
-            $_SESSION['error'] = "Failed to delete driver: " . $e->getMessage();
+            $_SESSION['error'] = "Failed to delete driver. Please try again.";
             header("Location: dashboard.php?tab=drivers");
             exit;
         }
@@ -429,7 +429,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             header("Location: dashboard.php?tab=drivers");
             exit;
         } catch (Exception $e) {
-            $_SESSION['error'] = "Failed to reset password: " . $e->getMessage();
+            $_SESSION['error'] = "Failed to reset password. Please try again.";
             header("Location: dashboard.php?tab=drivers");
             exit;
         }
@@ -536,7 +536,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             header("Location: dashboard.php?tab=orders");
         } catch (Exception $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
-            $_SESSION['error'] = "Failed to add checker: " . $e->getMessage();
+            $_SESSION['error'] = "Failed to add checker. The username may already exist.";
             header("Location: dashboard.php?tab=orders");
         }
         exit;
@@ -568,7 +568,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $_SESSION['success'] = "Checker deleted successfully.";
             } catch (Exception $e) {
                 if ($pdo->inTransaction()) $pdo->rollBack();
-                $_SESSION['error'] = "Failed to delete checker: " . $e->getMessage();
+                $_SESSION['error'] = "Failed to delete checker. Please try again.";
             }
         } else {
             $_SESSION['error'] = "Failed to delete checker: Invalid ID.";
@@ -637,10 +637,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $_SESSION['success'] = "Truck switched successfully. Previous cancelled trip cleared from salary and new trip created.";
         } catch (Exception $e) {
             $pdo->rollBack();
-            $_SESSION['error'] = "Failed to switch truck: " . $e->getMessage();
+            $_SESSION['error'] = "Failed to switch truck. Please try again.";
         }
 
-        $redirect_tab = isset($_POST['redirect_tab']) ? $_POST['redirect_tab'] : 'drivers';
+        $allowedTabs = ['dashboard', 'dispatches', 'fleet', 'drivers', 'orders', 'tracking', 'reports'];
+        $redirect_tab = (isset($_POST['redirect_tab']) && in_array($_POST['redirect_tab'], $allowedTabs)) ? $_POST['redirect_tab'] : 'drivers';
         header("Location: dashboard.php?tab=" . $redirect_tab);
         exit;
     }

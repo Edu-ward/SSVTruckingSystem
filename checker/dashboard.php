@@ -1,10 +1,15 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security_headers.php';
 require '../db.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Checker') {
     header("Location: ../index.php");
     exit;
+}
+
+// ── CSRF Token Generation ──
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 $checker_id = $_SESSION['user_id'];
@@ -41,7 +46,14 @@ $checker_full_name = ($checker_profile && !empty($checker_profile['first_name'])
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
+    // ── CSRF Validation ──
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        http_response_code(403);
+        die("CSRF token validation failed.");
+    }
+
     if ($_POST['action'] === 'scan_truck') {
+
         $order_id  = intval($_POST['order_id']);
         $truck_id  = intval($_POST['truck_id'] ?? 0);
 
@@ -223,6 +235,7 @@ foreach ($_gravel_rows as $_g) {
                 </div>
                 <form method="POST" action="dashboard.php" class="p-5 space-y-4" id="scanForm">
                     <input type="hidden" name="action" value="scan_truck">
+                    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
 
                     <div>
                         <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Select Order <span class="text-red-500">*</span></label>
