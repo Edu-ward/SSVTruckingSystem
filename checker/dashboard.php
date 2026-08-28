@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/security_headers.php';
 require '../db.php';
+require_once __DIR__ . '/../includes/activity_log.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Checker') {
     header("Location: ../index.php");
@@ -92,36 +93,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $pdo->prepare("UPDATE orders SET status = 'In Progress' WHERE id = ? AND status = 'Pending'")
                         ->execute([$order_id]);
 
-                    $_dest_rows = $pdo->query("SELECT name, driver_rate FROM destinations WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
-                    $DRIVER_RATES = [];
-                    foreach ($_dest_rows as $_d) {
-                        $DRIVER_RATES[$_d['name']] = floatval($_d['driver_rate']);
-                    }
-                    $driver_pay   = $DRIVER_RATES[$order['destination']] ?? 0;
+                    $driverStmt = $pdo->prepare("SELECT id FROM drivers WHERE truck_id = ?");
+                    $driverStmt->execute([$truck['id']]);
+                    $assignedDriver = $driverStmt->fetch();
 
-                    if ($driver_pay > 0) {
-                        $driverStmt = $pdo->prepare("SELECT id FROM drivers WHERE truck_id = ?");
-                        $driverStmt->execute([$truck['id']]);
-                        $assignedDriver = $driverStmt->fetch();
+                    if ($assignedDriver) {
+                        $activeDispatchStmt = $pdo->prepare("SELECT id FROM dispatches WHERE driver_id = ? AND truck_id = ? AND status IN ('In Transit', 'Loading', 'Unloading') ORDER BY id DESC LIMIT 1");
+                        $activeDispatchStmt->execute([$assignedDriver['id'], $truck['id']]);
+                        $activeDispatch = $activeDispatchStmt->fetch();
 
-                        if ($assignedDriver) {
+                        if ($activeDispatch) {
+                            $pdo->prepare("UPDATE dispatches SET status = 'Delivered', transit_end_time = NOW() WHERE id = ?")->execute([$activeDispatch['id']]);
+                            $pdo->prepare("UPDATE driver_trips SET status = 'Delivered', transit_end_time = NOW() WHERE driver_id = ? AND status = 'In Transit' ORDER BY id DESC LIMIT 1")->execute([$assignedDriver['id']]);
+                            $pdo->prepare("UPDATE trucks SET status = 'Idle', current_location = 'San Leonardo (Garage)' WHERE id = ?")->execute([$truck['id']]);
+                            $pdo->prepare("UPDATE drivers SET status = 'Active' WHERE id = ?")->execute([$assignedDriver['id']]);
+                        } else {
                             $pdo->prepare(
-                                "UPDATE driver_payroll SET total_amount = total_amount + ? WHERE driver_id = ?"
-                            )->execute([$driver_pay, $assignedDriver['id']]);
-                            $activeDispatchStmt = $pdo->prepare("SELECT id FROM dispatches WHERE driver_id = ? AND truck_id = ? AND status IN ('In Transit', 'Loading', 'Unloading') ORDER BY id DESC LIMIT 1");
-                            $activeDispatchStmt->execute([$assignedDriver['id'], $truck['id']]);
-                            $activeDispatch = $activeDispatchStmt->fetch();
-
-                            if ($activeDispatch) {
-                                $pdo->prepare("UPDATE dispatches SET status = 'Delivered' WHERE id = ?")->execute([$activeDispatch['id']]);
-                                $pdo->prepare("UPDATE driver_trips SET status = 'Delivered' WHERE driver_id = ? AND status = 'In Transit' ORDER BY id DESC LIMIT 1")->execute([$assignedDriver['id']]);
-                                $pdo->prepare("UPDATE trucks SET status = 'Idle', current_location = 'San Leonardo (Garage)' WHERE id = ?")->execute([$truck['id']]);
-                                $pdo->prepare("UPDATE drivers SET status = 'Active' WHERE id = ?")->execute([$assignedDriver['id']]);
-                            } else {
-                                $pdo->prepare(
-                                    "INSERT INTO driver_trips (driver_id, destination, trip_date, status, order_id) VALUES (?, ?, CURDATE(), 'Delivered', ?)"
-                                )->execute([$assignedDriver['id'], $order['destination'], $order_id]);
-                            }
+                                "INSERT INTO driver_trips (driver_id, destination, trip_date, status, order_id, transit_end_time) VALUES (?, ?, CURDATE(), 'Delivered', ?, NOW())"
+                            )->execute([$assignedDriver['id'], $order['destination'], $order_id]);
                         }
                     }
 
@@ -135,9 +124,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         $pdo->prepare("UPDATE orders SET status = 'Fulfilled' WHERE id = ?")
                             ->execute([$order_id]);
                         $_SESSION['success'] = "✅ <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> logged (" . number_format($scannedCm, 2) . " cu.m). Order <strong>Fulfilled!</strong>";
+                        log_activity($pdo, 'Scanned Truck', 'Scanned truck ' . $truck['truck_code'] . ' for order ID ' . $order_id . ' — Order Fulfilled');
                     } else {
                         $remainingCm = max(0, $reqCm - $doneCm);
                         $_SESSION['success'] = "✅ <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> logged (" . number_format($scannedCm, 2) . " cu.m). <strong>" . number_format($remainingCm, 2) . " cu.m</strong> remaining.";
+                        log_activity($pdo, 'Scanned Truck', 'Scanned truck ' . $truck['truck_code'] . ' for order ID ' . $order_id . ' (' . number_format($scannedCm, 2) . ' cu.m)');
                     }
                 }
             }
@@ -224,22 +215,42 @@ foreach ($_gravel_rows as $_g) {
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <?php include 'views/modals.php'; ?>
-        <div class="lg:col-span-1">
+        <div class="lg:col-span-1 order-2 lg:order-1">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden sticky top-6">
+                <!-- Panel Header -->
                 <div class="bg-indigo-600 p-5 text-white">
                     <div class="flex items-center space-x-2 mb-1">
                         <i class="fa-solid fa-truck-ramp-box text-indigo-200 text-xl"></i>
                         <h2 class="font-bold text-lg">Log Delivery</h2>
                     </div>
-                    <p class="text-indigo-200 text-xs">Select an active order and choose the arrived truck.</p>
+                    <p class="text-indigo-200 text-xs">Select an active order, then scan RFID or choose a truck manually.</p>
                 </div>
+
+                <!-- Mode Toggle Tabs -->
+                <div class="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                    <button id="tabRfid" onclick="switchMode('rfid')"
+                        class="flex-1 py-3 text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-2 border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 transition">
+                        <i class="fa-solid fa-wifi"></i> RFID Scan
+                    </button>
+                    <button id="tabManual" onclick="switchMode('manual')"
+                        class="flex-1 py-3 text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-2 border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition">
+                        <i class="fa-solid fa-hand-pointer"></i> Manual Select
+                    </button>
+                </div>
+
+                <!-- Shared Form -->
                 <form method="POST" action="dashboard.php" class="p-5 space-y-4" id="scanForm">
                     <input type="hidden" name="action" value="scan_truck">
                     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                    <input type="hidden" name="truck_id" id="hiddenTruckId">
 
+                    <!-- Order Selector (shared) -->
                     <div>
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Select Order <span class="text-red-500">*</span></label>
-                        <select name="order_id" id="scanOrderSelect" required class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                            Select Order <span class="text-red-500">*</span>
+                        </label>
+                        <select name="order_id" id="scanOrderSelect" required
+                            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
                             <option value="">— Select active order —</option>
                             <?php foreach ($activeOrders as $ao):
                                 $aoReqCm = floatval($ao['cubic_meters_required'] ?? 0) > 0 ? floatval($ao['cubic_meters_required']) : floatval($ao['trucks_required']);
@@ -248,12 +259,14 @@ foreach ($_gravel_rows as $_g) {
                                 <option value="<?= $ao['id'] ?>"
                                     data-cm-req="<?= $aoReqCm ?>"
                                     data-cm-done="<?= $aoDoneCm ?>">
-                                    <?= htmlspecialchars($ao['order_number']) ?> · <?= htmlspecialchars($ao['destination']) ?> (<?= number_format($aoDoneCm, 2) ?>/<?= number_format($aoReqCm, 2) ?> cu.m)
+                                    <?= htmlspecialchars($ao['order_number']) ?> · <?= htmlspecialchars($ao['destination']) ?>
+                                    (<?= number_format($aoDoneCm, 2) ?>/<?= number_format($aoReqCm, 2) ?> cu.m)
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
 
+                    <!-- Progress Bar -->
                     <div id="scanProgress" class="hidden">
                         <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
                             <span>Fulfillment Progress</span>
@@ -264,15 +277,69 @@ foreach ($_gravel_rows as $_g) {
                         </div>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Select Dispatched Truck <span class="text-red-500">*</span></label>
-                        <select name="truck_id" id="truckSelect" required class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                    <!-- ── RFID MODE ── -->
+                    <div id="rfidMode">
+                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                            RFID Tag <span class="text-red-500">*</span>
+                        </label>
+
+                        <!-- Scanner input -->
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                <i class="fa-solid fa-wifi text-indigo-400"></i>
+                            </span>
+                            <input type="text" id="rfidInput" placeholder="Scan RFID tag here…" autocomplete="off"
+                                class="w-full pl-9 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                        </div>
+
+                        <!-- Scan status feedback -->
+                        <div id="rfidStatus" class="hidden mt-2 rounded-lg px-3 py-2 text-sm flex items-center gap-2"></div>
+
+                        <!-- Scanning indicator -->
+                        <div id="rfidScanning" class="hidden mt-2 flex items-center gap-2 text-indigo-500 text-sm">
+                            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                            </svg>
+                            <span>Looking up truck…</span>
+                        </div>
+
+                        <!-- Resolved truck card -->
+                        <div id="rfidTruckCard" class="hidden mt-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg px-4 py-3 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-truck text-indigo-500 text-lg"></i>
+                                <div>
+                                    <div id="rfidTruckCode" class="font-bold text-gray-900 dark:text-gray-100 text-sm"></div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">Ready to confirm</div>
+                                </div>
+                            </div>
+                            <button type="button" onclick="clearRfid()"
+                                class="text-gray-400 hover:text-red-500 transition text-lg leading-none"
+                                title="Clear">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                            <i class="fa-solid fa-circle-info mr-1"></i>
+                            Point the RFID reader at the truck tag — it will auto-detect.
+                        </p>
+                    </div>
+
+                    <!-- ── MANUAL MODE ── -->
+                    <div id="manualMode" class="hidden">
+                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                            Select Dispatched Truck <span class="text-red-500">*</span>
+                        </label>
+                        <select id="truckSelect"
+                            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
                             <option value="">— Select dispatched truck —</option>
                             <?php foreach ($dispatchedTrucks as $dt): ?>
                                 <option value="<?= $dt['truck_id'] ?>">
                                     <?= htmlspecialchars($dt['truck_code']) ?>
                                     <?php if (!empty($dt['ticket_number'])): ?>
-                                        · Ticket <?= htmlspecialchars($dt['ticket_number']) ?> (<?= number_format($dt['cubic_meters'] ?? 0, 2) ?> cu.m)<?= !empty($dt['driver_name']) ? ' · ' . htmlspecialchars($dt['driver_name']) : '' ?>
+                                        · Ticket <?= htmlspecialchars($dt['ticket_number']) ?>
+                                        (<?= number_format($dt['cubic_meters'] ?? 0, 2) ?> cu.m)<?= !empty($dt['driver_name']) ? ' · ' . htmlspecialchars($dt['driver_name']) : '' ?>
                                     <?php else: ?>
                                         · (Idle / Unassigned)
                                     <?php endif; ?>
@@ -281,7 +348,8 @@ foreach ($_gravel_rows as $_g) {
                         </select>
                     </div>
 
-                    <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition flex items-center justify-center space-x-2 text-sm">
+                    <button type="submit" id="confirmBtn"
+                        class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition flex items-center justify-center space-x-2 text-sm">
                         <i class="fa-solid fa-check-circle"></i>
                         <span>Confirm Delivery</span>
                     </button>
@@ -311,7 +379,7 @@ foreach ($_gravel_rows as $_g) {
             </div>
         </div>
 
-        <div class="lg:col-span-2 space-y-4">
+        <div class="lg:col-span-2 space-y-4 order-1 lg:order-2">
             <h2 class="text-base font-bold text-gray-800 dark:text-gray-200">Active & Recent Orders</h2>
 
             <?php if (empty($myOrders)): ?>
@@ -398,32 +466,166 @@ foreach ($_gravel_rows as $_g) {
 </div>
 
 <script>
+    // ── Mode switching ──────────────────────────────────────────────
+    let currentMode = 'rfid';
+
+    function switchMode(mode) {
+        currentMode = mode;
+        const rfidEl   = document.getElementById('rfidMode');
+        const manualEl = document.getElementById('manualMode');
+        const tabRfid  = document.getElementById('tabRfid');
+        const tabManu  = document.getElementById('tabManual');
+
+        if (mode === 'rfid') {
+            rfidEl.classList.remove('hidden');
+            manualEl.classList.add('hidden');
+            tabRfid.classList.add('border-indigo-600', 'text-indigo-600', 'dark:text-indigo-400');
+            tabRfid.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+            tabManu.classList.remove('border-indigo-600', 'text-indigo-600', 'dark:text-indigo-400');
+            tabManu.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+            // Clear hidden truck id when switching
+            document.getElementById('hiddenTruckId').value = '';
+            updateConfirmBtn();
+            document.getElementById('rfidInput').focus();
+        } else {
+            manualEl.classList.remove('hidden');
+            rfidEl.classList.add('hidden');
+            tabManu.classList.add('border-indigo-600', 'text-indigo-600', 'dark:text-indigo-400');
+            tabManu.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+            tabRfid.classList.remove('border-indigo-600', 'text-indigo-600', 'dark:text-indigo-400');
+            tabRfid.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+            document.getElementById('truckSelect').focus();
+        }
+    }
+
+    // ── Order progress bar ──────────────────────────────────────────
     const scanOrderSelect = document.getElementById('scanOrderSelect');
-    const scanProgress = document.getElementById('scanProgress');
+    const scanProgress    = document.getElementById('scanProgress');
     const scanProgressBar = document.getElementById('scanProgressBar');
-    const scanProgressTxt = document.getElementById('scanProgressText');
+    const scanProgressText = document.getElementById('scanProgressText');
+
     if (scanOrderSelect) {
-        scanOrderSelect.addEventListener('change', function() {
+        scanOrderSelect.addEventListener('change', function () {
             const opt = this.options[this.selectedIndex];
-            if (!opt.value) {
-                scanProgress.classList.add('hidden');
-                return;
-            }
-            const req = parseFloat(opt.dataset.cmReq) || 0;
+            if (!opt.value) { scanProgress.classList.add('hidden'); return; }
+            const req  = parseFloat(opt.dataset.cmReq)  || 0;
             const done = parseFloat(opt.dataset.cmDone) || 0;
-            const pct = req > 0 ? Math.round((done / req) * 100) : 0;
-            scanProgressText.innerText = done.toFixed(2) + ' / ' + req.toFixed(2) + ' cu.m';
-            scanProgressBar.style.width = Math.min(100, pct) + '%';
+            const pct  = req > 0 ? Math.round((done / req) * 100) : 0;
+            scanProgressText.innerText    = done.toFixed(2) + ' / ' + req.toFixed(2) + ' cu.m';
+            scanProgressBar.style.width   = Math.min(100, pct) + '%';
             scanProgress.classList.remove('hidden');
-            const truckSelect = document.getElementById('truckSelect');
-            if (truckSelect) truckSelect.focus();
         });
     }
 
-    document.addEventListener("DOMContentLoaded", function() {
-        if (document.documentElement.classList.contains('dark')) {
-            document.getElementById('themeIcon').classList.replace('fa-moon', 'fa-sun');
+    // ── Confirm button state ────────────────────────────────────────
+    function updateConfirmBtn() {
+        const btn = document.getElementById('confirmBtn');
+        if (currentMode === 'rfid') {
+            btn.disabled = !document.getElementById('hiddenTruckId').value;
+        } else {
+            btn.disabled = false;
         }
+    }
+
+    // ── RFID scanning logic ─────────────────────────────────────────
+    let rfidDebounce = null;
+
+    document.getElementById('rfidInput').addEventListener('input', function () {
+        clearTimeout(rfidDebounce);
+        const val = this.value.trim();
+        if (!val) { clearRfid(); return; }
+        // Debounce: RFID readers typically dump all chars quickly
+        rfidDebounce = setTimeout(() => lookupRfid(val), 350);
+    });
+
+    // Also allow pressing Enter to trigger lookup immediately
+    document.getElementById('rfidInput').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            clearTimeout(rfidDebounce);
+            lookupRfid(this.value.trim());
+        }
+    });
+
+    function lookupRfid(tag) {
+        if (!tag) return;
+        setRfidStatus('scanning');
+        fetch('get_truck_by_rfid.php?rfid=' + encodeURIComponent(tag))
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('hiddenTruckId').value = data.truck_id;
+                    document.getElementById('rfidTruckCode').textContent = data.truck_code;
+                    setRfidStatus('found');
+                } else {
+                    document.getElementById('hiddenTruckId').value = '';
+                    setRfidStatus('error', data.message || 'No truck found for this RFID tag.');
+                }
+                updateConfirmBtn();
+            })
+            .catch(() => {
+                setRfidStatus('error', 'Network error. Please try again.');
+                updateConfirmBtn();
+            });
+    }
+
+    function setRfidStatus(state, msg) {
+        const statusEl   = document.getElementById('rfidStatus');
+        const scanningEl = document.getElementById('rfidScanning');
+        const cardEl     = document.getElementById('rfidTruckCard');
+
+        statusEl.classList.add('hidden');
+        scanningEl.classList.add('hidden');
+        cardEl.classList.add('hidden');
+
+        if (state === 'scanning') {
+            scanningEl.classList.remove('hidden');
+        } else if (state === 'found') {
+            cardEl.classList.remove('hidden');
+        } else if (state === 'error') {
+            statusEl.className = 'mt-2 rounded-lg px-3 py-2 text-sm flex items-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-700';
+            statusEl.innerHTML = '<i class="fa-solid fa-circle-xmark"></i><span>' + (msg || 'Unknown error') + '</span>';
+            statusEl.classList.remove('hidden');
+        }
+    }
+
+    function clearRfid() {
+        document.getElementById('rfidInput').value = '';
+        document.getElementById('hiddenTruckId').value = '';
+        document.getElementById('rfidTruckCard').classList.add('hidden');
+        document.getElementById('rfidStatus').classList.add('hidden');
+        document.getElementById('rfidScanning').classList.add('hidden');
+        updateConfirmBtn();
+        document.getElementById('rfidInput').focus();
+    }
+
+    // ── Form submission: populate hidden truck_id ───────────────────
+    document.getElementById('scanForm').addEventListener('submit', function (e) {
+        if (currentMode === 'manual') {
+            const sel = document.getElementById('truckSelect');
+            if (!sel.value) { e.preventDefault(); sel.focus(); return; }
+            document.getElementById('hiddenTruckId').value = sel.value;
+        }
+        if (!document.getElementById('hiddenTruckId').value) {
+            e.preventDefault();
+            if (currentMode === 'rfid') {
+                setRfidStatus('error', 'Please scan a valid RFID tag first.');
+            }
+        }
+    });
+
+    // ── Manual select change ────────────────────────────────────────
+    document.getElementById('truckSelect').addEventListener('change', updateConfirmBtn);
+
+    // ── Theme icon ──────────────────────────────────────────────────
+    document.addEventListener("DOMContentLoaded", function () {
+        if (document.documentElement.classList.contains('dark')) {
+            const icon = document.getElementById('themeIcon');
+            if (icon) icon.classList.replace('fa-moon', 'fa-sun');
+        }
+        // Start in RFID mode
+        switchMode('rfid');
+        updateConfirmBtn();
     });
 </script>
 

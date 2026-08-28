@@ -215,5 +215,20 @@ INSERT INTO `system_settings` (`setting_key`, `setting_value`, `description`) VA
 ON DUPLICATE KEY UPDATE `setting_value` = VALUES(`setting_value`);
 
 -- ============================================================
+-- 13. ACTIVITY LOGS TABLE (audit trail)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `activity_logs` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT DEFAULT NULL,
+    `username` VARCHAR(100) DEFAULT NULL,
+    `role` VARCHAR(50) DEFAULT NULL,
+    `action` VARCHAR(100) NOT NULL,
+    `details` TEXT DEFAULT NULL,
+    `ip_address` VARCHAR(45) DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- ============================================================
 -- DONE! Your database is now ready.
 -- ============================================================

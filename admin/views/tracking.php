@@ -17,13 +17,13 @@
                 </div>
                 <span id="map-last-updated" class="text-xs text-gray-400 dark:text-gray-500 font-mono"></span>
             </div>
-            <div class="flex-grow border border-gray-200/80 dark:border-gray-700/80 rounded-2xl overflow-hidden relative shadow-inner" style="min-height: 520px;">
+            <div class="flex-grow border border-gray-200/80 dark:border-gray-700/80 rounded-2xl overflow-hidden relative shadow-inner min-h-[360px] sm:min-h-[520px]">
                 <div id="map" class="absolute inset-0 w-full h-full"></div>
                 <!-- Recenter Fleet Map button -->
                 <button onclick="recenterMap()" id="locateMeBtn"
                     title="Center map on fleet"
-                    class="absolute bottom-5 right-5 z-[999] bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-2xl w-12 h-12 flex items-center justify-center transition-all duration-200 group active:scale-95">
-                    <i id="locateMeIcon" class="fa-solid fa-crosshairs text-blue-600 dark:text-blue-400 text-xl group-hover:scale-110 transition-transform"></i>
+                    class="absolute bottom-4 sm:bottom-5 right-4 sm:right-5 z-[999] bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-2xl w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center transition-all duration-200 group active:scale-95">
+                    <i id="locateMeIcon" class="fa-solid fa-crosshairs text-blue-600 dark:text-blue-400 text-lg sm:text-xl group-hover:scale-110 transition-transform"></i>
                 </button>
             </div>
         </div>

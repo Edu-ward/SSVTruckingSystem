@@ -1,6 +1,9 @@
+<?php if (in_array($_SESSION['role'] ?? '', ['Admin', 'Driver'])): ?>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<?php endif; ?>
+
 <?php if ($_SESSION['role'] === 'Admin'): ?>
     <!-- ================= ADMIN SCRIPTS ================= -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const activeTab = urlParams.get('tab') || 'dashboard';
@@ -37,55 +40,94 @@
             }
         }
         switchTab(activeTab);
+
+        // ── Password Reset Badge Polling (Admin) ──
+        function refreshPwdResetBadge() {
+            fetch('get_pwd_reset_count.php')
+                .then(r => r.json())
+                .then(data => {
+                    const badge = document.getElementById('pwdResetBadge');
+                    const navBtn = document.getElementById('nav-pwd_requests');
+                    if (data.count > 0) {
+                        if (badge) {
+                            badge.textContent = data.count;
+                            badge.classList.remove('hidden');
+                        } else if (navBtn) {
+                            // Create badge if not rendered (was 0 on page load)
+                            const span = document.createElement('span');
+                            span.id = 'pwdResetBadge';
+                            span.className = 'ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-red-500 text-white flex items-center justify-center';
+                            span.textContent = data.count;
+                            navBtn.appendChild(span);
+                        }
+                    } else {
+                        if (badge) badge.classList.add('hidden');
+                    }
+                })
+                .catch(() => {});
+        }
+        // Poll every 15 seconds
+        setInterval(refreshPwdResetBadge, 15000);
+
+        // ── Activity Logs Filter ──
+        function filterActivityLogs() {
+            const search = (document.getElementById('activityLogSearch')?.value || '').toLowerCase();
+            const role = document.getElementById('activityLogRoleFilter')?.value || '';
+            const rows = document.querySelectorAll('.activity-log-row');
+            let visible = 0;
+            rows.forEach(row => {
+                const rowRole = row.dataset.role || '';
+                const rowSearch = row.dataset.search || '';
+                const matchRole = !role || rowRole === role;
+                const matchSearch = !search || rowSearch.includes(search);
+                if (matchRole && matchSearch) {
+                    row.style.display = '';
+                    visible++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            const countEl = document.getElementById('activityLogVisibleCount');
+            if (countEl) countEl.textContent = visible + ' of ' + rows.length + ' entries visible';
+        }
+
         const trackingData = <?= json_encode($trackingTrucks ?? []); ?>;
         let streetLayer = null;
-        let darkLayer = null;
+        let googleStreetLayer = null;
         let satelliteLayer = null;
-        let osmLayer = null;
 
         function initMap() {
             const mapDiv = document.getElementById('map');
             if (!mapDiv) return;
             try {
-                // High-resolution tile providers over HTTPS
-                streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                    maxZoom: 20,
-                    subdomains: 'abcd',
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-                });
-
-                darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                    maxZoom: 20,
-                    subdomains: 'abcd',
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-                });
-
-                satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                    maxZoom: 19,
-                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS User Community'
-                });
-
-                osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                // Free, high-reliability tile providers (NO API Key required)
+                streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 });
 
-                const isDark = document.documentElement.classList.contains('dark');
-                const activeBaseLayer = isDark ? darkLayer : streetLayer;
+                googleStreetLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                    maxZoom: 20,
+                    attribution: '&copy; Google Maps'
+                });
+
+                satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                    maxZoom: 20,
+                    attribution: '&copy; Google Maps Satellite'
+                });
 
                 map = L.map('map', {
                     center: [15.359042, 120.965016],
                     zoom: 14,
-                    layers: [activeBaseLayer],
+                    layers: [streetLayer],
                     zoomControl: true
                 });
 
                 // Interactive Layer Control Switcher (top right)
                 const baseMaps = {
-                    "🗺️ High-Def Street": streetLayer,
-                    "🛰️ Satellite View": satelliteLayer,
-                    "🌙 Dark Vector": darkLayer,
-                    "📍 OpenStreetMap": osmLayer
+                    "🗺️ OpenStreetMap": streetLayer,
+                    "🚗 Google Streets": googleStreetLayer,
+                    "🛰️ Google Satellite": satelliteLayer
                 };
                 L.control.layers(baseMaps, null, {
                     position: 'topright'
@@ -310,7 +352,10 @@
             return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
         }
 
+        let currentViewingDriver = null;
+
         function openViewDriverModal(driver) {
+            currentViewingDriver = driver;
             document.getElementById('vd-initials').innerText = getInitialsJS(driver.name);
             document.getElementById('vd-name').innerText = driver.name;
             document.getElementById('vd-cdl').innerText = driver.cdl_number || 'N/A';
@@ -321,38 +366,21 @@
             document.getElementById('vd-deliveries').innerText = driver.total_deliveries ? driver.total_deliveries : 0;
             document.getElementById('vd-ontime').innerText = (driver.on_time_pct ? parseFloat(driver.on_time_pct).toFixed(1) : '100.0') + '%';
 
-            let balance = parseFloat(driver.available_balance || 0).toFixed(2);
-            document.getElementById('vd-owed-balance').innerText = balance;
-
-            const settleBtn = document.getElementById('vd-settle-btn');
-            const printBtn = document.getElementById('vd-print-btn');
-            if (parseFloat(balance) > 0) {
-                settleBtn.classList.remove('hidden');
-                settleBtn.onclick = function() {
-                    toggleModal('viewDriverModal', false);
-                    openSettlePayrollModal(driver.id, driver.name, balance);
-                };
-                printBtn.classList.remove('hidden');
-                printBtn.href = 'print_payroll.php?driver_id=' + driver.id;
-            } else {
-                settleBtn.classList.add('hidden');
-                printBtn.classList.add('hidden');
-            }
-
             const tripsContainer = document.getElementById('vd-recent-trips');
             if (tripsContainer) {
                 tripsContainer.innerHTML = '';
                 if (driver.recent_trips && driver.recent_trips.length > 0) {
                     driver.recent_trips.forEach(trip => {
-                        const payAmt = parseFloat(trip.display_pay || 0).toFixed(2);
-                        let statusBadge = trip.payment_status === 'Paid' ?
-                            `<span class="ml-2 text-green-600 font-semibold bg-green-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-[10px] uppercase"><i class="fa-solid fa-check mr-1"></i>Paid</span>` :
-                            `<span class="ml-2 text-orange-500 font-semibold bg-orange-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-[10px] uppercase"><i class="fa-solid fa-clock-rotate-left mr-1"></i>Pending</span>`;
+                        let statusBadge = (trip.status === 'Delivered' || !trip.status) ?
+                            `<span class="ml-2 text-green-600 font-semibold bg-green-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-[10px] uppercase"><i class="fa-solid fa-check mr-1"></i>Delivered</span>` :
+                            `<span class="ml-2 text-blue-500 font-semibold bg-blue-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-[10px] uppercase"><i class="fa-solid fa-truck-fast mr-1"></i>${trip.status}</span>`;
 
                         tripsContainer.innerHTML += `
-                        <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border-l-4 ${trip.payment_status === 'Paid' ? 'border-green-500' : 'border-orange-500'} shadow-sm mb-2">
-                            <div><div class="font-bold text-gray-800 dark:text-gray-200">${trip.destination} ${statusBadge}</div><div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5"><i class="fa-regular fa-calendar mr-1"></i> ${trip.trip_date}</div></div>
-                            <div class="font-bold ${trip.payment_status === 'Paid' ? 'text-green-600 dark:text-green-400' : 'text-orange-500 dark:text-orange-400'} text-base">₱${payAmt}</div>
+                        <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border-l-4 border-blue-500 shadow-sm mb-2">
+                            <div>
+                                <div class="font-bold text-gray-800 dark:text-gray-200 text-sm">${trip.destination} ${statusBadge}</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5"><i class="fa-regular fa-calendar mr-1"></i> ${trip.trip_date || 'Recent'}</div>
+                            </div>
                         </div>`;
                     });
                 } else {
@@ -360,6 +388,72 @@
                 }
             }
             toggleModal('viewDriverModal', true);
+        }
+
+        function openPrintDriverTripsModal(driverId, driverName) {
+            const dr = currentViewingDriver || { id: driverId, name: driverName || 'Driver' };
+            const modal = document.getElementById('printDriverTripsModal');
+            if (!modal) return;
+
+            const idInput = document.getElementById('pdt_driver_id');
+            const nameEl = document.getElementById('pdt_driver_name_display');
+            if (idInput) idInput.value = dr.id;
+            if (nameEl) nameEl.textContent = dr.name + (dr.cdl_number ? ' (CDL: ' + dr.cdl_number + ')' : '');
+
+            const periodSelect = document.getElementById('pdt_period');
+            if (periodSelect) periodSelect.value = 'monthly';
+            updatePdtDateInputs('monthly');
+
+            toggleModal('printDriverTripsModal', true);
+        }
+
+        function updatePdtDateInputs(period) {
+            const customDiv = document.getElementById('pdt_custom_date_range');
+            const startInput = document.getElementById('pdt_start_date');
+            const endInput = document.getElementById('pdt_end_date');
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+
+            if (period === 'today') {
+                if (startInput) startInput.value = todayStr;
+                if (endInput) endInput.value = todayStr;
+                if (customDiv) customDiv.classList.add('hidden');
+            } else if (period === 'weekly') {
+                const firstDayOfWeek = new Date(today);
+                const day = today.getDay();
+                const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+                firstDayOfWeek.setDate(diff);
+                if (startInput) startInput.value = firstDayOfWeek.toISOString().split('T')[0];
+                if (endInput) endInput.value = todayStr;
+                if (customDiv) customDiv.classList.add('hidden');
+            } else if (period === 'monthly') {
+                const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                if (startInput) startInput.value = firstDayOfMonth.toISOString().split('T')[0];
+                if (endInput) endInput.value = todayStr;
+                if (customDiv) customDiv.classList.add('hidden');
+            } else if (period === 'all') {
+                if (startInput) startInput.value = '';
+                if (endInput) endInput.value = '';
+                if (customDiv) customDiv.classList.add('hidden');
+            } else if (period === 'custom') {
+                if (customDiv) customDiv.classList.remove('hidden');
+            }
+        }
+
+        function submitPrintDriverTrips() {
+            const driverId = document.getElementById('pdt_driver_id').value;
+            const period = document.getElementById('pdt_period').value;
+            const startDate = document.getElementById('pdt_start_date').value;
+            const endDate = document.getElementById('pdt_end_date').value;
+            const status = document.getElementById('pdt_status').value;
+
+            let url = `print_driver_trips.php?driver_id=${encodeURIComponent(driverId)}&period=${encodeURIComponent(period)}&status=${encodeURIComponent(status)}`;
+            if (period === 'custom' || (startDate && endDate)) {
+                url += `&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`;
+            }
+
+            window.open(url, '_blank');
+            toggleModal('printDriverTripsModal', false);
         }
 
         function openContactDriverModal(driver) {
@@ -449,13 +543,6 @@
             document.getElementById('cd-ticket-number').innerText = ticketNumber;
             document.getElementById('complete_dispatch_id').value = dispatchId;
             toggleModal('completeDispatchModal', true);
-        }
-
-        function openSettlePayrollModal(driverId, driverName, balance) {
-            document.getElementById('sp-driver-name').innerText = driverName;
-            document.getElementById('sp-balance').innerText = '₱' + balance;
-            document.getElementById('settle_driver_id').value = driverId;
-            toggleModal('settlePayrollModal', true);
         }
 
         function openAssignCheckerModal(orderId, orderNumber) {
@@ -1242,100 +1329,175 @@
 
 
 
-        function openChangePasswordModal() {
-            document.getElementById('otpModalOverlay').classList.remove('hidden');
-            document.getElementById('otpModalOverlay').classList.add('flex');
-            showStep('stepRequest');
+        // ── Password Reset Modal Functions ──────────────────────────
+        let prPollingInterval = null;
+        const prRole = '<?= strtolower($_SESSION['role'] ?? 'driver') ?>';
+        const prBasePath = prRole === 'checker' ? '../checker/' : '../driver/';
+
+        function openResetPasswordModal() {
+            checkCurrentResetStatus(function(status) {
+                const overlay = document.getElementById('pwdResetOverlay');
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+                if (status === 'Approved') {
+                    showPrStep('prStepSetPwd');
+                } else if (status === 'Pending') {
+                    showPrStep('prStepWaiting');
+                    startPrPolling();
+                } else {
+                    showPrStep('prStepRequest');
+                }
+            });
         }
 
-        function closeOtpModal() {
-            document.getElementById('otpModalOverlay').classList.add('hidden');
-            document.getElementById('otpModalOverlay').classList.remove('flex');
-            document.getElementById('stepRequest').classList.remove('scale-100', 'opacity-100');
-            document.getElementById('stepVerify').classList.remove('scale-100', 'opacity-100');
+        function closePwdResetModal() {
+            const overlay = document.getElementById('pwdResetOverlay');
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+            stopPrPolling();
+            document.querySelectorAll('#pwdResetOverlay > div').forEach(d => {
+                d.classList.add('hidden');
+                d.classList.remove('scale-100', 'opacity-100');
+                d.classList.add('scale-95', 'opacity-0');
+            });
         }
 
-        function showStep(stepId) {
-            document.getElementById('stepRequest').classList.add('hidden');
-            document.getElementById('stepVerify').classList.add('hidden');
+        function showPrStep(stepId) {
+            document.querySelectorAll('#pwdResetOverlay > div').forEach(d => {
+                d.classList.add('hidden');
+                d.classList.remove('scale-100', 'opacity-100');
+                d.classList.add('scale-95', 'opacity-0');
+            });
             const step = document.getElementById(stepId);
+            if (!step) return;
             step.classList.remove('hidden');
             setTimeout(() => {
+                step.classList.remove('scale-95', 'opacity-0');
                 step.classList.add('scale-100', 'opacity-100');
             }, 50);
         }
 
-        function requestOtp() {
-            const btn = document.getElementById('btnRequestOtp');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-            btn.disabled = true;
-            fetch('otp_handler.php', {
-                    method: 'POST'
-                })
-                .then(res => res.json())
+        function checkCurrentResetStatus(cb) {
+            fetch('../includes/check_reset_status.php')
+                .then(r => r.json())
+                .then(data => cb(data.status || 'none'))
+                .catch(() => cb('none'));
+        }
+
+        function submitResetRequest() {
+            const btn = document.getElementById('btnSendRequest');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; }
+            fetch(prBasePath + 'request_pwd_reset.php', { method: 'POST' })
+                .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        showToast("SIMULATED SMS: Your SSV Trucking OTP code is <strong>" + data.simulated_otp + "</strong>", "info", 8000);
-                        document.getElementById('otpPhoneText').innerText = "***-***-" + data.phone_last_4;
-                        btn.innerHTML = 'Send OTP';
-                        btn.disabled = false;
-                        showStep('stepVerify');
+                        if (data.already_approved) {
+                            showPrStep('prStepSetPwd');
+                        } else {
+                            showPrStep('prStepWaiting');
+                            startPrPolling();
+                            showToast(data.message || 'Request sent!', 'info');
+                        }
                     } else {
-                        showToast(data.message, "error");
-                        btn.innerHTML = 'Send OTP';
-                        btn.disabled = false;
+                        showToast(data.message || 'Failed to send request.', 'error');
+                        if (btn) { btn.disabled = false; btn.innerHTML = 'Send Request'; }
                     }
-                }).catch(e => {
-                    showToast("Network Error", "error");
-                    btn.innerHTML = 'Send OTP';
-                    btn.disabled = false;
+                }).catch(() => {
+                    showToast('Network error. Please try again.', 'error');
+                    if (btn) { btn.disabled = false; btn.innerHTML = 'Send Request'; }
                 });
         }
 
-        function verifyAndChangePwd() {
-            const otp = document.getElementById('otpInput').value;
-            const pwd = document.getElementById('newPasswordInput').value;
-            if (!otp || !pwd) {
-                showToast("Please fill all fields", "warning");
-                return;
-            }
+        function startPrPolling() {
+            stopPrPolling();
+            prPollingInterval = setInterval(() => {
+                checkCurrentResetStatus(function(status) {
+                    if (status === 'Approved') {
+                        stopPrPolling();
+                        // If modal is open, jump to set-password step
+                        const overlay = document.getElementById('pwdResetOverlay');
+                        if (overlay && !overlay.classList.contains('hidden')) {
+                            showPrStep('prStepSetPwd');
+                        }
+                        // Regardless, show a toast notification
+                        showToast('✅ Your password reset was approved! You can now set your new password.', 'success', 8000);
+                    } else if (status === 'none') {
+                        // Request was rejected
+                        stopPrPolling();
+                        const overlay = document.getElementById('pwdResetOverlay');
+                        if (overlay && !overlay.classList.contains('hidden')) {
+                            showPrStep('prStepRequest');
+                        }
+                        showToast('Your password reset request was rejected by the Admin.', 'warning', 6000);
+                    }
+                });
+            }, 5000); // poll every 5 seconds
+        }
 
-            const btn = document.getElementById('btnVerifyOtp');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        function stopPrPolling() {
+            if (prPollingInterval) { clearInterval(prPollingInterval); prPollingInterval = null; }
+        }
+
+        function submitNewPassword() {
+            const pwd = document.getElementById('prNewPassword');
+            const msgEl = document.getElementById('prSetPwdMsg');
+            const btn = document.getElementById('btnSetPwd');
+
+            if (!pwd.value) { showMsg(msgEl, 'Please enter a new password.', 'error'); return; }
+
             btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
-            const fn = new FormData();
-            fn.append('otp', otp);
-            fn.append('new_password', pwd);
+            const fd = new FormData();
+            fd.append('new_password', pwd.value);
 
-            fetch('change_pwd.php', {
-                    method: 'POST',
-                    body: fn
-                })
-                .then(res => res.json())
+            fetch(prBasePath + 'set_new_password.php', { method: 'POST', body: fd })
+                .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        showToast(data.message, "success");
-                        closeOtpModal();
-                        document.getElementById('otpInput').value = '';
-                        document.getElementById('newPasswordInput').value = '';
+                        showToast(data.message || 'Password updated successfully!', 'success');
+                        closePwdResetModal();
+                        if (pwd) pwd.value = '';
                     } else {
-                        showToast(data.message, "error");
+                        showMsg(msgEl, data.message || 'Failed to update password.', 'error');
+                        btn.disabled = false;
+                        btn.innerHTML = 'Update Password';
                     }
-                    btn.innerHTML = 'Update';
+                }).catch(() => {
+                    showMsg(msgEl, 'Network error. Please try again.', 'error');
                     btn.disabled = false;
-                }).catch(e => {
-                    showToast("Network Error", "error");
-                    btn.innerHTML = 'Update';
-                    btn.disabled = false;
+                    btn.innerHTML = 'Update Password';
                 });
         }
+
+        function showMsg(el, msg, type) {
+            if (!el) return;
+            el.textContent = msg;
+            el.className = 'mb-3 text-sm rounded-lg px-3 py-2 ' + (type === 'error'
+                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400');
+            el.classList.remove('hidden');
+        }
+
+        // Legacy alias for any remaining openChangePasswordModal() calls
+        function openChangePasswordModal() { openResetPasswordModal(); }
+        function closeOtpModal() { closePwdResetModal(); }
+
         // Theme icon initialisation
         document.addEventListener("DOMContentLoaded", function() {
             const icon = document.getElementById('themeIcon');
             if (icon && document.documentElement.classList.contains('dark')) {
                 icon.classList.replace('fa-moon', 'fa-sun');
             }
+
+            // If user already had a pending/approved request, start polling silently
+            checkCurrentResetStatus(function(status) {
+                if (status === 'Pending') {
+                    startPrPolling();
+                } else if (status === 'Approved') {
+                    showToast('✅ Your password reset was approved! Click "Reset Password" to set your new password.', 'success', 8000);
+                }
+            });
         });
     </script>
 

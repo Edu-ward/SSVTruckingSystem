@@ -28,6 +28,7 @@ $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type']
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Order Ticket — <?= htmlspecialchars($order['order_number']) ?></title>
@@ -36,20 +37,32 @@ $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type']
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         @media print {
-            body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-            .no-print { display: none !important; }
+            body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+
+            .no-print {
+                display: none !important;
+            }
         }
-        body { background: #e5e7eb; font-family: 'Inter', sans-serif; }
+
+        body {
+            background: #e5e7eb;
+            font-family: 'Inter', sans-serif;
+        }
+
         .ticket-container {
             background: #fff;
             width: 210mm;
             min-height: 297mm;
             margin: 20px auto;
             padding: 40px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
+
 <body class="text-gray-900">
 
     <div class="no-print bg-gray-900 text-white p-4 flex justify-between items-center fixed top-0 w-full z-10 shadow-md">
@@ -97,20 +110,28 @@ $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type']
                     $reqCm = floatval($order['cubic_meters_required'] ?? 0) > 0 ? floatval($order['cubic_meters_required']) : floatval($order['trucks_required']);
                     $doneCm = floatval($order['cubic_meters_fulfilled'] ?? 0) > 0 ? floatval($order['cubic_meters_fulfilled']) : floatval($order['trucks_fulfilled']);
                     ?>
-                    <tr><td class="text-gray-600 py-1.5 border-b border-gray-200">Status:</td><td class="text-right font-semibold uppercase"><?= htmlspecialchars($order['status']) ?></td></tr>
-                    <tr><td class="text-gray-600 py-1.5 border-b border-gray-200">Gravel Type:</td><td class="text-right font-semibold"><?= htmlspecialchars($gravelLabel) ?></td></tr>
-                    <tr><td class="text-gray-600 py-1.5 border-b border-gray-200">Cubic Meters Required:</td><td class="text-right font-bold text-lg"><?= number_format($reqCm, 2) ?> cu.m</td></tr>
-                    <tr><td class="text-gray-600 py-1.5">Cubic Meters Fulfilled:</td><td class="text-right font-bold text-green-700"><?= number_format($doneCm, 2) ?> cu.m</td></tr>
+                    <tr>
+                        <td class="text-gray-600 py-1.5 border-b border-gray-200">Gravel Type:</td>
+                        <td class="text-right font-semibold"><?= htmlspecialchars($gravelLabel) ?></td>
+                    </tr>
+                    <tr>
+                        <td class="text-gray-600 py-1.5 border-b border-gray-200">Cubic Meters Required:</td>
+                        <td class="text-right font-bold text-lg"><?= number_format($reqCm, 2) ?> cu.m</td>
+                    </tr>
+                    <tr>
+                        <td class="text-gray-600 py-1.5">Cubic Meters Fulfilled:</td>
+                        <td class="text-right font-bold text-green-700"><?= number_format($doneCm, 2) ?> cu.m</td>
+                    </tr>
                 </table>
             </div>
         </div>
 
         <!-- Notes -->
         <?php if (!empty($order['notes'])): ?>
-        <div class="border border-gray-300 rounded p-4 mb-8 bg-yellow-50">
-            <p class="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">Notes / Special Instructions</p>
-            <p class="text-sm text-gray-800"><?= nl2br(htmlspecialchars($order['notes'])) ?></p>
-        </div>
+            <div class="border border-gray-300 rounded p-4 mb-8 bg-yellow-50">
+                <p class="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">Notes / Special Instructions</p>
+                <p class="text-sm text-gray-800"><?= nl2br(htmlspecialchars($order['notes'])) ?></p>
+            </div>
         <?php endif; ?>
 
         <!-- Truck scan log -->
@@ -135,23 +156,32 @@ $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type']
                     $scanRows = $scans->fetchAll();
                     if (empty($scanRows)):
                     ?>
-                    <tr><td colspan="4" class="px-4 py-6 text-center text-gray-400 italic">No scans recorded yet.</td></tr>
-                    <?php else: foreach ($scanRows as $i => $scan): ?>
-                    <tr class="border-t border-gray-100">
-                        <td class="px-4 py-2 text-gray-500"><?= $i + 1 ?></td>
-                        <td class="px-4 py-2 font-bold text-gray-800"><?= htmlspecialchars($scan['truck_code']) ?></td>
-                        <td class="px-4 py-2 text-gray-600"><?= htmlspecialchars($scan['checker_name']) ?></td>
-                        <td class="px-4 py-2 text-gray-600"><?= date('M d, Y H:i', strtotime($scan['scanned_at'])) ?></td>
-                    </tr>
-                    <?php endforeach; endif; ?>
+                        <tr>
+                            <td colspan="4" class="px-4 py-6 text-center text-gray-400 italic">No scans recorded yet.</td>
+                        </tr>
+                        <?php else: foreach ($scanRows as $i => $scan): ?>
+                            <tr class="border-t border-gray-100">
+                                <td class="px-4 py-2 text-gray-500"><?= $i + 1 ?></td>
+                                <td class="px-4 py-2 font-bold text-gray-800"><?= htmlspecialchars($scan['truck_code']) ?></td>
+                                <td class="px-4 py-2 text-gray-600"><?= htmlspecialchars($scan['checker_name']) ?></td>
+                                <td class="px-4 py-2 text-gray-600"><?= date('M d, Y H:i', strtotime($scan['scanned_at'])) ?></td>
+                            </tr>
+                    <?php endforeach;
+                    endif; ?>
                     <!-- Blank rows for remaining trucks -->
                     <?php for ($r = count($scanRows); $r < $order['trucks_required']; $r++): ?>
-                    <tr class="border-t border-dashed border-gray-200">
-                        <td class="px-4 py-3 text-gray-300"><?= $r + 1 ?></td>
-                        <td class="px-4 py-3"><div class="border-b border-dotted border-gray-300 h-4 w-32"></div></td>
-                        <td class="px-4 py-3"><div class="border-b border-dotted border-gray-300 h-4 w-24"></div></td>
-                        <td class="px-4 py-3"><div class="border-b border-dotted border-gray-300 h-4 w-28"></div></td>
-                    </tr>
+                        <tr class="border-t border-dashed border-gray-200">
+                            <td class="px-4 py-3 text-gray-300"><?= $r + 1 ?></td>
+                            <td class="px-4 py-3">
+                                <div class="border-b border-dotted border-gray-300 h-4 w-32"></div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="border-b border-dotted border-gray-300 h-4 w-24"></div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="border-b border-dotted border-gray-300 h-4 w-28"></div>
+                            </td>
+                        </tr>
                     <?php endfor; ?>
                 </tbody>
             </table>
@@ -181,7 +211,12 @@ $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type']
     </div>
 
     <script>
-        window.onload = function() { setTimeout(function() { window.print(); }, 800); };
+        window.onload = function() {
+            setTimeout(function() {
+                window.print();
+            }, 800);
+        };
     </script>
 </body>
+
 </html>

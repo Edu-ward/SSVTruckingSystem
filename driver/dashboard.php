@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/security_headers.php';
 require '../db.php';
+require_once __DIR__ . '/../includes/activity_log.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Driver') {
     header("Location: index.php");
@@ -56,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $pdo->commit();
         if (count($active_dispatches) > 0) {
             $_SESSION['success'] = "Cancellation requested. Please wait for Admin approval.";
+            log_activity($pdo, 'Requested Cancellation', 'Driver requested trip cancellation');
         } else {
             $_SESSION['error'] = "No active trip found to cancel.";
         }
@@ -67,50 +69,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     header("Location: dashboard.php");
     exit;
 }
-$stmt = $pdo->prepare("SELECT * FROM driver_payroll WHERE driver_id = ?");
-$stmt->execute([$driver_id]);
-$payroll = $stmt->fetch() ?: ['total_amount' => 0, 'amount_claimed' => 0];
-
-$available_balance = max(0, $payroll['total_amount'] - $payroll['amount_claimed']);
-
-$_dest_rows  = $pdo->query("SELECT name, driver_rate FROM destinations WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
-$driver_rates = [];
-foreach ($_dest_rows as $_d) {
-    $driver_rates[$_d['name']] = floatval($_d['driver_rate']);
-}
+$_dest_rows = $pdo->query("SELECT name FROM destinations WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
 
 $stmt2 = $pdo->prepare("SELECT trip_date, destination, status, created_at, transit_start_time, transit_end_time FROM driver_trips WHERE driver_id = ? ORDER BY trip_date DESC, id DESC");
 $stmt2->execute([$driver_id]);
 $raw_trips = $stmt2->fetchAll();
 
 $trips = [];
-$weekly_salary = 0;
-$monthly_salary = 0;
+$weekly_trips = 0;
+$monthly_trips = 0;
+$total_completed_trips = 0;
 $current_week = date('oW');
 $current_month = date('Y-m');
 
 foreach ($raw_trips as $t) {
-    $t['pay_amount'] = $driver_rates[$t['destination']] ?? 0;
     $trips[] = $t;
 
     if ($t['status'] === 'Delivered') {
-        $trip_time = strtotime($t['trip_date']);
-        if (date('oW', $trip_time) === $current_week) {
-            $weekly_salary += $t['pay_amount'];
-        }
-        if (date('Y-m', $trip_time) === $current_month) {
-            $monthly_salary += $t['pay_amount'];
+        $total_completed_trips++;
+        $trip_time = strtotime($t['trip_date'] ?: $t['created_at']);
+        if ($trip_time) {
+            if (date('oW', $trip_time) === $current_week) {
+                $weekly_trips++;
+            }
+            if (date('Y-m', $trip_time) === $current_month) {
+                $monthly_trips++;
+            }
         }
     }
 }
-
-$next_payday = (date('w') == 6) ? 'Today' : date('l, M j', strtotime('next Saturday'));
 
 $stmtCancel = $pdo->prepare("SELECT id FROM dispatches WHERE driver_id = ? AND status = 'Cancellation Requested' LIMIT 1");
 $stmtCancel->execute([$driver_id]);
 $has_pending_cancellation = $stmtCancel->fetch() ? true : false;
 $stmtTransit = $pdo->prepare("
-    SELECT d.id, d.destination, d.truck_id 
+    SELECT d.id, d.origin, d.destination, d.truck_id 
     FROM dispatches d 
     WHERE d.driver_id = ? AND d.status = 'In Transit' 
     LIMIT 1
@@ -121,7 +114,7 @@ $is_in_transit   = $active_transit ? true : false;
 $active_truck_id = $active_transit ? $active_transit['truck_id'] : null;
 
 $stmtActive = $pdo->prepare("
-    SELECT d.id, d.ticket_number, d.destination, d.status, d.cubic_meters, d.created_at, d.transit_start_time, d.transit_end_time, t.truck_code 
+    SELECT d.id, d.ticket_number, d.origin, d.destination, d.status, d.cubic_meters, d.created_at, d.transit_start_time, d.transit_end_time, t.truck_code 
     FROM dispatches d 
     JOIN trucks t ON d.truck_id = t.id 
     WHERE d.driver_id = ? AND d.status IN ('Pending', 'Loading', 'In Transit', 'Unloading', 'Cancellation Requested')
@@ -129,6 +122,10 @@ $stmtActive = $pdo->prepare("
 ");
 $stmtActive->execute([$driver_id]);
 $active_dispatch = $stmtActive->fetch();
+
+$garageLat = 15.359042;
+$garageLng = 120.965016;
+$garageName = "Brgy. Burgos San Leonardo, Nueva Ecija";
 
 include '../includes/header.php';
 ?>

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/includes/security_headers.php';
 require 'db.php';
+require_once __DIR__ . '/includes/activity_log.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ── CSRF Validation (timing-safe) ──
@@ -45,6 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['username'] = $user['username'];
         $_SESSION['role'] = $user['role'];
 
+        log_activity($pdo, 'Login', 'Logged in successfully as ' . $user['role']);
+
         if ($user['role'] == 'Admin') {
             header("Location: admin/dashboard.php");
             exit;
@@ -62,6 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // ── Failed login — increment counter ──
         $_SESSION['login_attempts'] = ($_SESSION['login_attempts'] ?? 0) + 1;
         $_SESSION['last_failed_login'] = time();
+        log_activity($pdo, 'Failed Login', 'Failed login attempt for username: ' . $username);
         header("Location: index.php?error=invalid");
         exit;
     }
@@ -69,3 +73,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header("Location: index.php");
     exit;
 }
+

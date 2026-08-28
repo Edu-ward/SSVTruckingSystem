@@ -1,5 +1,12 @@
 <?php
 require_once __DIR__ . '/includes/security_headers.php';
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/includes/activity_log.php';
+
+// Log before destroying session
+if (isset($_SESSION['user_id'])) {
+    log_activity($pdo, 'Logout', 'Logged out');
+}
 
 // Destroy all session data
 $_SESSION = [];

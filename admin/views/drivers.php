@@ -1,10 +1,10 @@
 <div id="view-drivers" class="tab-content hidden">
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 flex justify-between items-center mb-6">
-        <div class="flex items-center space-x-2 text-xl font-bold text-gray-800 dark:text-gray-200">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div class="flex items-center space-x-2 text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-200">
             <i class="fa-solid fa-users text-blue-600 dark:text-blue-400"></i>
             <span>Driver Management</span>
         </div>
-        <button onclick="toggleModal('addDriverModal', true)" class="btn-primary text-sm">
+        <button onclick="toggleModal('addDriverModal', true)" class="btn-primary text-sm w-full sm:w-auto">
             <i class="fa-solid fa-user-plus"></i><span>Add Driver</span>
         </button>
     </div>
@@ -82,6 +82,11 @@
                     <div class="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700/60 mb-4">
                         <span class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Quick Actions</span>
                         <div class="flex items-center space-x-1">
+                            <button onclick="openPrintDriverTripsModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>')" 
+                                    class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors" 
+                                    title="Print Trip Ticket">
+                                <i class="fa-solid fa-print text-xs"></i>
+                            </button>
                             <button onclick="openUpdateDriverStatusModal(<?= $driver['id']; ?>, '<?= htmlspecialchars($driver['status']); ?>', '<?= addslashes($driver['name']); ?>')" 
                                     class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors" 
                                     title="Edit Driver Status">

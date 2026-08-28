@@ -39,7 +39,7 @@
                         </span>
                     </div>
                     <div class="p-6">
-                        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
                             <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
                                 <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Destination</span>
                                 <span class="text-lg font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-2">
@@ -73,13 +73,6 @@
                                 <span class="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1 mt-1">
                                     <i class="fa-solid fa-flag-checkered text-green-500"></i>
                                     <?= !empty($active_dispatch['transit_end_time']) ? date('M d, Y h:i A', strtotime($active_dispatch['transit_end_time'])) : ($active_dispatch['status'] === 'In Transit' ? 'In Transit...' : 'Pending Arrival') ?>
-                                </span>
-                            </div>
-                            <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                                <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Dispatch Rate</span>
-                                <span class="text-lg font-extrabold text-green-600 dark:text-green-400 flex items-center gap-2">
-                                    <i class="fa-solid fa-money-bill-wave"></i>
-                                    ₱<?= number_format($driver_rates[$active_dispatch['destination']] ?? 0, 2); ?>
                                 </span>
                             </div>
                         </div>
@@ -129,40 +122,138 @@
             <?php endif; ?>
         </div>
 
-        <!-- EARNINGS STATS GRID -->
+        <?php if ($active_dispatch && ($active_dispatch['status'] ?? '') === 'In Transit'): ?>
+            <!-- ==================== DRIVER ROUTE & NAVIGATION MAP (IN TRANSIT ONLY) ==================== -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden mb-8 transition-all relative z-0">
+                <div class="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 p-5 sm:p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex items-center space-x-3.5">
+                        <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-blue-300 text-2xl flex-shrink-0 shadow-inner">
+                            <i class="fa-solid fa-map-location-dot"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 class="font-bold text-lg sm:text-xl text-white">Live Trip Route & Navigation</h3>
+                                <span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-green-500/20 text-green-300 border border-green-400/30">
+                                    <i class="fa-solid fa-satellite-dish fa-fade mr-1"></i> In Transit
+                                </span>
+                            </div>
+                            <p class="text-xs sm:text-sm text-blue-200 mt-0.5">
+                                Turn-by-turn road route from Origin Quarry to <?= htmlspecialchars($active_dispatch['destination']); ?> with live GPS.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- External GPS Navigation Launchers -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" onclick="launchGoogleMapsNav()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-gray-800 hover:bg-gray-100 active:scale-95 shadow transition">
+                            <i class="fa-brands fa-google text-blue-600"></i> Google Maps
+                        </button>
+                        <button type="button" onclick="launchWazeNav()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 active:scale-95 text-white shadow transition">
+                            <i class="fa-brands fa-waze"></i> Waze
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Route Quick Stats Strip -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 sm:p-5 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700 text-xs sm:text-sm">
+                    <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200/80 dark:border-gray-700/80">
+                        <div class="text-gray-400 dark:text-gray-500 text-[11px] font-semibold uppercase flex items-center gap-1">
+                            <i class="fa-solid fa-warehouse text-indigo-500"></i> Origin
+                        </div>
+                        <div class="font-bold text-gray-800 dark:text-gray-200 mt-0.5 truncate" title="Brgy. Burgos San Leonardo, Nueva Ecija">
+                            San Leonardo (Quarry)
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200/80 dark:border-gray-700/80">
+                        <div class="text-gray-400 dark:text-gray-500 text-[11px] font-semibold uppercase flex items-center gap-1">
+                            <i class="fa-solid fa-location-dot text-red-500"></i> Destination
+                        </div>
+                        <div class="font-bold text-gray-800 dark:text-gray-200 mt-0.5 truncate" id="driverRouteDestDisplay">
+                            <?= htmlspecialchars($active_dispatch['destination']); ?>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200/80 dark:border-gray-700/80">
+                        <div class="text-gray-400 dark:text-gray-500 text-[11px] font-semibold uppercase flex items-center gap-1">
+                            <i class="fa-solid fa-route text-blue-500"></i> Est. Distance
+                        </div>
+                        <div class="font-bold text-blue-600 dark:text-blue-400 mt-0.5 flex items-center gap-1">
+                            <span id="routeDistanceText" class="text-base sm:text-lg">Calculating...</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200/80 dark:border-gray-700/80">
+                        <div class="text-gray-400 dark:text-gray-500 text-[11px] font-semibold uppercase flex items-center gap-1">
+                            <i class="fa-solid fa-clock text-emerald-500"></i> Est. Travel Time
+                        </div>
+                        <div class="font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1">
+                            <span id="routeDurationText" class="text-base sm:text-lg">Calculating...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Map View Container -->
+                <div class="p-3 sm:p-5 relative z-0">
+                    <div class="relative w-full h-[360px] sm:h-[480px] rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-inner z-0">
+                        <div id="driverRouteMap" class="w-full h-full relative z-0"></div>
+
+                        <!-- Floating Action Buttons -->
+                        <div class="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
+                            <button type="button" onclick="fitDriverRouteBounds()" title="Fit full route in view"
+                                class="w-10 h-10 sm:w-11 sm:h-11 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl shadow-lg hover:bg-blue-50 dark:hover:bg-gray-700 flex items-center justify-center transition active:scale-90">
+                                <i class="fa-solid fa-maximize text-sm sm:text-base text-blue-600 dark:text-blue-400"></i>
+                            </button>
+                            <button type="button" onclick="centerOnDriverLiveLocation()" title="Snap to my current GPS location"
+                                class="w-10 h-10 sm:w-11 sm:h-11 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl shadow-lg hover:bg-blue-50 dark:hover:bg-gray-700 flex items-center justify-center transition active:scale-90">
+                                <i class="fa-solid fa-crosshairs text-sm sm:text-base text-emerald-600 dark:text-emerald-400"></i>
+                            </button>
+                        </div>
+
+                        <!-- Live route status pill overlay -->
+                        <div class="absolute top-4 left-4 z-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 shadow-md flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span id="driverMapStatusText">Live GPS Route Loaded</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <!-- TRIP METRICS STATS GRID -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
 
             <div class="bg-gradient-to-br from-blue-500 to-blue-650 rounded-2xl p-6 text-white relative overflow-hidden shadow-md transition transform hover:-translate-y-0.5">
                 <div class="relative z-10">
-                    <p class="text-blue-100 text-xs font-semibold uppercase tracking-wider mb-1 opacity-90">This Week's Earnings</p>
-                    <h3 class="text-3xl font-extrabold tracking-tight">₱<?= number_format($weekly_salary, 2); ?></h3>
+                    <p class="text-blue-100 text-xs font-semibold uppercase tracking-wider mb-1 opacity-90">Trips This Week</p>
+                    <h3 class="text-3xl font-extrabold tracking-tight"><?= number_format($weekly_trips); ?> <span class="text-lg font-medium text-blue-100">trips</span></h3>
                     <p class="text-blue-100 text-xs mt-3 flex items-center gap-1 opacity-75">
-                        <i class="fa-regular fa-clock"></i> Current week (Mon-Sun)
+                        <i class="fa-solid fa-calendar-week"></i> Current week deliveries (Mon–Sun)
                     </p>
                 </div>
-                <i class="fa-solid fa-calendar-week absolute -right-6 -bottom-6 text-9xl text-white opacity-15 transform -rotate-12 pointer-events-none"></i>
+                <i class="fa-solid fa-truck-ramp-box absolute -right-6 -bottom-6 text-9xl text-white opacity-15 transform -rotate-12 pointer-events-none"></i>
             </div>
 
             <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-6 text-white relative overflow-hidden shadow-md transition transform hover:-translate-y-0.5">
                 <div class="relative z-10">
-                    <p class="text-emerald-100 text-xs font-semibold uppercase tracking-wider mb-1 opacity-90">This Month's Earnings</p>
-                    <h3 class="text-3xl font-extrabold tracking-tight">₱<?= number_format($monthly_salary, 2); ?></h3>
+                    <p class="text-emerald-100 text-xs font-semibold uppercase tracking-wider mb-1 opacity-90">Trips This Month</p>
+                    <h3 class="text-3xl font-extrabold tracking-tight"><?= number_format($monthly_trips); ?> <span class="text-lg font-medium text-emerald-100">trips</span></h3>
                     <p class="text-emerald-100 text-xs mt-3 flex items-center gap-1 opacity-75">
-                        <i class="fa-regular fa-calendar"></i> Total for <?= date('F'); ?>
+                        <i class="fa-regular fa-calendar-check"></i> Total delivered for <?= date('F Y'); ?>
                     </p>
                 </div>
-                <i class="fa-solid fa-calendar-days absolute -right-6 -bottom-6 text-9xl text-white opacity-15 transform -rotate-12 pointer-events-none"></i>
+                <i class="fa-solid fa-clipboard-check absolute -right-6 -bottom-6 text-9xl text-white opacity-15 transform -rotate-12 pointer-events-none"></i>
             </div>
 
-            <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 text-white relative overflow-hidden shadow-md transition transform hover:-translate-y-0.5">
+            <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white relative overflow-hidden shadow-md transition transform hover:-translate-y-0.5">
                 <div class="relative z-10">
-                    <p class="text-orange-100 text-xs font-semibold uppercase tracking-wider mb-1 opacity-90">Next Payday</p>
-                    <h3 class="text-3xl font-extrabold tracking-tight"><?= $next_payday; ?></h3>
-                    <p class="text-orange-100 text-xs mt-3 flex items-center gap-1 opacity-75">
-                        <i class="fa-solid fa-wallet"></i> Payouts every Saturday
+                    <p class="text-indigo-100 text-xs font-semibold uppercase tracking-wider mb-1 opacity-90">Total Completed Trips</p>
+                    <h3 class="text-3xl font-extrabold tracking-tight"><?= number_format($total_completed_trips); ?> <span class="text-lg font-medium text-indigo-100">trips</span></h3>
+                    <p class="text-indigo-100 text-xs mt-3 flex items-center gap-1 opacity-75">
+                        <i class="fa-solid fa-flag-checkered"></i> Lifetime completed dispatches
                     </p>
                 </div>
-                <i class="fa-solid fa-money-bill-wave absolute -right-6 -bottom-6 text-9xl text-white opacity-15 transform -rotate-12 pointer-events-none"></i>
+                <i class="fa-solid fa-route absolute -right-6 -bottom-6 text-9xl text-white opacity-15 transform -rotate-12 pointer-events-none"></i>
             </div>
 
         </div>
@@ -196,7 +287,7 @@
                         <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-150 dark:border-gray-800 shadow-sm space-y-2">
                             <div class="flex justify-between items-center">
                                 <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">Dispatch: <?= $dispTimeStr; ?></span>
-                                <span class="font-bold text-green-600 dark:text-green-400">₱<?= number_format($trip['pay_amount'] ?? 0, 2); ?></span>
+                                <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">Duration: <?= $duration; ?></span>
                             </div>
                             <div class="text-xs text-gray-400 dark:text-gray-500 font-mono">
                                 Arrival: <?= $arrTimeStr; ?>
@@ -227,7 +318,6 @@
                                             <i class="fa-solid fa-truck-fast mr-1 text-[8px]"></i> <?= htmlspecialchars($s); ?>
                                         </span>
                                     <?php endif; ?>
-                                    <span class="block text-[10px] text-gray-400 dark:text-gray-500 font-mono mt-1">Duration: <?= $duration; ?></span>
                                 </div>
                             </div>
                         </div>
@@ -249,7 +339,6 @@
                             <th class="pb-3 px-2 font-medium">Arrival Date & Time</th>
                             <th class="pb-3 px-2 font-medium">Destination</th>
                             <th class="pb-3 px-2 font-medium">Duration</th>
-                            <th class="pb-3 px-2 font-medium">Earned</th>
                             <th class="pb-3 px-2 font-medium">Status</th>
                         </tr>
                     </thead>
@@ -274,7 +363,6 @@
                                     <td class="py-4 px-2 text-sm font-medium text-gray-600 dark:text-gray-400"><?= $arrTimeStr; ?></td>
                                     <td class="py-4 px-2 font-medium"><?= htmlspecialchars($trip['destination']); ?></td>
                                     <td class="py-4 px-2 text-gray-500 dark:text-gray-400 font-mono text-sm"><?= $duration; ?></td>
-                                    <td class="py-4 px-2 font-semibold text-green-600 dark:text-green-400">₱<?= number_format($trip['pay_amount'] ?? 0, 2); ?></td>
                                     <td class="py-4 px-2">
                                         <?php 
                                         $s = isset($trip['status']) ? trim($trip['status']) : '';
@@ -311,3 +399,392 @@
                 </table>
             </div>
         </div>
+
+<script>
+    // ==================== DRIVER ROUTE & MAP NAVIGATION ENGINE ====================
+    let driverMap = null;
+    let driverRoutePolyline = null;
+    let driverOriginMarker = null;
+    let driverDestMarker = null;
+    let driverGpsMarker = null;
+    let driverGpsAccuracyCircle = null;
+    let driverCurrentLat = 15.359042;
+    let driverCurrentLng = 120.965016;
+
+    const GARAGE_LOCATION = {
+        name: "San Leonardo (SSV Quarry Garage)",
+        lat: 15.359042,
+        lng: 120.965016
+    };
+
+    // Fast coordinate lookup for standard provincial destinations
+    const PRESET_DESTINATION_COORDS = {
+        "San Leonardo": { lat: 15.359042, lng: 120.965016 },
+        "Gapan": { lat: 15.3089, lng: 120.9464 },
+        "Gapan City": { lat: 15.3089, lng: 120.9464 },
+        "Cabanatuan": { lat: 15.4859, lng: 120.9673 },
+        "Cabanatuan City": { lat: 15.4859, lng: 120.9673 },
+        "San Isidro": { lat: 15.3114, lng: 120.9080 },
+        "Santa Rosa": { lat: 15.4247, lng: 120.9388 },
+        "Sta. Rosa": { lat: 15.4247, lng: 120.9388 },
+        "Peñaranda": { lat: 15.3533, lng: 120.9950 },
+        "General Tinio": { lat: 15.3486, lng: 121.0478 },
+        "Papaya": { lat: 15.3486, lng: 121.0478 },
+        "Palayan": { lat: 15.5414, lng: 121.0847 },
+        "Palayan City": { lat: 15.5414, lng: 121.0847 },
+        "Talavera": { lat: 15.5847, lng: 120.9197 },
+        "Guimba": { lat: 15.6586, lng: 120.7678 },
+        "San Jose": { lat: 15.7947, lng: 120.9956 },
+        "San Jose City": { lat: 15.7947, lng: 120.9956 },
+        "Muñoz": { lat: 15.7144, lng: 120.9056 },
+        "Science City of Muñoz": { lat: 15.7144, lng: 120.9056 },
+        "Zaragoza": { lat: 15.4503, lng: 120.7936 },
+        "Jaen": { lat: 15.3375, lng: 120.9058 },
+        "Aliaga": { lat: 15.5033, lng: 120.8592 },
+        "Licab": { lat: 15.5564, lng: 120.7611 },
+        "Quezon": { lat: 15.5683, lng: 120.8164 },
+        "Santo Domingo": { lat: 15.5833, lng: 120.8833 },
+        "Llanera": { lat: 15.6639, lng: 121.0189 },
+        "Rizal": { lat: 15.7114, lng: 121.1256 },
+        "Pantabangan": { lat: 15.8239, lng: 121.1506 },
+        "Carranglan": { lat: 15.9619, lng: 121.0664 },
+        "Laur": { lat: 15.4385, lng: 121.1895 },
+        "Gabaldon": { lat: 15.4533, lng: 121.3283 },
+        "Dingalan": { lat: 15.3944, lng: 121.3967 },
+        "Baler": { lat: 15.7594, lng: 121.5622 },
+        "San Miguel": { lat: 15.1450, lng: 120.9767 },
+        "San Ildefonso": { lat: 15.0806, lng: 120.9417 },
+        "San Rafael": { lat: 14.9983, lng: 120.9639 },
+        "Baliuag": { lat: 14.9547, lng: 120.9008 },
+        "Tarlac": { lat: 15.4828, lng: 120.5963 },
+        "Tarlac City": { lat: 15.4828, lng: 120.5963 },
+        "Arayat": { lat: 15.1506, lng: 120.7686 }
+    };
+
+    let activeDestName = "<?= addslashes($active_dispatch['destination'] ?? ($_dest_rows[0]['name'] ?? 'Cabanatuan City')) ?>";
+    let activeDestCoords = null;
+
+    function initDriverMap() {
+        const mapContainer = document.getElementById('driverRouteMap');
+        if (!mapContainer || typeof L === 'undefined') return;
+
+        try {
+            // Layer providers
+            const streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            });
+
+            const googleStreetLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                attribution: '&copy; Google Maps'
+            });
+
+            const satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                attribution: '&copy; Google Maps Satellite'
+            });
+
+            driverMap = L.map('driverRouteMap', {
+                center: [GARAGE_LOCATION.lat, GARAGE_LOCATION.lng],
+                zoom: 12,
+                layers: [streetLayer],
+                zoomControl: true
+            });
+
+            L.control.layers({
+                "🗺️ OpenStreetMap": streetLayer,
+                "🚗 Google Streets": googleStreetLayer,
+                "🛰️ Google Satellite": satelliteLayer
+            }, null, { position: 'topright' }).addTo(driverMap);
+
+            // Add Origin marker (Quarry)
+            const originIcon = L.divIcon({
+                className: 'custom-origin-icon',
+                html: `<div class="w-9 h-9 rounded-2xl bg-indigo-600 border-2 border-white text-white flex items-center justify-center shadow-lg transform -translate-x-1/2 -translate-y-1/2"><i class="fa-solid fa-warehouse text-sm"></i></div>`,
+                iconSize: [0, 0]
+            });
+
+            driverOriginMarker = L.marker([GARAGE_LOCATION.lat, GARAGE_LOCATION.lng], { icon: originIcon })
+                .addTo(driverMap)
+                .bindPopup(`
+                    <div class="p-2 min-w-[180px]">
+                        <div class="font-bold text-gray-900 text-sm flex items-center gap-1.5 border-b pb-1">
+                            <i class="fa-solid fa-warehouse text-indigo-500"></i> Quarry Origin
+                        </div>
+                        <div class="text-xs text-gray-600 mt-1.5 font-medium">Brgy. Burgos San Leonardo</div>
+                        <div class="text-[11px] text-gray-400 mt-0.5">Fleet Loading & Dispatch Site</div>
+                    </div>
+                `);
+
+            // Initialize Driver GPS tracking and route plotting
+            resolveAndPlotRoute(activeDestName);
+            startDriverLiveLocation();
+
+            setTimeout(() => {
+                driverMap.invalidateSize();
+            }, 300);
+
+        } catch (e) {
+            console.error("Driver route map initialization failed:", e);
+        }
+    }
+
+    async function resolveAndPlotRoute(destName) {
+        if (!destName || !driverMap) return;
+        activeDestName = destName;
+
+        const statusEl = document.getElementById('driverMapStatusText');
+        const distEl = document.getElementById('routeDistanceText');
+        const durEl = document.getElementById('routeDurationText');
+
+        if (statusEl) statusEl.textContent = 'Calculating Route to ' + destName + '...';
+        if (distEl) distEl.textContent = 'Calculating...';
+        if (durEl) durEl.textContent = 'Calculating...';
+
+        // 1. Get Destination Coordinates (Cache or Nominatim)
+        let coords = getPresetCoords(destName);
+        if (!coords) {
+            try {
+                const query = encodeURIComponent(destName + ', Nueva Ecija, Philippines');
+                const resp = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + query + '&limit=1');
+                const results = await resp.json();
+                if (results && results.length > 0) {
+                    coords = { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
+                }
+            } catch (err) {
+                console.warn('Geocoding fallback failed:', err);
+            }
+        }
+
+        if (!coords) {
+            // Default fallback offset near Central Luzon
+            coords = { lat: 15.4859, lng: 120.9673 };
+        }
+        activeDestCoords = coords;
+
+        // 2. Render Destination Marker
+        if (driverDestMarker) {
+            driverMap.removeLayer(driverDestMarker);
+        }
+        const destIcon = L.divIcon({
+            className: 'custom-dest-icon',
+            html: `
+                <div class="relative flex items-center justify-center">
+                    <span class="absolute w-9 h-9 rounded-full bg-red-500 opacity-75 animate-ping"></span>
+                    <div class="w-9 h-9 rounded-2xl bg-red-600 border-2 border-white text-white flex items-center justify-center shadow-xl transform -translate-x-1/2 -translate-y-1/2">
+                        <i class="fa-solid fa-location-dot text-base"></i>
+                    </div>
+                </div>
+            `,
+            iconSize: [0, 0]
+        });
+
+        driverDestMarker = L.marker([coords.lat, coords.lng], { icon: destIcon })
+            .addTo(driverMap)
+            .bindPopup(`
+                <div class="p-2 min-w-[180px]">
+                    <div class="font-bold text-gray-900 text-sm flex items-center gap-1.5 border-b pb-1">
+                        <i class="fa-solid fa-location-dot text-red-500"></i> Dispatch Destination
+                    </div>
+                    <div class="text-xs font-bold text-blue-600 mt-1.5">${destName}</div>
+                    <div class="text-[11px] text-gray-500 mt-0.5">Target Delivery Site</div>
+                </div>
+            `);
+
+        // 3. Start Point: Driver current position or Garage
+        const startPoint = (driverCurrentLat && driverCurrentLng) 
+            ? [driverCurrentLat, driverCurrentLng] 
+            : [GARAGE_LOCATION.lat, GARAGE_LOCATION.lng];
+
+        // 4. Query OSRM Driving Route
+        try {
+            const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startPoint[1]},${startPoint[0]};${coords.lng},${coords.lat}?overview=full&geometries=geojson`;
+            const r = await fetch(osrmUrl);
+            const routeData = await r.json();
+
+            if (routeData.code === 'Ok' && routeData.routes && routeData.routes.length > 0) {
+                const primaryRoute = routeData.routes[0];
+                const distanceKm = (primaryRoute.distance / 1000).toFixed(1);
+                const durationMins = Math.round(primaryRoute.duration / 60);
+
+                if (distEl) distEl.textContent = distanceKm + ' km';
+                if (durEl) {
+                    if (durationMins >= 60) {
+                        const hrs = Math.floor(durationMins / 60);
+                        const remMins = durationMins % 60;
+                        durEl.textContent = `${hrs} hr ${remMins > 0 ? remMins + ' min' : ''}`;
+                    } else {
+                        durEl.textContent = durationMins + ' mins';
+                    }
+                }
+
+                // Draw OSRM polyline
+                const coordinates = primaryRoute.geometry.coordinates.map(c => [c[1], c[0]]);
+                drawRoutePolyline(coordinates);
+
+                if (statusEl) statusEl.textContent = `Route to ${destName} Ready (${distanceKm} km)`;
+                fitDriverRouteBounds();
+                return;
+            }
+        } catch (routeErr) {
+            console.warn('OSRM routing request failed, using straight-line fallback:', routeErr);
+        }
+
+        // Fallback straight-line polyline if OSRM is unreachable
+        const fallbackPath = [startPoint, [coords.lat, coords.lng]];
+        drawRoutePolyline(fallbackPath);
+        const distKm = calculateDirectDistanceKm(startPoint[0], startPoint[1], coords.lat, coords.lng);
+        if (distEl) distEl.textContent = '~' + distKm.toFixed(1) + ' km';
+        if (durEl) durEl.textContent = '~' + Math.round((distKm / 45) * 60) + ' mins';
+        if (statusEl) statusEl.textContent = `Route Ready (${distKm.toFixed(1)} km)`;
+        fitDriverRouteBounds();
+    }
+
+    function drawRoutePolyline(latLngs) {
+        if (driverRoutePolyline) {
+            driverMap.removeLayer(driverRoutePolyline);
+        }
+        driverRoutePolyline = L.polyline(latLngs, {
+            color: '#2563eb',
+            weight: 6,
+            opacity: 0.85,
+            lineJoin: 'round',
+            lineCap: 'round'
+        }).addTo(driverMap);
+    }
+
+    function getPresetCoords(name) {
+        if (!name) return null;
+        const clean = name.trim().toLowerCase();
+        for (const [key, val] of Object.entries(PRESET_DESTINATION_COORDS)) {
+            if (clean.includes(key.toLowerCase()) || key.toLowerCase().includes(clean)) {
+                return val;
+            }
+        }
+        return null;
+    }
+
+    function startDriverLiveLocation() {
+        if (!navigator.geolocation || !driverMap) return;
+
+        const updateGpsUI = (lat, lng, accuracy) => {
+            driverCurrentLat = lat;
+            driverCurrentLng = lng;
+
+            const truckIcon = L.divIcon({
+                className: 'custom-truck-icon',
+                html: `
+                    <div class="relative flex items-center justify-center">
+                        <span class="absolute w-8 h-8 rounded-full bg-emerald-400 opacity-75 animate-ping"></span>
+                        <div class="w-8 h-8 rounded-2xl bg-emerald-600 border-2 border-white text-white flex items-center justify-center shadow-xl transform -translate-x-1/2 -translate-y-1/2">
+                            <i class="fa-solid fa-truck text-xs"></i>
+                        </div>
+                    </div>
+                `,
+                iconSize: [0, 0]
+            });
+
+            if (!driverGpsMarker) {
+                driverGpsMarker = L.marker([lat, lng], { icon: truckIcon })
+                    .addTo(driverMap)
+                    .bindPopup(`
+                        <div class="p-2">
+                            <div class="font-bold text-gray-900 text-xs flex items-center gap-1">
+                                <i class="fa-solid fa-truck text-emerald-600"></i> Your Current Position
+                            </div>
+                            <div class="text-[11px] text-gray-500 mt-1 font-mono">${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
+                        </div>
+                    `);
+            } else {
+                driverGpsMarker.setLatLng([lat, lng]);
+            }
+
+            if (accuracy && accuracy < 2000) {
+                if (!driverGpsAccuracyCircle) {
+                    driverGpsAccuracyCircle = L.circle([lat, lng], {
+                        radius: accuracy,
+                        color: '#10b981',
+                        fillColor: '#10b981',
+                        fillOpacity: 0.1,
+                        weight: 1
+                    }).addTo(driverMap);
+                } else {
+                    driverGpsAccuracyCircle.setLatLng([lat, lng]);
+                    driverGpsAccuracyCircle.setRadius(accuracy);
+                }
+            }
+        };
+
+        navigator.geolocation.getCurrentPosition(
+            pos => updateGpsUI(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy),
+            err => console.log('Driver initial GPS location pending:', err.message),
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+
+        navigator.geolocation.watchPosition(
+            pos => updateGpsUI(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy),
+            err => console.log('Driver GPS watch pending:', err.message),
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+        );
+    }
+
+    function fitDriverRouteBounds() {
+        if (!driverMap) return;
+        const points = [];
+        if (GARAGE_LOCATION) points.push([GARAGE_LOCATION.lat, GARAGE_LOCATION.lng]);
+        if (activeDestCoords) points.push([activeDestCoords.lat, activeDestCoords.lng]);
+        if (driverCurrentLat && driverCurrentLng) points.push([driverCurrentLat, driverCurrentLng]);
+
+        if (points.length > 0) {
+            const bounds = L.latLngBounds(points);
+            driverMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+        }
+    }
+
+    function centerOnDriverLiveLocation() {
+        if (!driverMap) return;
+        if (driverCurrentLat && driverCurrentLng) {
+            driverMap.flyTo([driverCurrentLat, driverCurrentLng], 15, { animate: true, duration: 1 });
+            if (driverGpsMarker) driverGpsMarker.openPopup();
+        } else {
+            showToast('GPS location is still synchronizing...', 'info');
+        }
+    }
+
+    function switchDriverDestination(newDest) {
+        if (!newDest) return;
+        resolveAndPlotRoute(newDest);
+    }
+
+    function launchGoogleMapsNav() {
+        const dest = activeDestName || "Cabanatuan City, Nueva Ecija";
+        const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest + ', Nueva Ecija')}&travelmode=driving`;
+        window.open(url, '_blank');
+    }
+
+    function launchWazeNav() {
+        if (activeDestCoords) {
+            const url = `https://waze.com/ul?ll=${activeDestCoords.lat},${activeDestCoords.lng}&navigate=yes`;
+            window.open(url, '_blank');
+        } else {
+            const url = `https://waze.com/ul?q=${encodeURIComponent(activeDestName)}&navigate=yes`;
+            window.open(url, '_blank');
+        }
+    }
+
+    function calculateDirectDistanceKm(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Earth radius in km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        initDriverMap();
+    });
+</script>

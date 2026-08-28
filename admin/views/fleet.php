@@ -8,13 +8,13 @@
     </script>
     <?php endif; ?>
 
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 mb-6 flex justify-between items-center">
-        <div class="flex items-center space-x-2 text-xl font-bold text-gray-800 dark:text-gray-200">
-            <i class="fa-solid fa-truck-fast text-gray-700 dark:text-gray-200"></i>
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center space-x-2 text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-200">
+            <i class="fa-solid fa-truck-fast text-blue-600 dark:text-blue-400"></i>
             <span>Fleet Management</span>
         </div>
-        <div class="flex items-center space-x-4">
-            <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">Total: <?= count($fleetData); ?> trucks</div>
+        <div class="flex flex-wrap items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+            <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium">Total: <?= count($fleetData); ?> trucks</div>
             <button onclick="toggleModal('addTruckModal', true)" class="btn-primary text-sm">
                 <i class="fa-solid fa-plus"></i>
                 <span>Add Truck</span>
@@ -31,27 +31,27 @@
             if ($truck['status'] == 'Unloading') $badgeClass = 'bg-orange-500';
             if ($truck['status'] == 'Maintenance') $badgeClass = 'bg-red-600';
         ?>
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 flex flex-col h-full relative hover:shadow-md transition">
-                <div class="flex justify-between items-start mb-5">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-12 h-12 bg-blue-50 text-blue-500 rounded-lg flex items-center justify-center text-xl">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 sm:p-6 flex flex-col h-full relative hover:shadow-md transition">
+                <div class="flex justify-between items-start mb-5 gap-2">
+                    <div class="flex items-center space-x-3 min-w-0">
+                        <div class="w-11 h-11 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
                             <i class="fa-solid fa-truck"></i>
                         </div>
-                        <div>
-                            <h3 class="font-bold text-gray-900 dark:text-gray-100 text-lg"><?= htmlspecialchars($truck['truck_code']); ?></h3>
-                            <p class="text-xs text-gray-500 dark:text-gray-400"><?= htmlspecialchars($truck['driver_name'] ?? 'No Driver Assigned'); ?></p>
+                        <div class="min-w-0">
+                            <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base sm:text-lg truncate"><?= htmlspecialchars($truck['truck_code']); ?></h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate"><?= htmlspecialchars($truck['driver_name'] ?? 'No Driver Assigned'); ?></p>
                         </div>
                     </div>
-                    <div class="flex items-center space-x-2 ml-30">
-                        <span class="<?= $badgeClass; ?> text-white text-xs font-semibold px-2.5 py-1 rounded-full w-30">
+                    <div class="flex items-center space-x-1.5 flex-shrink-0 ml-auto">
+                        <span class="<?= $badgeClass; ?> text-white text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
                             <?= htmlspecialchars($truck['status']); ?>
                         </span>
 
-                        <button onclick="openUpdateStatusModal(<?= $truck['id']; ?>, '<?= htmlspecialchars($truck['status']); ?>', '<?= htmlspecialchars($truck['truck_code']); ?>')" class="text-gray-400 hover:text-blue-600 transition ml-2" title="Change Truck Status">
+                        <button onclick="openUpdateStatusModal(<?= $truck['id']; ?>, '<?= htmlspecialchars($truck['status']); ?>', '<?= htmlspecialchars($truck['truck_code']); ?>')" class="text-gray-400 hover:text-blue-600 transition p-1" title="Change Truck Status">
                             <i class="fa-solid fa-pen-to-square"></i>
                         </button>
 
-                        <button onclick="openDeleteTruckModal(<?= $truck['id']; ?>, '<?= htmlspecialchars($truck['truck_code']); ?>')" class="text-gray-400 hover:text-red-600 transition ml-1" title="Remove Truck">
+                        <button onclick="openDeleteTruckModal(<?= $truck['id']; ?>, '<?= htmlspecialchars($truck['truck_code']); ?>')" class="text-gray-400 hover:text-red-600 transition p-1" title="Remove Truck">
                             <i class="fa-solid fa-trash"></i>
                         </button>
                     </div>

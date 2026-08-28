@@ -149,25 +149,25 @@
                 if ($dispatch['status'] == 'Pending') $chipStyle = 'chip-amber';
                 if ($dispatch['status'] == 'Delivered') $chipStyle = 'chip-emerald';
             ?>
-                <div class="p-4 px-6 flex justify-between items-center hover:bg-gray-50/80 dark:hover:bg-gray-750 transition-colors">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300">
+                <div class="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-gray-50/80 dark:hover:bg-gray-750 transition-colors">
+                    <div class="flex items-center space-x-3.5 min-w-0">
+                        <div class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 flex-shrink-0">
                             <i class="fa-solid fa-ticket text-sm"></i>
                         </div>
-                        <div>
-                            <div class="font-bold text-gray-900 dark:text-gray-100 text-sm">
+                        <div class="min-w-0">
+                            <div class="font-bold text-gray-900 dark:text-gray-100 text-sm truncate">
                                 <?= htmlspecialchars($dispatch['ticket_number']); ?>
                             </div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                            <div class="text-xs text-gray-500 dark:text-gray-400 font-medium truncate">
                                 <?= htmlspecialchars($dispatch['truck_code']) . ' • ' . htmlspecialchars($dispatch['driver_name']); ?>
                             </div>
                         </div>
                     </div>
-                    <div class="text-right">
+                    <div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1">
                         <span class="<?= $chipStyle; ?>">
                             <?= htmlspecialchars($dispatch['status']); ?>
                         </span>
-                        <div class="text-xs text-gray-400 dark:text-gray-500 mt-1 font-medium"><i class="fa-solid fa-location-dot text-[10px] mr-1"></i><?= htmlspecialchars($dispatch['destination']); ?></div>
+                        <div class="text-xs text-gray-400 dark:text-gray-500 font-medium truncate max-w-[200px] sm:max-w-none"><i class="fa-solid fa-location-dot text-[10px] mr-1"></i><?= htmlspecialchars($dispatch['destination']); ?></div>
                     </div>
                 </div>
             <?php endforeach; ?>

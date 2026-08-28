@@ -2,24 +2,24 @@
 
 
     <!-- RFID Scanner Panel -->
-    <div class="mb-8 bg-indigo-600 rounded-xl shadow border border-indigo-700 overflow-hidden flex flex-col md:flex-row">
-        <div class="p-6 md:w-1/3 flex flex-col justify-center text-white border-b md:border-b-0 md:border-r border-indigo-500">
-            <div class="flex items-center space-x-3 mb-2">
-                <i class="fa-solid fa-wifi text-3xl text-indigo-200"></i>
-                <h2 class="font-bold text-xl">Dispatch Scanner</h2>
+    <div class="mb-8 bg-indigo-600 rounded-2xl shadow border border-indigo-700 overflow-hidden flex flex-col md:flex-row">
+        <div class="p-5 sm:p-6 md:w-1/3 flex flex-col justify-center text-white border-b md:border-b-0 md:border-r border-indigo-500">
+            <div class="flex items-center space-x-3 mb-1">
+                <i class="fa-solid fa-wifi text-2xl sm:text-3xl text-indigo-200"></i>
+                <h2 class="font-bold text-lg sm:text-xl">Dispatch Scanner</h2>
             </div>
-            <p class="text-indigo-200 text-sm">Scan a truck's RFID card to confirm arrival.</p>
+            <p class="text-indigo-200 text-xs sm:text-sm">Scan a truck's RFID card to confirm arrival.</p>
         </div>
-        <div class="p-6 md:w-2/3 bg-white dark:bg-gray-800 flex items-center cursor-pointer" onclick="document.getElementById('dispatchScannerRfidInput')?.focus();">
-            <form method="POST" action="dashboard.php" class="w-full flex space-x-3">
+        <div class="p-4 sm:p-6 md:w-2/3 bg-white dark:bg-gray-800 flex items-center cursor-pointer" onclick="document.getElementById('dispatchScannerRfidInput')?.focus();">
+            <form method="POST" action="dashboard.php" class="w-full flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <input type="hidden" name="action" value="dispatch_scan_rfid">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                 <div class="flex-grow">
                     <input type="text" name="rfid_tag" id="dispatchScannerRfidInput" required autocomplete="off"
                         placeholder="Click here and scan RFID card..."
-                        class="w-full border border-indigo-300 dark:border-indigo-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-indigo-50 dark:bg-indigo-900 dark:text-gray-100 font-mono text-sm transition-colors">
+                        class="w-full border border-indigo-300 dark:border-indigo-700 rounded-xl px-4 py-2.5 sm:py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-indigo-50 dark:bg-indigo-900 dark:text-gray-100 font-mono text-sm transition-colors">
                 </div>
-                <button type="submit" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition flex items-center justify-center space-x-2 text-sm flex-shrink-0">
+                <button type="submit" class="px-5 py-2.5 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition flex items-center justify-center space-x-2 text-sm flex-shrink-0">
                     <i class="fa-solid fa-check-circle"></i>
                     <span>Confirm</span>
                 </button>
@@ -27,29 +27,29 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6">
-        <div class="flex justify-between items-center mb-6">
-            <div class="flex items-center space-x-2 text-xl font-bold text-gray-800 dark:text-gray-200">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div class="flex items-center space-x-2 text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-200">
                 <i class="fa-regular fa-file-lines text-blue-500"></i>
                 <span>Dispatch Tickets</span>
             </div>
-            <button onclick="toggleModal('dispatchModal', true)" class="btn-primary text-sm">
+            <button onclick="toggleModal('dispatchModal', true)" class="btn-primary text-sm w-full sm:w-auto">
                 <i class="fa-solid fa-plus"></i>
                 <span>Create Dispatch</span>
             </button>
         </div>
 
-        <div class="bg-gray-100 dark:bg-gray-700 p-1 rounded-full inline-flex mb-6 text-sm font-medium text-gray-600 dark:text-gray-300">
-            <button id="btn-tab-active" onclick="switchDispatchTab('active')" class="px-6 py-2 rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition">
+        <div class="flex flex-wrap sm:inline-flex bg-gray-100 dark:bg-gray-700/70 p-1 rounded-xl sm:rounded-full gap-1 mb-6 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 w-full sm:w-auto">
+            <button id="btn-tab-active" onclick="switchDispatchTab('active')" class="flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition text-center font-semibold">
                 Active (<?= count($activeTickets); ?>)
             </button>
-            <button id="btn-tab-requests" onclick="switchDispatchTab('requests')" class="px-6 py-2 rounded-full hover:text-gray-900 dark:text-gray-100 transition relative">
+            <button id="btn-tab-requests" onclick="switchDispatchTab('requests')" class="flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full hover:text-gray-900 dark:text-gray-100 transition relative text-center">
                 Requests (<?= count($cancellationRequests); ?>)
                 <?php if (count($cancellationRequests) > 0): ?>
-                    <span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping"></span>
+                    <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></span>
                 <?php endif; ?>
             </button>
-            <button id="btn-tab-completed" onclick="switchDispatchTab('completed')" class="px-6 py-2 rounded-full hover:text-gray-900 dark:text-gray-100 transition">
+            <button id="btn-tab-completed" onclick="switchDispatchTab('completed')" class="flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full hover:text-gray-900 dark:text-gray-100 transition text-center">
                 Completed (<?= count($completedTickets); ?>)
             </button>
         </div>

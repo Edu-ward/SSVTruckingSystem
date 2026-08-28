@@ -83,19 +83,16 @@ header('Content-Disposition: attachment; filename=' . $filename);
 $output = fopen('php://output', 'w');
 
 // Headers
-fputcsv($output, ['Trip Date', 'Truck Code', 'Driver Name', 'Destination', 'Status', 'Driver Pay (₱)', 'Revenue (₱)']);
+fputcsv($output, ['Trip Date', 'Truck Code', 'Driver Name', 'Destination', 'Status', 'Revenue (₱)']);
 
 // Data
 foreach ($data as $row) {
-    $pay = $rates[$row['destination']] ?? 0;
-    
-    // Calculate revenue: manual if exists (minus driver cut), otherwise lookup by gravel type
+    // Calculate revenue: manual if exists, otherwise lookup by gravel type
     if ($row['manual_revenue'] > 0) {
-        $revenue = max(0, $row['manual_revenue'] - $pay);
+        $revenue = floatval($row['manual_revenue']);
     } else {
         $revenue = $gravelPrices[$row['gravel_type']] ?? 0;
     }
-
 
     fputcsv($output, [
         $row['trip_date'],
@@ -103,7 +100,6 @@ foreach ($data as $row) {
         $row['driver_name'] ?? 'Unknown/Deleted',
         $row['destination'],
         $row['status'],
-        number_format($pay, 2),
         number_format($revenue, 2)
     ]);
 }

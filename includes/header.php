@@ -36,9 +36,11 @@
         }
     </script>
 
-    <?php if ($_SESSION['role'] === 'Admin'): ?>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <?php if (in_array($_SESSION['role'] ?? '', ['Admin', 'Driver'])): ?>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <?php endif; ?>
+    <?php if (($_SESSION['role'] ?? '') === 'Admin'): ?>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <?php endif; ?>
     <script src="../includes/nominatim.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -162,18 +164,33 @@
 
         <?php endif; ?>
 
+        /* ── Hide Scrollbars Globally for Sidebars / Navs ── */
+        .no-scrollbar::-webkit-scrollbar,
+        aside::-webkit-scrollbar,
+        nav::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+        .no-scrollbar,
+        aside,
+        nav {
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+        }
+
         /* ── Sidebar Styles ── */
         .sidebar-nav-item {
-            @apply flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer;
+            @apply flex items-center space-x-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer;
         }
         .sidebar-nav-item.active {
-            @apply bg-blue-600 text-white shadow-md shadow-blue-500/20;
+            @apply bg-blue-600 text-white shadow-md shadow-blue-500/20 font-semibold;
         }
         .sidebar-nav-item:not(.active) {
             @apply text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200;
         }
         .sidebar-nav-item .nav-icon {
-            @apply w-5 text-center text-base;
+            @apply w-5 text-center text-sm;
         }
         .sidebar-nav-item.active .nav-icon {
             @apply text-white;
@@ -221,17 +238,17 @@
     <div id="sidebar-overlay" class="sidebar-backdrop fixed inset-0 bg-black/50 z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
 
     <!-- Sidebar -->
-    <aside id="admin-sidebar" class="sidebar-panel sidebar-closed lg:translate-x-0 fixed top-0 left-0 h-screen w-72 z-50 lg:z-30 flex flex-col bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 shadow-xl lg:shadow-none">
+    <aside id="admin-sidebar" class="sidebar-panel sidebar-closed lg:translate-x-0 fixed top-0 left-0 h-screen w-72 z-50 lg:z-30 flex flex-col bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 shadow-xl lg:shadow-none no-scrollbar">
 
         <!-- Logo & Brand -->
-        <div class="flex items-center space-x-3 px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+        <div class="flex items-center space-x-3 px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
             <div class="flex-shrink-0">
-                <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-8 block dark:hidden">
-                <img src="../src/ssvLogoLight.png" alt="SSV Logo" class="h-8 hidden dark:block">
+                <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
+                <img src="../src/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
             </div>
             <div class="min-w-0">
-                <h1 class="text-base font-bold text-gray-900 dark:text-white truncate">SSV Trucking</h1>
-                <p class="text-xs text-gray-400 dark:text-gray-500 font-medium">Admin System</p>
+                <h1 class="text-sm font-bold text-gray-900 dark:text-white truncate">SSV Trucking</h1>
+                <p class="text-[11px] text-gray-400 dark:text-gray-500 font-medium">Admin System</p>
             </div>
             <!-- Mobile close button -->
             <button onclick="toggleSidebar()" class="lg:hidden ml-auto w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400">
@@ -240,16 +257,16 @@
         </div>
 
         <!-- System Status -->
-        <div class="px-5 py-3">
-            <div class="flex items-center space-x-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg px-3 py-2 border border-emerald-100 dark:border-emerald-800/30">
+        <div class="px-4 py-2 flex-shrink-0">
+            <div class="flex items-center space-x-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg px-3 py-1.5 border border-emerald-100 dark:border-emerald-800/30">
                 <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse flex-shrink-0"></span>
                 <span class="text-xs font-semibold text-emerald-700 dark:text-emerald-400">System Online</span>
             </div>
         </div>
 
         <!-- Navigation -->
-        <nav class="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
-            <p class="px-4 text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-widest mb-2">Main Menu</p>
+        <nav class="flex-1 px-3 py-1 space-y-0.5 overflow-y-auto no-scrollbar">
+            <p class="px-3 text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-widest my-1">Main Menu</p>
             <button onclick="switchTab('dashboard')" id="nav-dashboard" class="sidebar-nav-item active w-full">
                 <i class="fa-solid fa-border-all nav-icon"></i>
                 <span>Dashboard</span>
@@ -263,7 +280,7 @@
                 <span>Dispatches</span>
             </button>
 
-            <p class="px-4 pt-4 text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-widest mb-2">Management</p>
+            <p class="px-3 pt-2 text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-widest my-1">Management</p>
             <button onclick="switchTab('fleet')" id="nav-fleet" class="sidebar-nav-item w-full">
                 <i class="fa-solid fa-truck-fast nav-icon"></i>
                 <span>Fleet</span>
@@ -280,18 +297,29 @@
                 <i class="fa-solid fa-chart-column nav-icon"></i>
                 <span>Reports</span>
             </button>
+            <button onclick="switchTab('activity_logs')" id="nav-activity_logs" class="sidebar-nav-item w-full">
+                <i class="fa-solid fa-clock-rotate-left nav-icon"></i>
+                <span>Activity Logs</span>
+            </button>
+            <button onclick="switchTab('pwd_requests')" id="nav-pwd_requests" class="sidebar-nav-item w-full">
+                <i class="fa-solid fa-key nav-icon"></i>
+                <span class="flex-1 text-left">Password Requests</span>
+                <?php if (($pendingPwdResetCount ?? 0) > 0): ?>
+                    <span id="pwdResetBadge" class="ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-red-500 text-white flex items-center justify-center"><?= $pendingPwdResetCount ?></span>
+                <?php endif; ?>
+            </button>
         </nav>
 
         <!-- Sidebar Footer -->
-        <div class="border-t border-gray-100 dark:border-gray-800 px-4 py-4 space-y-3">
+        <div class="border-t border-gray-100 dark:border-gray-800 px-3 py-3 space-y-1 flex-shrink-0">
             <!-- Dark Mode Toggle -->
-            <button id="themeToggle" onclick="toggleTheme(event)" class="w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200">
-                <i id="themeIcon" class="fa-solid fa-moon w-5 text-center text-base"></i>
+            <button id="themeToggle" onclick="toggleTheme(event)" class="sidebar-nav-item w-full">
+                <i id="themeIcon" class="fa-solid fa-moon nav-icon"></i>
                 <span id="themeLabel">Dark Mode</span>
             </button>
             <!-- Logout -->
-            <a href="../logout.php" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 w-full">
-                <i class="fa-solid fa-right-from-bracket w-5 text-center text-base"></i>
+            <a href="../logout.php" class="flex items-center space-x-3 px-3.5 py-2 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 w-full">
+                <i class="fa-solid fa-right-from-bracket nav-icon"></i>
                 <span>Logout</span>
             </a>
         </div>
@@ -357,9 +385,9 @@
                 <i class="fa-solid fa-clipboard-check nav-icon"></i>
                 <span>Dashboard</span>
             </a>
-            <button onclick="openChangePasswordModal()" class="sidebar-nav-item w-full">
+            <button onclick="openResetPasswordModal()" class="sidebar-nav-item w-full">
                 <i class="fa-solid fa-key nav-icon"></i>
-                <span>Change Password</span>
+                <span>Reset Password</span>
             </button>
         </nav>
 
@@ -403,9 +431,9 @@
             <i class="fa-solid fa-truck-ramp-box text-lg mb-0.5"></i>
             <span>Log Delivery</span>
         </a>
-        <button onclick="openChangePasswordModal()" class="bottom-nav-item">
+        <button onclick="openResetPasswordModal()" class="bottom-nav-item">
             <i class="fa-solid fa-key text-lg mb-0.5"></i>
-            <span>Settings</span>
+            <span>Reset Password</span>
         </button>
         <a href="../logout.php" class="bottom-nav-item text-red-400 dark:text-red-500">
             <i class="fa-solid fa-right-from-bracket text-lg mb-0.5"></i>
@@ -465,9 +493,9 @@
                     <span>Request Cancellation</span>
                 </button>
             <?php endif; ?>
-            <button onclick="openChangePasswordModal()" class="sidebar-nav-item w-full">
+            <button onclick="openResetPasswordModal()" class="sidebar-nav-item w-full">
                 <i class="fa-solid fa-key nav-icon"></i>
-                <span>Change Password</span>
+                <span>Reset Password</span>
             </button>
         </nav>
 
@@ -518,9 +546,9 @@
                 <span>Cancel Trip</span>
             </button>
         <?php endif; ?>
-        <button onclick="openChangePasswordModal()" class="bottom-nav-item">
+        <button onclick="openResetPasswordModal()" class="bottom-nav-item">
             <i class="fa-solid fa-key text-lg mb-0.5"></i>
-            <span>Settings</span>
+            <span>Reset Password</span>
         </button>
         <a href="../logout.php" class="bottom-nav-item text-red-400 dark:text-red-500">
             <i class="fa-solid fa-right-from-bracket text-lg mb-0.5"></i>
@@ -587,15 +615,6 @@
             });
             const label = document.getElementById('themeLabel');
             if (label) label.textContent = isNowDark ? 'Light Mode' : 'Dark Mode';
-
-            // Auto-switch map tile layer if map is active
-            if (typeof map !== 'undefined' && map && typeof streetLayer !== 'undefined' && typeof darkLayer !== 'undefined' && streetLayer && darkLayer) {
-                if (isNowDark) {
-                    if (map.hasLayer(streetLayer)) { map.removeLayer(streetLayer); map.addLayer(darkLayer); }
-                } else {
-                    if (map.hasLayer(darkLayer)) { map.removeLayer(darkLayer); map.addLayer(streetLayer); }
-                }
-            }
 
             localStorage.setItem('theme', isNowDark ? "dark" : "light");
             document.cookie = "theme=" + (isNowDark ? "dark" : "light") + "; path=/; max-age=" + (60 * 60 * 24 * 365);

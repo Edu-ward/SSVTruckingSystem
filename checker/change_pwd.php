@@ -1,6 +1,7 @@
 <?php
 session_start();
 require '../db.php';
+require_once __DIR__ . '/../includes/activity_log.php';
 
 header('Content-Type: application/json');
 
@@ -47,6 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         unset($_SESSION['otp_expiry']);
 
         echo json_encode(['success' => true, 'message' => 'Password updated successfully!']);
+        log_activity($pdo, 'Changed Password', 'Checker changed their password');
     } else {
         echo json_encode(['success' => false, 'message' => 'Database error. Failed to update password.']);
     }

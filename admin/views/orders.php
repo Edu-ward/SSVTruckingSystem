@@ -12,23 +12,23 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
 <div id="view-orders" class="tab-content hidden">
 
     <!-- Header bar -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 flex justify-between items-center mb-6">
-        <div class="flex items-center space-x-2 text-xl font-bold text-gray-800 dark:text-gray-200">
-            <i class="fa-solid fa-clipboard-list text-gray-700 dark:text-gray-200"></i>
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div class="flex items-center space-x-2 text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-200">
+            <i class="fa-solid fa-clipboard-list text-blue-600 dark:text-blue-400"></i>
             <span>Orders Management</span>
         </div>
-        <div class="flex items-center space-x-3">
-            <button onclick="toggleModal('addCheckerModal', true)" class="btn-secondary text-sm">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <button onclick="toggleModal('addCheckerModal', true)" class="btn-secondary text-sm flex-1 sm:flex-none">
                 <i class="fa-solid fa-user-shield"></i><span>Add Checker</span>
             </button>
-            <button onclick="toggleModal('addOrderModal', true)" class="btn-primary text-sm">
+            <button onclick="toggleModal('addOrderModal', true)" class="btn-primary text-sm flex-1 sm:flex-none">
                 <i class="fa-solid fa-plus"></i><span>Place Order</span>
             </button>
         </div>
     </div>
 
     <!-- Stats row -->
-    <div class="grid grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <?php
         $totalOrders  = count($allOrders ?? []);
         $pendingOrders    = count(array_filter($allOrders ?? [], fn($o) => $o['status'] === 'Pending'));
