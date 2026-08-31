@@ -261,6 +261,10 @@
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative max-h-[90vh] flex flex-col">
         <button onclick="toggleModal('viewDriverModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200 z-10"><i class="fa-solid fa-xmark fa-lg"></i></button>
         <div class="bg-blue-600 p-5 sm:p-6 text-center flex-shrink-0">
+            <!-- Photo avatar (shown when driver has photo) -->
+            <img id="vd-photo" src="" alt=""
+                 class="w-20 h-20 rounded-full object-cover border-4 border-white/80 shadow-xl mx-auto mb-2 sm:mb-3 hidden">
+            <!-- Initials avatar (fallback) -->
             <div class="w-16 h-16 sm:w-20 sm:h-20 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold text-blue-600 mx-auto mb-2 sm:mb-3 shadow-lg" id="vd-initials">--</div>
             <h3 class="text-lg sm:text-xl font-bold text-white" id="vd-name">Driver Name</h3>
             <p class="text-blue-100 text-xs sm:text-sm mt-0.5" id="vd-cdl">Licence #</p>

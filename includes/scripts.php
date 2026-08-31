@@ -119,7 +119,7 @@
                 map = L.map('map', {
                     center: [15.359042, 120.965016],
                     zoom: 14,
-                    layers: [streetLayer],
+                    layers: [googleStreetLayer],
                     zoomControl: true
                 });
 
@@ -356,7 +356,27 @@
 
         function openViewDriverModal(driver) {
             currentViewingDriver = driver;
-            document.getElementById('vd-initials').innerText = getInitialsJS(driver.name);
+
+            // Handle profile photo vs initials avatar
+            const photoEl    = document.getElementById('vd-photo');
+            const initialsEl = document.getElementById('vd-initials');
+            if (driver.profile_photo) {
+                // Build URL relative to admin dashboard (one level up reaches CAPSTONE root)
+                const photoUrl = '../' + driver.profile_photo;
+                if (photoEl) {
+                    photoEl.src = photoUrl;
+                    photoEl.alt = driver.name;
+                    photoEl.classList.remove('hidden');
+                }
+                if (initialsEl) initialsEl.classList.add('hidden');
+            } else {
+                if (photoEl) photoEl.classList.add('hidden');
+                if (initialsEl) {
+                    initialsEl.classList.remove('hidden');
+                    initialsEl.innerText = getInitialsJS(driver.name);
+                }
+            }
+
             document.getElementById('vd-name').innerText = driver.name;
             document.getElementById('vd-cdl').innerText = driver.cdl_number || 'N/A';
             document.getElementById('vd-status').innerText = driver.status;

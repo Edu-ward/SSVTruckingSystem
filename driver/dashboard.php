@@ -10,6 +10,10 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Driver') {
 
 $driver_id = $_SESSION['user_id'];
 
+$stmtDriver = $pdo->prepare("SELECT d.first_name, d.last_name, d.profile_photo, u.username FROM drivers d JOIN users u ON u.id = d.id WHERE d.id = ?");
+$stmtDriver->execute([$driver_id]);
+$driverProfile = $stmtDriver->fetch(PDO::FETCH_ASSOC);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'request_cancel_trip') {
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
         http_response_code(403);
@@ -23,12 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     try {
         $pdo->beginTransaction();
 
-        // 1. Get driver's active dispatch
         $stmt = $pdo->prepare("SELECT id, truck_id, status FROM dispatches WHERE driver_id = ? AND status NOT IN ('Delivered', 'Cancelled', 'Completed')");
         $stmt->execute([$driver_id]);
         $active_dispatches = $stmt->fetchAll();
 
-        // Check if already requested
         $already_requested = false;
         foreach ($active_dispatches as $dispatch) {
             if ($dispatch['status'] === 'Cancellation Requested') {
@@ -44,13 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             exit;
         }
 
-        // 2. Mark active dispatches as Cancellation Requested
         foreach ($active_dispatches as $dispatch) {
             $stmtUpdate = $pdo->prepare("UPDATE dispatches SET status = 'Cancellation Requested' WHERE id = ?");
             $stmtUpdate->execute([$dispatch['id']]);
         }
-
-        // 3. Update the driver trip if there's any active driver trip
         $stmtUpdateTrip = $pdo->prepare("UPDATE driver_trips SET status = 'Cancellation Requested' WHERE driver_id = ? AND status NOT IN ('Delivered', 'Cancelled', 'Completed')");
         $stmtUpdateTrip->execute([$driver_id]);
 
@@ -102,16 +101,7 @@ foreach ($raw_trips as $t) {
 $stmtCancel = $pdo->prepare("SELECT id FROM dispatches WHERE driver_id = ? AND status = 'Cancellation Requested' LIMIT 1");
 $stmtCancel->execute([$driver_id]);
 $has_pending_cancellation = $stmtCancel->fetch() ? true : false;
-$stmtTransit = $pdo->prepare("
-    SELECT d.id, d.origin, d.destination, d.truck_id 
-    FROM dispatches d 
-    WHERE d.driver_id = ? AND d.status = 'In Transit' 
-    LIMIT 1
-");
-$stmtTransit->execute([$driver_id]);
-$active_transit = $stmtTransit->fetch();
-$is_in_transit   = $active_transit ? true : false;
-$active_truck_id = $active_transit ? $active_transit['truck_id'] : null;
+
 
 $stmtActive = $pdo->prepare("
     SELECT d.id, d.ticket_number, d.origin, d.destination, d.status, d.cubic_meters, d.created_at, d.transit_start_time, d.transit_end_time, t.truck_code 
@@ -123,9 +113,6 @@ $stmtActive = $pdo->prepare("
 $stmtActive->execute([$driver_id]);
 $active_dispatch = $stmtActive->fetch();
 
-$garageLat = 15.359042;
-$garageLng = 120.965016;
-$garageName = "Brgy. Burgos San Leonardo, Nueva Ecija";
 
 include '../includes/header.php';
 ?>
@@ -136,6 +123,6 @@ include '../includes/header.php';
     include 'views/modals.php';
     ?>
 </div>
-</div><!-- close #main-content -->
+</div>
 
 <?php include '../includes/scripts.php'; ?>

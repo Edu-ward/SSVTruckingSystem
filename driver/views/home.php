@@ -1,3 +1,129 @@
+        <?php
+        $driverFullName  = trim(($driverProfile['first_name'] ?? '') . ' ' . ($driverProfile['last_name'] ?? ''));
+        $driverUsername  = $driverProfile['username'] ?? '';
+        $driverPhotoPath = $driverProfile['profile_photo'] ?? null;
+        $driverPhotoUrl  = ($driverPhotoPath && file_exists(dirname(__DIR__, 2) . '/' . $driverPhotoPath))
+            ? '../' . htmlspecialchars($driverPhotoPath)
+            : null;
+
+        // Build initials for avatar fallback
+        $initials = 'DR';
+        if (!empty($driverFullName)) {
+            $parts = explode(' ', $driverFullName);
+            $initials = strtoupper(substr($parts[0], 0, 1) . (isset($parts[1]) ? substr($parts[1], 0, 1) : ''));
+        }
+        ?>
+
+        <!-- ====== DRIVER PROFILE CARD ====== -->
+        <div class="mb-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 h-20 relative">
+                <div class="absolute inset-0 opacity-10" style="background-image: repeating-linear-gradient(45deg,transparent,transparent 8px,rgba(255,255,255,.1) 8px,rgba(255,255,255,.1) 16px)"></div>
+            </div>
+            <div class="px-5 pb-5">
+                <div class="flex items-end justify-between -mt-10 mb-4">
+                    <!-- Avatar / Photo -->
+                    <div class="relative group">
+                        <?php if ($driverPhotoUrl): ?>
+                            <img src="<?= $driverPhotoUrl ?>" alt="Profile Photo"
+                                 id="driverProfilePhotoPreview"
+                                 class="w-20 h-20 rounded-2xl object-cover border-4 border-white dark:border-gray-800 shadow-xl">
+                        <?php else: ?>
+                            <div id="driverProfilePhotoPreview"
+                                 class="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-2xl border-4 border-white dark:border-gray-800 shadow-xl">
+                                <?= htmlspecialchars($initials) ?>
+                            </div>
+                        <?php endif; ?>
+                        <!-- Camera overlay trigger -->
+                        <button type="button" onclick="document.getElementById('profilePhotoInput').click()"
+                                title="Change profile photo"
+                                class="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-gray-800 transition-colors">
+                            <i class="fa-solid fa-camera text-[10px]"></i>
+                        </button>
+                    </div>
+
+                    <!-- Upload button -->
+                    <div>
+                        <button type="button" onclick="document.getElementById('profilePhotoInput').click()"
+                                class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 transition-all">
+                            <i class="fa-solid fa-upload text-[10px]"></i>
+                            Upload Photo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Driver Name & Username -->
+                <div>
+                    <h2 class="font-extrabold text-gray-900 dark:text-gray-100 text-lg leading-tight">
+                        <?= htmlspecialchars($driverFullName ?: $driverUsername) ?>
+                    </h2>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 font-medium mt-0.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-id-badge text-blue-400"></i>
+                        <?= htmlspecialchars($driverUsername) ?>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Hidden upload form -->
+            <form id="profilePhotoForm" method="POST" action="upload_profile_photo.php" enctype="multipart/form-data" class="hidden">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                <input type="file" name="profile_photo" id="profilePhotoInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden">
+            </form>
+
+            <!-- Preview + Confirm bar (hidden by default) -->
+            <div id="photoUploadConfirmBar" class="hidden border-t border-gray-100 dark:border-gray-700 px-5 py-3 flex items-center gap-3 bg-blue-50 dark:bg-blue-950/30">
+                <img id="photoPreviewImg" src="" alt="Preview" class="w-10 h-10 rounded-xl object-cover border border-blue-200 dark:border-blue-800 shadow">
+                <div class="flex-1 min-w-0">
+                    <p id="photoPreviewName" class="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate"></p>
+                    <p class="text-[10px] text-gray-400 dark:text-gray-500">Ready to upload</p>
+                </div>
+                <button type="button" onclick="submitPhotoUpload()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-sm">
+                    <i class="fa-solid fa-check mr-1"></i>Save
+                </button>
+                <button type="button" onclick="cancelPhotoUpload()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-all">
+                    <i class="fa-solid fa-xmark mr-1"></i>Cancel
+                </button>
+            </div>
+        </div>
+
+        <script>
+        document.getElementById('profilePhotoInput').addEventListener('change', function () {
+            const file = this.files[0];
+            if (!file) return;
+
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                if (typeof showToast === 'function') showToast('Only JPG, PNG, GIF, or WEBP images allowed.', 'error');
+                else alert('Only JPG, PNG, GIF, or WEBP images allowed.');
+                this.value = '';
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                if (typeof showToast === 'function') showToast('File size must be under 2MB.', 'error');
+                else alert('File size must be under 2MB.');
+                this.value = '';
+                return;
+            }
+
+            // Show preview bar
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById('photoPreviewImg').src = e.target.result;
+                document.getElementById('photoPreviewName').textContent = file.name;
+                document.getElementById('photoUploadConfirmBar').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function submitPhotoUpload() {
+            document.getElementById('profilePhotoForm').submit();
+        }
+
+        function cancelPhotoUpload() {
+            document.getElementById('profilePhotoInput').value = '';
+            document.getElementById('photoUploadConfirmBar').classList.add('hidden');
+        }
+        </script>
+
         <!-- ACTIVE TRIP SECTION -->
         <div class="mb-8">
             <?php if ($active_dispatch): ?>

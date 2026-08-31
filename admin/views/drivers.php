@@ -34,15 +34,28 @@
             if ($driver['status'] == 'Dispatched' || $driver['status'] == 'In Transit') $badgeClass = 'bg-blue-600';
 
             $driverJson = htmlspecialchars(json_encode($driver), ENT_QUOTES, 'UTF-8');
+
+            // Resolve profile photo URL
+            // admin/views/ is 2 levels deep → dirname(__DIR__,2) = CAPSTONE root
+            // But the browser serves from admin/, so only one ../ is needed
+            $dPhotoPath = $driver['profile_photo'] ?? null;
+            $dPhotoUrl  = ($dPhotoPath && file_exists(dirname(__DIR__, 2) . '/' . $dPhotoPath))
+                ? '../' . htmlspecialchars($dPhotoPath)
+                : null;
         ?>
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 flex flex-col justify-between hover:shadow-md transition-all duration-200">
                 <div>
                     <!-- Card Top Header -->
                     <div class="flex justify-between items-start mb-4">
                         <div class="flex items-center space-x-3 min-w-0 pr-2">
-                            <div class="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-base shadow-md shadow-blue-500/20 flex-shrink-0">
-                                <?= getInitials($driver['name']); ?>
-                            </div>
+                            <?php if ($dPhotoUrl): ?>
+                                <img src="<?= $dPhotoUrl ?>" alt="<?= htmlspecialchars($driver['name']) ?>"
+                                     class="w-12 h-12 rounded-xl object-cover shadow-md flex-shrink-0 border-2 border-white dark:border-gray-700 ring-2 ring-blue-500/20">
+                            <?php else: ?>
+                                <div class="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-base shadow-md shadow-blue-500/20 flex-shrink-0">
+                                    <?= getInitials($driver['name']); ?>
+                                </div>
+                            <?php endif; ?>
                             <div class="min-w-0">
                                 <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base truncate" title="<?= htmlspecialchars($driver['name']); ?>"><?= htmlspecialchars($driver['name']); ?></h3>
                                 <p class="text-xs text-gray-400 dark:text-gray-500 font-medium">CDL: <?= htmlspecialchars($driver['cdl_number'] ?? 'N/A'); ?></p>

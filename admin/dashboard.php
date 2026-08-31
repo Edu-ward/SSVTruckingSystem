@@ -27,6 +27,7 @@ $pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS order_id INT NULL"
 $pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS transit_start_time DATETIME DEFAULT NULL");
 $pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS transit_end_time DATETIME DEFAULT NULL");
 $pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+$pdo->exec("ALTER TABLE drivers ADD COLUMN IF NOT EXISTS profile_photo VARCHAR(255) DEFAULT NULL");
 $pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS transit_start_time DATETIME DEFAULT NULL");
 $pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS transit_end_time DATETIME DEFAULT NULL");
 $pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
@@ -95,8 +96,6 @@ $pdo->exec("INSERT IGNORE INTO system_settings (setting_key, setting_value, desc
     ('garage_lng','120.965016','Garage longitude coordinate'),
     ('op_cost_pct','0.40','Estimated operational cost as a decimal fraction'),
     ('payday_day','Saturday','Day of the week when drivers are paid')");
-$pdo->exec("UPDATE system_settings SET setting_value = '15.359042' WHERE setting_key = 'garage_lat'");
-$pdo->exec("UPDATE system_settings SET setting_value = '120.965016' WHERE setting_key = 'garage_lng'");
 
 $pdo->exec("INSERT IGNORE INTO checkers (id, first_name, last_name, phone) 
             SELECT id, '', '', '' FROM users WHERE role = 'Checker'");
@@ -699,7 +698,6 @@ $pendingPwdResetCount = count($pwdResetRequests);
 
 $totalFleet = $pdo->query("SELECT COUNT(*) FROM trucks")->fetchColumn();
 $activeNow = $pdo->query("SELECT COUNT(*) FROM trucks WHERE status IN ('In Transit', 'Loading', 'Unloading')")->fetchColumn();
-$inProgress = $pdo->query("SELECT COUNT(*) FROM dispatches WHERE status = 'In Transit'")->fetchColumn();
 $completedToday = $pdo->query("SELECT COUNT(*) FROM dispatches WHERE status = 'Delivered' AND dispatch_date = CURDATE()")->fetchColumn();
 $idleTrucks = $pdo->query("SELECT COUNT(*) FROM trucks WHERE status = 'Idle'")->fetchColumn();
 $rfidActive = $pdo->query("SELECT COUNT(*) FROM trucks WHERE rfid_active = 1")->fetchColumn();
@@ -743,8 +741,6 @@ unset($dr);
 
 $availableTrucks = $pdo->query("SELECT id, truck_code, rfid_tag, NULL as driver_name FROM trucks WHERE status = 'Idle'")->fetchAll(PDO::FETCH_ASSOC);
 
-const ESTIMATED_OP_COST_PCT = 0.40;
-const PLACEHOLDER_CUSTOMER_RATING = 4.8;
 
 try {
     $currMonthStr = date('Y-m');
@@ -843,15 +839,9 @@ try {
         ['metric' => 'On-Time Deliveries', 'this_month' => number_format($onTimeRate, 1) . '%', 'last_month' => '93.1%', 'change_str' => '+1.1%', 'is_positive' => 1]
     ];
 
-    $currRevenue = $driverSalariesCurr;
-    $estimatedCost = 0;
-    $currProfit = 0;
 } catch (PDOException $e) {
     $reportKpis = [];
     $performanceMetrics = [];
-    $currRevenue = 0;
-    $estimatedCost = 0;
-    $currProfit = 0;
     $onTimeRate = 100;
 }
 

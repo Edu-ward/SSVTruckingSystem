@@ -47,7 +47,6 @@ $checker_full_name = ($checker_profile && !empty($checker_profile['first_name'])
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
-    // ── CSRF Validation ──
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         http_response_code(403);
         die("CSRF token validation failed.");
@@ -471,10 +470,10 @@ foreach ($_gravel_rows as $_g) {
 
     function switchMode(mode) {
         currentMode = mode;
-        const rfidEl   = document.getElementById('rfidMode');
+        const rfidEl = document.getElementById('rfidMode');
         const manualEl = document.getElementById('manualMode');
-        const tabRfid  = document.getElementById('tabRfid');
-        const tabManu  = document.getElementById('tabManual');
+        const tabRfid = document.getElementById('tabRfid');
+        const tabManu = document.getElementById('tabManual');
 
         if (mode === 'rfid') {
             rfidEl.classList.remove('hidden');
@@ -500,19 +499,22 @@ foreach ($_gravel_rows as $_g) {
 
     // ── Order progress bar ──────────────────────────────────────────
     const scanOrderSelect = document.getElementById('scanOrderSelect');
-    const scanProgress    = document.getElementById('scanProgress');
+    const scanProgress = document.getElementById('scanProgress');
     const scanProgressBar = document.getElementById('scanProgressBar');
     const scanProgressText = document.getElementById('scanProgressText');
 
     if (scanOrderSelect) {
-        scanOrderSelect.addEventListener('change', function () {
+        scanOrderSelect.addEventListener('change', function() {
             const opt = this.options[this.selectedIndex];
-            if (!opt.value) { scanProgress.classList.add('hidden'); return; }
-            const req  = parseFloat(opt.dataset.cmReq)  || 0;
+            if (!opt.value) {
+                scanProgress.classList.add('hidden');
+                return;
+            }
+            const req = parseFloat(opt.dataset.cmReq) || 0;
             const done = parseFloat(opt.dataset.cmDone) || 0;
-            const pct  = req > 0 ? Math.round((done / req) * 100) : 0;
-            scanProgressText.innerText    = done.toFixed(2) + ' / ' + req.toFixed(2) + ' cu.m';
-            scanProgressBar.style.width   = Math.min(100, pct) + '%';
+            const pct = req > 0 ? Math.round((done / req) * 100) : 0;
+            scanProgressText.innerText = done.toFixed(2) + ' / ' + req.toFixed(2) + ' cu.m';
+            scanProgressBar.style.width = Math.min(100, pct) + '%';
             scanProgress.classList.remove('hidden');
         });
     }
@@ -530,16 +532,19 @@ foreach ($_gravel_rows as $_g) {
     // ── RFID scanning logic ─────────────────────────────────────────
     let rfidDebounce = null;
 
-    document.getElementById('rfidInput').addEventListener('input', function () {
+    document.getElementById('rfidInput').addEventListener('input', function() {
         clearTimeout(rfidDebounce);
         const val = this.value.trim();
-        if (!val) { clearRfid(); return; }
+        if (!val) {
+            clearRfid();
+            return;
+        }
         // Debounce: RFID readers typically dump all chars quickly
         rfidDebounce = setTimeout(() => lookupRfid(val), 350);
     });
 
     // Also allow pressing Enter to trigger lookup immediately
-    document.getElementById('rfidInput').addEventListener('keydown', function (e) {
+    document.getElementById('rfidInput').addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
             clearTimeout(rfidDebounce);
@@ -570,9 +575,9 @@ foreach ($_gravel_rows as $_g) {
     }
 
     function setRfidStatus(state, msg) {
-        const statusEl   = document.getElementById('rfidStatus');
+        const statusEl = document.getElementById('rfidStatus');
         const scanningEl = document.getElementById('rfidScanning');
-        const cardEl     = document.getElementById('rfidTruckCard');
+        const cardEl = document.getElementById('rfidTruckCard');
 
         statusEl.classList.add('hidden');
         scanningEl.classList.add('hidden');
@@ -600,10 +605,14 @@ foreach ($_gravel_rows as $_g) {
     }
 
     // ── Form submission: populate hidden truck_id ───────────────────
-    document.getElementById('scanForm').addEventListener('submit', function (e) {
+    document.getElementById('scanForm').addEventListener('submit', function(e) {
         if (currentMode === 'manual') {
             const sel = document.getElementById('truckSelect');
-            if (!sel.value) { e.preventDefault(); sel.focus(); return; }
+            if (!sel.value) {
+                e.preventDefault();
+                sel.focus();
+                return;
+            }
             document.getElementById('hiddenTruckId').value = sel.value;
         }
         if (!document.getElementById('hiddenTruckId').value) {
@@ -618,7 +627,7 @@ foreach ($_gravel_rows as $_g) {
     document.getElementById('truckSelect').addEventListener('change', updateConfirmBtn);
 
     // ── Theme icon ──────────────────────────────────────────────────
-    document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener("DOMContentLoaded", function() {
         if (document.documentElement.classList.contains('dark')) {
             const icon = document.getElementById('themeIcon');
             if (icon) icon.classList.replace('fa-moon', 'fa-sun');
