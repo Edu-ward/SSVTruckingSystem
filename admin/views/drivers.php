@@ -208,107 +208,27 @@
         <?php endforeach; ?>
     </div>
 
-    <!-- ==================== PENDING CASH ADVANCE REQUESTS ==================== -->
-    <?php if (!empty($pendingCashAdvances ?? [])): ?>
-    <div class="mt-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-orange-200 dark:border-orange-900/50 overflow-hidden">
-        <div class="p-5 sm:p-6 border-b border-orange-100 dark:border-orange-900/30 flex items-center justify-between bg-orange-50 dark:bg-orange-900/20">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-orange-600 dark:text-orange-400 text-lg">
-                    <i class="fa-solid fa-hand-holding-dollar"></i>
-                </div>
-                <div>
-                    <h3 class="text-base font-bold text-gray-800 dark:text-gray-200">Pending Cash Advance Requests</h3>
-                    <p class="text-xs text-orange-600 dark:text-orange-400 font-medium"><?= count($pendingCashAdvances); ?> request<?= count($pendingCashAdvances) > 1 ? 's' : ''; ?> awaiting approval — will be deducted from payroll automatically</p>
-                </div>
+    <!-- Cash Advances Quick Banner in Drivers Tab -->
+    <div class="mt-8 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent dark:from-amber-950/30 dark:to-transparent border border-amber-200/80 dark:border-amber-800/40 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center space-x-3.5">
+            <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg flex-shrink-0 shadow-sm">
+                <i class="fa-solid fa-hand-holding-dollar"></i>
+            </div>
+            <div>
+                <h4 class="font-bold text-gray-900 dark:text-gray-100 text-sm">Driver Cash Advance Management</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    <?php if (($pendingCashAdvanceCount ?? 0) > 0): ?>
+                        <span class="text-amber-600 dark:text-amber-400 font-semibold"><?= $pendingCashAdvanceCount ?> pending request<?= $pendingCashAdvanceCount > 1 ? 's' : '' ?> awaiting approval.</span>
+                    <?php else: ?>
+                        All driver cash advance requests, approvals, and tickets are managed in the dedicated Cash Advances section.
+                    <?php endif; ?>
+                </p>
             </div>
         </div>
-        <div class="divide-y divide-gray-100 dark:divide-gray-700">
-            <?php foreach ($pendingCashAdvances as $ca): ?>
-            <div class="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="flex items-center space-x-4">
-                    <div class="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-orange-600 font-bold text-base">
-                        <i class="fa-solid fa-user text-sm"></i>
-                    </div>
-                    <div>
-                        <p class="font-bold text-gray-900 dark:text-gray-100 text-sm"><?= htmlspecialchars($ca['driver_name']); ?></p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                            <span class="font-semibold text-orange-600 dark:text-orange-400">₱<?= number_format($ca['amount'], 2); ?></span>
-                            <?php if (!empty($ca['reason'])): ?>
-                             &mdash; <?= htmlspecialchars($ca['reason']); ?>
-                            <?php endif; ?>
-                        </p>
-                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5"><i class="fa-regular fa-clock mr-1"></i><?= date('M d, Y h:i A', strtotime($ca['requested_at'])); ?></p>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-2 flex-shrink-0">
-                    <form method="POST" action="dashboard.php" class="inline">
-                        <input type="hidden" name="action" value="approve_cash_advance">
-                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
-                        <input type="hidden" name="ca_id" value="<?= $ca['id']; ?>">
-                        <button type="submit" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-green-600 hover:bg-green-700 transition shadow-sm flex items-center gap-1.5">
-                            <i class="fa-solid fa-print"></i> Approve & Print Ticket
-                        </button>
-                    </form>
-                    <form method="POST" action="dashboard.php" class="inline">
-                        <input type="hidden" name="action" value="reject_cash_advance">
-                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
-                        <input type="hidden" name="ca_id" value="<?= $ca['id']; ?>">
-                        <button type="submit" class="px-4 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition border border-gray-200 dark:border-gray-600 flex items-center gap-1.5">
-                            <i class="fa-solid fa-xmark"></i> Reject
-                        </button>
-                    </form>
-                </div>
-            </div>
-            <?php endforeach; ?>
-        </div>
+        <button onclick="switchTab('cash_advances')" class="px-4 py-2 rounded-xl text-xs font-bold text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-900/50 hover:bg-amber-200 dark:hover:bg-amber-800/60 border border-amber-200 dark:border-amber-700 transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
+            <span>Open Cash Advances Section</span>
+            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+        </button>
     </div>
-    <?php endif; ?>
-
-    <!-- ==================== APPROVED CASH ADVANCES (RECENT) ==================== -->
-    <?php if (!empty($recentApprovedCashAdvances ?? [])): ?>
-    <div class="mt-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/30">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/40 flex items-center justify-center text-green-600 dark:text-green-400 text-lg">
-                    <i class="fa-solid fa-receipt"></i>
-                </div>
-                <div>
-                    <h3 class="text-base font-bold text-gray-800 dark:text-gray-200">Approved Cash Advances</h3>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Approved advances deducted from driver payroll &mdash; Click to reprint ticket</p>
-                </div>
-            </div>
-        </div>
-        <div class="divide-y divide-gray-100 dark:divide-gray-700">
-            <?php foreach ($recentApprovedCashAdvances as $ca): ?>
-            <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div class="flex items-center space-x-3.5">
-                    <div class="w-9 h-9 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-green-600 font-bold text-sm">
-                        <i class="fa-solid fa-check"></i>
-                    </div>
-                    <div>
-                        <p class="font-bold text-gray-900 dark:text-gray-100 text-sm"><?= htmlspecialchars($ca['driver_name']); ?></p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                            <span class="font-bold text-orange-600 dark:text-orange-400">₱<?= number_format($ca['amount'], 2); ?></span>
-                            <?php if (!empty($ca['reason'])): ?>
-                             &mdash; <?= htmlspecialchars($ca['reason']); ?>
-                            <?php endif; ?>
-                        </p>
-                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
-                            Approved: <?= !empty($ca['resolved_at']) ? date('M d, Y h:i A', strtotime($ca['resolved_at'])) : date('M d, Y h:i A', strtotime($ca['requested_at'])); ?>
-                        </p>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <button onclick="window.open('print_cash_advance.php?id=<?= $ca['id']; ?>', '_blank')" 
-                            class="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition flex items-center gap-1.5 shadow-sm">
-                        <i class="fa-solid fa-print"></i>
-                        <span>Print Ticket</span>
-                    </button>
-                </div>
-            </div>
-            <?php endforeach; ?>
-        </div>
-    </div>
-    <?php endif; ?>
 
 </div>

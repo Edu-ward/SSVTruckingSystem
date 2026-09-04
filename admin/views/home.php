@@ -1,4 +1,26 @@
 <div id="view-dashboard" class="tab-content block">
+    <?php if (($pendingCashAdvanceCount ?? 0) > 0): ?>
+    <div class="mb-6 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/5 dark:from-amber-950/40 dark:via-orange-950/20 dark:to-transparent border border-amber-300/80 dark:border-amber-700/60 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+        <div class="flex items-center space-x-3.5">
+            <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg flex-shrink-0 shadow-md shadow-amber-500/30">
+                <i class="fa-solid fa-hand-holding-dollar"></i>
+            </div>
+            <div>
+                <h4 class="font-bold text-gray-900 dark:text-gray-100 text-sm">
+                    <?= $pendingCashAdvanceCount ?> Driver Cash Advance Request<?= $pendingCashAdvanceCount > 1 ? 's' : '' ?> Pending Review
+                </h4>
+                <p class="text-xs text-amber-800 dark:text-amber-300/90 mt-0.5">
+                    A total of ₱<?= number_format(array_sum(array_column($pendingCashAdvances ?? [], 'amount')), 2) ?> is awaiting your approval before payroll deduction.
+                </p>
+            </div>
+        </div>
+        <button onclick="switchTab('cash_advances')" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 shadow-sm transition flex items-center gap-1.5 flex-shrink-0 active:scale-95 cursor-pointer">
+            <span>Review Requests</span>
+            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+        </button>
+    </div>
+    <?php endif; ?>
+
     <!-- Top Stat Cards (Glassmorphism & Gradients) -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
         <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white shadow-xl shadow-blue-500/20 hover:-translate-y-1 transition-all duration-300 group border border-white/10">

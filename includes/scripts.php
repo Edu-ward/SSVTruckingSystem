@@ -69,6 +69,32 @@
         // Poll every 15 seconds
         setInterval(refreshPwdResetBadge, 15000);
 
+        // ── Cash Advance Badge Polling (Admin) ──
+        function refreshCashAdvanceBadge() {
+            fetch('get_cash_advance_count.php')
+                .then(r => r.json())
+                .then(data => {
+                    const badge = document.getElementById('cashAdvanceBadge');
+                    const navBtn = document.getElementById('nav-cash_advances');
+                    if (data.count > 0) {
+                        if (badge) {
+                            badge.textContent = data.count;
+                            badge.classList.remove('hidden');
+                        } else if (navBtn) {
+                            const span = document.createElement('span');
+                            span.id = 'cashAdvanceBadge';
+                            span.className = 'ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-amber-500 text-white flex items-center justify-center';
+                            span.textContent = data.count;
+                            navBtn.appendChild(span);
+                        }
+                    } else {
+                        if (badge) badge.classList.add('hidden');
+                    }
+                })
+                .catch(() => {});
+        }
+        setInterval(refreshCashAdvanceBadge, 15000);
+
         // ── Activity Logs Filter ──
         function filterActivityLogs() {
             const search = (document.getElementById('activityLogSearch')?.value || '').toLowerCase();

@@ -763,7 +763,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $pdo->rollBack();
             $_SESSION['error'] = 'Failed to approve cash advance.';
         }
-        header('Location: dashboard.php?tab=drivers');
+        header('Location: dashboard.php?tab=cash_advances');
         exit;
     }
 
@@ -773,7 +773,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $pdo->prepare("UPDATE cash_advances SET status = 'Rejected', resolved_at = NOW() WHERE id = ? AND status = 'Pending'")->execute([$ca_id]);
         $_SESSION['success'] = 'Cash advance request rejected.';
         log_activity($pdo, 'Rejected Cash Advance', 'Rejected cash advance ID ' . $ca_id);
-        header('Location: dashboard.php?tab=drivers');
+        header('Location: dashboard.php?tab=cash_advances');
         exit;
     }
 
@@ -1152,11 +1152,41 @@ foreach ($allDrivers as &$dr) {
 unset($dr);
 
 // All pending cash advances (for badge & review)
-$pendingCashAdvances = $pdo->query("SELECT ca.id, ca.driver_id, ca.amount, ca.reason, ca.requested_at, CONCAT(d.first_name, ' ', d.last_name) AS driver_name FROM cash_advances ca JOIN drivers d ON ca.driver_id = d.id WHERE ca.status = 'Pending' ORDER BY ca.requested_at ASC")->fetchAll(PDO::FETCH_ASSOC);
+$pendingCashAdvances = $pdo->query("
+    SELECT ca.*, 
+           COALESCE(NULLIF(TRIM(CONCAT(COALESCE(d.first_name, ''), ' ', COALESCE(d.last_name, ''))), ''), u.username, CONCAT('Driver #', ca.driver_id)) AS driver_name,
+           d.cdl_number, d.phone, u.username
+    FROM cash_advances ca 
+    LEFT JOIN drivers d ON ca.driver_id = d.id 
+    LEFT JOIN users u ON ca.driver_id = u.id
+    WHERE ca.status = 'Pending' 
+    ORDER BY ca.requested_at ASC
+")->fetchAll(PDO::FETCH_ASSOC);
 $pendingCashAdvanceCount = count($pendingCashAdvances);
 
 // Recently approved cash advances (for re-printing tickets)
-$recentApprovedCashAdvances = $pdo->query("SELECT ca.id, ca.driver_id, ca.amount, ca.reason, ca.requested_at, ca.resolved_at, CONCAT(d.first_name, ' ', d.last_name) AS driver_name FROM cash_advances ca JOIN drivers d ON ca.driver_id = d.id WHERE ca.status = 'Approved' ORDER BY ca.resolved_at DESC LIMIT 10")->fetchAll(PDO::FETCH_ASSOC);
+$recentApprovedCashAdvances = $pdo->query("
+    SELECT ca.*, 
+           COALESCE(NULLIF(TRIM(CONCAT(COALESCE(d.first_name, ''), ' ', COALESCE(d.last_name, ''))), ''), u.username, CONCAT('Driver #', ca.driver_id)) AS driver_name,
+           d.cdl_number, d.phone, u.username
+    FROM cash_advances ca 
+    LEFT JOIN drivers d ON ca.driver_id = d.id 
+    LEFT JOIN users u ON ca.driver_id = u.id
+    WHERE ca.status = 'Approved' 
+    ORDER BY ca.resolved_at DESC, ca.id DESC 
+    LIMIT 20
+")->fetchAll(PDO::FETCH_ASSOC);
+
+// Full history of all cash advances
+$allCashAdvances = $pdo->query("
+    SELECT ca.*, 
+           COALESCE(NULLIF(TRIM(CONCAT(COALESCE(d.first_name, ''), ' ', COALESCE(d.last_name, ''))), ''), u.username, CONCAT('Driver #', ca.driver_id)) AS driver_name,
+           d.cdl_number, d.phone, u.username
+    FROM cash_advances ca 
+    LEFT JOIN drivers d ON ca.driver_id = d.id 
+    LEFT JOIN users u ON ca.driver_id = u.id
+    ORDER BY ca.requested_at DESC
+")->fetchAll(PDO::FETCH_ASSOC);
 
 $availableTrucks = $pdo->query("SELECT id, truck_code, rfid_tag, NULL as driver_name FROM trucks WHERE status = 'Idle'")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -1386,6 +1416,7 @@ include '../includes/header.php';
     include 'views/reports.php';
     include 'views/activity_logs.php';
     include 'views/pwd_requests.php';
+    include 'views/cash_advances.php';
     include 'views/modals.php'; ?>
 </div>
 </div><!-- close #main-content -->

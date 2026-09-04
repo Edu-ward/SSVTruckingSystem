@@ -289,6 +289,13 @@
                 <i class="fa-regular fa-user nav-icon"></i>
                 <span>Drivers</span>
             </button>
+            <button onclick="switchTab('cash_advances')" id="nav-cash_advances" class="sidebar-nav-item w-full">
+                <i class="fa-solid fa-hand-holding-dollar nav-icon"></i>
+                <span class="flex-1 text-left">Cash Advances</span>
+                <?php if (($pendingCashAdvanceCount ?? 0) > 0): ?>
+                    <span id="cashAdvanceBadge" class="ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-amber-500 text-white flex items-center justify-center"><?= $pendingCashAdvanceCount ?></span>
+                <?php endif; ?>
+            </button>
             <button onclick="switchTab('orders')" id="nav-orders" class="sidebar-nav-item w-full">
                 <i class="fa-solid fa-clipboard-list nav-icon"></i>
                 <span>Orders</span>

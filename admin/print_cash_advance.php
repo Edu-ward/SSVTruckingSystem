@@ -29,7 +29,8 @@ if (!$advance) {
 }
 
 // Check authorization: Admin can view any ticket, Driver can only view their own
-if ($_SESSION['role'] !== 'Admin' && (!isset($_SESSION['driver_id']) || $_SESSION['driver_id'] != $advance['driver_id'])) {
+$currentUserId = $_SESSION['user_id'] ?? ($_SESSION['driver_id'] ?? 0);
+if ($_SESSION['role'] !== 'Admin' && $currentUserId != $advance['driver_id']) {
     die("Unauthorized access to this cash advance ticket.");
 }
 
