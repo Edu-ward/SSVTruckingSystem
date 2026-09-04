@@ -27,6 +27,20 @@
         </div>
     </div>
 
+<style>
+    .driver-card,
+    .driver-card * {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+    }
+    .driver-card::-webkit-scrollbar,
+    .driver-card *::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+</style>
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <?php foreach ($allDrivers as $driver):
             $badgeClass = 'bg-gray-500';
@@ -39,11 +53,12 @@
             // admin/views/ is 2 levels deep → dirname(__DIR__,2) = CAPSTONE root
             // But the browser serves from admin/, so only one ../ is needed
             $dPhotoPath = $driver['profile_photo'] ?? null;
-            $dPhotoUrl  = ($dPhotoPath && file_exists(dirname(__DIR__, 2) . '/' . $dPhotoPath))
-                ? '../' . htmlspecialchars($dPhotoPath)
+            $dPhotoFull = $dPhotoPath ? (dirname(__DIR__, 2) . '/' . $dPhotoPath) : null;
+            $dPhotoUrl  = ($dPhotoFull && file_exists($dPhotoFull))
+                ? '../' . htmlspecialchars($dPhotoPath) . '?v=' . filemtime($dPhotoFull)
                 : null;
         ?>
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 flex flex-col justify-between hover:shadow-md transition-all duration-200">
+            <div class="driver-card bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 flex flex-col justify-between hover:shadow-md transition-all duration-200 overflow-hidden">
                 <div>
                     <!-- Card Top Header -->
                     <div class="flex justify-between items-start mb-4">
@@ -67,7 +82,7 @@
                     </div>
 
                     <!-- Details -->
-                    <div class="space-y-2.5 text-xs text-gray-600 dark:text-gray-300 mb-4">
+                    <div class="space-y-2 text-xs text-gray-600 dark:text-gray-300 mb-3">
                         <div class="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-900 rounded-xl">
                             <span class="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
                                 <i class="fa-solid fa-truck text-blue-500 w-4 text-center"></i>
@@ -82,19 +97,79 @@
                             </span>
                             <span class="font-semibold text-gray-900 dark:text-gray-100"><?= htmlspecialchars($driver['phone'] ?? 'N/A'); ?></span>
                         </div>
-                        <div class="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-900 rounded-xl">
-                            <span class="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
-                                <i class="fa-solid fa-star text-amber-400 w-4 text-center"></i>
+                        <!-- Performance Button (Click to view full weekly analytics & dispatch stats) -->
+                        <button type="button" 
+                                onclick='openDriverPerformanceModal(<?= $driverJson; ?>)'
+                                title="Click to view weekly kilometers, dispatches, and performance analytics"
+                                class="w-full flex items-center justify-between p-2.5 bg-amber-50/70 hover:bg-amber-100/80 dark:bg-amber-950/20 dark:hover:bg-amber-900/30 border border-amber-200/50 dark:border-amber-800/40 rounded-xl transition-all group cursor-pointer text-left">
+                            <span class="flex items-center space-x-2 text-amber-700 dark:text-amber-400 font-medium">
+                                <i class="fa-solid fa-chart-line text-amber-500 w-4 text-center group-hover:scale-110 transition-transform"></i>
                                 <span>Performance</span>
                             </span>
-                            <span class="font-semibold text-gray-900 dark:text-gray-100"><?= number_format($driver['rating'] ?? 5.0, 1); ?> / 5.0</span>
+                            <span class="flex items-center space-x-1.5 font-bold text-amber-800 dark:text-amber-300 text-xs">
+                                <span><?= number_format($driver['rating'] ?? 5.0, 1); ?> / 5.0</span>
+                                <i class="fa-solid fa-chevron-right text-[10px] text-amber-500/70 group-hover:translate-x-0.5 transition-transform"></i>
+                            </span>
+                        </button>
+                        <!-- Remaining Balance (Uniformly shown on all driver cards) -->
+                        <div class="flex items-center justify-between p-2.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl">
+                            <span class="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 font-medium">
+                                <i class="fa-solid fa-clock-rotate-left w-4 text-center"></i>
+                                <span>Remaining Balance</span>
+                            </span>
+                            <span class="font-bold text-indigo-700 dark:text-indigo-400">₱<?= number_format($driver['remaining_balance'] ?? 0, 2); ?></span>
+                        </div>
+                        <?php if (($driver['approved_cash_advances'] ?? 0) > 0): ?>
+                        <div class="flex items-center justify-between p-2.5 bg-orange-50 dark:bg-orange-900/20 rounded-xl">
+                            <span class="flex items-center space-x-2 text-orange-600 dark:text-orange-400">
+                                <i class="fa-solid fa-hand-holding-dollar w-4 text-center"></i>
+                                <span>Cash Advances</span>
+                            </span>
+                            <span class="font-bold text-orange-700 dark:text-orange-400">-₱<?= number_format($driver['approved_cash_advances'] ?? 0, 2); ?></span>
+                        </div>
+                        <?php endif; ?>
+                        <!-- Net Payable (Uniformly shown on all driver cards) -->
+                        <div class="flex items-center justify-between p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                            <span class="flex items-center space-x-2 text-blue-600 dark:text-blue-400 font-semibold">
+                                <i class="fa-solid fa-wallet text-blue-500 w-4 text-center"></i>
+                                <span>Net Payable</span>
+                            </span>
+                            <span class="font-extrabold text-blue-700 dark:text-blue-400">₱<?= number_format($driver['net_earnings'] ?? 0, 2); ?></span>
                         </div>
                     </div>
 
+                    <!-- Settle Payroll Primary Action Button -->
+                    <div class="mb-3">
+                        <?php if (($driver['gross_earnings'] ?? 0) > 0 || ($driver['approved_cash_advances'] ?? 0) > 0 || ($driver['remaining_balance'] ?? 0) > 0): ?>
+                            <button type="button" 
+                                    onclick="openSettlePayrollModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['gross_earnings'] ?? 0; ?>, <?= $driver['approved_cash_advances'] ?? 0; ?>, <?= $driver['net_earnings'] ?? 0; ?>, <?= $driver['remaining_balance'] ?? 0; ?>)" 
+                                    class="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white text-xs font-bold rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-between">
+                                <span class="flex items-center gap-1.5"><i class="fa-solid fa-money-bill-transfer"></i> Settle Payroll</span>
+                                <span class="px-1.5 py-0.5 rounded bg-emerald-700/70 text-[11px] font-extrabold">₱<?= number_format($driver['net_earnings'] ?? 0, 2); ?></span>
+                            </button>
+                        <?php else: ?>
+                            <button type="button" disabled 
+                                    class="w-full py-2 px-3 bg-gray-100 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500 text-xs font-semibold rounded-xl cursor-default flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-circle-check text-emerald-500"></i>
+                                <span>Payroll Settled (₱0.00)</span>
+                            </button>
+                        <?php endif; ?>
+                    </div>
+
                     <!-- Quick Action Bar -->
-                    <div class="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700/60 mb-4">
+                    <div class="flex items-center justify-between pt-2.5 border-t border-gray-100 dark:border-gray-700/60 mb-3">
                         <span class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Quick Actions</span>
                         <div class="flex items-center space-x-1">
+                            <button onclick="openSettlePayrollModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['gross_earnings'] ?? 0; ?>, <?= $driver['approved_cash_advances'] ?? 0; ?>, <?= $driver['net_earnings'] ?? 0; ?>, <?= $driver['remaining_balance'] ?? 0; ?>)" 
+                                    class="w-8 h-8 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-gray-700 transition-colors" 
+                                    title="Settle Driver Payroll">
+                                <i class="fa-solid fa-money-bill-transfer text-xs"></i>
+                            </button>
+                            <button onclick="openAdjustBalanceModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['remaining_balance'] ?? 0; ?>)" 
+                                    class="w-8 h-8 rounded-lg flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-gray-700 transition-colors" 
+                                    title="Adjust Remaining Balance">
+                                <i class="fa-solid fa-coins text-xs"></i>
+                            </button>
                             <button onclick="openPrintDriverTripsModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>')" 
                                     class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors" 
                                     title="Print Trip Ticket">
@@ -132,4 +207,108 @@
             </div>
         <?php endforeach; ?>
     </div>
+
+    <!-- ==================== PENDING CASH ADVANCE REQUESTS ==================== -->
+    <?php if (!empty($pendingCashAdvances ?? [])): ?>
+    <div class="mt-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-orange-200 dark:border-orange-900/50 overflow-hidden">
+        <div class="p-5 sm:p-6 border-b border-orange-100 dark:border-orange-900/30 flex items-center justify-between bg-orange-50 dark:bg-orange-900/20">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-orange-600 dark:text-orange-400 text-lg">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-gray-800 dark:text-gray-200">Pending Cash Advance Requests</h3>
+                    <p class="text-xs text-orange-600 dark:text-orange-400 font-medium"><?= count($pendingCashAdvances); ?> request<?= count($pendingCashAdvances) > 1 ? 's' : ''; ?> awaiting approval — will be deducted from payroll automatically</p>
+                </div>
+            </div>
+        </div>
+        <div class="divide-y divide-gray-100 dark:divide-gray-700">
+            <?php foreach ($pendingCashAdvances as $ca): ?>
+            <div class="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-orange-600 font-bold text-base">
+                        <i class="fa-solid fa-user text-sm"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-gray-900 dark:text-gray-100 text-sm"><?= htmlspecialchars($ca['driver_name']); ?></p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            <span class="font-semibold text-orange-600 dark:text-orange-400">₱<?= number_format($ca['amount'], 2); ?></span>
+                            <?php if (!empty($ca['reason'])): ?>
+                             &mdash; <?= htmlspecialchars($ca['reason']); ?>
+                            <?php endif; ?>
+                        </p>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5"><i class="fa-regular fa-clock mr-1"></i><?= date('M d, Y h:i A', strtotime($ca['requested_at'])); ?></p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 flex-shrink-0">
+                    <form method="POST" action="dashboard.php" class="inline">
+                        <input type="hidden" name="action" value="approve_cash_advance">
+                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                        <input type="hidden" name="ca_id" value="<?= $ca['id']; ?>">
+                        <button type="submit" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-green-600 hover:bg-green-700 transition shadow-sm flex items-center gap-1.5">
+                            <i class="fa-solid fa-print"></i> Approve & Print Ticket
+                        </button>
+                    </form>
+                    <form method="POST" action="dashboard.php" class="inline">
+                        <input type="hidden" name="action" value="reject_cash_advance">
+                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                        <input type="hidden" name="ca_id" value="<?= $ca['id']; ?>">
+                        <button type="submit" class="px-4 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition border border-gray-200 dark:border-gray-600 flex items-center gap-1.5">
+                            <i class="fa-solid fa-xmark"></i> Reject
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- ==================== APPROVED CASH ADVANCES (RECENT) ==================== -->
+    <?php if (!empty($recentApprovedCashAdvances ?? [])): ?>
+    <div class="mt-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/30">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/40 flex items-center justify-center text-green-600 dark:text-green-400 text-lg">
+                    <i class="fa-solid fa-receipt"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-gray-800 dark:text-gray-200">Approved Cash Advances</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Approved advances deducted from driver payroll &mdash; Click to reprint ticket</p>
+                </div>
+            </div>
+        </div>
+        <div class="divide-y divide-gray-100 dark:divide-gray-700">
+            <?php foreach ($recentApprovedCashAdvances as $ca): ?>
+            <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-9 h-9 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-green-600 font-bold text-sm">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-gray-900 dark:text-gray-100 text-sm"><?= htmlspecialchars($ca['driver_name']); ?></p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            <span class="font-bold text-orange-600 dark:text-orange-400">₱<?= number_format($ca['amount'], 2); ?></span>
+                            <?php if (!empty($ca['reason'])): ?>
+                             &mdash; <?= htmlspecialchars($ca['reason']); ?>
+                            <?php endif; ?>
+                        </p>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+                            Approved: <?= !empty($ca['resolved_at']) ? date('M d, Y h:i A', strtotime($ca['resolved_at'])) : date('M d, Y h:i A', strtotime($ca['requested_at'])); ?>
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="window.open('print_cash_advance.php?id=<?= $ca['id']; ?>', '_blank')" 
+                            class="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-print"></i>
+                        <span>Print Ticket</span>
+                    </button>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
 </div>

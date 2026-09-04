@@ -53,10 +53,11 @@ $ext_map = [
 ];
 $ext = $ext_map[$mime];
 $upload_dir = __DIR__ . '/../src/uploads/driver_photos/';
-$filename   = 'driver_' . $driver_id . '.' . $ext;
+$filename   = 'driver_' . $driver_id . '_' . time() . '.' . $ext;
 $dest       = $upload_dir . $filename;
 
-foreach (glob($upload_dir . 'driver_' . $driver_id . '.*') as $old_file) {
+// Remove any older photos for this driver
+foreach (glob($upload_dir . 'driver_' . $driver_id . '*.*') as $old_file) {
     if (is_file($old_file)) {
         @unlink($old_file);
     }
@@ -72,7 +73,9 @@ $photo_path = 'src/uploads/driver_photos/' . $filename;
 $stmt = $pdo->prepare("UPDATE drivers SET profile_photo = ? WHERE id = ?");
 $stmt->execute([$photo_path, $driver_id]);
 
+$_SESSION['profile_photo'] = $photo_path;
 log_activity($pdo, 'Updated Profile Photo', 'Driver uploaded a new profile photo.');
 $_SESSION['success'] = "Profile photo updated successfully!";
 header("Location: dashboard.php");
 exit;
+

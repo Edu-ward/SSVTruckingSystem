@@ -10,7 +10,7 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-require_once '../db.php';
+require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../includes/activity_log.php';
 
 $pdo->exec("CREATE TABLE IF NOT EXISTS checkers (
@@ -27,6 +27,9 @@ $pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS order_id INT NULL"
 $pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS transit_start_time DATETIME DEFAULT NULL");
 $pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS transit_end_time DATETIME DEFAULT NULL");
 $pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS distance_km DECIMAL(8,2) DEFAULT 0.00");
+$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS pay_amount DECIMAL(10,2) DEFAULT 0.00");
+$pdo->exec("UPDATE destinations SET distance_km = ROUND(driver_rate / 10, 2) WHERE (distance_km = 0 OR distance_km IS NULL) AND driver_rate > 0");
 $pdo->exec("ALTER TABLE drivers ADD COLUMN IF NOT EXISTS profile_photo VARCHAR(255) DEFAULT NULL");
 $pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS transit_start_time DATETIME DEFAULT NULL");
 $pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS transit_end_time DATETIME DEFAULT NULL");
@@ -42,11 +45,73 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS destinations (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE,
     driver_rate DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    distance_km DECIMAL(8,2) NOT NULL DEFAULT 0.00,
     is_active TINYINT(1) DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB");
-$pdo->exec("INSERT IGNORE INTO destinations (name, driver_rate) VALUES
-    ('San Leonardo', 150.00), ('Tarlac', 800.00), ('Laur', 900.00), ('Gabaldon', 1000.00)");
+$pdo->exec("ALTER TABLE destinations ADD COLUMN IF NOT EXISTS distance_km DECIMAL(8,2) NOT NULL DEFAULT 0.00");
+$pdo->exec("INSERT IGNORE INTO destinations (name, driver_rate, distance_km) VALUES
+    ('San Leonardo', 150.00, 15.00), ('Tarlac', 800.00, 80.00), ('Laur', 900.00, 90.00), ('Gabaldon', 1000.00, 100.00)");
+
+// Driver Payroll table (self-healing)
+$pdo->exec("CREATE TABLE IF NOT EXISTS driver_payroll (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    driver_id INT NOT NULL UNIQUE,
+    total_amount DECIMAL(12,2) DEFAULT 0.00,
+    amount_claimed DECIMAL(12,2) DEFAULT 0.00,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE CASCADE
+) ENGINE=InnoDB");
+
+// Cash Advances table
+$pdo->exec("CREATE TABLE IF NOT EXISTS cash_advances (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    driver_id INT NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    reason TEXT DEFAULT NULL,
+    status ENUM('Pending','Approved','Rejected') DEFAULT 'Pending',
+    is_settled TINYINT(1) NOT NULL DEFAULT 0,
+    settled_at DATETIME DEFAULT NULL,
+    payroll_id INT DEFAULT NULL,
+    requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    resolved_at TIMESTAMP NULL DEFAULT NULL,
+    FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE CASCADE
+) ENGINE=InnoDB");
+
+// Driver Payroll Settlements table
+$pdo->exec("CREATE TABLE IF NOT EXISTS driver_payroll_settlements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    settlement_ticket VARCHAR(50) NOT NULL UNIQUE,
+    driver_id INT NOT NULL,
+    gross_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    cash_advance_deduction DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    net_pay DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    trips_count INT NOT NULL DEFAULT 0,
+    settled_by INT DEFAULT NULL,
+    settled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT DEFAULT NULL,
+    FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE CASCADE
+) ENGINE=InnoDB");
+
+// Migration columns for dispatches, driver_trips, cash_advances, driver_payroll
+$pdo->exec("ALTER TABLE driver_payroll ADD COLUMN IF NOT EXISTS remaining_balance DECIMAL(12,2) NOT NULL DEFAULT 0.00");
+try { $pdo->exec("ALTER TABLE driver_payroll ADD UNIQUE KEY unique_driver_id (driver_id)"); } catch (Exception $e) {}
+
+$pdo->exec("ALTER TABLE driver_payroll_settlements ADD COLUMN IF NOT EXISTS amount_claimed DECIMAL(12,2) NOT NULL DEFAULT 0.00");
+$pdo->exec("ALTER TABLE driver_payroll_settlements ADD COLUMN IF NOT EXISTS remaining_balance DECIMAL(12,2) NOT NULL DEFAULT 0.00");
+$pdo->exec("ALTER TABLE driver_payroll_settlements ADD COLUMN IF NOT EXISTS previous_balance DECIMAL(12,2) NOT NULL DEFAULT 0.00");
+
+$pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS is_payroll_paid TINYINT(1) NOT NULL DEFAULT 0");
+$pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS payroll_settled_at DATETIME DEFAULT NULL");
+$pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS payroll_id INT DEFAULT NULL");
+
+$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS is_payroll_paid TINYINT(1) NOT NULL DEFAULT 0");
+$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS payroll_settled_at DATETIME DEFAULT NULL");
+$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS payroll_id INT DEFAULT NULL");
+
+$pdo->exec("ALTER TABLE cash_advances ADD COLUMN IF NOT EXISTS is_settled TINYINT(1) NOT NULL DEFAULT 0");
+$pdo->exec("ALTER TABLE cash_advances ADD COLUMN IF NOT EXISTS settled_at DATETIME DEFAULT NULL");
+$pdo->exec("ALTER TABLE cash_advances ADD COLUMN IF NOT EXISTS payroll_id INT DEFAULT NULL");
 
 $pdo->exec("CREATE TABLE IF NOT EXISTS gravel_types (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -107,11 +172,13 @@ $GARAGE_LAT  = floatval($_settings_raw['garage_lat'] ?? 15.359042);
 $GARAGE_LNG  = floatval($_settings_raw['garage_lng'] ?? 120.965016);
 $OP_COST_PCT = floatval($_settings_raw['op_cost_pct'] ?? 0.40);
 
-$_dest_rows  = $pdo->query("SELECT name, driver_rate FROM destinations WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
+$_dest_rows  = $pdo->query("SELECT name, driver_rate, distance_km FROM destinations WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
 $DRIVER_RATES = [];
+$DISTANCE_KM  = [];
 $destinations = [];
 foreach ($_dest_rows as $_d) {
     $DRIVER_RATES[$_d['name']] = floatval($_d['driver_rate']);
+    $DISTANCE_KM[$_d['name']]  = floatval($_d['distance_km']);
     $destinations[] = $_d;
 }
 
@@ -144,16 +211,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $cubic_meters = !empty($_POST['cubic_meters']) ? floatval($_POST['cubic_meters']) : 0.00;
         $order_id = !empty($_POST['order_id']) ? intval($_POST['order_id']) : null;
 
-        $driver_pay = isset($DRIVER_RATES[$destination]) ? $DRIVER_RATES[$destination] : 0;
+        // Distance-based pay: 10 PHP per km (one-way only)
+        $dist_km = isset($DISTANCE_KM[$destination]) ? $DISTANCE_KM[$destination] : 0;
+        $driver_pay = $dist_km > 0 ? round($dist_km * 10, 2) : (isset($DRIVER_RATES[$destination]) ? $DRIVER_RATES[$destination] : 0);
 
         $ticketNum = 'TKT-' . date('Y') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
 
-        $insert = $pdo->prepare("INSERT INTO dispatches (ticket_number, truck_id, driver_id, status, origin, destination, pay_amount, dispatch_date, cubic_meters, order_id, transit_start_time) VALUES (?, ?, ?, 'In Transit', ?, ?, 0, CURDATE(), ?, ?, NOW())");
-        $insert->execute([$ticketNum, $truck_id, $driver_id, $origin, $destination, $cubic_meters, $order_id]);
+        $insert = $pdo->prepare("INSERT INTO dispatches (ticket_number, truck_id, driver_id, status, origin, destination, pay_amount, dispatch_date, cubic_meters, order_id, transit_start_time) VALUES (?, ?, ?, 'In Transit', ?, ?, ?, CURDATE(), ?, ?, NOW())");
+        $insert->execute([$ticketNum, $truck_id, $driver_id, $origin, $destination, $driver_pay, $cubic_meters, $order_id]);
         $new_dispatch_id = $pdo->lastInsertId();
 
-        $trip_insert = $pdo->prepare("INSERT INTO driver_trips (driver_id, destination, trip_date, status, order_id, transit_start_time) VALUES (?, ?, CURDATE(), 'In Transit', ?, NOW())");
-        $trip_insert->execute([$driver_id, $destination, $order_id]);
+        $trip_insert = $pdo->prepare("INSERT INTO driver_trips (driver_id, destination, trip_date, status, order_id, transit_start_time, distance_km, pay_amount) VALUES (?, ?, CURDATE(), 'In Transit', ?, NOW(), ?, ?)");
+        $trip_insert->execute([$driver_id, $destination, $order_id, $dist_km, $driver_pay]);
 
         if ($order_id) {
             $pdo->prepare("UPDATE orders SET status = 'In Progress' WHERE id = ? AND status = 'Pending'")->execute([$order_id]);
@@ -672,6 +741,216 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
+    // ── Cash Advance: Approve ──
+    if ($_POST['action'] === 'approve_cash_advance') {
+        $ca_id = intval($_POST['ca_id']);
+        try {
+            $pdo->beginTransaction();
+            $caStmt = $pdo->prepare("SELECT driver_id, amount FROM cash_advances WHERE id = ? AND status = 'Pending'");
+            $caStmt->execute([$ca_id]);
+            $ca = $caStmt->fetch();
+            if ($ca) {
+                $pdo->prepare("UPDATE cash_advances SET status = 'Approved', resolved_at = NOW() WHERE id = ?")->execute([$ca_id]);
+                // Deduct from payroll: insert or update driver_payroll, reduce total_amount by advance
+                $pdo->prepare("INSERT INTO driver_payroll (driver_id, total_amount, amount_claimed) VALUES (?, 0, ?) ON DUPLICATE KEY UPDATE amount_claimed = amount_claimed + ?")
+                    ->execute([$ca['driver_id'], $ca['amount'], $ca['amount']]);
+            }
+            $pdo->commit();
+            $_SESSION['auto_print_cash_advance_id'] = $ca_id;
+            $_SESSION['success'] = 'Cash advance approved and deducted from payroll. Opening print ticket...';
+            log_activity($pdo, 'Approved Cash Advance', 'Approved cash advance ID ' . $ca_id);
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            $_SESSION['error'] = 'Failed to approve cash advance.';
+        }
+        header('Location: dashboard.php?tab=drivers');
+        exit;
+    }
+
+    // ── Cash Advance: Reject ──
+    if ($_POST['action'] === 'reject_cash_advance') {
+        $ca_id = intval($_POST['ca_id']);
+        $pdo->prepare("UPDATE cash_advances SET status = 'Rejected', resolved_at = NOW() WHERE id = ? AND status = 'Pending'")->execute([$ca_id]);
+        $_SESSION['success'] = 'Cash advance request rejected.';
+        log_activity($pdo, 'Rejected Cash Advance', 'Rejected cash advance ID ' . $ca_id);
+        header('Location: dashboard.php?tab=drivers');
+        exit;
+    }
+
+    // ── Driver Payroll: Settle Payroll (Full or Partial) ──
+    if ($_POST['action'] === 'settle_driver_payroll') {
+        $driver_id = intval($_POST['driver_id']);
+        $notes = trim($_POST['notes'] ?? '');
+        try {
+            $pdo->beginTransaction();
+
+            // Fetch driver details
+            $dStmt = $pdo->prepare("SELECT id, first_name, last_name, cdl_number FROM drivers WHERE id = ?");
+            $dStmt->execute([$driver_id]);
+            $driverData = $dStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$driverData) {
+                throw new Exception("Driver not found.");
+            }
+
+            // Fetch existing remaining balance carried over from prior settlements
+            $curBalStmt = $pdo->prepare("SELECT remaining_balance FROM driver_payroll WHERE driver_id = ?");
+            $curBalStmt->execute([$driver_id]);
+            $previousBalance = floatval($curBalStmt->fetchColumn() ?: 0);
+
+            // Calculate unclaimed delivered gross earnings
+            $unclaimedStmt = $pdo->prepare("SELECT id, pay_amount FROM dispatches WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)");
+            $unclaimedStmt->execute([$driver_id]);
+            $unclaimedDispatches = $unclaimedStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $grossAmount = 0.00;
+            $dispatchIds = [];
+            foreach ($unclaimedDispatches as $disp) {
+                $grossAmount += floatval($disp['pay_amount']);
+                $dispatchIds[] = $disp['id'];
+            }
+
+            // Calculate unsettled approved cash advances
+            $caUnsettledStmt = $pdo->prepare("SELECT id, amount FROM cash_advances WHERE driver_id = ? AND status = 'Approved' AND (is_settled = 0 OR is_settled IS NULL)");
+            $caUnsettledStmt->execute([$driver_id]);
+            $unsettledCAs = $caUnsettledStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $cashAdvanceDeduction = 0.00;
+            $caIds = [];
+            foreach ($unsettledCAs as $caRow) {
+                $cashAdvanceDeduction += floatval($caRow['amount']);
+                $caIds[] = $caRow['id'];
+            }
+
+            // Total net payable available to driver
+            $totalPayable = max(0, $grossAmount + $previousBalance - $cashAdvanceDeduction);
+            $tripsCount = count($unclaimedDispatches);
+
+            if ($grossAmount <= 0 && $previousBalance <= 0 && $cashAdvanceDeduction <= 0) {
+                throw new Exception("No unclaimed earnings, prior balance, or advances to settle for this driver.");
+            }
+
+            // Check if partial claim is specified
+            if (isset($_POST['claimed_amount']) && is_numeric($_POST['claimed_amount'])) {
+                $rawClaimed = floatval($_POST['claimed_amount']);
+                $disbursedAmount = min($totalPayable, max(0, $rawClaimed));
+            } else {
+                $disbursedAmount = $totalPayable;
+            }
+
+            // Remaining balance carried forward
+            $newRemainingBalance = max(0, $totalPayable - $disbursedAmount);
+
+            // Generate unique settlement ticket
+            $ticketNumber = 'PAY-' . date('Y') . '-' . str_pad($driver_id, 3, '0', STR_PAD_LEFT) . '-' . strtoupper(substr(uniqid(), -4));
+
+            // Insert settlement record with partial claim tracking
+            $settleInsert = $pdo->prepare("
+                INSERT INTO driver_payroll_settlements 
+                (settlement_ticket, driver_id, gross_amount, previous_balance, cash_advance_deduction, net_pay, amount_claimed, remaining_balance, trips_count, settled_by, notes, settled_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            ");
+            $settleInsert->execute([
+                $ticketNumber,
+                $driver_id,
+                $grossAmount,
+                $previousBalance,
+                $cashAdvanceDeduction,
+                $totalPayable,
+                $disbursedAmount,
+                $newRemainingBalance,
+                $tripsCount,
+                $_SESSION['user_id'] ?? null,
+                $notes
+            ]);
+            $settlementId = $pdo->lastInsertId();
+
+            // Mark dispatches as paid
+            if (!empty($dispatchIds)) {
+                $inQuery = implode(',', array_fill(0, count($dispatchIds), '?'));
+                $paidStmt = $pdo->prepare("UPDATE dispatches SET is_payroll_paid = 1, payroll_settled_at = NOW(), payroll_id = ? WHERE id IN ($inQuery)");
+                $paidStmt->execute(array_merge([$settlementId], $dispatchIds));
+            }
+
+            // Mark driver_trips for this driver as paid
+            $pdo->prepare("UPDATE driver_trips SET is_payroll_paid = 1, payroll_settled_at = NOW(), payroll_id = ? WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)")
+                ->execute([$settlementId, $driver_id]);
+
+            // Mark cash advances as settled
+            if (!empty($caIds)) {
+                $inCaQuery = implode(',', array_fill(0, count($caIds), '?'));
+                $caSettledStmt = $pdo->prepare("UPDATE cash_advances SET is_settled = 1, settled_at = NOW(), payroll_id = ? WHERE id IN ($inCaQuery)");
+                $caSettledStmt->execute(array_merge([$settlementId], $caIds));
+            }
+
+            // Update cumulative totals and update remaining_balance in driver_payroll
+            $pdo->prepare("
+                INSERT INTO driver_payroll (driver_id, total_amount, amount_claimed, remaining_balance) 
+                VALUES (?, ?, ?, ?) 
+                ON DUPLICATE KEY UPDATE 
+                    total_amount = total_amount + VALUES(total_amount),
+                    amount_claimed = amount_claimed + VALUES(amount_claimed),
+                    remaining_balance = VALUES(remaining_balance)
+            ")->execute([$driver_id, $grossAmount, $disbursedAmount, $newRemainingBalance]);
+
+            $pdo->commit();
+
+            $_SESSION['auto_print_payroll_settlement_id'] = $settlementId;
+            if ($newRemainingBalance > 0) {
+                $_SESSION['success'] = "Payroll partially settled for {$driverData['first_name']} {$driverData['last_name']}! Disbursed: ₱" . number_format($disbursedAmount, 2) . ". Remaining Balance: ₱" . number_format($newRemainingBalance, 2) . " carried forward.";
+            } else {
+                $_SESSION['success'] = "Payroll settled for {$driverData['first_name']} {$driverData['last_name']}! Gross earnings reset to ₱0.00.";
+            }
+            log_activity($pdo, 'Settled Driver Payroll', "Settled payroll ticket {$ticketNumber} for driver {$driverData['first_name']} {$driverData['last_name']} (Disbursed: ₱" . number_format($disbursedAmount, 2) . ", Rem. Balance: ₱" . number_format($newRemainingBalance, 2) . ")");
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            $_SESSION['error'] = 'Failed to settle payroll: ' . $e->getMessage();
+        }
+        header('Location: dashboard.php?tab=drivers');
+        exit;
+    }
+
+    // ── Driver Payroll: Add / Adjust Remaining Balance ──
+    if ($_POST['action'] === 'adjust_driver_balance') {
+        $driver_id = intval($_POST['driver_id']);
+        $adjustment_type = $_POST['adjustment_type'] ?? 'add'; // 'add' or 'set'
+        $amount = floatval($_POST['amount'] ?? 0);
+        $notes = trim($_POST['notes'] ?? '');
+
+        try {
+            $pdo->beginTransaction();
+            $dStmt = $pdo->prepare("SELECT first_name, last_name FROM drivers WHERE id = ?");
+            $dStmt->execute([$driver_id]);
+            $driverData = $dStmt->fetch(PDO::FETCH_ASSOC);
+            if (!$driverData) throw new Exception("Driver not found.");
+
+            $curStmt = $pdo->prepare("SELECT remaining_balance FROM driver_payroll WHERE driver_id = ?");
+            $curStmt->execute([$driver_id]);
+            $oldBal = floatval($curStmt->fetchColumn() ?: 0);
+
+            if ($adjustment_type === 'set') {
+                $newBal = max(0, $amount);
+            } else {
+                $newBal = max(0, $oldBal + $amount);
+            }
+
+            $pdo->prepare("
+                INSERT INTO driver_payroll (driver_id, remaining_balance)
+                VALUES (?, ?)
+                ON DUPLICATE KEY UPDATE remaining_balance = VALUES(remaining_balance)
+            ")->execute([$driver_id, $newBal]);
+
+            $pdo->commit();
+            $_SESSION['success'] = "Updated remaining balance for {$driverData['first_name']} {$driverData['last_name']} to ₱" . number_format($newBal, 2);
+            log_activity($pdo, 'Adjusted Driver Balance', "Adjusted remaining balance for {$driverData['first_name']} {$driverData['last_name']} from ₱" . number_format($oldBal, 2) . " to ₱" . number_format($newBal, 2) . ($notes ? " ($notes)" : ""));
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            $_SESSION['error'] = 'Failed to adjust balance: ' . $e->getMessage();
+        }
+        header('Location: dashboard.php?tab=drivers');
+        exit;
+    }
+
     // ── Password Reset: Approve ──
     if ($_POST['action'] === 'approve_pwd_reset') {
         $req_id = intval($_POST['req_id']);
@@ -732,12 +1011,152 @@ $allDrivers = $pdo->query("
     ORDER BY d.first_name ASC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
+// Helper function to calculate weekly driver performance metrics
+if (!function_exists('computeDriverPerformanceStats')) {
+    function computeDriverPerformanceStats($driverTrips, $onTimePct = 100, $rating = 5.0) {
+        $currentWeekKey = date('o-\WW');
+        $totalLifetimeKm = 0;
+        $totalLifetimeDispatches = 0;
+        $totalTransitMinutes = 0;
+        $transitCount = 0;
+
+        $weeklyMap = [];
+
+        foreach ($driverTrips as $t) {
+            if (($t['status'] ?? '') !== 'Delivered') continue;
+
+            $totalLifetimeDispatches++;
+            $dist = floatval($t['distance_km'] ?? 0);
+            $pay = floatval($t['pay_amount'] ?? 0);
+            $totalLifetimeKm += $dist;
+
+            $time = strtotime($t['trip_date'] ?: ($t['created_at'] ?? ''));
+            if (!$time) $time = time();
+
+            $weekKey = date('o-\WW', $time);
+            $year = (int)date('o', $time);
+            $weekNum = (int)date('W', $time);
+
+            $dto = new DateTime();
+            $dto->setISODate($year, $weekNum);
+            $weekStart = $dto->format('M d');
+            $dto->modify('+6 days');
+            $weekEnd = $dto->format('M d, Y');
+            $weekLabel = "{$weekStart} – {$weekEnd} (Week {$weekNum})";
+
+            if (!isset($weeklyMap[$weekKey])) {
+                $weeklyMap[$weekKey] = [
+                    'week_key'   => $weekKey,
+                    'week_label' => $weekLabel,
+                    'year'       => $year,
+                    'week_num'   => $weekNum,
+                    'dispatches' => 0,
+                    'total_km'   => 0.0,
+                    'total_pay'  => 0.0,
+                ];
+            }
+
+            $weeklyMap[$weekKey]['dispatches']++;
+            $weeklyMap[$weekKey]['total_km'] += $dist;
+            $weeklyMap[$weekKey]['total_pay'] += $pay;
+
+            if (!empty($t['transit_start_time']) && !empty($t['transit_end_time'])) {
+                $t1 = strtotime($t['transit_start_time']);
+                $t2 = strtotime($t['transit_end_time']);
+                if ($t2 > $t1) {
+                    $totalTransitMinutes += round(($t2 - $t1) / 60);
+                    $transitCount++;
+                }
+            }
+        }
+
+        krsort($weeklyMap);
+        $weeklyHistory = array_values($weeklyMap);
+
+        $thisWeekStats = $weeklyMap[$currentWeekKey] ?? [
+            'week_key'   => $currentWeekKey,
+            'week_label' => 'This Week',
+            'dispatches' => 0,
+            'total_km'   => 0.0,
+            'total_pay'  => 0.0,
+        ];
+
+        $activeWeeksCount = count($weeklyHistory);
+        $avgKmPerWeek = $activeWeeksCount > 0 ? round($totalLifetimeKm / $activeWeeksCount, 1) : 0.0;
+        $avgDispatchesPerWeek = $activeWeeksCount > 0 ? round($totalLifetimeDispatches / $activeWeeksCount, 1) : 0.0;
+        $avgTransitMins = $transitCount > 0 ? round($totalTransitMinutes / $transitCount) : 0;
+
+        return [
+            'this_week_km'              => $thisWeekStats['total_km'],
+            'this_week_dispatches'      => $thisWeekStats['dispatches'],
+            'this_week_pay'             => $thisWeekStats['total_pay'],
+            'avg_km_per_week'           => $avgKmPerWeek,
+            'avg_dispatches_per_week'   => $avgDispatchesPerWeek,
+            'total_lifetime_km'         => $totalLifetimeKm,
+            'total_lifetime_dispatches' => $totalLifetimeDispatches,
+            'on_time_pct'               => floatval($onTimePct),
+            'rating'                    => floatval($rating),
+            'avg_transit_minutes'       => $avgTransitMins,
+            'active_weeks_count'        => $activeWeeksCount,
+            'weekly_history'            => $weeklyHistory,
+        ];
+    }
+}
+
 foreach ($allDrivers as &$dr) {
-    $stmt = $pdo->prepare("SELECT destination, trip_date, status, transit_start_time, transit_end_time FROM driver_trips WHERE driver_id = ? ORDER BY trip_date DESC, id DESC LIMIT 10");
+    $stmt = $pdo->prepare("
+        SELECT 
+            dt.id,
+            dt.destination, 
+            dt.trip_date, 
+            dt.status, 
+            dt.transit_start_time, 
+            dt.transit_end_time,
+            COALESCE(NULLIF(dt.distance_km, 0), dest.distance_km, 0.00) AS distance_km,
+            COALESCE(NULLIF(dt.pay_amount, 0), IF(dest.distance_km > 0, ROUND(dest.distance_km * 10, 2), dest.driver_rate), 0.00) AS pay_amount
+        FROM driver_trips dt
+        LEFT JOIN destinations dest ON dest.name = dt.destination
+        WHERE dt.driver_id = ? 
+        ORDER BY dt.trip_date DESC, dt.id DESC
+    ");
     $stmt->execute([$dr['id']]);
     $dr['recent_trips'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Performance analytics (kilometers per week, completed dispatches per week, etc.)
+    $dr['performance_stats'] = computeDriverPerformanceStats($dr['recent_trips'], $dr['on_time_pct'] ?? 100, $dr['rating'] ?? 5.0);
+
+    // Payroll info
+    $payStmt = $pdo->prepare("SELECT total_amount, amount_claimed, remaining_balance FROM driver_payroll WHERE driver_id = ?");
+    $payStmt->execute([$dr['id']]);
+    $payRow = $payStmt->fetch(PDO::FETCH_ASSOC);
+    $dr['payroll_total']      = floatval($payRow['total_amount'] ?? 0);
+    $dr['payroll_claimed']    = floatval($payRow['amount_claimed'] ?? 0);
+    $dr['remaining_balance']  = floatval($payRow['remaining_balance'] ?? 0);
+
+    // Active approved cash advances (strictly active / unsettled ones)
+    $caSumStmt = $pdo->prepare("SELECT COALESCE(SUM(amount), 0) FROM cash_advances WHERE driver_id = ? AND status = 'Approved' AND (is_settled = 0 OR is_settled IS NULL)");
+    $caSumStmt->execute([$dr['id']]);
+    $dr['approved_cash_advances'] = floatval($caSumStmt->fetchColumn());
+
+    // Calculate gross earnings from unclaimed delivered dispatches (resets to 0 upon settlement)
+    $earnStmt = $pdo->prepare("SELECT COALESCE(SUM(pay_amount), 0) AS gross FROM dispatches WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)");
+    $earnStmt->execute([$dr['id']]);
+    $dr['gross_earnings'] = floatval($earnStmt->fetchColumn());
+    $dr['net_earnings']   = max(0, $dr['gross_earnings'] + $dr['remaining_balance'] - $dr['approved_cash_advances']);
+
+    // Cash advances for this driver
+    $caStmt = $pdo->prepare("SELECT id, amount, reason, status, is_settled, requested_at, resolved_at FROM cash_advances WHERE driver_id = ? ORDER BY requested_at DESC LIMIT 5");
+    $caStmt->execute([$dr['id']]);
+    $dr['cash_advances'] = $caStmt->fetchAll(PDO::FETCH_ASSOC);
 }
 unset($dr);
+
+// All pending cash advances (for badge & review)
+$pendingCashAdvances = $pdo->query("SELECT ca.id, ca.driver_id, ca.amount, ca.reason, ca.requested_at, CONCAT(d.first_name, ' ', d.last_name) AS driver_name FROM cash_advances ca JOIN drivers d ON ca.driver_id = d.id WHERE ca.status = 'Pending' ORDER BY ca.requested_at ASC")->fetchAll(PDO::FETCH_ASSOC);
+$pendingCashAdvanceCount = count($pendingCashAdvances);
+
+// Recently approved cash advances (for re-printing tickets)
+$recentApprovedCashAdvances = $pdo->query("SELECT ca.id, ca.driver_id, ca.amount, ca.reason, ca.requested_at, ca.resolved_at, CONCAT(d.first_name, ' ', d.last_name) AS driver_name FROM cash_advances ca JOIN drivers d ON ca.driver_id = d.id WHERE ca.status = 'Approved' ORDER BY ca.resolved_at DESC LIMIT 10")->fetchAll(PDO::FETCH_ASSOC);
 
 $availableTrucks = $pdo->query("SELECT id, truck_code, rfid_tag, NULL as driver_name FROM trucks WHERE status = 'Idle'")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -985,6 +1404,26 @@ include '../includes/header.php';
                 scannerInput.select();
             }
         }, 300);
+    });
+</script>
+<?php endif; ?>
+<?php if (isset($_SESSION['auto_print_cash_advance_id'])): 
+    $ca_print_id = intval($_SESSION['auto_print_cash_advance_id']);
+    unset($_SESSION['auto_print_cash_advance_id']);
+?>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        window.open('print_cash_advance.php?id=<?= $ca_print_id; ?>', '_blank');
+    });
+</script>
+<?php endif; ?>
+<?php if (isset($_SESSION['auto_print_payroll_settlement_id'])): 
+    $payroll_settle_id = intval($_SESSION['auto_print_payroll_settlement_id']);
+    unset($_SESSION['auto_print_payroll_settlement_id']);
+?>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        window.open('print_payroll.php?settlement_id=<?= $payroll_settle_id; ?>', '_blank');
     });
 </script>
 <?php endif; ?>

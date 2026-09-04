@@ -96,6 +96,10 @@ CREATE TABLE IF NOT EXISTS `driver_trips` (
     `trip_date` DATE DEFAULT NULL,
     `status` VARCHAR(50) DEFAULT 'Pending',
     `order_id` INT DEFAULT NULL,
+    `distance_km` DECIMAL(8, 2) DEFAULT 0.00,
+    `pay_amount` DECIMAL(10, 2) DEFAULT 0.00,
+    `transit_start_time` DATETIME DEFAULT NULL,
+    `transit_end_time` DATETIME DEFAULT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`driver_id`) REFERENCES `drivers`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB;
@@ -227,6 +231,58 @@ CREATE TABLE IF NOT EXISTS `activity_logs` (
     `ip_address` VARCHAR(45) DEFAULT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+
+-- ============================================================
+-- 14. CASH ADVANCES TABLE
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `cash_advances` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `driver_id` INT NOT NULL,
+    `amount` DECIMAL(10,2) NOT NULL,
+    `reason` TEXT DEFAULT NULL,
+    `status` ENUM('Pending','Approved','Rejected') DEFAULT 'Pending',
+    `requested_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `resolved_at` TIMESTAMP NULL DEFAULT NULL,
+    FOREIGN KEY (`driver_id`) REFERENCES `drivers`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Add distance_km to destinations if missing (safe migration)
+ALTER TABLE `destinations` ADD COLUMN IF NOT EXISTS `distance_km` DECIMAL(8,2) NOT NULL DEFAULT 0.00;
+ALTER TABLE `driver_trips` ADD COLUMN IF NOT EXISTS `distance_km` DECIMAL(8,2) DEFAULT 0.00;
+ALTER TABLE `driver_trips` ADD COLUMN IF NOT EXISTS `pay_amount` DECIMAL(10,2) DEFAULT 0.00;
+
+-- Payroll settlements and tracking columns
+ALTER TABLE `driver_payroll` ADD COLUMN IF NOT EXISTS `remaining_balance` DECIMAL(12,2) NOT NULL DEFAULT 0.00;
+
+ALTER TABLE `dispatches` ADD COLUMN IF NOT EXISTS `is_payroll_paid` TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE `dispatches` ADD COLUMN IF NOT EXISTS `payroll_settled_at` DATETIME DEFAULT NULL;
+ALTER TABLE `dispatches` ADD COLUMN IF NOT EXISTS `payroll_id` INT DEFAULT NULL;
+
+ALTER TABLE `driver_trips` ADD COLUMN IF NOT EXISTS `is_payroll_paid` TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE `driver_trips` ADD COLUMN IF NOT EXISTS `payroll_settled_at` DATETIME DEFAULT NULL;
+ALTER TABLE `driver_trips` ADD COLUMN IF NOT EXISTS `payroll_id` INT DEFAULT NULL;
+
+ALTER TABLE `cash_advances` ADD COLUMN IF NOT EXISTS `is_settled` TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE `cash_advances` ADD COLUMN IF NOT EXISTS `settled_at` DATETIME DEFAULT NULL;
+ALTER TABLE `cash_advances` ADD COLUMN IF NOT EXISTS `payroll_id` INT DEFAULT NULL;
+
+CREATE TABLE IF NOT EXISTS `driver_payroll_settlements` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `settlement_ticket` VARCHAR(50) NOT NULL UNIQUE,
+    `driver_id` INT NOT NULL,
+    `gross_amount` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    `previous_balance` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    `cash_advance_deduction` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    `net_pay` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    `amount_claimed` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    `remaining_balance` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    `trips_count` INT NOT NULL DEFAULT 0,
+    `settled_by` INT DEFAULT NULL,
+    `settled_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `notes` TEXT DEFAULT NULL,
+    FOREIGN KEY (`driver_id`) REFERENCES `drivers`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ============================================================

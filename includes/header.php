@@ -466,9 +466,18 @@
         <!-- Profile Card -->
         <div class="px-4 py-4 border-b border-gray-100 dark:border-gray-800">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-sm flex-shrink-0">
-                    <?= strtoupper(substr($_SESSION['username'] ?? 'D', 0, 1)) ?>
-                </div>
+                <?php 
+                $hdrDriverPhoto = $driverProfile['profile_photo'] ?? $_SESSION['profile_photo'] ?? null;
+                $hdrPhotoFull = $hdrDriverPhoto ? (dirname(__DIR__) . '/' . $hdrDriverPhoto) : null;
+                $hdrPhotoUrl = ($hdrPhotoFull && file_exists($hdrPhotoFull)) ? ('../' . htmlspecialchars($hdrDriverPhoto) . '?v=' . filemtime($hdrPhotoFull)) : null;
+                ?>
+                <?php if ($hdrPhotoUrl): ?>
+                    <img src="<?= $hdrPhotoUrl ?>" alt="Profile Photo" class="w-10 h-10 rounded-xl object-cover shadow-sm flex-shrink-0 border border-blue-200 dark:border-blue-700">
+                <?php else: ?>
+                    <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-sm flex-shrink-0">
+                        <?= strtoupper(substr($_SESSION['username'] ?? 'D', 0, 1)) ?>
+                    </div>
+                <?php endif; ?>
                 <div class="min-w-0">
                     <p class="text-sm font-semibold text-gray-900 dark:text-white truncate"><?= htmlspecialchars($_SESSION['username'] ?? 'Driver') ?></p>
                     <p class="text-xs text-gray-400">Truck Driver</p>

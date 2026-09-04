@@ -85,6 +85,45 @@
         </div>
     </div>
 
+    <!-- ====== CASH ADVANCE REQUEST MODAL ====== -->
+    <div id="cashAdvanceModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden justify-center items-center z-[99999] p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-[92%] max-w-md p-6 transform scale-95 opacity-0 transition-all duration-300" id="cashAdvanceModalContent">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <i class="fa-solid fa-hand-holding-dollar text-orange-500"></i> Request Cash Advance
+                </h3>
+                <button onclick="closeCashAdvanceModal()" class="text-gray-400 hover:text-gray-700 dark:text-gray-300">
+                    <i class="fa-solid fa-xmark fa-lg"></i>
+                </button>
+            </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">
+                Submit a cash advance request. Once approved by the Admin, the amount will be automatically deducted from your payroll.
+            </p>
+            <form method="POST" action="dashboard.php">
+                <input type="hidden" name="action" value="request_cash_advance">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Amount (₱) <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-2.5 text-gray-500 font-bold text-sm">₱</span>
+                        <input type="number" name="ca_amount" min="100" step="50" required placeholder="e.g. 500"
+                            class="w-full border border-gray-300 dark:border-gray-600 rounded-xl pl-8 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                    </div>
+                    <p class="text-[11px] text-gray-400 mt-1">Minimum: ₱100</p>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Reason <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <textarea name="ca_reason" rows="2" placeholder="e.g. Emergency, fuel expense..."
+                        class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none text-sm"></textarea>
+                </div>
+                <div class="flex space-x-3">
+                    <button type="button" onclick="closeCashAdvanceModal()" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition">Cancel</button>
+                    <button type="submit" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-orange-600 hover:bg-orange-700 transition shadow-sm">Submit Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         function openCancelTripModal() {
             const modal = document.getElementById('cancelTripModal');
@@ -100,6 +139,28 @@
         function closeCancelTripModal() {
             const modal = document.getElementById('cancelTripModal');
             const content = document.getElementById('cancelTripModalContent');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+
+        function openCashAdvanceModal() {
+            const modal = document.getElementById('cashAdvanceModal');
+            const content = document.getElementById('cashAdvanceModalContent');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 50);
+        }
+
+        function closeCashAdvanceModal() {
+            const modal = document.getElementById('cashAdvanceModal');
+            const content = document.getElementById('cashAdvanceModalContent');
             content.classList.remove('scale-100', 'opacity-100');
             content.classList.add('scale-95', 'opacity-0');
             setTimeout(() => {

@@ -61,12 +61,15 @@ if ($status_filter === 'delivered') {
 $sql = "
     SELECT 
         dt.*,
+        COALESCE(NULLIF(dt.distance_km, 0), dest.distance_km, 0.00) AS distance_km,
+        COALESCE(NULLIF(dt.pay_amount, 0), d.pay_amount, IF(dest.distance_km > 0, ROUND(dest.distance_km * 10, 2), dest.driver_rate), 0.00) AS pay_amount,
         COALESCE(d.ticket_number, CONCAT('TRIP-', dt.id)) AS ticket_no,
         COALESCE(d.cubic_meters, 0.00) AS cubic_meters,
         t.truck_code AS dispatch_truck,
         o.order_number,
         o.client_name
     FROM driver_trips dt
+    LEFT JOIN destinations dest ON dest.name = dt.destination
     LEFT JOIN dispatches d ON d.driver_id = dt.driver_id AND d.destination = dt.destination AND DATE(COALESCE(d.dispatch_date, d.created_at)) = DATE(COALESCE(dt.trip_date, dt.created_at))
     LEFT JOIN trucks t ON d.truck_id = t.id
     LEFT JOIN orders o ON dt.order_id = o.id
@@ -82,11 +85,13 @@ $trips = $stmtTrips->fetchAll(PDO::FETCH_ASSOC);
 $totalTrips = count($trips);
 $deliveredCount = 0;
 $totalCubicMeters = 0;
+$totalTripEarnings = 0;
 
 foreach ($trips as $t) {
     if ($t['status'] === 'Delivered') {
         $deliveredCount++;
         $totalCubicMeters += floatval($t['cubic_meters'] > 0 ? $t['cubic_meters'] : 10.0);
+        $totalTripEarnings += floatval($t['pay_amount'] ?? 0);
     }
 }
 
@@ -98,7 +103,7 @@ $reportNo = 'DRV-REP-' . date('Ymd') . '-' . str_pad($driver_id, 3, '0', STR_PAD
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Driver Trip Ticket — <?= htmlspecialchars($driver['full_name']); ?> (<?= htmlspecialchars($periodLabel); ?>)</title>
+    <title>Driver Trip Logs — <?= htmlspecialchars($driver['full_name']); ?> (<?= htmlspecialchars($periodLabel); ?>)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -201,7 +206,7 @@ $reportNo = 'DRV-REP-' . date('Ymd') . '-' . str_pad($driver_id, 3, '0', STR_PAD
         </div>
 
         <!-- Summary KPI Strip -->
-        <div class="grid grid-cols-3 gap-3 mb-6 text-center">
+        <div class="grid grid-cols-4 gap-3 mb-6 text-center">
             <div class="border border-slate-200 rounded-xl p-3 bg-white">
                 <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Dispatches</div>
                 <div class="text-2xl font-black text-slate-800 mt-0.5"><?= number_format($totalTrips); ?></div>
@@ -213,6 +218,10 @@ $reportNo = 'DRV-REP-' . date('Ymd') . '-' . str_pad($driver_id, 3, '0', STR_PAD
             <div class="border border-indigo-200 rounded-xl p-3 bg-indigo-50/50">
                 <div class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Est. Volume Delivered</div>
                 <div class="text-2xl font-black text-indigo-700 mt-0.5"><?= number_format($totalCubicMeters, 1); ?> <span class="text-xs font-bold">cu.m</span></div>
+            </div>
+            <div class="border border-amber-200 rounded-xl p-3 bg-amber-50/50">
+                <div class="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Gross Trip Pay</div>
+                <div class="text-2xl font-black text-amber-700 mt-0.5">₱<?= number_format($totalTripEarnings, 2); ?></div>
             </div>
         </div>
 
@@ -229,6 +238,8 @@ $reportNo = 'DRV-REP-' . date('Ymd') . '-' . str_pad($driver_id, 3, '0', STR_PAD
                         <th class="py-2.5 px-3">Dispatch Date & Time</th>
                         <th class="py-2.5 px-3">Arrival Date & Time</th>
                         <th class="py-2.5 px-3">Destination</th>
+                        <th class="py-2.5 px-3 text-center">Distance</th>
+                        <th class="py-2.5 px-3 text-center">Trip Pay</th>
                         <th class="py-2.5 px-3 text-center">Truck</th>
                         <th class="py-2.5 px-3 text-center">Duration</th>
                         <th class="py-2.5 px-3 text-right rounded-r-lg">Status</th>
@@ -236,19 +247,20 @@ $reportNo = 'DRV-REP-' . date('Ymd') . '-' . str_pad($driver_id, 3, '0', STR_PAD
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-slate-700">
                     <?php if (count($trips) > 0): ?>
-                        <?php $idx = 1; foreach ($trips as $t): ?>
+                        <?php $idx = 1;
+                        foreach ($trips as $t): ?>
                             <?php
-                                $duration = 'N/A';
-                                if (!empty($t['transit_start_time']) && !empty($t['transit_end_time'])) {
-                                    $start = new DateTime($t['transit_start_time']);
-                                    $end = new DateTime($t['transit_end_time']);
-                                    $diff = $start->diff($end);
-                                    $duration = '';
-                                    if ($diff->h > 0) $duration .= $diff->h . 'h ';
-                                    $duration .= $diff->i . 'm';
-                                }
-                                $dispTimeStr = !empty($t['transit_start_time']) ? date('M d, Y h:i A', strtotime($t['transit_start_time'])) : (!empty($t['created_at']) ? date('M d, Y h:i A', strtotime($t['created_at'])) : date('M d, Y', strtotime($t['trip_date'])));
-                                $arrTimeStr = !empty($t['transit_end_time']) ? date('M d, Y h:i A', strtotime($t['transit_end_time'])) : ($t['status'] === 'Delivered' ? 'Delivered' : '—');
+                            $duration = 'N/A';
+                            if (!empty($t['transit_start_time']) && !empty($t['transit_end_time'])) {
+                                $start = new DateTime($t['transit_start_time']);
+                                $end = new DateTime($t['transit_end_time']);
+                                $diff = $start->diff($end);
+                                $duration = '';
+                                if ($diff->h > 0) $duration .= $diff->h . 'h ';
+                                $duration .= $diff->i . 'm';
+                            }
+                            $dispTimeStr = !empty($t['transit_start_time']) ? date('M d, Y h:i A', strtotime($t['transit_start_time'])) : (!empty($t['created_at']) ? date('M d, Y h:i A', strtotime($t['created_at'])) : date('M d, Y', strtotime($t['trip_date'])));
+                            $arrTimeStr = !empty($t['transit_end_time']) ? date('M d, Y h:i A', strtotime($t['transit_end_time'])) : ($t['status'] === 'Delivered' ? 'Delivered' : '—');
                             ?>
                             <tr class="hover:bg-slate-50/80">
                                 <td class="py-2.5 px-3 font-mono text-slate-400"><?= $idx++; ?></td>
@@ -256,6 +268,12 @@ $reportNo = 'DRV-REP-' . date('Ymd') . '-' . str_pad($driver_id, 3, '0', STR_PAD
                                 <td class="py-2.5 px-3 text-slate-600"><?= $arrTimeStr; ?></td>
                                 <td class="py-2.5 px-3 font-semibold text-slate-800">
                                     <?= htmlspecialchars($t['destination']); ?>
+                                </td>
+                                <td class="py-2.5 px-3 text-center font-semibold text-blue-700">
+                                    <?= number_format($t['distance_km'] ?? 0, 1); ?> km
+                                </td>
+                                <td class="py-2.5 px-3 text-center font-bold text-emerald-700">
+                                    ₱<?= number_format($t['pay_amount'] ?? 0, 2); ?>
                                 </td>
                                 <td class="py-2.5 px-3 text-center font-bold text-blue-600">
                                     <?= htmlspecialchars($t['dispatch_truck'] ?: ($driver['truck_code'] ?: '—')); ?>
@@ -293,7 +311,7 @@ $reportNo = 'DRV-REP-' . date('Ymd') . '-' . str_pad($driver_id, 3, '0', STR_PAD
         <div class="border-t-2 border-dashed border-slate-300 pt-6 mt-12 grid grid-cols-3 gap-8 text-center text-xs">
             <div>
                 <div class="border-b border-slate-900 pb-1 mb-1 font-bold text-slate-900">
-                    <?= htmlspecialchars($_SESSION['username'] ?? 'System Administrator'); ?>
+                    <br>
                 </div>
                 <div class="text-[10px] uppercase tracking-wider text-slate-400">Prepared by (Admin)</div>
             </div>
@@ -315,4 +333,5 @@ $reportNo = 'DRV-REP-' . date('Ymd') . '-' . str_pad($driver_id, 3, '0', STR_PAD
     </div>
 
 </body>
+
 </html>

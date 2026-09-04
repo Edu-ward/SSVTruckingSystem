@@ -2,8 +2,9 @@
         $driverFullName  = trim(($driverProfile['first_name'] ?? '') . ' ' . ($driverProfile['last_name'] ?? ''));
         $driverUsername  = $driverProfile['username'] ?? '';
         $driverPhotoPath = $driverProfile['profile_photo'] ?? null;
-        $driverPhotoUrl  = ($driverPhotoPath && file_exists(dirname(__DIR__, 2) . '/' . $driverPhotoPath))
-            ? '../' . htmlspecialchars($driverPhotoPath)
+        $driverPhotoFull = $driverPhotoPath ? (dirname(__DIR__, 2) . '/' . $driverPhotoPath) : null;
+        $driverPhotoUrl  = ($driverPhotoFull && file_exists($driverPhotoFull))
+            ? '../' . htmlspecialchars($driverPhotoPath) . '?v=' . filemtime($driverPhotoFull)
             : null;
 
         // Build initials for avatar fallback
@@ -165,40 +166,47 @@
                         </span>
                     </div>
                     <div class="p-6">
-                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
                             <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
                                 <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Destination</span>
-                                <span class="text-lg font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                                    <i class="fa-solid fa-location-dot text-red-500"></i>
-                                    <?= htmlspecialchars($active_dispatch['destination']); ?>
+                                <span class="text-base sm:text-lg font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 truncate">
+                                    <i class="fa-solid fa-location-dot text-red-500 flex-shrink-0"></i>
+                                    <span class="truncate"><?= htmlspecialchars($active_dispatch['destination']); ?></span>
+                                </span>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+                                <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Distance</span>
+                                <span class="text-base sm:text-lg font-extrabold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-route text-blue-500 flex-shrink-0"></i>
+                                    <?= number_format($active_dispatch['distance_km'] ?? 0, 1); ?> km
+                                </span>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+                                <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Trip Pay (₱10/km)</span>
+                                <span class="text-base sm:text-lg font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-peso-sign text-emerald-500 flex-shrink-0"></i>
+                                    ₱<?= number_format($active_dispatch['pay_amount'] ?? 0, 2); ?>
                                 </span>
                             </div>
                             <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
                                 <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Assigned Truck</span>
-                                <span class="text-lg font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                                    <i class="fa-solid fa-truck text-blue-500"></i>
+                                <span class="text-base sm:text-lg font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-truck text-blue-500 flex-shrink-0"></i>
                                     <?= htmlspecialchars($active_dispatch['truck_code']); ?>
                                 </span>
                             </div>
                             <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
                                 <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Load Volume</span>
-                                <span class="text-lg font-extrabold text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
-                                    <i class="fa-solid fa-cube text-indigo-500"></i>
+                                <span class="text-base sm:text-lg font-extrabold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-cube text-indigo-500 flex-shrink-0"></i>
                                     <?= number_format($active_dispatch['cubic_meters'] ?? 0, 2); ?> cu.m
                                 </span>
                             </div>
                             <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
                                 <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Dispatch Time</span>
                                 <span class="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1 mt-1">
-                                    <i class="fa-solid fa-clock text-blue-500"></i>
-                                    <?= !empty($active_dispatch['transit_start_time']) ? date('M d, Y h:i A', strtotime($active_dispatch['transit_start_time'])) : (!empty($active_dispatch['created_at']) ? date('M d, Y h:i A', strtotime($active_dispatch['created_at'])) : 'Pending Dispatch') ?>
-                                </span>
-                            </div>
-                            <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                                <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Arrival Time</span>
-                                <span class="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1 mt-1">
-                                    <i class="fa-solid fa-flag-checkered text-green-500"></i>
-                                    <?= !empty($active_dispatch['transit_end_time']) ? date('M d, Y h:i A', strtotime($active_dispatch['transit_end_time'])) : ($active_dispatch['status'] === 'In Transit' ? 'In Transit...' : 'Pending Arrival') ?>
+                                    <i class="fa-solid fa-clock text-blue-500 flex-shrink-0"></i>
+                                    <?= !empty($active_dispatch['transit_start_time']) ? date('M d, h:i A', strtotime($active_dispatch['transit_start_time'])) : (!empty($active_dispatch['created_at']) ? date('M d, h:i A', strtotime($active_dispatch['created_at'])) : 'Pending') ?>
                                 </span>
                             </div>
                         </div>
@@ -384,6 +392,90 @@
 
         </div>
 
+        <!-- ==================== PAYROLL & CASH ADVANCE SECTION ==================== -->
+        <div class="mb-8 bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div class="bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-4 text-white flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-wallet text-2xl opacity-90"></i>
+                    <div>
+                        <h3 class="font-bold text-lg">My Payroll Summary</h3>
+                        <p class="text-emerald-100 text-xs">Earnings based on distance (₱10/km) — Cash advances auto-deducted</p>
+                    </div>
+                </div>
+                <button onclick="openCashAdvanceModal()"
+                    class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-white text-orange-600 hover:bg-orange-50 shadow transition active:scale-95">
+                    <i class="fa-solid fa-hand-holding-dollar"></i> Request Cash Advance
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 dark:divide-gray-700">
+                <div class="p-5 text-center bg-indigo-50/40 dark:bg-indigo-950/20">
+                    <div class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold uppercase mb-1">Remaining Balance</div>
+                    <div class="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">₱<?= number_format($driverRemainingBalance ?? 0, 2); ?></div>
+                    <div class="text-[11px] text-indigo-500/80 mt-0.5">Carried from prior claim</div>
+                </div>
+                <div class="p-5 text-center">
+                    <div class="text-xs text-gray-400 dark:text-gray-500 font-semibold uppercase mb-1">Cash Advances</div>
+                    <div class="text-2xl font-extrabold text-orange-600 dark:text-orange-400">-₱<?= number_format($totalCashAdvancesClaimed ?? 0, 2); ?></div>
+                    <div class="text-[11px] text-gray-400 mt-0.5">Total approved advances</div>
+                </div>
+                <div class="p-5 text-center bg-blue-50/40 dark:bg-blue-950/20">
+                    <div class="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase mb-1">Net Payable</div>
+                    <div class="text-2xl font-extrabold text-blue-600 dark:text-blue-400">₱<?= number_format($netPay ?? 0, 2); ?></div>
+                    <div class="text-[11px] text-gray-400 mt-0.5">Available for payout</div>
+                </div>
+            </div>
+
+            <?php if (!empty($driverCashAdvances)): ?>
+            <div class="border-t border-gray-100 dark:border-gray-700">
+                <div class="px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-900">
+                    Cash Advance History (Last 10)
+                </div>
+                <div class="divide-y divide-gray-50 dark:divide-gray-700/50">
+                    <?php foreach ($driverCashAdvances as $ca):
+                        $caStatusColor = $ca['status'] === 'Approved' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                         ($ca['status'] === 'Rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                         'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400');
+                    ?>
+                    <div class="px-5 py-3 flex items-center justify-between gap-3">
+                        <div>
+                            <span class="text-sm font-bold text-gray-800 dark:text-gray-200">₱<?= number_format($ca['amount'], 2); ?></span>
+                            <?php if (!empty($ca['reason'])): ?>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">&mdash; <?= htmlspecialchars($ca['reason']); ?></span>
+                            <?php endif; ?>
+                            <div class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5"><i class="fa-regular fa-clock mr-1"></i><?= date('M d, Y', strtotime($ca['requested_at'])); ?></div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[11px] font-bold px-2.5 py-1 rounded-full <?= $caStatusColor; ?>"><?= $ca['status']; ?></span>
+                            <?php if ($ca['status'] === 'Approved'): ?>
+                            <button onclick="window.open('../admin/print_cash_advance.php?id=<?= $ca['id']; ?>', '_blank')" 
+                                    class="px-2.5 py-1 rounded-lg text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition flex items-center gap-1 border border-blue-200 dark:border-blue-800"
+                                    title="View / Print Voucher">
+                                <i class="fa-solid fa-print"></i>
+                                <span class="hidden sm:inline">Ticket</span>
+                            </button>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <?php if ($active_dispatch && floatval($active_dispatch['pay_amount'] ?? 0) > 0): ?>
+            <div class="border-t border-gray-100 dark:border-gray-700 px-5 py-3 flex items-center justify-between gap-3 bg-blue-50 dark:bg-blue-950/20">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-truck text-blue-500"></i>
+                    <span class="text-xs text-gray-600 dark:text-gray-300">
+                        <strong>Current Trip Pay:</strong>
+                        <span class="text-blue-600 dark:text-blue-400 font-bold">₱<?= number_format($active_dispatch['pay_amount'], 2); ?></span>
+                        &bull; Distance: <strong><?= number_format($active_dispatch['distance_km'] ?? 0, 1); ?> km</strong>
+                        (payable upon delivery)
+                    </span>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+
         <!-- TRIP HISTORY SECTION -->
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 p-5 sm:p-6">
             <div class="flex items-center justify-between mb-6">
@@ -446,6 +538,22 @@
                                     <?php endif; ?>
                                 </div>
                             </div>
+                            <div class="flex justify-between items-center text-xs pt-2 border-t border-gray-200/60 dark:border-gray-800">
+                                <span class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                    <i class="fa-solid fa-route text-blue-500"></i> Distance:
+                                </span>
+                                <span class="font-bold text-blue-600 dark:text-blue-400">
+                                    <?= number_format($trip['distance_km'] ?? 0, 1); ?> km
+                                </span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs pb-0.5">
+                                <span class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                    <i class="fa-solid fa-peso-sign text-emerald-500"></i> Trip Pay:
+                                </span>
+                                <span class="font-extrabold text-emerald-600 dark:text-emerald-400">
+                                    ₱<?= number_format($trip['pay_amount'] ?? 0, 2); ?>
+                                </span>
+                            </div>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
@@ -464,6 +572,8 @@
                             <th class="pb-3 px-2 font-medium">Dispatch Date & Time</th>
                             <th class="pb-3 px-2 font-medium">Arrival Date & Time</th>
                             <th class="pb-3 px-2 font-medium">Destination</th>
+                            <th class="pb-3 px-2 font-medium">Distance</th>
+                            <th class="pb-3 px-2 font-medium">Trip Pay</th>
                             <th class="pb-3 px-2 font-medium">Duration</th>
                             <th class="pb-3 px-2 font-medium">Status</th>
                         </tr>
@@ -488,6 +598,12 @@
                                     <td class="py-4 px-2 text-sm font-medium text-gray-800 dark:text-gray-200"><?= $dispTimeStr; ?></td>
                                     <td class="py-4 px-2 text-sm font-medium text-gray-600 dark:text-gray-400"><?= $arrTimeStr; ?></td>
                                     <td class="py-4 px-2 font-medium"><?= htmlspecialchars($trip['destination']); ?></td>
+                                    <td class="py-4 px-2 text-sm font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                                        <i class="fa-solid fa-route mr-1 text-xs"></i><?= number_format($trip['distance_km'] ?? 0, 1); ?> km
+                                    </td>
+                                    <td class="py-4 px-2 text-sm font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                                        ₱<?= number_format($trip['pay_amount'] ?? 0, 2); ?>
+                                    </td>
                                     <td class="py-4 px-2 text-gray-500 dark:text-gray-400 font-mono text-sm"><?= $duration; ?></td>
                                     <td class="py-4 px-2">
                                         <?php 
@@ -515,7 +631,7 @@
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="6" class="py-8 px-2 text-center text-gray-550 dark:text-gray-400">
+                                <td colspan="7" class="py-8 px-2 text-center text-gray-550 dark:text-gray-400">
                                     <i class="fa-solid fa-road text-4xl mb-3 text-gray-300 block"></i>
                                     No trips recorded yet.
                                 </td>
@@ -596,18 +712,42 @@
 
         try {
             // Layer providers
-            const streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
-                attribution: '&copy; OpenStreetMap contributors'
+                subdomains: ['a', 'b', 'c'],
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             });
 
-            const googleStreetLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, USGS, AeroGRID, IGN, and GIS User Community'
+            });
+            const esriLabels = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19
+            });
+            const satelliteLayer = L.layerGroup([esriImagery, esriLabels]);
+
+            const voyagerLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 maxZoom: 20,
+                subdomains: 'abcd',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            });
+
+            const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 20,
+                subdomains: 'abcd',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            });
+
+            const googleStreetLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
                 attribution: '&copy; Google Maps'
             });
 
-            const satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            const googleSatLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
                 maxZoom: 20,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
                 attribution: '&copy; Google Maps Satellite'
             });
 
@@ -620,8 +760,11 @@
 
             L.control.layers({
                 "🗺️ OpenStreetMap": streetLayer,
-                "🚗 Google Streets": googleStreetLayer,
-                "🛰️ Google Satellite": satelliteLayer
+                "🛰️ Satellite (Hybrid)": satelliteLayer,
+                "🚗 Navigation (Voyager)": voyagerLayer,
+                "🌙 Dark Mode": darkLayer,
+                "🌐 Google Streets": googleStreetLayer,
+                "🛰️ Google Satellite": googleSatLayer
             }, null, { position: 'topright' }).addTo(driverMap);
 
             // Add Origin marker (Quarry)

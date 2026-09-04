@@ -9,7 +9,7 @@
 ini_set('session.cookie_httponly', 1);       // Prevent JS access to session cookie
 ini_set('session.cookie_secure', 0);        // Set to 1 when using HTTPS in production
 ini_set('session.use_strict_mode', 1);      // Reject uninitialized session IDs
-ini_set('session.cookie_samesite', 'Strict'); // Block cross-site cookie sending
+ini_set('session.cookie_samesite', 'Lax'); // Lax allows same-site POST form submissions to carry the session cookie
 
 // ── HTTP Security Headers ──
 header('X-Content-Type-Options: nosniff');

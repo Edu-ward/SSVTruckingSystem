@@ -193,11 +193,13 @@
                         <option value="<?= $_ao['id'] ?>"
                             data-destination="<?= htmlspecialchars($_ao['destination']) ?>"
                             data-gravel="<?= htmlspecialchars($_ao['gravel_type']) ?>"
+                            data-customer="<?= htmlspecialchars($_ao['client_name']) ?>"
                             data-remaining="<?= $rem ?>">
-                            <?= htmlspecialchars($_ao['order_number']) ?> · <?= htmlspecialchars($_ao['client_name']) ?> (<?= htmlspecialchars($_ao['destination']) ?> - <?= number_format($rem, 2) ?> cu.m remaining)
+                            <?= htmlspecialchars($_ao['order_number']) ?> · <?= htmlspecialchars($_ao['client_name']) ?> — <?= htmlspecialchars($_ao['destination']) ?> (<?= number_format($rem, 2) ?> cu.m remaining)
                         </option>
                     <?php endforeach; ?>
                 </select>
+                <p id="dispatchCustomerInfo" class="text-xs text-blue-600 dark:text-blue-400 mt-1 hidden"><i class="fa-solid fa-user mr-1"></i><span id="dispatchCustomerName"></span></p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -211,12 +213,15 @@
                             <i class="fa-solid fa-map-location-dot"></i> Search OSM Map
                         </button>
                     </div>
-                    <select name="destination" id="destinationSelect" required class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
+                    <select name="destination" id="destinationSelect" onchange="updateDispatchPayPreview()" required class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
                         <option value="">Select Destination</option>
                         <?php foreach ($destinations as $_dest): ?>
-                            <option value="<?= htmlspecialchars($_dest['name']); ?>"><?= htmlspecialchars($_dest['name']); ?></option>
+                            <option value="<?= htmlspecialchars($_dest['name']); ?>" data-distance="<?= floatval($_dest['distance_km']); ?>" data-pay="<?= floatval($_dest['distance_km']) > 0 ? round(floatval($_dest['distance_km']) * 10, 2) : floatval($_dest['driver_rate']); ?>"><?= htmlspecialchars($_dest['name']); ?><?php if (floatval($_dest['distance_km']) > 0): ?> (<?= number_format($_dest['distance_km'], 1); ?> km)<?php endif; ?></option>
                         <?php endforeach; ?>
                     </select>
+                    <p id="dispatchPayPreview" class="text-xs text-green-600 dark:text-green-400 mt-1 hidden">
+                        <i class="fa-solid fa-peso-sign mr-1"></i>Driver Pay: <strong id="dispatchPayAmount"></strong> (based on distance)
+                    </p>
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -244,18 +249,77 @@
 <script>
     function autoFillOrderDetails(selectElem) {
         const opt = selectElem.options[selectElem.selectedIndex];
-        if (!opt || !opt.value) return;
+        const customerInfo = document.getElementById('dispatchCustomerInfo');
+        const customerNameEl = document.getElementById('dispatchCustomerName');
+
+        if (!opt || !opt.value) {
+            if (customerInfo) customerInfo.classList.add('hidden');
+            return;
+        }
 
         const dest = opt.dataset.destination;
         const gravel = opt.dataset.gravel;
+        const customer = opt.dataset.customer;
 
         const destSelect = document.getElementById('destinationSelect');
-        if (destSelect && dest) destSelect.value = dest;
+        if (destSelect && dest) {
+            destSelect.value = dest;
+            updateDispatchPayPreview();
+        }
 
         const gravelSelect = document.getElementById('gravelType');
         if (gravelSelect && gravel) gravelSelect.value = gravel;
+
+        // Show customer name
+        if (customerInfo && customerNameEl && customer) {
+            customerNameEl.textContent = 'Customer: ' + customer;
+            customerInfo.classList.remove('hidden');
+        } else if (customerInfo) {
+            customerInfo.classList.add('hidden');
+        }
+    }
+
+    function updateDispatchPayPreview() {
+        const destSelect = document.getElementById('destinationSelect');
+        const payPreview = document.getElementById('dispatchPayPreview');
+        const payAmountEl = document.getElementById('dispatchPayAmount');
+        if (!destSelect || !payPreview || !payAmountEl) return;
+
+        const opt = destSelect.options[destSelect.selectedIndex];
+        if (!opt || !opt.value) {
+            payPreview.classList.add('hidden');
+            return;
+        }
+
+        const distKm = parseFloat(opt.dataset.distance || 0);
+        const pay = parseFloat(opt.dataset.pay || 0);
+
+        if (pay > 0) {
+            if (distKm > 0) {
+                payAmountEl.textContent = '₱' + pay.toFixed(2) + ' (' + distKm.toFixed(1) + ' km × ₱10/km)';
+            } else {
+                payAmountEl.textContent = '₱' + pay.toFixed(2) + ' (fixed rate)';
+            }
+            payPreview.classList.remove('hidden');
+        } else {
+            payPreview.classList.add('hidden');
+        }
     }
 </script>
+
+<style>
+    #viewDriverModal,
+    #viewDriverModal * {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+    }
+    #viewDriverModal::-webkit-scrollbar,
+    #viewDriverModal *::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+</style>
 
 <div id="viewDriverModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative max-h-[90vh] flex flex-col">
@@ -269,7 +333,7 @@
             <h3 class="text-lg sm:text-xl font-bold text-white" id="vd-name">Driver Name</h3>
             <p class="text-blue-100 text-xs sm:text-sm mt-0.5" id="vd-cdl">Licence #</p>
         </div>
-        <div class="p-4 sm:p-6 space-y-4 overflow-y-auto">
+        <div class="p-4 sm:p-6 space-y-4 overflow-y-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
             <div class="grid grid-cols-2 gap-3 sm:gap-4">
                 <div class="bg-gray-50 dark:bg-gray-900 p-3 rounded-xl">
                     <div class="text-xs text-gray-500 dark:text-gray-400">Status</div>
@@ -288,31 +352,42 @@
                     <div class="font-bold text-green-600 text-sm sm:text-base" id="vd-ontime">--</div>
                 </div>
             </div>
-            <div class="border-t border-gray-100 dark:border-gray-700 pt-4 space-y-2 text-sm">
+
+            <!-- Payroll Summary & Settle Action -->
+            <div class="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl border border-emerald-100 dark:border-emerald-900/40 flex items-center justify-between gap-3" id="vd-payroll-bar">
+                <div>
+                    <div class="text-[10px] font-bold uppercase text-emerald-800 dark:text-emerald-400 tracking-wider">Unclaimed Payroll</div>
+                    <div class="text-base sm:text-lg font-extrabold text-emerald-700 dark:text-emerald-300" id="vd-payroll-net">₱0.00</div>
+                    <div class="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5" id="vd-payroll-breakdown">Gross: ₱0.00 • CA: ₱0.00</div>
+                </div>
+                <button type="button" id="vd-settle-btn" onclick="triggerSettleFromModal()" class="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition shadow-sm flex items-center gap-1.5 flex-shrink-0">
+                    <i class="fa-solid fa-money-bill-transfer"></i>
+                    <span>Settle</span>
+                </button>
+            </div>
+
+            <div class="border-t border-gray-100 dark:border-gray-700 pt-3 space-y-2 text-sm">
                 <div class="flex items-center space-x-3">
                     <i class="fa-solid fa-phone text-gray-400 w-5 text-center"></i>
                     <span id="vd-phone" class="font-medium text-gray-700 dark:text-gray-200 text-xs sm:text-sm">--</span>
                 </div>
             </div>
 
-            <div class="border-t border-gray-100 dark:border-gray-700 pt-4">
+            <div class="border-t border-gray-100 dark:border-gray-700 pt-3">
                 <div class="flex justify-between items-center mb-2">
                     <h4 class="text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-200">Recent Deliveries</h4>
                     <button type="button" onclick="openPrintDriverTripsModal()" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-xs font-bold flex items-center gap-1">
                         <i class="fa-solid fa-print"></i> Print Ticket
                     </button>
                 </div>
-                <style>
-                    .scrollbar-hide::-webkit-scrollbar {
-                        display: none;
-                    }
-
-                    .scrollbar-hide {
-                        -ms-overflow-style: none;
-                        scrollbar-width: none;
-                    }
-                </style>
-                <div id="vd-recent-trips" class="space-y-2 max-h-40 overflow-y-auto scrollbar-hide"></div>
+                <div id="vd-recent-trips" class="space-y-2"></div>
+                <div id="vd-view-all-trips-btn-container" class="mt-2.5 hidden">
+                    <button type="button" onclick="openAllDriverDeliveriesModal()" class="w-full py-2.5 px-3 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 border border-blue-200/70 dark:border-blue-800 shadow-sm">
+                        <i class="fa-solid fa-list-ul"></i>
+                        <span id="vd-view-all-btn-text">View All Deliveries</span>
+                        <i class="fa-solid fa-chevron-right text-[10px] ml-0.5"></i>
+                    </button>
+                </div>
             </div>
         </div>
         <div class="p-3 sm:p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-between gap-2 flex-shrink-0">
@@ -321,6 +396,241 @@
                 <span>Print Trips Ticket</span>
             </button>
             <button onclick="toggleModal('viewDriverModal', false)" class="px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ====== SETTLE DRIVER PAYROLL CONFIRMATION MODAL ====== -->
+<div id="settlePayrollModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-60 hidden p-3 sm:p-4 backdrop-blur-xs">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative border border-gray-100 dark:border-gray-700">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-emerald-600 to-teal-700 p-5 text-white flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold">Settle Driver Payroll</h3>
+                    <p class="text-xs text-emerald-100 font-medium">Disburse full or partial earnings & carry balance</p>
+                </div>
+            </div>
+            <button onclick="toggleModal('settlePayrollModal', false)" class="text-white/80 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="dashboard.php" class="p-5 sm:p-6 space-y-3.5" id="settlePayrollForm">
+            <input type="hidden" name="action" value="settle_driver_payroll">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+            <input type="hidden" name="driver_id" id="sp-driver-id" value="">
+
+            <div class="bg-gray-50 dark:bg-gray-900/60 p-3.5 rounded-xl border border-gray-100 dark:border-gray-700/60 space-y-2">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-gray-500 dark:text-gray-400 font-medium">Driver:</span>
+                    <span class="font-bold text-gray-900 dark:text-gray-100 text-sm" id="sp-driver-name">--</span>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-gray-500 dark:text-gray-400 font-medium">Unclaimed Gross Earnings:</span>
+                    <span class="font-bold text-emerald-600 dark:text-emerald-400" id="sp-gross-amount">₱0.00</span>
+                </div>
+                <div class="flex justify-between items-center text-xs hidden" id="sp-previous-balance-row">
+                    <span class="text-indigo-600 dark:text-indigo-400 font-medium">Prior Carried Balance:</span>
+                    <span class="font-bold text-indigo-600 dark:text-indigo-400" id="sp-previous-balance">+₱0.00</span>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-gray-500 dark:text-gray-400 font-medium">Cash Advances to Deduct:</span>
+                    <span class="font-bold text-orange-600 dark:text-orange-400" id="sp-advances-amount">-₱0.00</span>
+                </div>
+                <div class="border-t border-gray-200 dark:border-gray-700 pt-2 flex justify-between items-center">
+                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300">Total Net Payable:</span>
+                    <span class="text-xl font-extrabold text-emerald-700 dark:text-emerald-400" id="sp-net-pay">₱0.00</span>
+                </div>
+            </div>
+
+            <!-- Partial Claim / Disbursement Input -->
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                        Amount to Disburse / Claim (₱):
+                    </label>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" onclick="setSettleClaimFull()" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 transition">
+                            100% Full
+                        </button>
+                        <button type="button" onclick="setSettleClaimPercent(0.5)" class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 transition">
+                            50%
+                        </button>
+                    </div>
+                </div>
+                <input type="number" step="0.01" min="0" name="claimed_amount" id="sp-claimed-input" 
+                       oninput="recalculateSettleRemaining()"
+                       class="w-full text-base font-extrabold text-emerald-700 dark:text-emerald-300 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-emerald-500 focus:border-emerald-500 p-2.5">
+            </div>
+
+            <!-- Remaining Balance Display -->
+            <div class="flex items-center justify-between p-2.5 bg-indigo-50/70 dark:bg-indigo-950/30 rounded-xl border border-indigo-100 dark:border-indigo-900/40 text-xs">
+                <span class="text-indigo-700 dark:text-indigo-400 font-semibold flex items-center gap-1.5">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>Remaining Balance Carried Forward:</span>
+                </span>
+                <span class="font-extrabold text-indigo-700 dark:text-indigo-300 text-sm" id="sp-remaining-balance">₱0.00</span>
+            </div>
+
+            <div class="p-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200/70 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                <i class="fa-solid fa-circle-info text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0"></i>
+                <div class="leading-relaxed">
+                    Settling resets active gross earnings. Any unclaimed portion is saved as the driver's remaining balance for next payroll. The ticket will itemize all settled trips.
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Settlement Notes (Optional):</label>
+                <textarea name="notes" rows="1" placeholder="Add notes regarding this settlement..." class="w-full text-xs rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:ring-emerald-500 focus:border-emerald-500 p-2"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end space-x-3 pt-1">
+                <button type="button" onclick="toggleModal('settlePayrollModal', false)" class="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20 flex items-center gap-2">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Confirm & Print Ticket</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ====== ADJUST DRIVER REMAINING BALANCE MODAL ====== -->
+<div id="adjustDriverBalanceModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-60 hidden p-3 sm:p-4 backdrop-blur-xs">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative border border-gray-100 dark:border-gray-700">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-indigo-600 to-blue-700 p-5 text-white flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-coins"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold">Adjust Remaining Balance</h3>
+                    <p class="text-xs text-indigo-100 font-medium">Add to or set driver's carried payroll balance</p>
+                </div>
+            </div>
+            <button onclick="toggleModal('adjustDriverBalanceModal', false)" class="text-white/80 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="dashboard.php" class="p-5 sm:p-6 space-y-4" id="adjustBalanceForm">
+            <input type="hidden" name="action" value="adjust_driver_balance">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+            <input type="hidden" name="driver_id" id="ab-driver-id" value="">
+
+            <div class="bg-gray-50 dark:bg-gray-900/60 p-4 rounded-xl border border-gray-100 dark:border-gray-700/60 space-y-2">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-gray-500 dark:text-gray-400 font-medium">Driver:</span>
+                    <span class="font-bold text-gray-900 dark:text-gray-100 text-sm" id="ab-driver-name">--</span>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-gray-500 dark:text-gray-400 font-medium">Current Remaining Balance:</span>
+                    <span class="font-bold text-indigo-600 dark:text-indigo-400 text-sm" id="ab-current-balance">₱0.00</span>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Adjustment Action:</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="flex items-center gap-2 p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <input type="radio" name="adjustment_type" value="add" checked class="text-indigo-600 focus:ring-indigo-500">
+                        <span class="text-xs font-bold text-gray-700 dark:text-gray-200">+ Add to Balance</span>
+                    </label>
+                    <label class="flex items-center gap-2 p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <input type="radio" name="adjustment_type" value="set" class="text-indigo-600 focus:ring-indigo-500">
+                        <span class="text-xs font-bold text-gray-700 dark:text-gray-200">= Set Exact Total</span>
+                    </label>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Amount (₱):</label>
+                <input type="number" step="0.01" min="0" name="amount" required placeholder="0.00" class="w-full text-sm font-bold rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:ring-indigo-500 focus:border-indigo-500 p-2.5">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Reason / Notes:</label>
+                <textarea name="notes" rows="2" placeholder="e.g. Unclaimed partial balance, bonus, prior balance adjustment..." class="w-full text-xs rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:ring-indigo-500 focus:border-indigo-500 p-2.5"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end space-x-3 pt-2">
+                <button type="button" onclick="toggleModal('adjustDriverBalanceModal', false)" class="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-md shadow-indigo-600/20 flex items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>Save Balance</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ====== ALL DRIVER DELIVERIES MODAL ====== -->
+<div id="allDriverDeliveriesModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden relative max-h-[90vh] flex flex-col">
+        <!-- Modal Header -->
+        <div class="bg-slate-900 text-white p-5 sm:p-6 flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center space-x-3.5">
+                <div class="w-11 h-11 bg-blue-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-md">
+                    <i class="fa-solid fa-truck-ramp-box"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-base sm:text-lg font-bold text-white" id="ad-driver-name">Driver Deliveries</h3>
+                        <span id="ad-trip-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30">0</span>
+                    </div>
+                    <p class="text-slate-400 text-xs mt-0.5">Complete trip records, distances, and driver earnings</p>
+                </div>
+            </div>
+            <button onclick="toggleModal('allDriverDeliveriesModal', false)" class="text-gray-400 hover:text-white transition p-1">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Summary KPI Strip -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 sm:p-5 bg-gray-50 dark:bg-gray-900/60 border-b border-gray-200 dark:border-gray-700 text-xs flex-shrink-0">
+            <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm text-center">
+                <span class="text-gray-400 font-semibold block uppercase text-[10px]">Total Trips</span>
+                <span id="ad-sum-trips" class="font-extrabold text-gray-900 dark:text-gray-100 text-base mt-0.5 block">0</span>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm text-center">
+                <span class="text-blue-500 font-semibold block uppercase text-[10px]">Total Distance</span>
+                <span id="ad-sum-distance" class="font-extrabold text-blue-600 dark:text-blue-400 text-base mt-0.5 block">0.0 km</span>
+            </div>
+            <div class="col-span-2 sm:col-span-1 bg-white dark:bg-gray-800 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800/40 shadow-sm text-center">
+                <span class="text-emerald-600 font-semibold block uppercase text-[10px]">Gross Trip Earnings</span>
+                <span id="ad-sum-pay" class="font-extrabold text-emerald-600 dark:text-emerald-400 text-base mt-0.5 block">₱0.00</span>
+            </div>
+        </div>
+
+        <!-- Scrollable Deliveries List -->
+        <div class="p-4 sm:p-6 overflow-y-auto space-y-2.5 flex-1 max-h-[50vh]" id="ad-all-trips-list">
+            <!-- Populated via JavaScript -->
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="p-3.5 sm:p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-between gap-3 flex-shrink-0">
+            <button type="button" onclick="openPrintDriverTripsModal()" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-print"></i>
+                <span>Print Trip Ticket</span>
+            </button>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="toggleModal('allDriverDeliveriesModal', false); toggleModal('viewDriverModal', true);" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition flex items-center gap-1">
+                    <i class="fa-solid fa-arrow-left text-xs"></i>
+                    <span>Back</span>
+                </button>
+                <button type="button" onclick="toggleModal('allDriverDeliveriesModal', false)" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-slate-800 hover:bg-slate-700 transition">
+                    Close
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -1050,4 +1360,149 @@
         closeNominatimSearchModal();
     }
 </script>
+
+<!-- ============================================================ -->
+<!-- DRIVER PERFORMANCE & WEEKLY ANALYTICS MODAL                   -->
+<!-- ============================================================ -->
+<div id="driverPerformanceModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm hidden p-3 sm:p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden relative max-h-[92vh] flex flex-col border border-gray-100 dark:border-gray-700">
+        <!-- Close Button -->
+        <button type="button" onclick="toggleModal('driverPerformanceModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 z-10 w-8 h-8 rounded-full bg-white/20 dark:bg-gray-700/50 flex items-center justify-center transition">
+            <i class="fa-solid fa-xmark fa-lg"></i>
+        </button>
+
+        <!-- Modal Header -->
+        <div class="bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 p-5 sm:p-6 text-white flex items-center gap-4 flex-shrink-0">
+            <!-- Driver Avatar -->
+            <img id="dp-driver-photo" src="" alt="Driver Photo" class="w-16 h-16 rounded-2xl object-cover border-2 border-white/80 shadow-md hidden flex-shrink-0">
+            <div id="dp-driver-initials" class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white font-extrabold text-2xl shadow-inner flex-shrink-0">
+                DR
+            </div>
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h3 class="text-xl font-bold text-white truncate" id="dp-driver-name">Driver Name</h3>
+                    <span id="dp-driver-rating-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/20 text-white backdrop-blur-sm border border-white/30 flex items-center gap-1">
+                        <i class="fa-solid fa-star text-amber-200 text-xs"></i>
+                        <span id="dp-rating-num">5.0</span>
+                    </span>
+                </div>
+                <div class="flex items-center gap-3 text-amber-100 text-xs mt-1 flex-wrap">
+                    <span id="dp-driver-cdl"><i class="fa-solid fa-id-card mr-1"></i>CDL: N/A</span>
+                    <span>&bull;</span>
+                    <span id="dp-driver-truck"><i class="fa-solid fa-truck mr-1"></i>Truck: Unassigned</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Body (Scrollable with hidden scrollbars) -->
+        <div class="p-5 sm:p-6 overflow-y-auto space-y-5" style="scrollbar-width: none; -ms-overflow-style: none;">
+            
+            <!-- Section Title -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Weekly Performance Overview</h4>
+                    <p class="text-[11px] text-gray-400 dark:text-gray-500">Live analytics aggregated by delivery week</p>
+                </div>
+                <span class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-full border border-amber-200/50 dark:border-amber-800/40">
+                    <i class="fa-solid fa-gauge-high mr-1"></i>Rate: ₱10 / km
+                </span>
+            </div>
+
+            <!-- Top 4-KPI Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <!-- This Week's KM -->
+                <div class="bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 rounded-2xl p-3.5 text-center">
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 mb-1">This Week (KM)</div>
+                    <div class="text-xl sm:text-2xl font-extrabold text-amber-700 dark:text-amber-300" id="dp-this-week-km">0.0 km</div>
+                    <div class="text-[10px] text-amber-600/80 dark:text-amber-400/70 mt-0.5">Current cycle distance</div>
+                </div>
+
+                <!-- This Week's Dispatches -->
+                <div class="bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 rounded-2xl p-3.5 text-center">
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-blue-800 dark:text-blue-400 mb-1">This Week Trips</div>
+                    <div class="text-xl sm:text-2xl font-extrabold text-blue-700 dark:text-blue-300" id="dp-this-week-trips">0 Delivered</div>
+                    <div class="text-[10px] text-blue-600/80 dark:text-blue-400/70 mt-0.5">Delivered this week</div>
+                </div>
+
+                <!-- Average KM per Week -->
+                <div class="bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 rounded-2xl p-3.5 text-center">
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 mb-1">Avg KM / Week</div>
+                    <div class="text-xl sm:text-2xl font-extrabold text-emerald-700 dark:text-emerald-300" id="dp-avg-km">0.0 km</div>
+                    <div class="text-[10px] text-emerald-600/80 dark:text-emerald-400/70 mt-0.5">Weekly average</div>
+                </div>
+
+                <!-- Average Dispatches per Week -->
+                <div class="bg-indigo-50/70 dark:bg-indigo-950/20 border border-indigo-200/60 dark:border-indigo-900/40 rounded-2xl p-3.5 text-center">
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-indigo-800 dark:text-indigo-400 mb-1">Avg Trips / Week</div>
+                    <div class="text-xl sm:text-2xl font-extrabold text-indigo-700 dark:text-indigo-300" id="dp-avg-trips">0.0</div>
+                    <div class="text-[10px] text-indigo-600/80 dark:text-indigo-400/70 mt-0.5">Dispatches frequency</div>
+                </div>
+            </div>
+
+            <!-- Secondary Metrics Bar -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 bg-gray-50 dark:bg-gray-900/70 rounded-2xl border border-gray-100 dark:border-gray-800 text-xs">
+                <div>
+                    <span class="text-gray-400 dark:text-gray-500 block text-[10px] uppercase font-bold">On-Time Delivery</span>
+                    <span class="font-extrabold text-green-600 dark:text-green-400 text-sm" id="dp-ontime">100.0%</span>
+                </div>
+                <div>
+                    <span class="text-gray-400 dark:text-gray-500 block text-[10px] uppercase font-bold">Total Lifetime KM</span>
+                    <span class="font-extrabold text-gray-800 dark:text-gray-200 text-sm" id="dp-lifetime-km">0.0 km</span>
+                </div>
+                <div>
+                    <span class="text-gray-400 dark:text-gray-500 block text-[10px] uppercase font-bold">Lifetime Deliveries</span>
+                    <span class="font-extrabold text-gray-800 dark:text-gray-200 text-sm" id="dp-lifetime-trips">0 Trips</span>
+                </div>
+                <div>
+                    <span class="text-gray-400 dark:text-gray-500 block text-[10px] uppercase font-bold">Active Service Weeks</span>
+                    <span class="font-extrabold text-indigo-600 dark:text-indigo-400 text-sm" id="dp-active-weeks">0 Weeks</span>
+                </div>
+            </div>
+
+            <!-- Weekly History Breakdown Table -->
+            <div>
+                <div class="flex items-center justify-between mb-2.5">
+                    <h5 class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-calendar-week text-amber-500"></i>
+                        <span>Weekly Dispatches & Distance History</span>
+                    </h5>
+                    <span class="text-[11px] text-gray-400" id="dp-weeks-count">0 weeks recorded</span>
+                </div>
+
+                <div class="border border-gray-100 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm">
+                    <div class="max-h-60 overflow-y-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-gray-50 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 font-bold uppercase text-[10px] tracking-wider border-b border-gray-100 dark:border-gray-700 sticky top-0">
+                                <tr>
+                                    <th class="px-4 py-2.5">Week & Period</th>
+                                    <th class="px-4 py-2.5 text-center">Completed Dispatches</th>
+                                    <th class="px-4 py-2.5 text-right">Total Distance</th>
+                                    <th class="px-4 py-2.5 text-right">Trip Pay Earned</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dp-weekly-table-body" class="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-800">
+                                <!-- Populated dynamically by openDriverPerformanceModal -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="dp-weekly-empty" class="p-6 text-center text-gray-400 dark:text-gray-500 text-xs hidden">
+                        <i class="fa-solid fa-inbox text-2xl mb-1 text-gray-300 dark:text-gray-600 block"></i>
+                        No completed deliveries recorded yet for this driver.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="border-t border-gray-100 dark:border-gray-700 p-4 sm:p-5 bg-gray-50 dark:bg-gray-900/40 flex items-center justify-between gap-3 flex-shrink-0">
+            <button type="button" id="dp-print-trips-btn" onclick="printCurrentDriverTrips()" class="px-4 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-print text-blue-500"></i>
+                <span>Print Trips Report</span>
+            </button>
+            <button type="button" onclick="toggleModal('driverPerformanceModal', false)" class="px-5 py-2 rounded-xl text-xs font-bold text-white bg-gray-900 hover:bg-black transition shadow-sm">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
 </div>

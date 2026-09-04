@@ -95,39 +95,74 @@
         let streetLayer = null;
         let googleStreetLayer = null;
         let satelliteLayer = null;
+        let voyagerLayer = null;
+        let darkLayer = null;
 
         function initMap() {
             const mapDiv = document.getElementById('map');
             if (!mapDiv) return;
             try {
                 // Free, high-reliability tile providers (NO API Key required)
-                streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                // 1. Standard OpenStreetMap
+                streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
+                    subdomains: ['a', 'b', 'c'],
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 });
 
-                googleStreetLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                // 2. High-Resolution Esri World Imagery (Satellite) + Boundaries/Labels (Hybrid Satellite)
+                const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 19,
+                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, USGS, AeroGRID, IGN, and GIS User Community'
+                });
+                const esriLabels = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 19
+                });
+                satelliteLayer = L.layerGroup([esriImagery, esriLabels]);
+
+                // 3. CartoDB Voyager (Modern detailed road navigation)
+                voyagerLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                     maxZoom: 20,
+                    subdomains: 'abcd',
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                });
+
+                // 4. CartoDB Dark Matter (Dark mode map)
+                darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 20,
+                    subdomains: 'abcd',
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                });
+
+                // 5. Google Streets (with resilient subdomains)
+                googleStreetLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                    maxZoom: 20,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
                     attribution: '&copy; Google Maps'
                 });
 
-                satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                // 6. Google Satellite
+                const googleSatLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
                     maxZoom: 20,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
                     attribution: '&copy; Google Maps Satellite'
                 });
 
                 map = L.map('map', {
                     center: [15.359042, 120.965016],
                     zoom: 14,
-                    layers: [googleStreetLayer],
+                    layers: [streetLayer], // Default to OpenStreetMap for guaranteed 100% reliable initial load
                     zoomControl: true
                 });
 
                 // Interactive Layer Control Switcher (top right)
                 const baseMaps = {
                     "🗺️ OpenStreetMap": streetLayer,
-                    "🚗 Google Streets": googleStreetLayer,
-                    "🛰️ Google Satellite": satelliteLayer
+                    "🛰️ Satellite (Hybrid)": satelliteLayer,
+                    "🚗 Navigation (Voyager)": voyagerLayer,
+                    "🌙 Dark Mode": darkLayer,
+                    "🌐 Google Streets": googleStreetLayer,
+                    "🛰️ Google Satellite": googleSatLayer
                 };
                 L.control.layers(baseMaps, null, {
                     position: 'topright'
@@ -362,7 +397,7 @@
             const initialsEl = document.getElementById('vd-initials');
             if (driver.profile_photo) {
                 // Build URL relative to admin dashboard (one level up reaches CAPSTONE root)
-                const photoUrl = '../' + driver.profile_photo;
+                const photoUrl = '../' + driver.profile_photo + '?v=' + Date.now();
                 if (photoEl) {
                     photoEl.src = photoUrl;
                     photoEl.alt = driver.name;
@@ -387,27 +422,381 @@
             document.getElementById('vd-ontime').innerText = (driver.on_time_pct ? parseFloat(driver.on_time_pct).toFixed(1) : '100.0') + '%';
 
             const tripsContainer = document.getElementById('vd-recent-trips');
+            const viewAllBtnContainer = document.getElementById('vd-view-all-trips-btn-container');
+            const viewAllBtnText = document.getElementById('vd-view-all-btn-text');
+
             if (tripsContainer) {
                 tripsContainer.innerHTML = '';
-                if (driver.recent_trips && driver.recent_trips.length > 0) {
-                    driver.recent_trips.forEach(trip => {
+                const allTrips = driver.recent_trips || [];
+                // Limit to two (2) deliveries in the driver card details modal
+                const displayTrips = allTrips.slice(0, 2);
+
+                if (displayTrips.length > 0) {
+                    displayTrips.forEach(trip => {
                         let statusBadge = (trip.status === 'Delivered' || !trip.status) ?
                             `<span class="ml-2 text-green-600 font-semibold bg-green-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-[10px] uppercase"><i class="fa-solid fa-check mr-1"></i>Delivered</span>` :
                             `<span class="ml-2 text-blue-500 font-semibold bg-blue-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-[10px] uppercase"><i class="fa-solid fa-truck-fast mr-1"></i>${trip.status}</span>`;
 
+                        const distNum = parseFloat(trip.distance_km || 0);
+                        const distanceDisplay = distNum > 0 ? `${distNum.toFixed(1)} km` : 'Distance N/A';
+                        const payNum = parseFloat(trip.pay_amount || 0);
+                        const payDisplay = payNum > 0 ? `₱${payNum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '₱0.00';
+
                         tripsContainer.innerHTML += `
-                        <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border-l-4 border-blue-500 shadow-sm mb-2">
-                            <div>
-                                <div class="font-bold text-gray-800 dark:text-gray-200 text-sm">${trip.destination} ${statusBadge}</div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5"><i class="fa-regular fa-calendar mr-1"></i> ${trip.trip_date || 'Recent'}</div>
+                        <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700/60 p-3 rounded-xl border-l-4 border-blue-500 shadow-sm mb-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                            <div class="min-w-0 flex-1 pr-2">
+                                <div class="font-bold text-gray-800 dark:text-gray-200 text-sm flex items-center flex-wrap gap-1">
+                                    <span class="truncate">${trip.destination}</span>
+                                    ${statusBadge}
+                                </div>
+                                <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    <span><i class="fa-regular fa-calendar mr-1"></i>${trip.trip_date || 'Recent'}</span>
+                                    <span class="inline-flex items-center text-blue-600 dark:text-blue-400 font-semibold">
+                                        <i class="fa-solid fa-route mr-1"></i>${distanceDisplay}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="text-right flex-shrink-0 pl-2">
+                                <div class="text-[10px] text-gray-400 dark:text-gray-400 font-bold uppercase tracking-wider">Trip Pay</div>
+                                <div class="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">${payDisplay}</div>
+                                <div class="text-[10px] text-gray-400 dark:text-gray-500">₱10 / km</div>
+                            </div>
+                        </div>`;
+                    });
+
+                    if (viewAllBtnContainer) {
+                        viewAllBtnContainer.classList.remove('hidden');
+                        if (viewAllBtnText) {
+                            viewAllBtnText.textContent = `View All Deliveries (${allTrips.length})`;
+                        }
+                    }
+                } else {
+                    tripsContainer.innerHTML = '<div class="text-xs text-gray-500 dark:text-gray-400 italic mt-2">No trips recorded for this driver.</div>';
+                    if (viewAllBtnContainer) viewAllBtnContainer.classList.add('hidden');
+                }
+            }
+
+            // Populate payroll overview in view driver modal
+            const netPay = parseFloat(driver.net_earnings || 0);
+            const grossPay = parseFloat(driver.gross_earnings || 0);
+            const caAmount = parseFloat(driver.approved_cash_advances || 0);
+            const remBal = parseFloat(driver.remaining_balance || 0);
+
+            const netEl = document.getElementById('vd-payroll-net');
+            const breakdownEl = document.getElementById('vd-payroll-breakdown');
+            const settleBtn = document.getElementById('vd-settle-btn');
+
+            if (netEl) netEl.innerText = `₱${netPay.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            if (breakdownEl) breakdownEl.innerText = `Remaining Bal: ₱${remBal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} • CA: -₱${caAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+            if (settleBtn) {
+                if (netPay > 0 || remBal > 0 || grossPay > 0 || caAmount > 0) {
+                    settleBtn.disabled = false;
+                    settleBtn.className = 'px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition shadow-sm flex items-center gap-1.5 flex-shrink-0 cursor-pointer';
+                    settleBtn.innerHTML = '<i class="fa-solid fa-money-bill-transfer"></i><span>Settle</span>';
+                } else {
+                    settleBtn.disabled = true;
+                    settleBtn.className = 'px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 transition flex items-center gap-1.5 flex-shrink-0 cursor-not-allowed';
+                    settleBtn.innerHTML = '<i class="fa-solid fa-check"></i><span>Settled</span>';
+                }
+            }
+
+            toggleModal('viewDriverModal', true);
+        }
+
+        let currentPerformanceDriverId = null;
+
+        function openDriverPerformanceModal(driver) {
+            if (!driver) return;
+            currentPerformanceDriverId = driver.id;
+
+            // Header info
+            const nameEl = document.getElementById('dp-driver-name');
+            const cdlEl = document.getElementById('dp-driver-cdl');
+            const truckEl = document.getElementById('dp-driver-truck');
+            const ratingNumEl = document.getElementById('dp-rating-num');
+            const photoEl = document.getElementById('dp-driver-photo');
+            const initialsEl = document.getElementById('dp-driver-initials');
+
+            if (nameEl) nameEl.innerText = driver.name || 'Driver';
+            if (cdlEl) cdlEl.innerHTML = `<i class="fa-solid fa-id-card mr-1"></i>CDL: ${driver.cdl_number || 'N/A'}`;
+            if (truckEl) truckEl.innerHTML = `<i class="fa-solid fa-truck mr-1"></i>Truck: ${driver.truck_code || 'Unassigned'}`;
+            if (ratingNumEl) ratingNumEl.innerText = (parseFloat(driver.rating || 5.0)).toFixed(1);
+
+            // Avatar
+            if (driver.profile_photo) {
+                if (photoEl) {
+                    photoEl.src = '../' + driver.profile_photo + '?v=' + Date.now();
+                    photoEl.classList.remove('hidden');
+                }
+                if (initialsEl) initialsEl.classList.add('hidden');
+            } else {
+                if (photoEl) photoEl.classList.add('hidden');
+                if (initialsEl) {
+                    initialsEl.classList.remove('hidden');
+                    initialsEl.innerText = getInitialsJS(driver.name);
+                }
+            }
+
+            // Stats
+            const stats = driver.performance_stats || {};
+            const thisWeekKm = parseFloat(stats.this_week_km || 0);
+            const thisWeekTrips = parseInt(stats.this_week_dispatches || 0);
+            const avgKm = parseFloat(stats.avg_km_per_week || 0);
+            const avgTrips = parseFloat(stats.avg_dispatches_per_week || 0);
+            const ontime = parseFloat(stats.on_time_pct !== undefined ? stats.on_time_pct : 100);
+            const lifetimeKm = parseFloat(stats.total_lifetime_km || 0);
+            const lifetimeTrips = parseInt(stats.total_lifetime_dispatches || 0);
+            const activeWeeks = parseInt(stats.active_weeks_count || 0);
+
+            const thisWeekKmEl = document.getElementById('dp-this-week-km');
+            const thisWeekTripsEl = document.getElementById('dp-this-week-trips');
+            const avgKmEl = document.getElementById('dp-avg-km');
+            const avgTripsEl = document.getElementById('dp-avg-trips');
+            const ontimeEl = document.getElementById('dp-ontime');
+            const lifetimeKmEl = document.getElementById('dp-lifetime-km');
+            const lifetimeTripsEl = document.getElementById('dp-lifetime-trips');
+            const activeWeeksEl = document.getElementById('dp-active-weeks');
+            const weeksCountEl = document.getElementById('dp-weeks-count');
+
+            if (thisWeekKmEl) thisWeekKmEl.innerText = `${thisWeekKm.toFixed(1)} km`;
+            if (thisWeekTripsEl) thisWeekTripsEl.innerText = `${thisWeekTrips} ${thisWeekTrips === 1 ? 'Trip' : 'Trips'}`;
+            if (avgKmEl) avgKmEl.innerText = `${avgKm.toFixed(1)} km`;
+            if (avgTripsEl) avgTripsEl.innerText = `${avgTrips.toFixed(1)} / wk`;
+            if (ontimeEl) ontimeEl.innerText = `${ontime.toFixed(1)}%`;
+            if (lifetimeKmEl) lifetimeKmEl.innerText = `${lifetimeKm.toFixed(1)} km`;
+            if (lifetimeTripsEl) lifetimeTripsEl.innerText = `${lifetimeTrips} ${lifetimeTrips === 1 ? 'Trip' : 'Trips'}`;
+            if (activeWeeksEl) activeWeeksEl.innerText = `${activeWeeks} ${activeWeeks === 1 ? 'Week' : 'Weeks'}`;
+
+            // Weekly history table
+            const tableBody = document.getElementById('dp-weekly-table-body');
+            const emptyEl = document.getElementById('dp-weekly-empty');
+            const history = stats.weekly_history || [];
+
+            if (weeksCountEl) {
+                weeksCountEl.innerText = `${history.length} active ${history.length === 1 ? 'week' : 'weeks'} recorded`;
+            }
+
+            if (tableBody) {
+                tableBody.innerHTML = '';
+                if (history.length > 0) {
+                    if (emptyEl) emptyEl.classList.add('hidden');
+                    history.forEach(w => {
+                        const kmVal = parseFloat(w.total_km || 0).toFixed(1);
+                        const payVal = parseFloat(w.total_pay || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                        const tripsCount = parseInt(w.dispatches || 0);
+
+                        tableBody.innerHTML += `
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-750 transition">
+                                <td class="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-regular fa-calendar-check text-amber-500"></i>
+                                        <span>${w.week_label}</span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                        <i class="fa-solid fa-truck-check text-[10px]"></i>
+                                        ${tripsCount} ${tripsCount === 1 ? 'Trip' : 'Trips'}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-right font-bold text-gray-800 dark:text-gray-200">
+                                    ${kmVal} km
+                                </td>
+                                <td class="px-4 py-3 text-right font-extrabold text-emerald-600 dark:text-emerald-400">
+                                    ₱${payVal}
+                                </td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    if (emptyEl) emptyEl.classList.remove('hidden');
+                }
+            }
+
+            toggleModal('driverPerformanceModal', true);
+        }
+
+        function printCurrentDriverTrips() {
+            if (currentPerformanceDriverId) {
+                window.open(`print_driver_trips.php?driver_id=${currentPerformanceDriverId}`, '_blank');
+            }
+        }
+
+        let currentSettleTotalPayable = 0;
+
+        function triggerSettleFromModal() {
+            if (!currentViewingDriver) return;
+            toggleModal('viewDriverModal', false);
+            openSettlePayrollModal(
+                currentViewingDriver.id,
+                currentViewingDriver.name,
+                currentViewingDriver.gross_earnings || 0,
+                currentViewingDriver.approved_cash_advances || 0,
+                currentViewingDriver.net_earnings || 0,
+                currentViewingDriver.remaining_balance || 0
+            );
+        }
+
+        function openSettlePayrollModal(driverId, driverName, gross, advances, net, prevBalance) {
+            const idEl = document.getElementById('sp-driver-id');
+            const nameEl = document.getElementById('sp-driver-name');
+            if (idEl) idEl.value = driverId;
+            if (nameEl) nameEl.textContent = driverName;
+
+            const grossNum = parseFloat(gross || 0);
+            const advNum = parseFloat(advances || 0);
+            const prevBalNum = parseFloat(prevBalance || 0);
+            const netNum = parseFloat(net || 0);
+
+            currentSettleTotalPayable = netNum;
+
+            const grossEl = document.getElementById('sp-gross-amount');
+            const advEl = document.getElementById('sp-advances-amount');
+            const netPayEl = document.getElementById('sp-net-pay');
+            const prevBalRow = document.getElementById('sp-previous-balance-row');
+            const prevBalEl = document.getElementById('sp-previous-balance');
+            const claimedInput = document.getElementById('sp-claimed-input');
+
+            if (grossEl) grossEl.textContent = `₱${grossNum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            if (advEl) advEl.textContent = `-₱${advNum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            if (netPayEl) netPayEl.textContent = `₱${netNum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+            if (prevBalRow && prevBalEl) {
+                if (prevBalNum > 0) {
+                    prevBalRow.classList.remove('hidden');
+                    prevBalEl.textContent = `+₱${prevBalNum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                } else {
+                    prevBalRow.classList.add('hidden');
+                }
+            }
+
+            if (claimedInput) {
+                claimedInput.value = netNum.toFixed(2);
+                claimedInput.max = netNum.toFixed(2);
+            }
+            recalculateSettleRemaining();
+
+            toggleModal('settlePayrollModal', true);
+        }
+
+        function recalculateSettleRemaining() {
+            const claimedInput = document.getElementById('sp-claimed-input');
+            const remEl = document.getElementById('sp-remaining-balance');
+            if (!claimedInput || !remEl) return;
+
+            let claimedVal = parseFloat(claimedInput.value) || 0;
+            if (claimedVal < 0) claimedVal = 0;
+            if (claimedVal > currentSettleTotalPayable) {
+                claimedVal = currentSettleTotalPayable;
+                claimedInput.value = currentSettleTotalPayable.toFixed(2);
+            }
+
+            const remaining = Math.max(0, currentSettleTotalPayable - claimedVal);
+            remEl.textContent = `₱${remaining.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+
+        function setSettleClaimFull() {
+            const claimedInput = document.getElementById('sp-claimed-input');
+            if (claimedInput) {
+                claimedInput.value = currentSettleTotalPayable.toFixed(2);
+                recalculateSettleRemaining();
+            }
+        }
+
+        function setSettleClaimPercent(pct) {
+            const claimedInput = document.getElementById('sp-claimed-input');
+            if (claimedInput) {
+                const val = (currentSettleTotalPayable * pct);
+                claimedInput.value = val.toFixed(2);
+                recalculateSettleRemaining();
+            }
+        }
+
+        function openAdjustBalanceModal(driverId, driverName, currentBalance) {
+            const idEl = document.getElementById('ab-driver-id');
+            const nameEl = document.getElementById('ab-driver-name');
+            const curBalEl = document.getElementById('ab-current-balance');
+
+            if (idEl) idEl.value = driverId;
+            if (nameEl) nameEl.textContent = driverName;
+            const balNum = parseFloat(currentBalance || 0);
+            if (curBalEl) curBalEl.textContent = `₱${balNum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+            toggleModal('adjustDriverBalanceModal', true);
+        }
+
+        function openAllDriverDeliveriesModal() {
+            if (!currentViewingDriver) return;
+            const driver = currentViewingDriver;
+
+            const nameEl = document.getElementById('ad-driver-name');
+            if (nameEl) nameEl.textContent = driver.name;
+
+            const countBadge = document.getElementById('ad-trip-count-badge');
+            const allTrips = driver.recent_trips || [];
+            if (countBadge) countBadge.textContent = `${allTrips.length} Trips`;
+
+            let totalKm = 0;
+            let totalPay = 0;
+            allTrips.forEach(t => {
+                totalKm += parseFloat(t.distance_km || 0);
+                totalPay += parseFloat(t.pay_amount || 0);
+            });
+
+            const sumTripsEl = document.getElementById('ad-sum-trips');
+            if (sumTripsEl) sumTripsEl.textContent = allTrips.length;
+
+            const sumDistEl = document.getElementById('ad-sum-distance');
+            if (sumDistEl) sumDistEl.textContent = `${totalKm.toFixed(1)} km`;
+
+            const sumPayEl = document.getElementById('ad-sum-pay');
+            if (sumPayEl) sumPayEl.textContent = `₱${totalPay.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+            const listEl = document.getElementById('ad-all-trips-list');
+            if (listEl) {
+                listEl.innerHTML = '';
+                if (allTrips.length > 0) {
+                    allTrips.forEach((trip, idx) => {
+                        let statusBadge = (trip.status === 'Delivered' || !trip.status) ?
+                            `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"><i class="fa-solid fa-check mr-1 text-[8px]"></i>Delivered</span>` :
+                            `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"><i class="fa-solid fa-truck-fast mr-1 text-[8px]"></i>${trip.status}</span>`;
+
+                        const distNum = parseFloat(trip.distance_km || 0);
+                        const distanceDisplay = distNum > 0 ? `${distNum.toFixed(1)} km` : 'Distance N/A';
+                        const payNum = parseFloat(trip.pay_amount || 0);
+                        const payDisplay = payNum > 0 ? `₱${payNum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '₱0.00';
+
+                        listEl.innerHTML += `
+                        <div class="p-3.5 bg-gray-50 dark:bg-gray-700/60 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-500/50 transition">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-mono text-xs text-gray-400 font-bold">#${idx + 1}</span>
+                                        <span class="font-bold text-gray-800 dark:text-gray-200 text-sm">${trip.destination}</span>
+                                        ${statusBadge}
+                                    </div>
+                                    <div class="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                                        <span><i class="fa-regular fa-calendar mr-1"></i>${trip.trip_date || 'Recent'}</span>
+                                        <span class="font-semibold text-blue-600 dark:text-blue-400">
+                                            <i class="fa-solid fa-route mr-1"></i>${distanceDisplay}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="text-right flex-shrink-0">
+                                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Trip Pay</div>
+                                    <div class="text-base font-extrabold text-emerald-600 dark:text-emerald-400">${payDisplay}</div>
+                                    <div class="text-[10px] text-gray-400">₱10 / km</div>
+                                </div>
                             </div>
                         </div>`;
                     });
                 } else {
-                    tripsContainer.innerHTML = '<div class="text-xs text-gray-500 dark:text-gray-400 italic mt-2">No trips recorded for this driver.</div>';
+                    listEl.innerHTML = '<div class="text-center py-8 text-xs text-gray-400">No deliveries found for this driver.</div>';
                 }
             }
-            toggleModal('viewDriverModal', true);
+
+            toggleModal('allDriverDeliveriesModal', true);
         }
 
         function openPrintDriverTripsModal(driverId, driverName) {
