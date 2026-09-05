@@ -1,5 +1,20 @@
-# Apache: Deny direct HTTP access to sensitive PHP config files.
-# These files should only be included server-side via require/include.
+# ============================================================
+# SSV Trucking System — Apache Configuration
+# ============================================================
+
+# ── Database credentials for production ──
+# Uncomment and fill in these values on your InfinityFree server.
+# On your local XAMPP, leave them commented out.
+# SetEnv DB_HOST     your_infinityfree_mysql_host
+# SetEnv DB_NAME     your_infinityfree_db_name
+# SetEnv DB_USER     your_infinityfree_db_user
+# SetEnv DB_PASS     your_infinityfree_db_password
+
+# ── PHP error display (hide errors from users in production) ──
+php_flag display_errors off
+php_flag log_errors on
+
+# ── Protect sensitive PHP files from direct access ──
 <Files "config.php">
     Order allow,deny
     Deny from all
@@ -8,3 +23,24 @@
     Order allow,deny
     Deny from all
 </Files>
+<Files "auth.php">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# ── Protect deploy folder ──
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^deploy/ - [F,L]
+</IfModule>
+
+# ── Security headers ──
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# ── Disable directory listing ──
+Options -Indexes

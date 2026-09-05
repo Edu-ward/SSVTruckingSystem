@@ -1,0 +1,55 @@
+﻿# ============================================================
+# SSV Trucking System — GitHub Actions Auto-Deploy
+# Triggers on every push to main or master branch.
+# Uploads changed files to InfinityFree via FTP.
+# Requires the following GitHub Secrets to be set:
+#   FTP_SERVER   — FTP hostname from InfinityFree (e.g., ftpupload.net)
+#   FTP_USERNAME — FTP username from InfinityFree
+#   FTP_PASSWORD — FTP password from InfinityFree
+# ============================================================
+
+name: 🚀 Deploy to InfinityFree
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  deploy:
+    name: Deploy via FTP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ✅ Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: 📦 Deploy changed files via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftp
+          port: 21
+          local-dir: ./
+          server-dir: /htdocs/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            deploy/**
+            .github/**
+            config.php
+            commands.txt
+            checklist
+            *.md
+          dangerous-clean-slate: false
+          log-level: standard
+          timeout: 60000
+
+      - name: ✅ Deployment complete
+        run: echo "Deployment to InfinityFree finished successfully!"

@@ -6,10 +6,11 @@
 // ============================================================
 
 // ── Session Cookie Hardening ──
-ini_set('session.cookie_httponly', 1);       // Prevent JS access to session cookie
-ini_set('session.cookie_secure', 0);        // Set to 1 when using HTTPS in production
-ini_set('session.use_strict_mode', 1);      // Reject uninitialized session IDs
-ini_set('session.cookie_samesite', 'Lax'); // Lax allows same-site POST form submissions to carry the session cookie
+ini_set('session.cookie_httponly', 1);
+// Secure flag: ON in production (HTTPS), OFF locally (HTTP/XAMPP)
+ini_set('session.cookie_secure',   defined('IS_PRODUCTION') && IS_PRODUCTION ? 1 : 0);
+ini_set('session.use_strict_mode', 1);
+ini_set('session.cookie_samesite', 'Lax');
 
 // ── HTTP Security Headers ──
 header('X-Content-Type-Options: nosniff');

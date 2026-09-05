@@ -1,0 +1,31 @@
+﻿# ============================================================
+# SSV Trucking System — .gitignore
+# ============================================================
+
+# Environment / secrets (never commit these)
+.env
+.env.*
+*.env
+
+# PHP error logs
+*.log
+error_log
+php_errorlog
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Temporary / uploaded files (if stored locally)
+uploads/temp/
+tmp/
+
+# Node (if ever used)
+node_modules/
