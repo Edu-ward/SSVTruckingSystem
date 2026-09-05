@@ -10,9 +10,9 @@
 # SetEnv DB_USER     your_db_user
 # SetEnv DB_PASS     your_db_password
 
-# ── PHP error display (hide errors from users in production) ──
-php_flag display_errors off
-php_flag log_errors on
+# ── PHP error display ──
+# NOTE: php_flag is NOT supported on InfinityFree (FastCGI).
+# Error display is controlled by the hosting panel's PHP settings.
 
 # ── Protect sensitive PHP files from direct access ──
 <Files "config.php">

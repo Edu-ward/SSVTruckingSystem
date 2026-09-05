@@ -44,7 +44,6 @@ jobs:
             deploy/**
             .github/**
             config.php
-            .htaccess
             commands.txt
             checklist
             *.md
