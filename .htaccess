@@ -3,12 +3,12 @@
 # ============================================================
 
 # ── Database credentials for production ──
-# Uncomment and fill in these values on your InfinityFree server.
-# On your local XAMPP, leave them commented out.
-# SetEnv DB_HOST     your_infinityfree_mysql_host
-# SetEnv DB_NAME     your_infinityfree_db_name
-# SetEnv DB_USER     your_infinityfree_db_user
-# SetEnv DB_PASS     your_infinityfree_db_password
+# Set these ONLY in InfinityFree File Manager — NEVER commit real values here.
+# This file is public on GitHub. Keep all lines below commented out.
+# SetEnv DB_HOST     your_mysql_host
+# SetEnv DB_NAME     your_db_name
+# SetEnv DB_USER     your_db_user
+# SetEnv DB_PASS     your_db_password
 
 # ── PHP error display (hide errors from users in production) ──
 php_flag display_errors off

@@ -1,4 +1,4 @@
-﻿# ============================================================
+# ============================================================
 # SSV Trucking System — GitHub Actions Auto-Deploy
 # Triggers on every push to main or master branch.
 # Uploads changed files to InfinityFree via FTP.
@@ -44,6 +44,7 @@ jobs:
             deploy/**
             .github/**
             config.php
+            .htaccess
             commands.txt
             checklist
             *.md
