@@ -52,7 +52,7 @@ $ext_map = [
     'image/webp' => 'webp',
 ];
 $ext = $ext_map[$mime];
-$upload_dir = __DIR__ . '/../src/uploads/driver_photos/';
+$upload_dir = __DIR__ . '/../assets/uploads/driver_photos/';
 $filename   = 'driver_' . $driver_id . '_' . time() . '.' . $ext;
 $dest       = $upload_dir . $filename;
 
@@ -69,7 +69,7 @@ if (!move_uploaded_file($file['tmp_name'], $dest)) {
     exit;
 }
 
-$photo_path = 'src/uploads/driver_photos/' . $filename;
+$photo_path = 'assets/uploads/driver_photos/' . $filename;
 $stmt = $pdo->prepare("UPDATE drivers SET profile_photo = ? WHERE id = ?");
 $stmt->execute([$photo_path, $driver_id]);
 

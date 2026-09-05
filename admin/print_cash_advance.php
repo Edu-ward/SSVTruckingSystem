@@ -106,7 +106,7 @@ $ticket_number = 'CA-' . date('Y', strtotime($advance['requested_at'] ?? 'now'))
         <div class="flex justify-between items-start border-b-2 border-gray-900 pb-6 mb-6">
             <div>
                 <div class="flex items-center mb-1">
-                    <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-16 w-auto mr-4">
+                    <img src="../assets/ssvLogo.png" alt="SSV Logo" class="h-16 w-auto mr-4">
                     <div>
                         <h1 class="text-3xl font-bold tracking-tight text-gray-900">SSV Trucking</h1>
                         <p class="text-xs font-semibold tracking-wider text-orange-600 uppercase">Hauling & Logistics Services</p>

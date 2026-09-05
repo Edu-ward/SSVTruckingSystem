@@ -188,22 +188,16 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
                                 </div>
                             </div>
                             <div class="flex items-center space-x-2.5 flex-shrink-0 self-end lg:self-center">
-                                <form method="POST" action="dashboard.php" class="inline" onsubmit="return confirm('Approve cash advance of ₱<?= number_format($ca['amount'], 2); ?> for <?= htmlspecialchars(addslashes($ca['driver_name'])); ?>?');">
-                                    <input type="hidden" name="action" value="approve_cash_advance">
-                                    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
-                                    <input type="hidden" name="ca_id" value="<?= $ca['id']; ?>">
-                                    <button type="submit" class="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 shadow-sm transition flex items-center gap-1.5 active:scale-95">
-                                        <i class="fa-solid fa-print"></i> Approve & Print Ticket
-                                    </button>
-                                </form>
-                                <form method="POST" action="dashboard.php" class="inline" onsubmit="return confirm('Are you sure you want to REJECT this cash advance request for <?= htmlspecialchars(addslashes($ca['driver_name'])); ?>?');">
-                                    <input type="hidden" name="action" value="reject_cash_advance">
-                                    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
-                                    <input type="hidden" name="ca_id" value="<?= $ca['id']; ?>">
-                                    <button type="submit" class="px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-800 transition flex items-center gap-1.5 active:scale-95">
-                                        <i class="fa-solid fa-xmark"></i> Reject
-                                    </button>
-                                </form>
+                                <button type="button"
+                                    onclick="openCaConfirmModal('approve', <?= $ca['id']; ?>, '<?= htmlspecialchars(addslashes($ca['driver_name'])); ?>', '<?= number_format($ca['amount'], 2); ?>', '<?= $_SESSION['csrf_token'] ?? '' ?>')"
+                                    class="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 shadow-sm transition flex items-center gap-1.5 active:scale-95">
+                                    <i class="fa-solid fa-print"></i> Approve & Print Ticket
+                                </button>
+                                <button type="button"
+                                    onclick="openCaConfirmModal('reject', <?= $ca['id']; ?>, '<?= htmlspecialchars(addslashes($ca['driver_name'])); ?>', '<?= number_format($ca['amount'], 2); ?>', '<?= $_SESSION['csrf_token'] ?? '' ?>')"
+                                    class="px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-800 transition flex items-center gap-1.5 active:scale-95">
+                                    <i class="fa-solid fa-xmark"></i> Reject
+                                </button>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -337,22 +331,16 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
                                         </button>
                                     <?php elseif ($ca['status'] === 'Pending'): ?>
                                         <div class="inline-flex items-center gap-1">
-                                            <form method="POST" action="dashboard.php" class="inline">
-                                                <input type="hidden" name="action" value="approve_cash_advance">
-                                                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
-                                                <input type="hidden" name="ca_id" value="<?= $ca['id']; ?>">
-                                                <button type="submit" class="px-2 py-1 rounded-lg text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition">
-                                                    Approve
-                                                </button>
-                                            </form>
-                                            <form method="POST" action="dashboard.php" class="inline">
-                                                <input type="hidden" name="action" value="reject_cash_advance">
-                                                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
-                                                <input type="hidden" name="ca_id" value="<?= $ca['id']; ?>">
-                                                <button type="submit" class="px-2 py-1 rounded-lg text-[11px] font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 transition">
-                                                    Reject
-                                                </button>
-                                            </form>
+                                            <button type="button"
+                                                onclick="openCaConfirmModal('approve', <?= $ca['id']; ?>, '<?= htmlspecialchars(addslashes($ca['driver_name'])); ?>', '<?= number_format($ca['amount'], 2); ?>', '<?= $_SESSION['csrf_token'] ?? '' ?>')"
+                                                class="px-2 py-1 rounded-lg text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition">
+                                                Approve
+                                            </button>
+                                            <button type="button"
+                                                onclick="openCaConfirmModal('reject', <?= $ca['id']; ?>, '<?= htmlspecialchars(addslashes($ca['driver_name'])); ?>', '<?= number_format($ca['amount'], 2); ?>', '<?= $_SESSION['csrf_token'] ?? '' ?>')"
+                                                class="px-2 py-1 rounded-lg text-[11px] font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 transition">
+                                                Reject
+                                            </button>
                                         </div>
                                     <?php else: ?>
                                         <span class="text-gray-400 text-[11px] italic">No action</span>
@@ -371,7 +359,115 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
 
 </div>
 
+<!-- ==================== CASH ADVANCE CONFIRM MODAL ==================== -->
+<div id="caConfirmModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-gray-900 bg-opacity-60 hidden p-3 sm:p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden relative flex flex-col">
+        <!-- Header -->
+        <div id="caConfirmModalHeader" class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div id="caConfirmIconWrap" class="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0">
+                    <i id="caConfirmIcon" class="fa-solid fa-circle-check"></i>
+                </div>
+                <div>
+                    <h3 id="caConfirmTitle" class="text-base font-bold text-gray-900 dark:text-gray-100"></h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">This action cannot be undone.</p>
+                </div>
+            </div>
+            <button onclick="closeCaConfirmModal()" class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition">
+                <i class="fa-solid fa-xmark fa-lg"></i>
+            </button>
+        </div>
+        <!-- Body -->
+        <div class="p-5 sm:p-6 space-y-3">
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 flex flex-col gap-1.5">
+                <div class="flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-user text-gray-400 w-4 text-center"></i>
+                    <span class="text-gray-500 dark:text-gray-400 font-medium">Driver:</span>
+                    <span id="caConfirmDriver" class="font-semibold text-gray-800 dark:text-gray-200"></span>
+                </div>
+                <div class="flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-peso-sign text-gray-400 w-4 text-center"></i>
+                    <span class="text-gray-500 dark:text-gray-400 font-medium">Amount:</span>
+                    <span id="caConfirmAmount" class="font-bold text-amber-600 dark:text-amber-400"></span>
+                </div>
+            </div>
+            <p id="caConfirmMessage" class="text-sm text-gray-600 dark:text-gray-300"></p>
+        </div>
+        <!-- Footer -->
+        <div class="px-5 sm:px-6 pb-5 sm:pb-6 flex justify-end gap-3">
+            <button type="button" onclick="closeCaConfirmModal()"
+                class="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                Cancel
+            </button>
+            <button type="button" id="caConfirmBtn" onclick="submitCaAction()"
+                class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition active:scale-95">
+                Confirm
+            </button>
+        </div>
+    </div>
+</div>
+<!-- Hidden form submitted by the modal -->
+<form id="caActionForm" method="POST" action="dashboard.php" class="hidden">
+    <input type="hidden" name="action" id="caActionInput">
+    <input type="hidden" name="csrf_token" id="caCsrfInput">
+    <input type="hidden" name="ca_id" id="caCaIdInput">
+</form>
+
 <script>
+let _caConfirmType = null;
+
+function openCaConfirmModal(type, caId, driverName, amount, csrfToken) {
+    _caConfirmType = type;
+    const isApprove = type === 'approve';
+
+    // Populate text
+    document.getElementById('caConfirmDriver').textContent = driverName;
+    document.getElementById('caConfirmAmount').textContent = '\u20B1' + amount;
+    document.getElementById('caConfirmTitle').textContent = isApprove ? 'Approve & Print Ticket' : 'Reject Cash Advance';
+    document.getElementById('caConfirmMessage').textContent = isApprove
+        ? 'Are you sure you want to approve this cash advance request? A ticket will be printed automatically.'
+        : 'Are you sure you want to reject this cash advance request?';
+
+    // Icon & colour
+    const iconWrap = document.getElementById('caConfirmIconWrap');
+    const icon     = document.getElementById('caConfirmIcon');
+    const btn      = document.getElementById('caConfirmBtn');
+    if (isApprove) {
+        iconWrap.className = 'w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400';
+        icon.className     = 'fa-solid fa-circle-check';
+        btn.className      = 'px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition active:scale-95 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 shadow-sm';
+        btn.textContent    = 'Approve & Print';
+    } else {
+        iconWrap.className = 'w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400';
+        icon.className     = 'fa-solid fa-circle-xmark';
+        btn.className      = 'px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition active:scale-95 bg-rose-600 hover:bg-rose-700';
+        btn.textContent    = 'Reject';
+    }
+
+    // Populate hidden form
+    document.getElementById('caActionInput').value = isApprove ? 'approve_cash_advance' : 'reject_cash_advance';
+    document.getElementById('caCsrfInput').value   = csrfToken;
+    document.getElementById('caCaIdInput').value   = caId;
+
+    document.getElementById('caConfirmModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeCaConfirmModal() {
+    document.getElementById('caConfirmModal').classList.add('hidden');
+    document.body.style.overflow = '';
+    _caConfirmType = null;
+}
+
+function submitCaAction() {
+    document.getElementById('caActionForm').submit();
+}
+
+// Close on backdrop click
+document.getElementById('caConfirmModal').addEventListener('click', function(e) {
+    if (e.target === this) closeCaConfirmModal();
+});
+
 function filterCashAdvances() {
     const search = (document.getElementById('caSearchInput')?.value || '').toLowerCase().trim();
     const status = document.getElementById('caStatusFilter')?.value || '';

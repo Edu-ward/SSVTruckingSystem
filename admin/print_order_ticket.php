@@ -81,7 +81,7 @@ $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type']
         <div class="flex justify-between items-start border-b-2 border-gray-900 pb-6 mb-6">
             <div>
                 <div class="flex items-center mb-1">
-                    <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-16 w-auto mr-4">
+                    <img src="../assets/ssvLogo.png" alt="SSV Logo" class="h-16 w-auto mr-4">
                     <h1 class="text-4xl font-bold tracking-tight">SSV Trucking</h1>
                 </div>
                 <p class="text-sm text-gray-600">San Leonardo, Nueva Ecija, Philippines</p>

@@ -482,7 +482,7 @@ if (!$ticket) {
                     <!-- Header -->
                     <div class="tc-header">
                         <div class="brand">
-                            <img src="../src/ssvLogo.png" alt="SSV Logo">
+                            <img src="../assets/ssvLogo.png" alt="SSV Logo">
                             <div class="brand-text">
                                 <h1>SSV Trucking</h1>
                                 <p>San Leonardo, Nueva Ecija</p>

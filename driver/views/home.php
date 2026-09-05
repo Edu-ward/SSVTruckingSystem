@@ -258,7 +258,7 @@
 
         <?php if ($active_dispatch && ($active_dispatch['status'] ?? '') === 'In Transit'): ?>
             <!-- ==================== DRIVER ROUTE & NAVIGATION MAP (IN TRANSIT ONLY) ==================== -->
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden mb-8 transition-all relative z-0">
+            <div id="liveTripRouteSection" class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden mb-8 transition-all relative z-0">
                 <div class="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 p-5 sm:p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div class="flex items-center space-x-3.5">
                         <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-blue-300 text-2xl flex-shrink-0 shadow-inner">

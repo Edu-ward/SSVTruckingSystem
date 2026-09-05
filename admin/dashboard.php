@@ -13,159 +13,6 @@ if (empty($_SESSION['csrf_token'])) {
 require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../includes/activity_log.php';
 
-$pdo->exec("CREATE TABLE IF NOT EXISTS checkers (
-    id INT PRIMARY KEY,
-    first_name VARCHAR(100),
-    last_name VARCHAR(100),
-    phone VARCHAR(20),
-    FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
-)");
-
-$pdo->exec("ALTER TABLE driver_trips MODIFY COLUMN status VARCHAR(50) DEFAULT 'Pending'");
-$pdo->exec("ALTER TABLE dispatches MODIFY COLUMN status VARCHAR(50) DEFAULT 'Pending'");
-$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS order_id INT NULL");
-$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS transit_start_time DATETIME DEFAULT NULL");
-$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS transit_end_time DATETIME DEFAULT NULL");
-$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
-$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS distance_km DECIMAL(8,2) DEFAULT 0.00");
-$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS pay_amount DECIMAL(10,2) DEFAULT 0.00");
-$pdo->exec("UPDATE destinations SET distance_km = ROUND(driver_rate / 10, 2) WHERE (distance_km = 0 OR distance_km IS NULL) AND driver_rate > 0");
-$pdo->exec("ALTER TABLE drivers ADD COLUMN IF NOT EXISTS profile_photo VARCHAR(255) DEFAULT NULL");
-$pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS transit_start_time DATETIME DEFAULT NULL");
-$pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS transit_end_time DATETIME DEFAULT NULL");
-$pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
-$pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS cubic_meters DECIMAL(10,2) DEFAULT 0.00");
-$pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS order_id INT NULL");
-$pdo->exec("ALTER TABLE orders ADD COLUMN IF NOT EXISTS cubic_meters_required DECIMAL(10,2) DEFAULT 0.00");
-$pdo->exec("ALTER TABLE orders ADD COLUMN IF NOT EXISTS cubic_meters_fulfilled DECIMAL(10,2) DEFAULT 0.00");
-$pdo->exec("UPDATE orders SET cubic_meters_required = trucks_required WHERE (cubic_meters_required IS NULL OR cubic_meters_required = 0.00) AND trucks_required > 0");
-$pdo->exec("UPDATE orders SET cubic_meters_fulfilled = trucks_fulfilled WHERE (cubic_meters_fulfilled IS NULL OR cubic_meters_fulfilled = 0.00) AND trucks_fulfilled > 0");
-
-$pdo->exec("CREATE TABLE IF NOT EXISTS destinations (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
-    driver_rate DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-    distance_km DECIMAL(8,2) NOT NULL DEFAULT 0.00,
-    is_active TINYINT(1) DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB");
-$pdo->exec("ALTER TABLE destinations ADD COLUMN IF NOT EXISTS distance_km DECIMAL(8,2) NOT NULL DEFAULT 0.00");
-$pdo->exec("INSERT IGNORE INTO destinations (name, driver_rate, distance_km) VALUES
-    ('San Leonardo', 150.00, 15.00), ('Tarlac', 800.00, 80.00), ('Laur', 900.00, 90.00), ('Gabaldon', 1000.00, 100.00)");
-
-// Driver Payroll table (self-healing)
-$pdo->exec("CREATE TABLE IF NOT EXISTS driver_payroll (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    driver_id INT NOT NULL UNIQUE,
-    total_amount DECIMAL(12,2) DEFAULT 0.00,
-    amount_claimed DECIMAL(12,2) DEFAULT 0.00,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE CASCADE
-) ENGINE=InnoDB");
-
-// Cash Advances table
-$pdo->exec("CREATE TABLE IF NOT EXISTS cash_advances (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    driver_id INT NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
-    reason TEXT DEFAULT NULL,
-    status ENUM('Pending','Approved','Rejected') DEFAULT 'Pending',
-    is_settled TINYINT(1) NOT NULL DEFAULT 0,
-    settled_at DATETIME DEFAULT NULL,
-    payroll_id INT DEFAULT NULL,
-    requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    resolved_at TIMESTAMP NULL DEFAULT NULL,
-    FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE CASCADE
-) ENGINE=InnoDB");
-
-// Driver Payroll Settlements table
-$pdo->exec("CREATE TABLE IF NOT EXISTS driver_payroll_settlements (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    settlement_ticket VARCHAR(50) NOT NULL UNIQUE,
-    driver_id INT NOT NULL,
-    gross_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    cash_advance_deduction DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    net_pay DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    trips_count INT NOT NULL DEFAULT 0,
-    settled_by INT DEFAULT NULL,
-    settled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    notes TEXT DEFAULT NULL,
-    FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE CASCADE
-) ENGINE=InnoDB");
-
-// Migration columns for dispatches, driver_trips, cash_advances, driver_payroll
-$pdo->exec("ALTER TABLE driver_payroll ADD COLUMN IF NOT EXISTS remaining_balance DECIMAL(12,2) NOT NULL DEFAULT 0.00");
-try { $pdo->exec("ALTER TABLE driver_payroll ADD UNIQUE KEY unique_driver_id (driver_id)"); } catch (Exception $e) {}
-
-$pdo->exec("ALTER TABLE driver_payroll_settlements ADD COLUMN IF NOT EXISTS amount_claimed DECIMAL(12,2) NOT NULL DEFAULT 0.00");
-$pdo->exec("ALTER TABLE driver_payroll_settlements ADD COLUMN IF NOT EXISTS remaining_balance DECIMAL(12,2) NOT NULL DEFAULT 0.00");
-$pdo->exec("ALTER TABLE driver_payroll_settlements ADD COLUMN IF NOT EXISTS previous_balance DECIMAL(12,2) NOT NULL DEFAULT 0.00");
-
-$pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS is_payroll_paid TINYINT(1) NOT NULL DEFAULT 0");
-$pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS payroll_settled_at DATETIME DEFAULT NULL");
-$pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS payroll_id INT DEFAULT NULL");
-
-$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS is_payroll_paid TINYINT(1) NOT NULL DEFAULT 0");
-$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS payroll_settled_at DATETIME DEFAULT NULL");
-$pdo->exec("ALTER TABLE driver_trips ADD COLUMN IF NOT EXISTS payroll_id INT DEFAULT NULL");
-
-$pdo->exec("ALTER TABLE cash_advances ADD COLUMN IF NOT EXISTS is_settled TINYINT(1) NOT NULL DEFAULT 0");
-$pdo->exec("ALTER TABLE cash_advances ADD COLUMN IF NOT EXISTS settled_at DATETIME DEFAULT NULL");
-$pdo->exec("ALTER TABLE cash_advances ADD COLUMN IF NOT EXISTS payroll_id INT DEFAULT NULL");
-
-$pdo->exec("CREATE TABLE IF NOT EXISTS gravel_types (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    type_key VARCHAR(50) NOT NULL UNIQUE,
-    label VARCHAR(100) NOT NULL,
-    is_active TINYINT(1) DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB");
-$pdo->exec("INSERT IGNORE INTO gravel_types (type_key, label) VALUES
-    ('S1_regular','S1 Regular'),('S1_crushed','S1 Crushed'),
-    ('3_4_regular','3/4 Regular'),('3_4_crushed','3/4 Crushed'),
-    ('G1_regular','G1 Regular'),('G1_crushed','G1 Crushed'),
-    ('38_regular','3/8 Regular'),('38_crushed','3/8 Crushed'),
-    ('base_course','Base Course'),('river_mix','River Mix'),('garden_soil','Garden Soil')");
-
-$pdo->exec("CREATE TABLE IF NOT EXISTS system_settings (
-    setting_key VARCHAR(100) PRIMARY KEY,
-    setting_value VARCHAR(255) NOT NULL,
-    description VARCHAR(255) DEFAULT NULL
-) ENGINE=InnoDB");
-$pdo->exec("CREATE TABLE IF NOT EXISTS activity_logs (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT DEFAULT NULL,
-    username VARCHAR(100) DEFAULT NULL,
-    role VARCHAR(50) DEFAULT NULL,
-    action VARCHAR(100) NOT NULL,
-    details TEXT DEFAULT NULL,
-    ip_address VARCHAR(45) DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-) ENGINE=InnoDB");
-
-$pdo->exec("CREATE TABLE IF NOT EXISTS password_reset_requests (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    username VARCHAR(100),
-    role ENUM('Driver','Checker') NOT NULL,
-    status ENUM('Pending','Approved','Rejected') DEFAULT 'Pending',
-    requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    resolved_at TIMESTAMP NULL DEFAULT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB");
-
-$pdo->exec("INSERT IGNORE INTO system_settings (setting_key, setting_value, description) VALUES
-    ('garage_name','San Leonardo (Quarry Garage)','Default garage/origin location name'),
-    ('garage_lat','15.359042','Garage latitude coordinate'),
-    ('garage_lng','120.965016','Garage longitude coordinate'),
-    ('op_cost_pct','0.40','Estimated operational cost as a decimal fraction'),
-    ('payday_day','Saturday','Day of the week when drivers are paid')");
-
-$pdo->exec("INSERT IGNORE INTO checkers (id, first_name, last_name, phone) 
-            SELECT id, '', '', '' FROM users WHERE role = 'Checker'");
-
-
 $_settings_raw = $pdo->query("SELECT setting_key, setting_value FROM system_settings")->fetchAll(PDO::FETCH_KEY_PAIR);
 $GARAGE_NAME = $_settings_raw['garage_name'] ?? 'San Leonardo (Quarry Garage)';
 $GARAGE_LAT  = floatval($_settings_raw['garage_lat'] ?? 15.359042);
@@ -1013,7 +860,8 @@ $allDrivers = $pdo->query("
 
 // Helper function to calculate weekly driver performance metrics
 if (!function_exists('computeDriverPerformanceStats')) {
-    function computeDriverPerformanceStats($driverTrips, $onTimePct = 100, $rating = 5.0) {
+    function computeDriverPerformanceStats($driverTrips, $onTimePct = 100, $rating = 5.0)
+    {
         $currentWeekKey = date('o-\WW');
         $totalLifetimeKm = 0;
         $totalLifetimeDispatches = 0;
@@ -1287,7 +1135,6 @@ try {
         ['metric' => 'Driver Payroll (Salaries)', 'this_month' => '₱' . number_format($driverSalariesCurr, 2), 'last_month' => '₱' . number_format($driverSalariesLast, 2), 'change_str' => number_format($salariesChange, 1) . '%', 'is_positive' => $salariesChange >= 0],
         ['metric' => 'On-Time Deliveries', 'this_month' => number_format($onTimeRate, 1) . '%', 'last_month' => '93.1%', 'change_str' => '+1.1%', 'is_positive' => 1]
     ];
-
 } catch (PDOException $e) {
     $reportKpis = [];
     $performanceMetrics = [];
@@ -1420,42 +1267,42 @@ include '../includes/header.php';
     include 'views/modals.php'; ?>
 </div>
 </div><!-- close #main-content -->
-<?php if (isset($_SESSION['auto_print_id'])): 
+<?php if (isset($_SESSION['auto_print_id'])):
     $print_id = intval($_SESSION['auto_print_id']);
     unset($_SESSION['auto_print_id']);
 ?>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const printWin = window.open('print_ticket.php?id=<?= $print_id; ?>', '_blank');
-        setTimeout(() => {
-            window.focus();
-            const scannerInput = document.getElementById('dispatchScannerRfidInput');
-            if (scannerInput) {
-                scannerInput.focus();
-                scannerInput.select();
-            }
-        }, 300);
-    });
-</script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const printWin = window.open('print_ticket.php?id=<?= $print_id; ?>', '_blank');
+            setTimeout(() => {
+                window.focus();
+                const scannerInput = document.getElementById('dispatchScannerRfidInput');
+                if (scannerInput) {
+                    scannerInput.focus();
+                    scannerInput.select();
+                }
+            }, 300);
+        });
+    </script>
 <?php endif; ?>
-<?php if (isset($_SESSION['auto_print_cash_advance_id'])): 
+<?php if (isset($_SESSION['auto_print_cash_advance_id'])):
     $ca_print_id = intval($_SESSION['auto_print_cash_advance_id']);
     unset($_SESSION['auto_print_cash_advance_id']);
 ?>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        window.open('print_cash_advance.php?id=<?= $ca_print_id; ?>', '_blank');
-    });
-</script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            window.open('print_cash_advance.php?id=<?= $ca_print_id; ?>', '_blank');
+        });
+    </script>
 <?php endif; ?>
-<?php if (isset($_SESSION['auto_print_payroll_settlement_id'])): 
+<?php if (isset($_SESSION['auto_print_payroll_settlement_id'])):
     $payroll_settle_id = intval($_SESSION['auto_print_payroll_settlement_id']);
     unset($_SESSION['auto_print_payroll_settlement_id']);
 ?>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        window.open('print_payroll.php?settlement_id=<?= $payroll_settle_id; ?>', '_blank');
-    });
-</script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            window.open('print_payroll.php?settlement_id=<?= $payroll_settle_id; ?>', '_blank');
+        });
+    </script>
 <?php endif; ?>
 <?php include '../includes/scripts.php'; ?>

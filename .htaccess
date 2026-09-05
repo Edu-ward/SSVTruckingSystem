@@ -14,19 +14,14 @@
 # NOTE: php_flag is NOT supported on InfinityFree (FastCGI).
 # Error display is controlled by the hosting panel's PHP settings.
 
-# ── Protect sensitive PHP files from direct access ──
-<Files "config.php">
-    Order allow,deny
-    Deny from all
-</Files>
-<Files "db.php">
-    Order allow,deny
-    Deny from all
-</Files>
-<Files "auth.php">
-    Order allow,deny
-    Deny from all
-</Files>
+# ── Protect sensitive PHP files from direct access (production only) ──
+# These rules are skipped on localhost so local development works normally.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTP_HOST} !^localhost [NC]
+    RewriteCond %{HTTP_HOST} !^127\.0\.0\.1 [NC]
+    RewriteRule ^(config|db|auth)\.php$ - [F,L]
+</IfModule>
 
 # ── Protect deploy folder ──
 <IfModule mod_rewrite.c>

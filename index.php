@@ -334,7 +334,7 @@ try {
             <!-- Top bar: Logo + Badge -->
             <div class="relative z-10 flex items-center justify-between">
                 <div class="flex items-center space-x-3">
-                    <img src="src/ssvLogoLight.png" alt="SSV Logo" class="h-9">
+                    <img src="assets/ssvLogoLight.png" alt="SSV Logo" class="h-9">
                     <div>
                         <h2 class="text-white font-bold text-lg tracking-tight">SSV Trucking</h2>
                         <p class="text-blue-200/60 text-xs font-medium">Management System</p>
@@ -444,8 +444,8 @@ try {
             <!-- Mobile branding (shown on small screens instead of left panel) -->
             <div class="lg:hidden absolute top-6 left-6 flex items-center space-x-2.5">
                 <div class="flex-shrink-0">
-                    <img src="src/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
-                    <img src="src/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
+                    <img src="assets/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
+                    <img src="assets/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
                 </div>
                 <span class="font-bold text-gray-800 dark:text-gray-200 text-sm">SSV Trucking</span>
             </div>

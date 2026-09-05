@@ -42,7 +42,7 @@
     <?php if (($_SESSION['role'] ?? '') === 'Admin'): ?>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <?php endif; ?>
-    <script src="../includes/nominatim.js"></script>
+    <script src="../api/nominatim.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style type="text/tailwindcss">
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -243,8 +243,8 @@
         <!-- Logo & Brand -->
         <div class="flex items-center space-x-3 px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
             <div class="flex-shrink-0">
-                <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
-                <img src="../src/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
+                <img src="../assets/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
+                <img src="../assets/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
             </div>
             <div class="min-w-0">
                 <h1 class="text-sm font-bold text-gray-900 dark:text-white truncate">SSV Trucking</h1>
@@ -340,8 +340,8 @@
             </button>
             <div class="flex items-center space-x-2">
                 <div class="flex-shrink-0">
-                    <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
-                    <img src="../src/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
+                    <img src="../assets/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
+                    <img src="../assets/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
                 </div>
                 <span class="font-bold text-sm text-gray-800 dark:text-gray-200">SSV Trucking</span>
             </div>
@@ -364,8 +364,8 @@
         <!-- Logo -->
         <div class="flex items-center space-x-3 px-5 py-5 border-b border-gray-100 dark:border-gray-800">
             <div class="flex-shrink-0">
-                <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
-                <img src="../src/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
+                <img src="../assets/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
+                <img src="../assets/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
             </div>
             <div>
                 <h1 class="text-sm font-bold text-gray-900 dark:text-white">SSV Trucking</h1>
@@ -415,8 +415,8 @@
     <div class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
         <div class="flex items-center space-x-2.5">
             <div class="flex-shrink-0">
-                <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
-                <img src="../src/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
+                <img src="../assets/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
+                <img src="../assets/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
             </div>
             <div>
                 <span class="font-bold text-sm text-gray-800 dark:text-gray-200">SSV Trucking</span>
@@ -461,8 +461,8 @@
         <!-- Logo -->
         <div class="flex items-center space-x-3 px-5 py-5 border-b border-gray-100 dark:border-gray-800">
             <div class="flex-shrink-0">
-                <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
-                <img src="../src/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
+                <img src="../assets/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
+                <img src="../assets/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
             </div>
             <div>
                 <h1 class="text-sm font-bold text-gray-900 dark:text-white">SSV Trucking</h1>
@@ -498,6 +498,14 @@
                 <i class="fa-solid fa-house nav-icon"></i>
                 <span>Dashboard</span>
             </a>
+            <button onclick="scrollToLiveTripRoute()" class="sidebar-nav-item w-full">
+                <i class="fa-solid fa-map-location-dot nav-icon"></i>
+                <span>Live Trip Route</span>
+            </button>
+            <button onclick="typeof openCashAdvanceModal === 'function' && openCashAdvanceModal()" class="sidebar-nav-item w-full">
+                <i class="fa-solid fa-hand-holding-dollar nav-icon"></i>
+                <span>Request Cash Advance</span>
+            </button>
             <?php if ($has_pending_cancellation ?? false): ?>
                 <button class="sidebar-nav-item w-full opacity-50 cursor-not-allowed" disabled>
                     <i class="fa-solid fa-spinner fa-spin nav-icon"></i>
@@ -532,8 +540,8 @@
     <div class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
         <div class="flex items-center space-x-2.5">
             <div class="flex-shrink-0">
-                <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
-                <img src="../src/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
+                <img src="../assets/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
+                <img src="../assets/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
             </div>
             <div>
                 <span class="font-bold text-sm text-gray-800 dark:text-gray-200"><?= htmlspecialchars($_SESSION['username'] ?? 'Driver') ?></span>
@@ -551,6 +559,14 @@
             <i class="fa-solid fa-house text-lg mb-0.5"></i>
             <span>Home</span>
         </a>
+        <button onclick="scrollToLiveTripRoute()" class="bottom-nav-item text-blue-500">
+            <i class="fa-solid fa-map-location-dot text-lg mb-0.5"></i>
+            <span>Route</span>
+        </button>
+        <button onclick="typeof openCashAdvanceModal === 'function' && openCashAdvanceModal()" class="bottom-nav-item text-amber-500">
+            <i class="fa-solid fa-hand-holding-dollar text-lg mb-0.5"></i>
+            <span>Cash Adv.</span>
+        </button>
         <?php if ($has_pending_cancellation ?? false): ?>
             <button class="bottom-nav-item opacity-50 cursor-not-allowed" disabled>
                 <i class="fa-solid fa-spinner fa-spin text-lg mb-0.5"></i>
@@ -564,7 +580,7 @@
         <?php endif; ?>
         <button onclick="openResetPasswordModal()" class="bottom-nav-item">
             <i class="fa-solid fa-key text-lg mb-0.5"></i>
-            <span>Reset Password</span>
+            <span>Reset Pwd</span>
         </button>
         <a href="../logout.php" class="bottom-nav-item text-red-400 dark:text-red-500">
             <i class="fa-solid fa-right-from-bracket text-lg mb-0.5"></i>
@@ -659,6 +675,18 @@
             const sidebar = document.getElementById('admin-sidebar');
             if (sidebar && window.innerWidth < 1024) {
                 toggleSidebar();
+            }
+        }
+
+        // ── Driver: Scroll to Live Trip Route & Navigation ──
+        function scrollToLiveTripRoute() {
+            const section = document.getElementById('liveTripRouteSection');
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                if (typeof showToast === 'function') {
+                    showToast('Live Trip Route is only available when you are In Transit.', 'info');
+                }
             }
         }
     </script>

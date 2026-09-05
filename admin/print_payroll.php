@@ -190,7 +190,7 @@ $payroll = $stmt2->fetch(PDO::FETCH_ASSOC) ?: ['total_amount' => 0, 'amount_clai
         <div class="flex justify-between items-start border-b-2 border-gray-900 pb-5 mb-5">
             <div>
                 <div class="flex items-center mb-1">
-                    <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-14 w-auto mr-3">
+                    <img src="../assets/ssvLogo.png" alt="SSV Logo" class="h-14 w-auto mr-3">
                     <h1 class="text-3xl font-extrabold tracking-tight">SSV Trucking</h1>
                 </div>
                 <p class="text-xs text-gray-600">San Leonardo, Nueva Ecija, Philippines</p>
