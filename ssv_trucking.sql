@@ -2,10 +2,11 @@
 -- SSV Trucking System - Full Database Setup Script
 -- Generated: 2026-05-07
 -- Run this in phpMyAdmin or MySQL CLI to set up the database.
+--
+-- SHARED HOSTING NOTE (InfinityFree, etc.):
+-- Select your pre-created database in phpMyAdmin FIRST,
+-- then import this file. Do NOT run CREATE DATABASE manually.
 -- ============================================================
-
-CREATE DATABASE IF NOT EXISTS `ssv_trucking` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE `ssv_trucking`;
 
 -- ============================================================
 -- 1. USERS TABLE (core authentication)
