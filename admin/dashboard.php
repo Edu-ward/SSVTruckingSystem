@@ -1328,7 +1328,7 @@ try {
     $lastMonthLabel = date('F Y', $lastMonthTimestamp);
 
     $stmt_sal_curr = $pdo->prepare("
-        SELECT d.destination 
+        SELECT d.destination, COALESCE(NULLIF(d.pay_amount, 0), 0) AS pay_amount 
         FROM dispatches d 
         WHERE d.status = 'Delivered' 
           AND DATE_FORMAT(COALESCE(d.transit_end_time, d.dispatch_date, d.created_at), '%Y-%m') = ?
@@ -1338,11 +1338,12 @@ try {
     $currDeliveries = count($currRows);
     $driverSalariesCurr = 0;
     foreach ($currRows as $row) {
-        $driverSalariesCurr += getDestinationPay($row['destination'], $DISTANCE_KM, $DRIVER_RATES);
+        $p = floatval($row['pay_amount']);
+        $driverSalariesCurr += ($p > 0) ? $p : getDestinationPay($row['destination'], $DISTANCE_KM, $DRIVER_RATES);
     }
     if ($currDeliveries === 0) {
         $stmt_sal_curr_dt = $pdo->prepare("
-            SELECT destination 
+            SELECT destination, COALESCE(NULLIF(pay_amount, 0), 0) AS pay_amount 
             FROM driver_trips 
             WHERE status = 'Delivered' 
               AND DATE_FORMAT(COALESCE(transit_end_time, trip_date, created_at), '%Y-%m') = ?
@@ -1351,12 +1352,13 @@ try {
         $currDtRows = $stmt_sal_curr_dt->fetchAll(PDO::FETCH_ASSOC);
         $currDeliveries = count($currDtRows);
         foreach ($currDtRows as $row) {
-            $driverSalariesCurr += getDestinationPay($row['destination'], $DISTANCE_KM, $DRIVER_RATES);
+            $p = floatval($row['pay_amount']);
+            $driverSalariesCurr += ($p > 0) ? $p : getDestinationPay($row['destination'], $DISTANCE_KM, $DRIVER_RATES);
         }
     }
 
     $stmt_sal_last = $pdo->prepare("
-        SELECT d.destination 
+        SELECT d.destination, COALESCE(NULLIF(d.pay_amount, 0), 0) AS pay_amount 
         FROM dispatches d 
         WHERE d.status = 'Delivered' 
           AND DATE_FORMAT(COALESCE(d.transit_end_time, d.dispatch_date, d.created_at), '%Y-%m') = ?
@@ -1366,11 +1368,12 @@ try {
     $lastDeliveries = count($lastRows);
     $driverSalariesLast = 0;
     foreach ($lastRows as $row) {
-        $driverSalariesLast += getDestinationPay($row['destination'], $DISTANCE_KM, $DRIVER_RATES);
+        $p = floatval($row['pay_amount']);
+        $driverSalariesLast += ($p > 0) ? $p : getDestinationPay($row['destination'], $DISTANCE_KM, $DRIVER_RATES);
     }
     if ($lastDeliveries === 0) {
         $stmt_sal_last_dt = $pdo->prepare("
-            SELECT destination 
+            SELECT destination, COALESCE(NULLIF(pay_amount, 0), 0) AS pay_amount 
             FROM driver_trips 
             WHERE status = 'Delivered' 
               AND DATE_FORMAT(COALESCE(transit_end_time, trip_date, created_at), '%Y-%m') = ?
@@ -1379,7 +1382,8 @@ try {
         $lastDtRows = $stmt_sal_last_dt->fetchAll(PDO::FETCH_ASSOC);
         $lastDeliveries = count($lastDtRows);
         foreach ($lastDtRows as $row) {
-            $driverSalariesLast += getDestinationPay($row['destination'], $DISTANCE_KM, $DRIVER_RATES);
+            $p = floatval($row['pay_amount']);
+            $driverSalariesLast += ($p > 0) ? $p : getDestinationPay($row['destination'], $DISTANCE_KM, $DRIVER_RATES);
         }
     }
 
@@ -1427,8 +1431,12 @@ try {
 
     $subtextPeriod = $isHistoricalReport ? "Month: $currMonthLabel" : "This month (Live Data)";
 
+    $payrollKpiVal = ($driverSalariesCurr >= 100000) 
+        ? ('₱' . number_format($driverSalariesCurr / 1000, 1) . 'K') 
+        : ('₱' . number_format($driverSalariesCurr, 2));
+
     $reportKpis = [
-        ['title' => 'Driver Payroll', 'value' => '₱' . number_format($driverSalariesCurr / 1000, 1) . 'K', 'subtext' => number_format($salariesChange, 1) . '% vs ' . date('M', $lastMonthTimestamp), 'color_class' => 'bg-blue-500', 'icon_class' => 'fa-wallet'],
+        ['title' => 'Driver Payroll', 'value' => $payrollKpiVal, 'subtext' => number_format($salariesChange, 1) . '% vs ' . date('M', $lastMonthTimestamp), 'color_class' => 'bg-blue-500', 'icon_class' => 'fa-wallet'],
         ['title' => 'Volume Delivered', 'value' => number_format($currMonthCm, 2) . ' cu.m', 'subtext' => number_format($cmChange, 1) . '% vs ' . date('M', $lastMonthTimestamp), 'color_class' => 'bg-green-500', 'icon_class' => 'fa-cube'],
         ['title' => 'Deliveries', 'value' => number_format($currDeliveries), 'subtext' => $subtextPeriod, 'color_class' => 'bg-orange-500', 'icon_class' => 'fa-truck-fast'],
         ['title' => 'On-Time Rate', 'value' => number_format($onTimeRate, 1) . '%', 'subtext' => ($onTimeChange >= 0 ? '+' : '') . number_format($onTimeChange, 1) . '% vs ' . date('M', $lastMonthTimestamp), 'color_class' => 'bg-purple-500', 'icon_class' => 'fa-calendar']
@@ -1480,6 +1488,7 @@ try {
             COUNT(id) AS delivery_count,
             COALESCE(SUM(cubic_meters), 0) AS total_cm,
             COALESCE((SUM(is_on_time) / NULLIF(COUNT(id), 0)) * 100, 100) AS on_time_pct,
+            COALESCE(SUM(pay_amount), 0) AS total_payroll,
             destination
         FROM dispatches 
         WHERE status = 'Delivered'
@@ -1502,7 +1511,8 @@ try {
         $cnt = intval($adr['delivery_count']);
         $aggArchive[$ym]['deliveries'] += $cnt;
         $aggArchive[$ym]['volume_cm'] += floatval($adr['total_cm']);
-        $aggArchive[$ym]['payroll'] += getDestinationPay($adr['destination'], $DISTANCE_KM, $DRIVER_RATES) * $cnt;
+        $pay = floatval($adr['total_payroll']);
+        $aggArchive[$ym]['payroll'] += ($pay > 0) ? $pay : (getDestinationPay($adr['destination'], $DISTANCE_KM, $DRIVER_RATES) * $cnt);
         $aggArchive[$ym]['on_time_pct'] = floatval($adr['on_time_pct']);
     }
 
@@ -1527,7 +1537,7 @@ for ($i = 5; $i >= 1; $i--) {
     $mLabel = date('M Y', $mTimestamp);
     try {
         $mStmt = $pdo->prepare("
-            SELECT destination 
+            SELECT destination, COALESCE(NULLIF(pay_amount, 0), 0) AS pay_amount 
             FROM dispatches 
             WHERE status = 'Delivered' 
               AND DATE_FORMAT(COALESCE(transit_end_time, dispatch_date, created_at), '%Y-%m') = ?
@@ -1537,12 +1547,13 @@ for ($i = 5; $i >= 1; $i--) {
         $mCount = count($mRows);
         $mPay = 0;
         foreach ($mRows as $mr) {
-            $mPay += getDestinationPay($mr['destination'], $DISTANCE_KM, $DRIVER_RATES);
+            $p = floatval($mr['pay_amount']);
+            $mPay += ($p > 0) ? $p : getDestinationPay($mr['destination'], $DISTANCE_KM, $DRIVER_RATES);
         }
 
         if ($mCount === 0) {
             $mDtStmt = $pdo->prepare("
-                SELECT destination 
+                SELECT destination, COALESCE(NULLIF(pay_amount, 0), 0) AS pay_amount 
                 FROM driver_trips 
                 WHERE status = 'Delivered' 
                   AND DATE_FORMAT(COALESCE(transit_end_time, trip_date, created_at), '%Y-%m') = ?
@@ -1551,7 +1562,8 @@ for ($i = 5; $i >= 1; $i--) {
             $mDtRows = $mDtStmt->fetchAll(PDO::FETCH_ASSOC);
             $mCount = count($mDtRows);
             foreach ($mDtRows as $mdtr) {
-                $mPay += getDestinationPay($mdtr['destination'], $DISTANCE_KM, $DRIVER_RATES);
+                $p = floatval($mdtr['pay_amount']);
+                $mPay += ($p > 0) ? $p : getDestinationPay($mdtr['destination'], $DISTANCE_KM, $DRIVER_RATES);
             }
         }
 
