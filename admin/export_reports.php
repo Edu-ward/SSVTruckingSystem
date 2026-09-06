@@ -51,11 +51,12 @@ $stmt->execute($params);
 $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 
-// Rate mapping from DB
-$_dest_rows = $pdo->query("SELECT name, driver_rate FROM destinations WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
+// Rate mapping from DB (one-way distance-based pay: distance_km * 10 takes priority over flat driver_rate)
+$_dest_rows = $pdo->query("SELECT name, driver_rate, distance_km FROM destinations WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
 $rates = [];
 foreach ($_dest_rows as $_d) {
-    $rates[$_d['name']] = floatval($_d['driver_rate']);
+    $km = floatval($_d['distance_km']);
+    $rates[$_d['name']] = $km > 0 ? round($km * 10, 2) : floatval($_d['driver_rate']);
 }
 
 // Gravel type reference prices from DB

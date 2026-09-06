@@ -163,6 +163,8 @@
             <input type="hidden" name="action" value="create_dispatch">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="truck_id" id="hiddenTruckId" required>
+            <input type="hidden" name="distance_km" id="dispatchDistanceKm" value="0">
+            <input type="hidden" name="pay_amount" id="dispatchDriverPay" value="0">
             <div>
                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Scan Truck RFID Tag <span class="text-red-500">*</span></label>
                 <input type="text" id="rfidInput" name="rfid_tag" placeholder="Click here and scan RFID card..." required autofocus autocomplete="off" class="w-full border border-blue-300 dark:border-blue-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 dark:bg-blue-900 dark:text-gray-100 transition-colors text-sm">
@@ -204,24 +206,33 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Origin</label>
-                    <input type="text" name="origin" value="Brgy. Burgos San Leonardo, Nueva Ecija" required class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100 text-sm">
+                    <input type="text" name="origin" id="dispatchOrigin" value="Brgy. Burgos San Leonardo, Nueva Ecija" required class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100 text-sm">
                 </div>
                 <div>
                     <div class="flex justify-between items-center mb-1.5">
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Destination</label>
+                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Destination <span class="text-red-500">*</span></label>
                         <button type="button" onclick="openNominatimSearch('dispatch')" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1">
                             <i class="fa-solid fa-map-location-dot"></i> Search OSM Map
                         </button>
                     </div>
-                    <select name="destination" id="destinationSelect" onchange="updateDispatchPayPreview()" required class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
+                    <select name="destination" id="destinationSelect" onchange="handleDispatchDestinationChange()" required class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
                         <option value="">Select Destination</option>
                         <?php foreach ($destinations as $_dest): ?>
-                            <option value="<?= htmlspecialchars($_dest['name']); ?>" data-distance="<?= floatval($_dest['distance_km']); ?>" data-pay="<?= floatval($_dest['distance_km']) > 0 ? round(floatval($_dest['distance_km']) * 10, 2) : floatval($_dest['driver_rate']); ?>"><?= htmlspecialchars($_dest['name']); ?><?php if (floatval($_dest['distance_km']) > 0): ?> (<?= number_format($_dest['distance_km'], 1); ?> km)<?php endif; ?></option>
+                            <?php
+                            $_dist = round(floatval($_dest['distance_km']));
+                            $_pay = $_dist > 0 ? $_dist * 10 : floatval($_dest['driver_rate']);
+                            ?>
+                            <option value="<?= htmlspecialchars($_dest['name']); ?>" data-distance="<?= $_dist; ?>" data-pay="<?= $_pay; ?>"><?= htmlspecialchars($_dest['name']); ?><?php if ($_dist > 0): ?> (<?= $_dist; ?> km)<?php endif; ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <p id="dispatchPayPreview" class="text-xs text-green-600 dark:text-green-400 mt-1 hidden">
-                        <i class="fa-solid fa-peso-sign mr-1"></i>Driver Pay: <strong id="dispatchPayAmount"></strong> (based on distance)
-                    </p>
+                    <div id="dispatchPayPreview" class="text-xs mt-2 hidden">
+                        <div class="p-2.5 rounded-xl bg-blue-50/80 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50 flex items-start gap-2">
+                            <i class="fa-solid fa-route text-blue-600 dark:text-blue-400 mt-0.5"></i>
+                            <div class="text-gray-700 dark:text-gray-200 leading-relaxed">
+                                <span id="dispatchPayAmount" class="font-medium"></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -247,7 +258,7 @@
     </div>
 </div>
 <script>
-    function autoFillOrderDetails(selectElem) {
+    async function autoFillOrderDetails(selectElem) {
         const opt = selectElem.options[selectElem.selectedIndex];
         const customerInfo = document.getElementById('dispatchCustomerInfo');
         const customerNameEl = document.getElementById('dispatchCustomerName');
@@ -263,8 +274,20 @@
 
         const destSelect = document.getElementById('destinationSelect');
         if (destSelect && dest) {
-            destSelect.value = dest;
-            updateDispatchPayPreview();
+            let foundIndex = -1;
+            for (let i = 0; i < destSelect.options.length; i++) {
+                if (destSelect.options[i].value.toLowerCase() === dest.toLowerCase()) {
+                    foundIndex = i;
+                    break;
+                }
+            }
+            if (foundIndex >= 0) {
+                destSelect.selectedIndex = foundIndex;
+            } else {
+                const newOpt = new Option(dest, dest, true, true);
+                destSelect.add(newOpt);
+            }
+            await calculateAndSetDispatchPay(dest, destSelect.options[destSelect.selectedIndex]);
         }
 
         const gravelSelect = document.getElementById('gravelType');
@@ -278,33 +301,6 @@
             customerInfo.classList.add('hidden');
         }
     }
-
-    function updateDispatchPayPreview() {
-        const destSelect = document.getElementById('destinationSelect');
-        const payPreview = document.getElementById('dispatchPayPreview');
-        const payAmountEl = document.getElementById('dispatchPayAmount');
-        if (!destSelect || !payPreview || !payAmountEl) return;
-
-        const opt = destSelect.options[destSelect.selectedIndex];
-        if (!opt || !opt.value) {
-            payPreview.classList.add('hidden');
-            return;
-        }
-
-        const distKm = parseFloat(opt.dataset.distance || 0);
-        const pay = parseFloat(opt.dataset.pay || 0);
-
-        if (pay > 0) {
-            if (distKm > 0) {
-                payAmountEl.textContent = '₱' + pay.toFixed(2) + ' (' + distKm.toFixed(1) + ' km × ₱10/km)';
-            } else {
-                payAmountEl.textContent = '₱' + pay.toFixed(2) + ' (fixed rate)';
-            }
-            payPreview.classList.remove('hidden');
-        } else {
-            payPreview.classList.add('hidden');
-        }
-    }
 </script>
 
 <style>
@@ -313,6 +309,7 @@
         scrollbar-width: none !important;
         -ms-overflow-style: none !important;
     }
+
     #viewDriverModal::-webkit-scrollbar,
     #viewDriverModal *::-webkit-scrollbar {
         display: none !important;
@@ -327,7 +324,7 @@
         <div class="bg-blue-600 p-5 sm:p-6 text-center flex-shrink-0">
             <!-- Photo avatar (shown when driver has photo) -->
             <img id="vd-photo" src="" alt=""
-                 class="w-20 h-20 rounded-full object-cover border-4 border-white/80 shadow-xl mx-auto mb-2 sm:mb-3 hidden">
+                class="w-20 h-20 rounded-full object-cover border-4 border-white/80 shadow-xl mx-auto mb-2 sm:mb-3 hidden">
             <!-- Initials avatar (fallback) -->
             <div class="w-16 h-16 sm:w-20 sm:h-20 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold text-blue-600 mx-auto mb-2 sm:mb-3 shadow-lg" id="vd-initials">--</div>
             <h3 class="text-lg sm:text-xl font-bold text-white" id="vd-name">Driver Name</h3>
@@ -462,9 +459,9 @@
                         </button>
                     </div>
                 </div>
-                <input type="number" step="0.01" min="0" name="claimed_amount" id="sp-claimed-input" 
-                       oninput="recalculateSettleRemaining()"
-                       class="w-full text-base font-extrabold text-emerald-700 dark:text-emerald-300 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-emerald-500 focus:border-emerald-500 p-2.5">
+                <input type="number" step="0.01" min="0" name="claimed_amount" id="sp-claimed-input"
+                    oninput="recalculateSettleRemaining()"
+                    class="w-full text-base font-extrabold text-emerald-700 dark:text-emerald-300 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-emerald-500 focus:border-emerald-500 p-2.5">
             </div>
 
             <!-- Remaining Balance Display -->
@@ -1193,7 +1190,7 @@
         <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-blue-600 text-white flex-shrink-0">
             <div class="flex items-center space-x-2">
                 <i class="fa-solid fa-map-location-dot text-base sm:text-lg"></i>
-                <h3 class="text-sm sm:text-base font-bold">Location Search (OSM Nominatim)</h3>
+                <h3 class="text-sm sm:text-base font-bold">Select Location on Map</h3>
             </div>
             <button onclick="closeNominatimSearchModal()" class="text-white hover:text-gray-200">
                 <i class="fa-solid fa-xmark fa-lg"></i>
@@ -1202,7 +1199,7 @@
         <div class="p-3 sm:p-4 space-y-3 bg-gray-50 dark:bg-gray-900 flex-shrink-0">
             <div class="flex space-x-2">
                 <div class="relative flex-1">
-                    <input type="text" id="osmSearchInput" onkeypress="if(event.key==='Enter'){event.preventDefault();executeOsmSearch();}" placeholder="Search city, barangay, or landmark..." 
+                    <input type="text" id="osmSearchInput" onkeypress="if(event.key==='Enter'){event.preventDefault();executeOsmSearch();}" placeholder="Search city, barangay, or landmark..."
                         class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xs sm:text-sm">
                     <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-gray-400 text-xs"></i>
                 </div>
@@ -1212,16 +1209,33 @@
             </div>
             <div id="osmSearchResults" class="space-y-1.5 max-h-40 overflow-y-auto hidden bg-white dark:bg-gray-800 rounded-xl p-2 border border-gray-200 dark:border-gray-700 text-xs shadow-inner"></div>
         </div>
+        <style>
+            /* Leaflet popup padding & sizing fix to prevent text overlapping border */
+            #osmMiniMap .leaflet-popup-content-wrapper {
+                padding: 6px 8px !important;
+                border-radius: 14px !important;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+            }
+            #osmMiniMap .leaflet-popup-content {
+                margin: 6px 10px !important;
+                min-width: 200px !important;
+                max-width: 280px !important;
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                white-space: normal !important;
+                line-height: 1.45 !important;
+            }
+        </style>
         <div class="flex-grow p-3 sm:p-4 min-h-[260px] sm:min-h-[300px] relative">
             <div id="osmMiniMap" class="w-full h-full rounded-xl border border-gray-200 dark:border-gray-700 min-h-[240px] sm:min-h-[280px]"></div>
         </div>
         <div class="p-3 sm:p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col sm:flex-row sm:justify-between items-stretch sm:items-center gap-2 flex-shrink-0">
             <div id="selectedOsmLocationText" class="text-xs text-gray-500 dark:text-gray-400 font-medium truncate max-w-full sm:max-w-[65%]">
-                No location selected. Click search or tap on map.
+                Click anywhere on the map or search to select a destination.
             </div>
             <div class="flex space-x-2 justify-end">
                 <button type="button" onclick="closeNominatimSearchModal()" class="px-4 py-2 text-xs sm:text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition">Cancel</button>
-                <button type="button" id="useOsmLocationBtn" disabled onclick="applySelectedOsmLocation()" class="px-5 py-2 text-xs sm:text-sm font-semibold bg-green-600 hover:bg-green-700 text-white rounded-xl disabled:opacity-50 transition shadow-sm">
+                <button type="button" id="useOsmLocationBtn" disabled onclick="applySelectedOsmLocation()" class="px-5 py-2 text-xs sm:text-sm font-semibold bg-green-600 hover:bg-green-700 text-white rounded-xl disabled:opacity-50 transition shadow-sm cursor-pointer disabled:cursor-not-allowed">
                     <i class="fa-solid fa-check mr-1"></i> Use Location
                 </button>
             </div>
@@ -1230,52 +1244,201 @@
 </div>
 
 <script>
+    async function handleDispatchDestinationChange() {
+        const destSelect = document.getElementById('destinationSelect');
+        if (!destSelect) return;
+        const destName = destSelect.value;
+        if (!destName) {
+            document.getElementById('dispatchPayPreview')?.classList.add('hidden');
+            document.getElementById('dispatchDistanceKm').value = '0';
+            document.getElementById('dispatchDriverPay').value = '0';
+            return;
+        }
+        const opt = destSelect.options[destSelect.selectedIndex];
+        await calculateAndSetDispatchPay(destName, opt);
+    }
+
+    async function calculateAndSetDispatchPay(destName, optElem = null) {
+        const payPreview = document.getElementById('dispatchPayPreview');
+        const payAmountEl = document.getElementById('dispatchPayAmount');
+        const hiddenDist = document.getElementById('dispatchDistanceKm');
+        const hiddenPay = document.getElementById('dispatchDriverPay');
+        if (!payPreview || !payAmountEl) return;
+
+        const applyBadge = (km, pay) => {
+            let rounded = Math.round(km);
+            if (rounded < 2 && destName.trim().length > 0) rounded = 2;
+            const amount = pay > 0 ? pay : rounded * 10;
+            if (hiddenDist) hiddenDist.value = rounded;
+            if (hiddenPay) hiddenPay.value = amount;
+            if (optElem) {
+                optElem.dataset.distance = rounded;
+                optElem.dataset.pay = amount;
+            }
+            payAmountEl.innerHTML = `Map Distance: <span class="font-bold text-blue-600 dark:text-blue-400">${rounded} km</span> (round trip) &bull; Driver Trip Pay: <span class="font-bold text-green-600 dark:text-green-400">₱${amount.toFixed(2)}</span> (${rounded} km × ₱10/km)`;
+            payPreview.classList.remove('hidden');
+            return rounded;
+        };
+
+        if (optElem && parseFloat(optElem.dataset.distance) > 0) {
+            const preloadedKm = parseFloat(optElem.dataset.distance);
+            const preloadedPay = parseFloat(optElem.dataset.pay) || (Math.round(preloadedKm) * 10);
+            applyBadge(preloadedKm, preloadedPay);
+            return;
+        }
+
+        if (optElem && optElem.dataset.lat && optElem.dataset.lng && typeof NominatimService !== 'undefined') {
+            const lat = parseFloat(optElem.dataset.lat);
+            const lng = parseFloat(optElem.dataset.lng);
+            const direct = NominatimService.calculateMapDistance(lat, lng);
+            if (direct) {
+                applyBadge(direct.km, direct.payAmount);
+                return;
+            }
+        }
+
+        payPreview.classList.remove('hidden');
+        payAmountEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1 text-blue-500"></i> Estimating map distance...';
+
+        try {
+            const res = await NominatimService.getDistanceForDestination(destName);
+            if (res && res.km > 0) {
+                applyBadge(res.km, res.payAmount);
+            } else {
+                applyBadge(2, 20);
+            }
+        } catch (err) {
+            applyBadge(2, 20);
+        }
+    }
+
     let osmMiniMap = null;
     let osmMarker = null;
     let targetInputContext = null;
     let activeParentModalId = null;
     let currentSelectedLocation = null;
+    let currentSelectedLat = null;
+    let currentSelectedLng = null;
+    let currentSelectedDistanceKm = 0;
+    let currentSelectedPay = 0;
+
+    let osmRouteLine = null;
+
+    function formatOsmPopup(name, km, pay) {
+        return `
+            <div style="padding: 4px 6px; min-width: 190px; max-width: 270px;">
+                <div style="font-weight: 700; font-size: 13px; color: #111827; margin-bottom: 6px; word-break: break-word; line-height: 1.35;">${name}</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 4px; color: #4b5563;">
+                    <span>Trip Distance:</span>
+                    <strong style="color: #2563eb; font-weight: 700;">${km} km</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 4px; color: #4b5563;">
+                    <span>Driver Pay:</span>
+                    <strong style="color: #16a34a; font-weight: 700;">₱${pay.toFixed(2)}</strong>
+                </div>
+                <div style="font-size: 10px; color: #9ca3af; margin-top: 4px; font-style: italic;">(Back & forth: ${km} km × ₱10/km)</div>
+            </div>
+        `;
+    }
 
     function openNominatimSearch(context) {
         targetInputContext = context;
-        activeParentModalId = null;
-        if (context === 'dispatch') activeParentModalId = 'dispatchModal';
-        if (context === 'order') activeParentModalId = 'addOrderModal';
+        activeParentModalId = (context === 'dispatch') ? 'dispatchModal' : (context === 'order' ? 'addOrderModal' : null);
+        currentSelectedDistanceKm = 0;
+        currentSelectedPay = 0;
+        currentSelectedLocation = null;
+        currentSelectedLat = null;
+        currentSelectedLng = null;
 
-        if (activeParentModalId) {
-            toggleModal(activeParentModalId, false);
-        }
+        const locTextEl = document.getElementById('selectedOsmLocationText');
+        const useBtn = document.getElementById('useOsmLocationBtn');
+        if (locTextEl) locTextEl.innerHTML = '<span class="text-blue-600 dark:text-blue-400 font-semibold"><i class="fa-solid fa-hand-pointer mr-1"></i> Tap anywhere on the map</span> or search above to select destination.';
+        if (useBtn) useBtn.disabled = true;
 
+        if (activeParentModalId) toggleModal(activeParentModalId, false);
         toggleModal('nominatimSearchModal', true);
-        
+
         setTimeout(() => {
+            const mapContainer = document.getElementById('osmMiniMap');
+            if (mapContainer) mapContainer.style.cursor = 'crosshair';
+
             if (!osmMiniMap) {
                 osmMiniMap = L.map('osmMiniMap').setView([15.359042, 120.965016], 13);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; OpenStreetMap contributors'
                 }).addTo(osmMiniMap);
+                const garageIcon = L.divIcon({
+                    className: 'custom-garage-icon',
+                    html: `<div class="w-8 h-8 rounded-xl bg-indigo-600 border-2 border-white text-white flex items-center justify-center shadow-lg text-xs" title="SSV Quarry Garage"><i class="fa-solid fa-warehouse"></i></div>`,
+                    iconSize: [32, 32]
+                });
+                L.marker([15.359042, 120.965016], {
+                    icon: garageIcon
+                }).addTo(osmMiniMap).bindPopup('<b>SSV Quarry Garage</b><br>Brgy. Burgos, San Leonardo');
 
-                osmMiniMap.on('click', async function(e) {
-                    const lat = e.latlng.lat;
-                    const lng = e.latlng.lng;
-                    
-                    if (osmMarker) osmMiniMap.removeLayer(osmMarker);
-                    osmMarker = L.marker([lat, lng]).addTo(osmMiniMap);
+                osmMiniMap.on('click', function(e) {
+                    try {
+                        const lat = e.latlng.lat;
+                        const lng = e.latlng.lng;
+                        currentSelectedLat = lat;
+                        currentSelectedLng = lng;
 
-                    document.getElementById('selectedOsmLocationText').innerText = 'Fetching address from OSM Nominatim...';
+                        // 1. Plot destination marker
+                        if (osmMarker) osmMiniMap.removeLayer(osmMarker);
+                        osmMarker = L.marker([lat, lng]).addTo(osmMiniMap);
 
-                    if (typeof NominatimService !== 'undefined') {
-                        const geoRes = await NominatimService.reverseGeocode(lat, lng);
-                        if (geoRes && geoRes.formatted) {
-                            currentSelectedLocation = geoRes.formatted;
-                            document.getElementById('selectedOsmLocationText').innerText = `📍 ${geoRes.formatted}`;
-                            document.getElementById('useOsmLocationBtn').disabled = false;
-                            return;
+                        // 2. Draw route line from garage to destination
+                        if (osmRouteLine) osmMiniMap.removeLayer(osmRouteLine);
+                        osmRouteLine = L.polyline([
+                            [15.359042, 120.965016],
+                            [lat, lng]
+                        ], {
+                            color: '#2563eb',
+                            weight: 4,
+                            opacity: 0.85,
+                            dashArray: '6, 6'
+                        }).addTo(osmMiniMap);
+
+                        // 3. Geodesic distance (1.25 road curvature factor * 2 for back and forth, rounded to whole number)
+                        const garageLatLng = L.latLng(15.359042, 120.965016);
+                        const straightMeters = garageLatLng.distanceTo(e.latlng);
+                        const straightKm = straightMeters / 1000;
+                        const roadOneWayKm = straightKm * 1.25;
+                        const roundTripKm = roadOneWayKm * 2;
+                        let roundedKm = Math.round(roundTripKm);
+                        if (roundedKm < 2 && straightKm > 0) roundedKm = 2;
+                        const driverPay = roundedKm * 10;
+
+                        currentSelectedDistanceKm = roundedKm;
+                        currentSelectedPay = driverPay;
+                        currentSelectedLocation = `Point (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+
+                        const textEl = document.getElementById('selectedOsmLocationText');
+                        const btnEl = document.getElementById('useOsmLocationBtn');
+                        if (btnEl) btnEl.disabled = false;
+
+                        const updateStatusText = (name) => {
+                            if (textEl) {
+                                textEl.innerHTML = `📍 <strong>${name}</strong> &bull; <span class="text-blue-600 dark:text-blue-400 font-bold">${currentSelectedDistanceKm} km</span> (round trip) &bull; <span class="text-green-600 dark:text-green-400 font-bold">₱${currentSelectedPay.toFixed(2)} driver pay</span>`;
+                            }
+                            if (osmMarker) {
+                                osmMarker.bindPopup(formatOsmPopup(name, currentSelectedDistanceKm, currentSelectedPay)).openPopup();
+                            }
+                        };
+                        updateStatusText(currentSelectedLocation);
+
+                        // 4. Reverse geocode via BigDataCloud API / Nominatim
+                        if (typeof NominatimService !== 'undefined') {
+                            NominatimService.reverseGeocode(lat, lng).then(geo => {
+                                if (geo && geo.formatted) {
+                                    currentSelectedLocation = geo.formatted;
+                                    updateStatusText(geo.formatted);
+                                }
+                            }).catch(err => console.warn('Reverse geocode error:', err));
                         }
+                    } catch (clickErr) {
+                        console.error('Map click error:', clickErr);
                     }
-                    currentSelectedLocation = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-                    document.getElementById('selectedOsmLocationText').innerText = `📍 Coords: ${currentSelectedLocation}`;
-                    document.getElementById('useOsmLocationBtn').disabled = false;
                 });
             } else {
                 osmMiniMap.invalidateSize();
@@ -1295,37 +1458,57 @@
         const q = document.getElementById('osmSearchInput').value;
         const container = document.getElementById('osmSearchResults');
         if (!q || q.trim().length < 2) return;
-
         container.classList.remove('hidden');
-        container.innerHTML = '<div class="p-2 text-gray-500 italic flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i> Searching OpenStreetMap Nominatim...</div>';
-
+        container.innerHTML = '<div class="p-2 text-gray-500 italic flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i> Searching location...</div>';
         if (typeof NominatimService !== 'undefined') {
             const results = await NominatimService.searchAddress(q);
             if (results.length === 0) {
-                container.innerHTML = '<div class="p-2 text-red-500 font-medium">No results found. Try a different place name.</div>';
+                container.innerHTML = '<div class="p-2 text-red-500 font-medium">No results found. Try another search.</div>';
                 return;
             }
-
             container.innerHTML = '';
             results.forEach(res => {
                 const item = document.createElement('div');
-                item.className = 'p-2 hover:bg-blue-50 dark:hover:bg-gray-700 cursor-pointer rounded transition flex items-center justify-between border-b border-gray-100 dark:border-gray-700 last:border-0';
-                item.innerHTML = `
-                    <div class="truncate mr-2">
-                        <div class="font-bold text-gray-800 dark:text-gray-200">${res.shortName}</div>
-                        <div class="text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-sm">${res.name}</div>
-                    </div>
-                    <button type="button" class="text-xs bg-blue-600 text-white px-2.5 py-1 rounded-lg font-semibold shrink-0">Select</button>
-                `;
+                item.className = 'p-4 hover:bg-blue-50 dark:hover:bg-gray-700 cursor-pointer rounded transition flex items-center justify-between border-b border-gray-100 dark:border-gray-700';
+                item.innerHTML = `<div class="truncate mr-2"><div class="font-bold text-gray-800 dark:text-gray-200">${res.shortName}</div><div class="text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-sm">${res.name}</div></div><button type="button" class="text-xs bg-blue-600 text-white px-2.5 py-1 rounded-lg font-semibold shrink-0">Select</button>`;
                 item.onclick = function() {
                     currentSelectedLocation = res.shortName;
-                    document.getElementById('selectedOsmLocationText').innerText = `📍 ${res.shortName}`;
-                    document.getElementById('useOsmLocationBtn').disabled = false;
+                    currentSelectedLat = res.lat;
+                    currentSelectedLng = res.lng;
+
+                    // Back and forth (round trip): 2x distance
+                    const garageLatLng = L.latLng(15.359042, 120.965016);
+                    const destLatLng = L.latLng(res.lat, res.lng);
+                    const straightKm = garageLatLng.distanceTo(destLatLng) / 1000;
+                    const roadOneWayKm = straightKm * 1.25;
+                    const roundTripKm = roadOneWayKm * 2;
+                    let roundedKm = Math.round(roundTripKm);
+                    if (roundedKm < 2 && straightKm > 0) roundedKm = 2;
+                    const driverPay = roundedKm * 10;
+
+                    currentSelectedDistanceKm = roundedKm;
+                    currentSelectedPay = driverPay;
+
+                    const textEl = document.getElementById('selectedOsmLocationText');
+                    const btnEl = document.getElementById('useOsmLocationBtn');
+                    if (textEl) textEl.innerHTML = `📍 <strong>${res.shortName}</strong> &bull; <span class="text-blue-600 dark:text-blue-400 font-bold">${currentSelectedDistanceKm} km</span> (round trip) &bull; <span class="text-green-600 dark:text-green-400 font-bold">₱${currentSelectedPay.toFixed(2)} driver pay</span>`;
+                    if (btnEl) btnEl.disabled = false;
 
                     if (osmMiniMap) {
                         osmMiniMap.setView([res.lat, res.lng], 14);
                         if (osmMarker) osmMiniMap.removeLayer(osmMarker);
-                        osmMarker = L.marker([res.lat, res.lng]).addTo(osmMiniMap).bindPopup(res.shortName).openPopup();
+                        osmMarker = L.marker([res.lat, res.lng]).addTo(osmMiniMap).bindPopup(formatOsmPopup(res.shortName, currentSelectedDistanceKm, currentSelectedPay)).openPopup();
+
+                        if (osmRouteLine) osmMiniMap.removeLayer(osmRouteLine);
+                        osmRouteLine = L.polyline([
+                            [15.359042, 120.965016],
+                            [res.lat, res.lng]
+                        ], {
+                            color: '#2563eb',
+                            weight: 4,
+                            opacity: 0.85,
+                            dashArray: '6, 6'
+                        }).addTo(osmMiniMap);
                     }
                 };
                 container.appendChild(item);
@@ -1335,26 +1518,42 @@
 
     function applySelectedOsmLocation() {
         if (!currentSelectedLocation) return;
-        
         let destSelect = null;
         if (targetInputContext === 'dispatch') {
             destSelect = document.getElementById('destinationSelect');
         } else if (targetInputContext === 'order') {
             destSelect = document.querySelector('#addOrderModal select[name="destination"]');
         }
-        
+
         if (destSelect) {
-            let found = false;
+            let foundIndex = -1;
             for (let i = 0; i < destSelect.options.length; i++) {
                 if (destSelect.options[i].value.toLowerCase() === currentSelectedLocation.toLowerCase()) {
-                    destSelect.selectedIndex = i;
-                    found = true;
+                    foundIndex = i;
                     break;
                 }
             }
-            if (!found) {
-                const opt = new Option(currentSelectedLocation, currentSelectedLocation, true, true);
-                destSelect.add(opt);
+            let targetOpt;
+            if (foundIndex >= 0) {
+                destSelect.selectedIndex = foundIndex;
+                targetOpt = destSelect.options[foundIndex];
+            } else {
+                const kmSuffix = currentSelectedDistanceKm > 0 ? ` (${currentSelectedDistanceKm} km)` : '';
+                targetOpt = new Option(currentSelectedLocation + kmSuffix, currentSelectedLocation, true, true);
+                destSelect.add(targetOpt);
+            }
+
+            if (currentSelectedLat && currentSelectedLng) {
+                targetOpt.dataset.lat = currentSelectedLat;
+                targetOpt.dataset.lng = currentSelectedLng;
+            }
+            if (currentSelectedDistanceKm > 0) {
+                targetOpt.dataset.distance = currentSelectedDistanceKm;
+                targetOpt.dataset.pay = currentSelectedPay || (currentSelectedDistanceKm * 10);
+            }
+
+            if (targetInputContext === 'dispatch') {
+                calculateAndSetDispatchPay(currentSelectedLocation, targetOpt);
             }
         }
         closeNominatimSearchModal();
@@ -1396,7 +1595,7 @@
 
         <!-- Modal Body (Scrollable with hidden scrollbars) -->
         <div class="p-5 sm:p-6 overflow-y-auto space-y-5" style="scrollbar-width: none; -ms-overflow-style: none;">
-            
+
             <!-- Section Title -->
             <div class="flex items-center justify-between">
                 <div>

@@ -42,7 +42,7 @@
     <?php if (($_SESSION['role'] ?? '') === 'Admin'): ?>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <?php endif; ?>
-    <script src="../api/nominatim.js"></script>
+    <script src="../api/nominatim.js?v=<?= file_exists(__DIR__ . '/../api/nominatim.js') ? filemtime(__DIR__ . '/../api/nominatim.js') : time() ?>"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style type="text/tailwindcss">
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -314,6 +314,10 @@
                 <?php if (($pendingPwdResetCount ?? 0) > 0): ?>
                     <span id="pwdResetBadge" class="ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-red-500 text-white flex items-center justify-center"><?= $pendingPwdResetCount ?></span>
                 <?php endif; ?>
+            </button>
+            <button onclick="switchTab('settings')" id="nav-settings" class="sidebar-nav-item w-full">
+                <i class="fa-solid fa-map-location-dot nav-icon"></i>
+                <span>Settings</span>
             </button>
         </nav>
 

@@ -29,6 +29,15 @@ foreach ($_dest_rows as $_d) {
     $destinations[] = $_d;
 }
 
+// Helper: get one-way driver pay for a destination (whole number rounded distance_km * 10 takes priority over flat driver_rate)
+function getDestinationPay(string $destName, array $DISTANCE_KM, array $DRIVER_RATES): float {
+    $km = round(floatval($DISTANCE_KM[$destName] ?? 0));
+    if ($km > 0) {
+        return round($km * 10, 2);
+    }
+    return floatval($DRIVER_RATES[$destName] ?? 0);
+}
+
 $_gravel_rows = $pdo->query("SELECT type_key, label FROM gravel_types WHERE is_active = 1 ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
 $gravelTypes = [];
 foreach ($_gravel_rows as $_g) {
@@ -41,6 +50,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         http_response_code(403);
         die("CSRF token validation failed.");
+    }
+
+    // ── Destination: Add ──
+    if ($_POST['action'] === 'add_destination') {
+        $dname  = trim($_POST['dest_name'] ?? '');
+        $dkm    = floatval($_POST['dest_distance_km'] ?? 0);
+        $drate  = floatval($_POST['dest_driver_rate'] ?? 0);
+        if (!$dname) {
+            $_SESSION['dest_error'] = 'Destination name is required.';
+        } else {
+            try {
+                $pdo->prepare("INSERT INTO destinations (name, distance_km, driver_rate) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE distance_km = VALUES(distance_km), driver_rate = VALUES(driver_rate)")
+                    ->execute([$dname, $dkm, $drate]);
+                $_SESSION['dest_success'] = "Destination '" . htmlspecialchars($dname) . "' added successfully.";
+                log_activity($pdo, 'Added Destination', "Added destination: $dname (distance: {$dkm} km, rate: ₱{$drate})");
+            } catch (Exception $e) {
+                $_SESSION['dest_error'] = 'Failed to add destination. Name may already exist.';
+            }
+        }
+        header('Location: dashboard.php?tab=settings');
+        exit;
+    }
+
+    // ── Destination: Edit ──
+    if ($_POST['action'] === 'edit_destination') {
+        $did    = intval($_POST['dest_id'] ?? 0);
+        $dname  = trim($_POST['dest_name'] ?? '');
+        $dkm    = floatval($_POST['dest_distance_km'] ?? 0);
+        $drate  = floatval($_POST['dest_driver_rate'] ?? 0);
+        $active = intval($_POST['dest_is_active'] ?? 1);
+        if (!$did || !$dname) {
+            $_SESSION['dest_error'] = 'Invalid destination data.';
+        } else {
+            try {
+                $pdo->prepare("UPDATE destinations SET name = ?, distance_km = ?, driver_rate = ?, is_active = ? WHERE id = ?")
+                    ->execute([$dname, $dkm, $drate, $active, $did]);
+                $_SESSION['dest_success'] = "Destination updated: '" . htmlspecialchars($dname) . "' — " . ($dkm > 0 ? number_format($dkm, 1) . " km (₱" . number_format($dkm * 10, 2) . " pay)" : "Flat rate ₱" . number_format($drate, 2)) . ".";
+                log_activity($pdo, 'Edited Destination', "Updated destination ID $did: $dname (distance: {$dkm} km, rate: ₱{$drate})");
+            } catch (Exception $e) {
+                $_SESSION['dest_error'] = 'Failed to update destination.';
+            }
+        }
+        header('Location: dashboard.php?tab=settings');
+        exit;
     }
 
     if ($_POST['action'] == 'create_dispatch') {
@@ -58,9 +111,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $cubic_meters = !empty($_POST['cubic_meters']) ? floatval($_POST['cubic_meters']) : 0.00;
         $order_id = !empty($_POST['order_id']) ? intval($_POST['order_id']) : null;
 
-        // Distance-based pay: 10 PHP per km (one-way only)
-        $dist_km = isset($DISTANCE_KM[$destination]) ? $DISTANCE_KM[$destination] : 0;
-        $driver_pay = $dist_km > 0 ? round($dist_km * 10, 2) : (isset($DRIVER_RATES[$destination]) ? $DRIVER_RATES[$destination] : 0);
+        // Distance-based pay: 10 PHP per km (one-way only) - whole number rounded
+        $dist_km = 0;
+        if (!empty($_POST['distance_km']) && floatval($_POST['distance_km']) > 0) {
+            $dist_km = round(floatval($_POST['distance_km']));
+        } elseif (isset($DISTANCE_KM[$destination]) && floatval($DISTANCE_KM[$destination]) > 0) {
+            $dist_km = round(floatval($DISTANCE_KM[$destination]));
+        }
+
+        // Fallback lookup if distance is still 0 (check common provincial town names in destination string)
+        if ($dist_km <= 0) {
+            $destLower = strtolower($destination);
+            $presetTownKm = [
+                'peñaranda' => 20, 'penaranda' => 20,
+                'general tinio' => 30, 'gen. tinio' => 30, 'papaya' => 30,
+                'gapan' => 22, 'san isidro' => 24, 'jaen' => 20,
+                'santa rosa' => 24, 'sta. rosa' => 24, 'cabanatuan' => 44,
+                'palayan' => 50, 'talavera' => 60, 'san leonardo' => 30,
+                'tarlac' => 160, 'laur' => 180, 'gabaldon' => 200,
+                'dingalan' => 230, 'baler' => 280, 'san miguel' => 52,
+                'san ildefonso' => 68, 'san rafael' => 90, 'baliuag' => 104
+            ];
+            foreach ($presetTownKm as $town => $kmVal) {
+                if (strpos($destLower, $town) !== false) {
+                    $dist_km = $kmVal;
+                    break;
+                }
+            }
+        }
+
+        // Whole number rounding
+        $dist_km = round($dist_km);
+        if ($dist_km < 1 && !empty($destination)) {
+            $dist_km = 1;
+        }
+
+        // Calculate driver pay: 10 PHP per km
+        $driver_pay = round($dist_km * 10, 2);
 
         $ticketNum = 'TKT-' . date('Y') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
 
@@ -70,6 +157,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         $trip_insert = $pdo->prepare("INSERT INTO driver_trips (driver_id, destination, trip_date, status, order_id, transit_start_time, distance_km, pay_amount) VALUES (?, ?, CURDATE(), 'In Transit', ?, NOW(), ?, ?)");
         $trip_insert->execute([$driver_id, $destination, $order_id, $dist_km, $driver_pay]);
+
+        // Keep destinations table in sync so future lookups have this distance and rate
+        $chkDest = $pdo->prepare("SELECT id, distance_km FROM destinations WHERE name = ?");
+        $chkDest->execute([$destination]);
+        $destRow = $chkDest->fetch(PDO::FETCH_ASSOC);
+        if (!$destRow) {
+            $insDest = $pdo->prepare("INSERT INTO destinations (name, distance_km, driver_rate) VALUES (?, ?, ?)");
+            $insDest->execute([$destination, $dist_km, $driver_pay]);
+        } elseif (floatval($destRow['distance_km']) <= 0 && $dist_km > 0) {
+            $updDest = $pdo->prepare("UPDATE destinations SET distance_km = ?, driver_rate = ? WHERE id = ?");
+            $updDest->execute([$dist_km, $driver_pay, $destRow['id']]);
+        }
 
         if ($order_id) {
             $pdo->prepare("UPDATE orders SET status = 'In Progress' WHERE id = ? AND status = 'Pending'")->execute([$order_id]);
@@ -547,7 +646,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $_SESSION['error'] = "Failed to switch truck. Please try again.";
         }
 
-        $allowedTabs = ['dashboard', 'dispatches', 'fleet', 'drivers', 'orders', 'tracking', 'reports'];
+        $allowedTabs = ['dashboard', 'dispatches', 'fleet', 'drivers', 'orders', 'tracking', 'reports', 'settings'];
         $redirect_tab = (isset($_POST['redirect_tab']) && in_array($_POST['redirect_tab'], $allowedTabs)) ? $_POST['redirect_tab'] : 'drivers';
         header("Location: dashboard.php?tab=" . $redirect_tab);
         exit;
@@ -1052,7 +1151,7 @@ try {
     $currDeliveries = count($currRows);
     $driverSalariesCurr = 0;
     foreach ($currRows as $row) {
-        $driverSalariesCurr += $DRIVER_RATES[$row['destination']] ?? 0;
+        $driverSalariesCurr += getDestinationPay($row['destination'], $DISTANCE_KM, $DRIVER_RATES);
     }
     if ($currDeliveries === 0) {
         $stmt_sal_curr_dt = $pdo->prepare("
@@ -1065,7 +1164,7 @@ try {
         $currDtRows = $stmt_sal_curr_dt->fetchAll(PDO::FETCH_ASSOC);
         $currDeliveries = count($currDtRows);
         foreach ($currDtRows as $row) {
-            $driverSalariesCurr += $DRIVER_RATES[$row['destination']] ?? 0;
+            $driverSalariesCurr += getDestinationPay($row['destination'], $DISTANCE_KM, $DRIVER_RATES);
         }
     }
 
@@ -1081,7 +1180,7 @@ try {
     $lastDeliveries = count($lastRows);
     $driverSalariesLast = 0;
     foreach ($lastRows as $row) {
-        $driverSalariesLast += $DRIVER_RATES[$row['destination']] ?? 0;
+        $driverSalariesLast += getDestinationPay($row['destination'], $DISTANCE_KM, $DRIVER_RATES);
     }
     if ($lastDeliveries === 0) {
         $stmt_sal_last_dt = $pdo->prepare("
@@ -1094,7 +1193,7 @@ try {
         $lastDtRows = $stmt_sal_last_dt->fetchAll(PDO::FETCH_ASSOC);
         $lastDeliveries = count($lastDtRows);
         foreach ($lastDtRows as $row) {
-            $driverSalariesLast += $DRIVER_RATES[$row['destination']] ?? 0;
+            $driverSalariesLast += getDestinationPay($row['destination'], $DISTANCE_KM, $DRIVER_RATES);
         }
     }
 
@@ -1157,7 +1256,7 @@ for ($i = 5; $i >= 1; $i--) {
         $mCount = count($mRows);
         $mPay = 0;
         foreach ($mRows as $mr) {
-            $mPay += $DRIVER_RATES[$mr['destination']] ?? 0;
+            $mPay += getDestinationPay($mr['destination'], $DISTANCE_KM, $DRIVER_RATES);
         }
 
         if ($mCount === 0) {
@@ -1171,7 +1270,7 @@ for ($i = 5; $i >= 1; $i--) {
             $mDtRows = $mDtStmt->fetchAll(PDO::FETCH_ASSOC);
             $mCount = count($mDtRows);
             foreach ($mDtRows as $mdtr) {
-                $mPay += $DRIVER_RATES[$mdtr['destination']] ?? 0;
+                $mPay += getDestinationPay($mdtr['destination'], $DISTANCE_KM, $DRIVER_RATES);
             }
         }
 
@@ -1251,6 +1350,9 @@ $activityLogs = $pdo->query("
     LIMIT 100
 ")->fetchAll(PDO::FETCH_ASSOC);
 
+// All destinations (incl. inactive) for Settings tab
+$allDestinations = $pdo->query("SELECT * FROM destinations ORDER BY is_active DESC, name ASC")->fetchAll(PDO::FETCH_ASSOC);
+
 include '../includes/header.php';
 ?>
 <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 relative">
@@ -1264,6 +1366,7 @@ include '../includes/header.php';
     include 'views/activity_logs.php';
     include 'views/pwd_requests.php';
     include 'views/cash_advances.php';
+    include 'views/settings.php';
     include 'views/modals.php'; ?>
 </div>
 </div><!-- close #main-content -->
