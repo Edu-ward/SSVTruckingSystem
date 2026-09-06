@@ -385,11 +385,22 @@
             iconAnchor: [17, 17]
         });
 
+        const isDarkGar = document.documentElement.classList.contains('dark');
+        const garTitleColor = isDarkGar ? '#f9fafb' : '#111827';
+        const garNoteColor = isDarkGar ? '#9ca3af' : '#6b7280';
         simGarageMarker = L.marker([GARAGE_LOCATION.lat, GARAGE_LOCATION.lng], {
                 icon: garageIcon
             })
             .addTo(settingsSimMap)
-            .bindPopup(`<b>${GARAGE_LOCATION.name}</b><br><span style="font-size:11px;color:#666;">Trip Origin & Quarry Depot</span>`);
+            .bindPopup(`
+                <div class="osm-popup-card" style="padding: 6px 8px; min-width: 195px; font-family: inherit;">
+                    <div class="osm-popup-title" style="font-weight: 700; font-size: 13px; color: ${garTitleColor}; margin-bottom: 3px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-warehouse" style="color: #2563eb; font-size: 13px; flex-shrink: 0;"></i>
+                        <span>${GARAGE_LOCATION.name}</span>
+                    </div>
+                    <span class="osm-popup-breakdown" style="font-size: 11px; color: ${garNoteColor}; display: block;">Trip Origin &amp; Quarry Depot</span>
+                </div>
+            `);
 
         // Municipal boundary radius indicator (approx 6km radius = 12km RT diameter)
         simBoundaryCircle = L.circle([GARAGE_LOCATION.lat, GARAGE_LOCATION.lng], {
@@ -506,11 +517,38 @@
             iconAnchor: [17, 17]
         });
 
+        const displayName = (destName && destName.trim() !== '') ? destName : 'Selected Destination';
+        const isDark = document.documentElement.classList.contains('dark');
+        const titleColor = isDark ? '#f9fafb' : '#111827';
+        const labelColor = isDark ? '#d1d5db' : '#4b5563';
+        const distColor  = isDark ? '#60a5fa' : '#2563eb';
+        const payColor   = isDark ? '#34d399' : '#16a34a';
+        const borderColor = isDark ? '#374151' : '#e5e7eb';
+        const noteColor  = isDark ? '#9ca3af' : '#6b7280';
+
+        const simPopupContent = `
+            <div class="osm-popup-card" style="padding: 6px 8px; min-width: 210px; max-width: 285px; font-family: inherit;">
+                <div class="osm-popup-title" style="font-weight: 700; font-size: 13px; color: ${titleColor}; margin-bottom: 7px; word-break: break-word; line-height: 1.35; display: flex; align-items: flex-start; gap: 6px;">
+                    <i class="fa-solid fa-location-dot" style="color: #ef4444; font-size: 13px; margin-top: 2px; flex-shrink: 0;"></i>
+                    <span>${displayName}</span>
+                </div>
+                <div class="osm-popup-row" style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 5px; color: ${labelColor};">
+                    <span>Trip Distance:</span>
+                    <strong class="osm-popup-dist" style="color: ${distColor}; font-weight: 700;">${roundedKm} km</strong>
+                </div>
+                <div class="osm-popup-row osm-popup-divider" style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-top: 1px solid ${borderColor}; padding-top: 5px; color: ${labelColor};">
+                    <span>Driver Pay:</span>
+                    <strong class="osm-popup-pay" style="color: ${payColor}; font-weight: 700;">₱${payAmountNum.toFixed(2)}</strong>
+                </div>
+                <div class="osm-popup-breakdown" style="font-size: 10.5px; color: ${noteColor}; margin-top: 4px; font-style: italic; line-height: 1.35;">(${payInfo.breakdown})</div>
+            </div>
+        `;
+
         simDestMarker = L.marker([lat, lng], {
                 icon: destIcon
             })
             .addTo(settingsSimMap)
-            .bindPopup(`<b>${destName}</b><br><span style="font-size:12px;color:#2563eb;font-weight:600;">${roundedKm} km round trip &bull; ₱${payAmountNum.toFixed(2)} pay</span>`)
+            .bindPopup(simPopupContent)
             .openPopup();
 
         simRouteLine = L.polyline([

@@ -133,6 +133,68 @@
         .leaflet-popup-tip {
             @apply bg-white dark:bg-gray-900 !important;
         }
+        .osm-popup-card {
+            padding: 8px 12px;
+            min-width: 210px;
+            max-width: 290px;
+            font-family: inherit;
+        }
+        .osm-popup-title {
+            font-weight: 700;
+            font-size: 13px;
+            margin-bottom: 7px;
+            word-break: break-word;
+            line-height: 1.35;
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            color: #111827;
+        }
+        .dark .osm-popup-title {
+            color: #f9fafb !important;
+        }
+        .osm-popup-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: #4b5563;
+        }
+        .dark .osm-popup-row {
+            color: #d1d5db !important;
+        }
+        .osm-popup-divider {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 5px;
+        }
+        .dark .osm-popup-divider {
+            border-top-color: #374151 !important;
+        }
+        .osm-popup-dist {
+            color: #2563eb;
+            font-weight: 700;
+        }
+        .dark .osm-popup-dist {
+            color: #60a5fa !important;
+        }
+        .osm-popup-pay {
+            color: #16a34a;
+            font-weight: 700;
+        }
+        .dark .osm-popup-pay {
+            color: #34d399 !important;
+        }
+        .osm-popup-breakdown {
+            font-size: 10.5px;
+            color: #6b7280;
+            margin-top: 4px;
+            font-style: italic;
+            line-height: 1.35;
+        }
+        .dark .osm-popup-breakdown {
+            color: #9ca3af !important;
+        }
 
         <?php if ($_SESSION['role'] === 'Admin'): ?>#map {
             height: 700px;

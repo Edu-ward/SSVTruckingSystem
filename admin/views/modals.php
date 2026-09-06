@@ -1279,12 +1279,14 @@
         </div>
         <style>
             /* Leaflet popup padding & sizing fix to prevent text overlapping border */
-            #osmMiniMap .leaflet-popup-content-wrapper {
+            #osmMiniMap .leaflet-popup-content-wrapper,
+            #settingsSimulatorMap .leaflet-popup-content-wrapper {
                 padding: 6px 8px !important;
                 border-radius: 14px !important;
                 box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
             }
-            #osmMiniMap .leaflet-popup-content {
+            #osmMiniMap .leaflet-popup-content,
+            #settingsSimulatorMap .leaflet-popup-content {
                 margin: 6px 10px !important;
                 min-width: 200px !important;
                 max-width: 280px !important;
@@ -1496,18 +1498,30 @@
     function formatOsmPopup(name, km, pay, lat = null, lng = null) {
         const calc = computeDriverTripPay(km, name, lat, lng);
         const finalPay = pay > 0 ? pay : calc.pay;
+        const displayName = (name && name.trim() !== '') ? name : 'Selected Location';
+        const isDark = document.documentElement.classList.contains('dark');
+        const titleColor = isDark ? '#f9fafb' : '#111827';
+        const labelColor = isDark ? '#d1d5db' : '#4b5563';
+        const distColor  = isDark ? '#60a5fa' : '#2563eb';
+        const payColor   = isDark ? '#34d399' : '#16a34a';
+        const borderColor = isDark ? '#374151' : '#e5e7eb';
+        const noteColor  = isDark ? '#9ca3af' : '#6b7280';
+
         return `
-            <div style="padding: 4px 6px; min-width: 190px; max-width: 270px;">
-                <div style="font-weight: 700; font-size: 13px; color: #111827; margin-bottom: 6px; word-break: break-word; line-height: 1.35;">${name}</div>
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 4px; color: #4b5563;">
+            <div class="osm-popup-card" style="padding: 6px 8px; min-width: 210px; max-width: 285px; font-family: inherit;">
+                <div class="osm-popup-title" style="font-weight: 700; font-size: 13px; color: ${titleColor}; margin-bottom: 7px; word-break: break-word; line-height: 1.35; display: flex; align-items: flex-start; gap: 6px;">
+                    <i class="fa-solid fa-location-dot" style="color: #ef4444; font-size: 13px; margin-top: 2px; flex-shrink: 0;"></i>
+                    <span>${displayName}</span>
+                </div>
+                <div class="osm-popup-row" style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 5px; color: ${labelColor};">
                     <span>Trip Distance:</span>
-                    <strong style="color: #2563eb; font-weight: 700;">${km} km</strong>
+                    <strong class="osm-popup-dist" style="color: ${distColor}; font-weight: 700;">${km} km</strong>
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 4px; color: #4b5563;">
+                <div class="osm-popup-row osm-popup-divider" style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-top: 1px solid ${borderColor}; padding-top: 5px; color: ${labelColor};">
                     <span>Driver Pay:</span>
-                    <strong style="color: #16a34a; font-weight: 700;">₱${finalPay.toFixed(2)}</strong>
+                    <strong class="osm-popup-pay" style="color: ${payColor}; font-weight: 700;">₱${finalPay.toFixed(2)}</strong>
                 </div>
-                <div style="font-size: 10px; color: #6b7280; margin-top: 4px; font-style: italic;">(${calc.breakdown})</div>
+                <div class="osm-popup-breakdown" style="font-size: 10.5px; color: ${noteColor}; margin-top: 4px; font-style: italic; line-height: 1.35;">(${calc.breakdown})</div>
             </div>
         `;
     }
@@ -1543,9 +1557,18 @@
                     html: `<div class="w-8 h-8 rounded-xl bg-indigo-600 border-2 border-white text-white flex items-center justify-center shadow-lg text-xs" title="SSV Quarry Garage"><i class="fa-solid fa-warehouse"></i></div>`,
                     iconSize: [32, 32]
                 });
+                const isDarkModGar = document.documentElement.classList.contains('dark');
                 L.marker([15.359042, 120.965016], {
                     icon: garageIcon
-                }).addTo(osmMiniMap).bindPopup('<b>SSV Quarry Garage</b><br>Brgy. Burgos, San Leonardo');
+                }).addTo(osmMiniMap).bindPopup(`
+                    <div class="osm-popup-card" style="padding: 6px 8px; min-width: 195px; font-family: inherit;">
+                        <div class="osm-popup-title" style="font-weight: 700; font-size: 13px; color: ${isDarkModGar ? '#f9fafb' : '#111827'}; margin-bottom: 3px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-warehouse" style="color: #4f46e5; font-size: 13px; flex-shrink: 0;"></i>
+                            <span>SSV Quarry Garage</span>
+                        </div>
+                        <span class="osm-popup-breakdown" style="font-size: 11px; color: ${isDarkModGar ? '#9ca3af' : '#6b7280'}; display: block;">Brgy. Burgos, San Leonardo</span>
+                    </div>
+                `);
 
                 osmMiniMap.on('click', function(e) {
                     try {
