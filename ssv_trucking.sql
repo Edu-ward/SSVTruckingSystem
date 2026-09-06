@@ -252,6 +252,20 @@ CREATE TABLE IF NOT EXISTS `cash_advances` (
     FOREIGN KEY (`driver_id`) REFERENCES `drivers`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ============================================================
+-- 16. PASSWORD RESET REQUESTS TABLE
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `password_reset_requests` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL,
+    `username` VARCHAR(100) DEFAULT NULL,
+    `role` ENUM('Driver','Checker') NOT NULL,
+    `status` ENUM('Pending','Approved','Rejected') DEFAULT 'Pending',
+    `requested_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `resolved_at` TIMESTAMP NULL DEFAULT NULL,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================

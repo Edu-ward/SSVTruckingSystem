@@ -62,6 +62,17 @@ try {
     $_ensureCol($pdo, 'dispatches', 'client_name', 'VARCHAR(255) DEFAULT NULL');
     $_ensureCol($pdo, 'dispatches', 'contact_number', 'VARCHAR(50) DEFAULT NULL');
     $_ensureCol($pdo, 'dispatches', 'landmark', 'VARCHAR(255) DEFAULT NULL');
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `password_reset_requests` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `user_id` INT NOT NULL,
+        `username` VARCHAR(100) DEFAULT NULL,
+        `role` ENUM('Driver','Checker') NOT NULL,
+        `status` ENUM('Pending','Approved','Rejected') DEFAULT 'Pending',
+        `requested_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        `resolved_at` TIMESTAMP NULL DEFAULT NULL,
+        FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 } catch (Throwable $e) {}
 
 try {
@@ -1122,7 +1133,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
     }
 }
 
-$pwdResetRequests = $pdo->query("SELECT r.id, r.user_id, r.username, r.role, r.status, r.requested_at FROM password_reset_requests r WHERE r.status = 'Pending' ORDER BY r.requested_at ASC")->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $pwdResetRequests = $pdo->query("SELECT r.id, r.user_id, r.username, r.role, r.status, r.requested_at FROM password_reset_requests r WHERE r.status = 'Pending' ORDER BY r.requested_at ASC")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $pwdResetRequests = [];
+}
 $pendingPwdResetCount = count($pwdResetRequests);
 
 $totalFleet = $pdo->query("SELECT COUNT(*) FROM trucks")->fetchColumn();
