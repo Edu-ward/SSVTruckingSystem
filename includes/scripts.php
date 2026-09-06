@@ -1806,8 +1806,8 @@
 
                     function startGPS() {
                         // HTTPS / Security Context Check
-                        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-                            showToast("⚠️ GPS Warning: Geolocation requires HTTPS on mobile devices. Activating simulated fallback...", "warning", 10000);
+                        if ((window.isSecureContext === false || window.location.protocol !== 'https:') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                            showToast("⚠️ Notice: Mobile browsers require HTTPS for real GPS hardware. Connect via https:// or enable SSL in InfinityFree for live GPS (simulated transit active).", "warning", 10000);
                         }
 
                         if (!navigator.geolocation) {
