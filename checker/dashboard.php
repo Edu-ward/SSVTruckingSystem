@@ -126,8 +126,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                     $dstStmt = $pdo->prepare("SELECT distance_km FROM destinations WHERE name = ?");
                                     $dstStmt->execute([$dRow['destination']]);
                                     $distK = floatval($dstStmt->fetchColumn() ?? 20);
-                                    $oneWayK = max(5, ($distK > 40 ? $distK / 2 : $distK));
-                                    $etaM = max(25, round(($oneWayK / 35) * 60) + 15);
+                                    $roundTripK = max(2.0, min(180.0, $distK));
+                                    $etaM = max(30, round(($roundTripK / 35) * 60) + 20);
                                     $isOnTime = ($nowTs <= (strtotime($dRow['transit_start_time']) + ($etaM * 60))) ? 1 : 0;
                                 }
                             }

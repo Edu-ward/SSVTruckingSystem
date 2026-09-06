@@ -275,7 +275,11 @@
                 let etaHtml = '';
                 if (truck.estimated_arrival_time) {
                     try {
-                        const etaDate = new Date(truck.estimated_arrival_time.replace(' ', 'T'));
+                        let dateStr = truck.estimated_arrival_time;
+                        if (!dateStr.includes('+') && !dateStr.endsWith('Z')) {
+                            dateStr = dateStr.replace(' ', 'T') + '+08:00';
+                        }
+                        const etaDate = new Date(dateStr);
                         if (!isNaN(etaDate.getTime())) {
                             const now = new Date();
                             const diffMins = Math.round((etaDate.getTime() - now.getTime()) / 60000);
@@ -283,18 +287,31 @@
                             let relStr = '';
                             let badgeBg = 'background: rgba(16, 185, 129, 0.1); color: #059669; border-color: rgba(16, 185, 129, 0.3);';
                             if (diffMins > 0) {
-                                relStr = `in ${diffMins} min${diffMins > 1 ? 's' : ''}`;
+                                if (diffMins >= 60) {
+                                    const h = Math.floor(diffMins / 60);
+                                    const m = diffMins % 60;
+                                    relStr = m > 0 ? `in ${h}h ${m}m` : `in ${h}h`;
+                                } else {
+                                    relStr = `in ${diffMins} min${diffMins > 1 ? 's' : ''}`;
+                                }
                             } else if (diffMins >= -15) {
-                                relStr = 'Arriving now';
+                                relStr = 'Arriving at site';
                                 badgeBg = 'background: rgba(59, 130, 246, 0.1); color: #2563eb; border-color: rgba(59, 130, 246, 0.3);';
                             } else {
-                                relStr = `${Math.abs(diffMins)}m past ETA`;
+                                const past = Math.abs(diffMins);
+                                if (past >= 60) {
+                                    const h = Math.floor(past / 60);
+                                    const m = past % 60;
+                                    relStr = m > 0 ? `${h}h ${m}m past ETA` : `${h}h past ETA`;
+                                } else {
+                                    relStr = `${past}m past ETA`;
+                                }
                                 badgeBg = 'background: rgba(245, 158, 11, 0.1); color: #d97706; border-color: rgba(245, 158, 11, 0.3);';
                             }
                             etaHtml = `
-                                <div style="margin-top: 6px; padding: 4px 8px; border-radius: 8px; border: 1px solid; display: flex; align-items: center; justify-content: space-between; font-size: 11px; ${badgeBg}">
+                                <div style="margin-top: 6px; padding: 4px 8px; border-radius: 8px; border: 1px solid; display: flex; align-items: center; justify-content: space-between; font-size: 11px; ${badgeBg}" title="Estimated return to site (round trip + 20m unloading allowance)">
                                     <span style="font-weight: 600; display: flex; align-items: center; gap: 4px;">
-                                        <i class="fa-regular fa-clock"></i> ETA:
+                                        <i class="fa-regular fa-clock"></i> Return ETA:
                                     </span>
                                     <span style="font-weight: 700; font-family: monospace;">${timeStr} <span style="font-weight: 500; font-size: 10px; opacity: 0.85;">(${relStr})</span></span>
                                 </div>

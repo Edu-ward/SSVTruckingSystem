@@ -249,7 +249,7 @@ function getDestinationPay(string $destName, array $DISTANCE_KM, array $DRIVER_R
     return calculateTripPay($km, $destName, $rate);
 }
 
-// Helper: compute whether delivery arrival is on-time based on ETA
+// Helper: compute whether delivery arrival is on-time based on return ETA
 function computeIsOnTime(array $dispatch, ?string $nowTime = null): int {
     global $DISTANCE_KM;
     $nowTs = $nowTime ? strtotime($nowTime) : time();
@@ -259,8 +259,8 @@ function computeIsOnTime(array $dispatch, ?string $nowTime = null): int {
     $start = !empty($dispatch['transit_start_time']) ? $dispatch['transit_start_time'] : ($dispatch['created_at'] ?? null);
     if ($start) {
         $dist = floatval($dispatch['distance_km'] ?? ($DISTANCE_KM[$dispatch['destination']] ?? 20));
-        $oneWay = max(5, round($dist > 40 ? ($dist / 2) : $dist));
-        $etaMins = max(25, round(($oneWay / 35) * 60) + 15);
+        $roundTrip = max(2.0, min(180.0, $dist));
+        $etaMins = max(30, round(($roundTrip / 35) * 60) + 20);
         $expectedTs = strtotime($start) + ($etaMins * 60);
         return ($nowTs <= $expectedTs) ? 1 : 0;
     }
@@ -424,11 +424,21 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             }
         }
 
-        // Calculate ETA to site (one-way distance, ~35 km/h + 15 min buffer)
-        $oneWayKm = floatval($dist_km > 0 ? ($dist_km > 40 ? $dist_km / 2 : $dist_km) : 20.0);
-        $etaMinutes = max(25, round(($oneWayKm / 35) * 60) + 15);
+        // Calculate ETA of truck to return to site:
+        // Round-trip distance at ~35 km/h + 20 min allowance (driver efficiency & unloading)
+        $roundTripKm = floatval($dist_km > 0 ? $dist_km : 10.0);
+        $roundTripKm = min(180.0, max(2.0, $roundTripKm));
+        $drivingMins = round(($roundTripKm / 35) * 60);
+        $allowanceMins = 20; // 20 mins for driver efficiency and unloading
+        $etaMinutes = max(30, $drivingMins + $allowanceMins);
+
         if (!empty($_POST['estimated_arrival_time'])) {
-            $estimated_arrival_time = date('Y-m-d H:i:s', strtotime($_POST['estimated_arrival_time']));
+            $parsedEta = strtotime($_POST['estimated_arrival_time']);
+            if ($parsedEta !== false && $parsedEta >= (time() - 3600) && $parsedEta <= (time() + 86400)) {
+                $estimated_arrival_time = date('Y-m-d H:i:s', $parsedEta);
+            } else {
+                $estimated_arrival_time = date('Y-m-d H:i:s', strtotime("+{$etaMinutes} minutes"));
+            }
         } else {
             $estimated_arrival_time = date('Y-m-d H:i:s', strtotime("+{$etaMinutes} minutes"));
         }
@@ -1245,7 +1255,7 @@ try {
             disp.destination,
             disp.ticket_number,
             disp.transit_start_time,
-            COALESCE(disp.estimated_arrival_time, DATE_ADD(disp.transit_start_time, INTERVAL 45 MINUTE), DATE_ADD(disp.created_at, INTERVAL 45 MINUTE)) AS estimated_arrival_time
+            COALESCE(disp.estimated_arrival_time, DATE_ADD(disp.transit_start_time, INTERVAL 60 MINUTE), DATE_ADD(disp.created_at, INTERVAL 60 MINUTE)) AS estimated_arrival_time
         FROM trucks t 
         LEFT JOIN drivers d ON t.id = d.truck_id 
         LEFT JOIN dispatches disp ON t.id = disp.truck_id AND disp.status IN ('Pending', 'Loading', 'In Transit', 'Unloading')

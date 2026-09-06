@@ -6,6 +6,9 @@
 // otherwise falls back to local XAMPP defaults.
 // ============================================================
 
+// ── Default timezone (Asia/Manila, UTC+8) ──
+date_default_timezone_set('Asia/Manila');
+
 // 1. Check for dedicated server config file (created in InfinityFree File Manager)
 if (file_exists(__DIR__ . '/config.prod.php')) {
     require_once __DIR__ . '/config.prod.php';

@@ -90,21 +90,34 @@
                                 if ($diffMins > 0) {
                                     $badgeColor = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-800/40';
                                     $iconColor = 'text-emerald-500';
-                                    $relText = "in {$diffMins} min" . ($diffMins > 1 ? 's' : '');
+                                    if ($diffMins >= 60) {
+                                        $hrs = floor($diffMins / 60);
+                                        $rem = $diffMins % 60;
+                                        $relText = $rem > 0 ? "in {$hrs}h {$rem}m" : "in {$hrs}h";
+                                    } else {
+                                        $relText = "in {$diffMins} min" . ($diffMins > 1 ? 's' : '');
+                                    }
                                 } else if ($diffMins >= -15) {
                                     $badgeColor = 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200/70 dark:border-blue-800/40';
                                     $iconColor = 'text-blue-500';
-                                    $relText = "Arriving now";
+                                    $relText = "Arriving at site";
                                 } else {
                                     $badgeColor = 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/70 dark:border-amber-800/40';
                                     $iconColor = 'text-amber-500';
-                                    $relText = abs($diffMins) . "m past schedule";
+                                    $past = abs($diffMins);
+                                    if ($past >= 60) {
+                                        $hrs = floor($past / 60);
+                                        $rem = $past % 60;
+                                        $relText = $rem > 0 ? "{$hrs}h {$rem}m past ETA" : "{$hrs}h past ETA";
+                                    } else {
+                                        $relText = "{$past}m past ETA";
+                                    }
                                 }
                             ?>
-                                <div class="flex items-center justify-between p-2 rounded-xl border <?= $badgeColor; ?> mt-2">
+                                <div class="flex items-center justify-between p-2 rounded-xl border <?= $badgeColor; ?> mt-2" title="Estimated return to site (includes round-trip travel & 20m unloading allowance)">
                                     <div class="flex items-center space-x-1.5">
                                         <i class="fa-regular fa-clock text-xs <?= $iconColor; ?>"></i>
-                                        <span class="text-[11px] font-semibold">Est. Arrival (ETA):</span>
+                                        <span class="text-[11px] font-semibold">Return ETA:</span>
                                     </div>
                                     <div class="text-right">
                                         <span class="font-bold text-xs font-mono"><?= $etaDateFormatted . $etaFormatted; ?></span>

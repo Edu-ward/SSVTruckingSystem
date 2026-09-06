@@ -25,7 +25,7 @@ $stmt = $pdo->query("
         disp.destination,
         disp.ticket_number,
         disp.transit_start_time,
-        COALESCE(disp.estimated_arrival_time, DATE_ADD(disp.transit_start_time, INTERVAL 45 MINUTE), DATE_ADD(disp.created_at, INTERVAL 45 MINUTE)) AS estimated_arrival_time
+        COALESCE(disp.estimated_arrival_time, DATE_ADD(disp.transit_start_time, INTERVAL 60 MINUTE), DATE_ADD(disp.created_at, INTERVAL 60 MINUTE)) AS estimated_arrival_time
     FROM trucks t
     LEFT JOIN drivers d   ON t.id = d.truck_id
     LEFT JOIN dispatches disp ON t.id = disp.truck_id 
@@ -37,5 +37,16 @@ $stmt = $pdo->query("
 ");
 
 $trucks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Ensure estimated_arrival_time has explicit Asia/Manila (+08:00) offset for browser parsing
+foreach ($trucks as &$tr) {
+    if (!empty($tr['estimated_arrival_time'])) {
+        $ts = strtotime($tr['estimated_arrival_time']);
+        if ($ts !== false) {
+            $tr['estimated_arrival_time'] = date('Y-m-d\TH:i:sP', $ts);
+        }
+    }
+}
+unset($tr);
 
 echo json_encode(['success' => true, 'trucks' => $trucks, 'timestamp' => time()]);

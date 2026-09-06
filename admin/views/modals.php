@@ -255,11 +255,11 @@
                 </div>
                 <div>
                     <div class="flex justify-between items-center mb-1.5">
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Estimated Arrival (ETA)</label>
+                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Site Return ETA</label>
                         <span id="dispatchEtaBadge" class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/40 px-2 py-0.5 rounded-md hidden"></span>
                     </div>
                     <input type="datetime-local" name="estimated_arrival_time" id="dispatchEtaInput" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
-                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Used to evaluate accurate on-time delivery rate upon site arrival.</p>
+                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Estimated truck return time to site (round trip + 20 min unloading allowance).</p>
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1433,9 +1433,12 @@
             payAmountEl.innerHTML = `Map Distance: <span class="font-bold text-blue-600 dark:text-blue-400">${rounded} km</span> (round trip) &bull; Driver Trip Pay: <span class="font-bold text-green-600 dark:text-green-400">₱${amount.toFixed(2)}</span> <span class="text-gray-500 dark:text-gray-400 font-normal">(${calc.breakdown})</span>`;
             payPreview.classList.remove('hidden');
 
-            // Auto-calculate ETA
-            const oneWayKm = (rounded > 40) ? (rounded / 2) : rounded;
-            const transitMins = Math.max(25, Math.round((oneWayKm / 35) * 60) + 15);
+            // Auto-calculate ETA: Return of truck back to site
+            // Formula: Round-trip travel time at ~35 km/h + 20 min allowance for driver efficiency and unloading
+            const roundTripKm = Math.min(180, Math.max(2, rounded));
+            const drivingMins = Math.round((roundTripKm / 35) * 60);
+            const allowanceMins = 20; // 20 min unloading & driver efficiency allowance
+            const transitMins = Math.max(30, drivingMins + allowanceMins);
             const now = new Date();
             const etaDate = new Date(now.getTime() + (transitMins * 60000));
             const pad = (n) => String(n).padStart(2, '0');
@@ -1444,7 +1447,10 @@
             const etaBadge = document.getElementById('dispatchEtaBadge');
             if (etaInput) etaInput.value = etaFormatted;
             if (etaBadge) {
-                etaBadge.textContent = `~${transitMins} mins`;
+                const hrs = Math.floor(transitMins / 60);
+                const rem = transitMins % 60;
+                const timeText = hrs > 0 ? `${hrs}h ${rem}m` : `${transitMins}m`;
+                etaBadge.textContent = `~${timeText} return (incl. 20m unload)`;
                 etaBadge.classList.remove('hidden');
             }
             return rounded;
