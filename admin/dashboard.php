@@ -57,11 +57,53 @@ try {
             }
         } catch (Throwable $ex) {}
     };
+
+    // Checkers table columns
+    $_ensureCol($pdo, 'checkers', 'status', "VARCHAR(50) DEFAULT 'Active'");
+    $_ensureCol($pdo, 'checkers', 'phone', "VARCHAR(20) DEFAULT ''");
+    $_ensureCol($pdo, 'checkers', 'first_name', "VARCHAR(100) DEFAULT ''");
+    $_ensureCol($pdo, 'checkers', 'last_name', "VARCHAR(100) DEFAULT ''");
+
+    // Drivers table columns
+    $_ensureCol($pdo, 'drivers', 'status', "VARCHAR(50) DEFAULT 'Off Duty'");
+    $_ensureCol($pdo, 'drivers', 'profile_photo', "VARCHAR(255) DEFAULT NULL");
+    $_ensureCol($pdo, 'drivers', 'rating', "DECIMAL(3, 2) DEFAULT 5.00");
+    $_ensureCol($pdo, 'drivers', 'truck_id', "INT DEFAULT NULL");
+
+    // Trucks table columns
+    $_ensureCol($pdo, 'trucks', 'rfid_active', "TINYINT(1) DEFAULT 1");
+    $_ensureCol($pdo, 'trucks', 'status', "VARCHAR(50) DEFAULT 'Idle'");
+
+    // Orders table columns
     $_ensureCol($pdo, 'orders', 'contact_number', 'VARCHAR(50) DEFAULT NULL');
     $_ensureCol($pdo, 'orders', 'landmark', 'VARCHAR(255) DEFAULT NULL');
+    $_ensureCol($pdo, 'orders', 'cubic_meters_required', 'DECIMAL(10,2) DEFAULT 0.00');
+    $_ensureCol($pdo, 'orders', 'cubic_meters_fulfilled', 'DECIMAL(10,2) DEFAULT 0.00');
+
+    // Dispatches table columns
     $_ensureCol($pdo, 'dispatches', 'client_name', 'VARCHAR(255) DEFAULT NULL');
     $_ensureCol($pdo, 'dispatches', 'contact_number', 'VARCHAR(50) DEFAULT NULL');
     $_ensureCol($pdo, 'dispatches', 'landmark', 'VARCHAR(255) DEFAULT NULL');
+    $_ensureCol($pdo, 'dispatches', 'cubic_meters', 'DECIMAL(10,2) DEFAULT 0.00');
+    $_ensureCol($pdo, 'dispatches', 'pay_amount', 'DECIMAL(10,2) DEFAULT 0.00');
+    $_ensureCol($pdo, 'dispatches', 'distance_km', 'DECIMAL(10,2) DEFAULT 0.00');
+    $_ensureCol($pdo, 'dispatches', 'is_payroll_paid', 'TINYINT(1) DEFAULT 0');
+    $_ensureCol($pdo, 'dispatches', 'payroll_id', 'INT DEFAULT NULL');
+    $_ensureCol($pdo, 'dispatches', 'is_on_time', 'TINYINT(1) DEFAULT 1');
+    $_ensureCol($pdo, 'dispatches', 'estimated_arrival_time', 'DATETIME DEFAULT NULL');
+    $_ensureCol($pdo, 'dispatches', 'transit_start_time', 'DATETIME DEFAULT NULL');
+    $_ensureCol($pdo, 'dispatches', 'transit_end_time', 'DATETIME DEFAULT NULL');
+
+    // Driver Trips table columns
+    $_ensureCol($pdo, 'driver_trips', 'pay_amount', 'DECIMAL(10,2) DEFAULT 0.00');
+    $_ensureCol($pdo, 'driver_trips', 'distance_km', 'DECIMAL(10,2) DEFAULT 0.00');
+    $_ensureCol($pdo, 'driver_trips', 'is_on_time', 'TINYINT(1) DEFAULT 1');
+    $_ensureCol($pdo, 'driver_trips', 'estimated_arrival_time', 'DATETIME DEFAULT NULL');
+
+    // Destinations table columns
+    $_ensureCol($pdo, 'destinations', 'is_active', 'TINYINT(1) DEFAULT 1');
+    $_ensureCol($pdo, 'destinations', 'driver_rate', 'DECIMAL(10,2) DEFAULT 300.00');
+    $_ensureCol($pdo, 'destinations', 'distance_km', 'DECIMAL(10,2) DEFAULT 0.00');
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS `password_reset_requests` (
         `id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -72,6 +114,46 @@ try {
         `requested_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         `resolved_at` TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `cash_advances` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `driver_id` INT NOT NULL,
+        `amount` DECIMAL(10,2) NOT NULL,
+        `reason` TEXT DEFAULT NULL,
+        `status` ENUM('Pending','Approved','Rejected') DEFAULT 'Pending',
+        `is_settled` TINYINT(1) NOT NULL DEFAULT 0,
+        `settled_at` DATETIME DEFAULT NULL,
+        `payroll_id` INT DEFAULT NULL,
+        `requested_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        `resolved_at` TIMESTAMP NULL DEFAULT NULL,
+        FOREIGN KEY (`driver_id`) REFERENCES `drivers`(`id`) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `driver_payroll` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `driver_id` INT NOT NULL UNIQUE,
+        `total_amount` DECIMAL(10,2) DEFAULT 0.00,
+        `amount_claimed` DECIMAL(10,2) DEFAULT 0.00,
+        `remaining_balance` DECIMAL(10,2) GENERATED ALWAYS AS (`total_amount` - `amount_claimed`) STORED,
+        `last_updated` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (`driver_id`) REFERENCES `drivers`(`id`) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `driver_payroll_settlements` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `driver_id` INT NOT NULL,
+        `period_start` DATE NOT NULL,
+        `period_end` DATE NOT NULL,
+        `gross_earnings` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        `cash_advances_deducted` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        `net_pay` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        `payment_method` VARCHAR(50) DEFAULT 'Cash',
+        `payment_reference` VARCHAR(100) DEFAULT NULL,
+        `notes` TEXT DEFAULT NULL,
+        `settled_by` INT DEFAULT NULL,
+        `settled_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (`driver_id`) REFERENCES `drivers`(`id`) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 } catch (Throwable $e) {}
 
@@ -1694,31 +1776,58 @@ function getInitials($name)
     return strtoupper(substr($i, 0, 2));
 }
 
-$allCheckers = $pdo->query("
-    SELECT u.id, u.username, c.first_name, c.last_name, c.phone, COALESCE(c.status, 'Active') AS status, CONCAT(c.first_name, ' ', c.last_name) AS full_name 
-    FROM users u 
-    LEFT JOIN checkers c ON u.id = c.id 
-    WHERE u.role = 'Checker' 
-    ORDER BY u.username ASC
-")->fetchAll(PDO::FETCH_ASSOC);
-$allOrders = $pdo->query("
-    SELECT o.*, COALESCE(CONCAT(c.first_name, ' ', c.last_name), u.username) AS checker_name
-    FROM orders o
-    LEFT JOIN users u ON u.id = o.checker_id
-    LEFT JOIN checkers c ON u.id = c.id
-    ORDER BY o.created_at DESC
-")->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $allCheckers = $pdo->query("
+        SELECT u.id, u.username, c.first_name, c.last_name, c.phone, COALESCE(c.status, 'Active') AS status, CONCAT(c.first_name, ' ', c.last_name) AS full_name 
+        FROM users u 
+        LEFT JOIN checkers c ON u.id = c.id 
+        WHERE u.role = 'Checker' 
+        ORDER BY u.username ASC
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    try {
+        $allCheckers = $pdo->query("
+            SELECT u.id, u.username, c.first_name, c.last_name, c.phone, 'Active' AS status, CONCAT(c.first_name, ' ', c.last_name) AS full_name 
+            FROM users u 
+            LEFT JOIN checkers c ON u.id = c.id 
+            WHERE u.role = 'Checker' 
+            ORDER BY u.username ASC
+        ")->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e2) {
+        $allCheckers = [];
+    }
+}
 
-$activityLogs = $pdo->query("
-    SELECT al.*, u.username AS current_username
-    FROM activity_logs al
-    LEFT JOIN users u ON al.user_id = u.id
-    ORDER BY al.created_at DESC
-    LIMIT 100
-")->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $allOrders = $pdo->query("
+        SELECT o.*, COALESCE(CONCAT(c.first_name, ' ', c.last_name), u.username) AS checker_name
+        FROM orders o
+        LEFT JOIN users u ON u.id = o.checker_id
+        LEFT JOIN checkers c ON u.id = c.id
+        ORDER BY o.created_at DESC
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $allOrders = [];
+}
+
+try {
+    $activityLogs = $pdo->query("
+        SELECT al.*, u.username AS current_username
+        FROM activity_logs al
+        LEFT JOIN users u ON al.user_id = u.id
+        ORDER BY al.created_at DESC
+        LIMIT 100
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $activityLogs = [];
+}
 
 // All destinations (incl. inactive) for Settings tab
-$allDestinations = $pdo->query("SELECT * FROM destinations ORDER BY is_active DESC, name ASC")->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $allDestinations = $pdo->query("SELECT * FROM destinations ORDER BY is_active DESC, name ASC")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $allDestinations = [];
+}
 
 include __DIR__ . '/../includes/header.php';
 ?>
