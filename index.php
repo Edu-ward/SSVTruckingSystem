@@ -128,6 +128,7 @@ try {
             scrollbar-width: none !important;
             -ms-overflow-style: none !important;
         }
+
         ::-webkit-scrollbar,
         *::-webkit-scrollbar,
         html::-webkit-scrollbar,
