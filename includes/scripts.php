@@ -447,6 +447,27 @@
             return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
         }
 
+        function formatTripTimeStr(timeStr) {
+            if (!timeStr) return null;
+            const cleanStr = timeStr.toString().trim();
+            if (!cleanStr || !cleanStr.includes(':')) return null;
+            const isoLike = cleanStr.replace(' ', 'T');
+            const dt = new Date(isoLike);
+            if (!isNaN(dt.getTime())) {
+                return dt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+            }
+            const match = cleanStr.match(/(\d{1,2}):(\d{2})/);
+            if (match) {
+                let h = parseInt(match[1], 10);
+                const m = match[2];
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                h = h % 12;
+                if (h === 0) h = 12;
+                return `${h}:${m} ${ampm}`;
+            }
+            return null;
+        }
+
         let currentViewingDriver = null;
 
         function openViewDriverModal(driver) {
@@ -502,25 +523,43 @@
                         const durationBadge = trip.duration ?
                             `<span class="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-gray-800 px-2 py-0.5 rounded-md" title="Delivery Duration"><i class="fa-regular fa-clock text-[10px]"></i><span>${trip.duration}</span></span>` : '';
 
+                        const dispTime = formatTripTimeStr(trip.transit_start_time || trip.created_at);
+                        const arrTime = formatTripTimeStr(trip.transit_end_time);
+
                         tripsContainer.innerHTML += `
-                        <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700/60 p-3 rounded-xl border-l-4 border-blue-500 shadow-sm mb-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                            <div class="min-w-0 flex-1 pr-2">
-                                <div class="font-bold text-gray-800 dark:text-gray-200 text-sm flex items-center flex-wrap gap-1">
-                                    <span class="truncate">${trip.destination}</span>
-                                    ${statusBadge}
+                        <div class="bg-gray-50 dark:bg-gray-700/60 p-3 rounded-xl border-l-4 border-blue-500 shadow-sm mb-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                            <div class="flex justify-between items-start">
+                                <div class="min-w-0 flex-1 pr-2">
+                                    <div class="font-bold text-gray-800 dark:text-gray-200 text-sm flex items-center flex-wrap gap-1">
+                                        <span class="truncate">${trip.destination}</span>
+                                        ${statusBadge}
+                                    </div>
+                                    <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        <span><i class="fa-regular fa-calendar mr-1"></i>${trip.trip_date || 'Recent'}</span>
+                                        <span class="inline-flex items-center text-blue-600 dark:text-blue-400 font-semibold">
+                                            <i class="fa-solid fa-route mr-1"></i>${distanceDisplay}
+                                        </span>
+                                        ${durationBadge}
+                                    </div>
                                 </div>
-                                <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    <span><i class="fa-regular fa-calendar mr-1"></i>${trip.trip_date || 'Recent'}</span>
-                                    <span class="inline-flex items-center text-blue-600 dark:text-blue-400 font-semibold">
-                                        <i class="fa-solid fa-route mr-1"></i>${distanceDisplay}
-                                    </span>
-                                    ${durationBadge}
+                                <div class="text-right flex-shrink-0 pl-2">
+                                    <div class="text-[10px] text-gray-400 dark:text-gray-400 font-bold uppercase tracking-wider">Trip Pay</div>
+                                    <div class="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">${payDisplay}</div>
+                                    <div class="text-[10px] text-gray-400 dark:text-gray-500">₱10 / km</div>
                                 </div>
                             </div>
-                            <div class="text-right flex-shrink-0 pl-2">
-                                <div class="text-[10px] text-gray-400 dark:text-gray-400 font-bold uppercase tracking-wider">Trip Pay</div>
-                                <div class="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">${payDisplay}</div>
-                                <div class="text-[10px] text-gray-400 dark:text-gray-500">₱10 / km</div>
+                            <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-200/70 dark:border-gray-600/60">
+                                <span class="inline-flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
+                                    <i class="fa-solid fa-truck-fast text-blue-500 text-xs"></i>
+                                    <span class="text-gray-400 dark:text-gray-400 text-[10px] uppercase font-bold">Dispatched:</span>
+                                    <span class="font-bold text-gray-800 dark:text-gray-200">${dispTime || '—'}</span>
+                                </span>
+                                <span class="text-gray-300 dark:text-gray-600">•</span>
+                                <span class="inline-flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
+                                    <i class="fa-solid fa-flag-checkered text-emerald-500 text-xs"></i>
+                                    <span class="text-gray-400 dark:text-gray-400 text-[10px] uppercase font-bold">Arrived:</span>
+                                    <span class="font-bold text-gray-800 dark:text-gray-200">${arrTime || (trip.status === 'In Transit' ? '<span class="text-amber-500 font-semibold">In Transit</span>' : '—')}</span>
+                                </span>
                             </div>
                         </div>`;
                     });
@@ -875,6 +914,9 @@
                         const durationBadge = trip.duration ?
                             `<span class="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-gray-800 px-2 py-0.5 rounded-md" title="Delivery Duration"><i class="fa-regular fa-clock text-[10px]"></i><span>${trip.duration}</span></span>` : '';
 
+                        const dispTime = formatTripTimeStr(trip.transit_start_time || trip.created_at);
+                        const arrTime = formatTripTimeStr(trip.transit_end_time);
+
                         listEl.innerHTML += `
                         <div class="p-3.5 bg-gray-50 dark:bg-gray-700/60 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-gray-100/70 dark:hover:bg-gray-700/90 hover:border-blue-300 dark:hover:border-blue-500/50 transition-colors">
                             <div class="flex items-start justify-between gap-3">
@@ -890,6 +932,19 @@
                                             <i class="fa-solid fa-route mr-1"></i>${distanceDisplay}
                                         </span>
                                         ${durationBadge}
+                                    </div>
+                                    <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-200/70 dark:border-gray-600/60">
+                                        <span class="inline-flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
+                                            <i class="fa-solid fa-truck-fast text-blue-500 text-xs"></i>
+                                            <span class="text-gray-400 dark:text-gray-400 text-[10px] uppercase font-bold">Dispatched:</span>
+                                            <span class="font-bold text-gray-800 dark:text-gray-200">${dispTime || '—'}</span>
+                                        </span>
+                                        <span class="text-gray-300 dark:text-gray-600">•</span>
+                                        <span class="inline-flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
+                                            <i class="fa-solid fa-flag-checkered text-emerald-500 text-xs"></i>
+                                            <span class="text-gray-400 dark:text-gray-400 text-[10px] uppercase font-bold">Arrived:</span>
+                                            <span class="font-bold text-gray-800 dark:text-gray-200">${arrTime || (trip.status === 'In Transit' ? '<span class="text-amber-500 font-semibold">In Transit</span>' : '—')}</span>
+                                        </span>
                                     </div>
                                 </div>
                                 <div class="text-right flex-shrink-0">
