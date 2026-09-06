@@ -137,7 +137,7 @@
                         On-Time Rate
                     </div>
                     <div class="font-extrabold text-emerald-700 dark:text-emerald-300 text-lg">
-                        <?= isset($onTimeRate) ? $onTimeRate : number_format($currMonthQuery['on_time_rate'] ?? 100, 1); ?>%
+                        <?= (isset($onTimeRate) && $onTimeRate !== null) ? (number_format($onTimeRate, 1) . '%') : '-'; ?>
                     </div>
                 </div>
                 <div class="flex justify-between items-center p-3.5 bg-purple-50/70 dark:bg-gray-700/50 rounded-xl border border-purple-100 dark:border-gray-700">

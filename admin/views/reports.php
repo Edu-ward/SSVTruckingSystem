@@ -187,10 +187,14 @@
                                 <td class="px-6 py-4"><?= number_format($ma['volume_cm'], 2); ?> cu.m</td>
                                 <td class="px-6 py-4 font-semibold text-emerald-600 dark:text-emerald-400">₱<?= number_format($ma['payroll'], 2); ?></td>
                                 <td class="px-6 py-4">
-                                    <span class="inline-flex items-center gap-1 font-semibold <?= $ma['on_time_pct'] >= 90 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400' ?>">
-                                        <i class="fa-solid fa-circle-check text-xs"></i>
-                                        <?= number_format($ma['on_time_pct'], 1); ?>%
-                                    </span>
+                                    <?php if (!empty($ma['deliveries']) && $ma['deliveries'] > 0 && isset($ma['on_time_pct']) && $ma['on_time_pct'] !== null): ?>
+                                        <span class="inline-flex items-center gap-1 font-semibold <?= $ma['on_time_pct'] >= 90 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400' ?>">
+                                            <i class="fa-solid fa-circle-check text-xs"></i>
+                                            <?= number_format($ma['on_time_pct'], 1); ?>%
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="text-gray-400 font-bold">-</span>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex items-center justify-end gap-2">

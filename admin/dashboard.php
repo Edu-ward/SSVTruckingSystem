@@ -1391,23 +1391,26 @@ try {
     $deliveriesChange = ($lastDeliveries > 0) ? (($currDeliveries - $lastDeliveries) / $lastDeliveries) * 100 : ($currDeliveries > 0 ? 100 : 0);
 
     $stmt_ontime = $pdo->prepare("
-        SELECT COALESCE((SUM(is_on_time) / NULLIF(COUNT(id), 0)) * 100, 100) AS on_time_rate 
+        SELECT (SUM(is_on_time) / NULLIF(COUNT(id), 0)) * 100 AS on_time_rate 
         FROM dispatches 
         WHERE DATE_FORMAT(COALESCE(transit_end_time, dispatch_date, created_at), '%Y-%m') = ? 
           AND status = 'Delivered'
     ");
     $stmt_ontime->execute([$currMonthStr]);
-    $onTimeRate = floatval($stmt_ontime->fetchColumn() ?? 100);
+    $rawOnTime = $stmt_ontime->fetchColumn();
+    $onTimeRate = ($currDeliveries > 0 && $rawOnTime !== false && $rawOnTime !== null) ? floatval($rawOnTime) : null;
 
     $stmt_ontime_last = $pdo->prepare("
-        SELECT COALESCE((SUM(is_on_time) / NULLIF(COUNT(id), 0)) * 100, 100) AS on_time_rate 
+        SELECT (SUM(is_on_time) / NULLIF(COUNT(id), 0)) * 100 AS on_time_rate 
         FROM dispatches 
         WHERE DATE_FORMAT(COALESCE(transit_end_time, dispatch_date, created_at), '%Y-%m') = ? 
           AND status = 'Delivered'
     ");
     $stmt_ontime_last->execute([$lastMonthStr]);
-    $onTimeLastRate = floatval($stmt_ontime_last->fetchColumn() ?? 100);
-    $onTimeChange = $onTimeRate - $onTimeLastRate;
+    $rawOnTimeLast = $stmt_ontime_last->fetchColumn();
+    $onTimeLastRate = ($lastDeliveries > 0 && $rawOnTimeLast !== false && $rawOnTimeLast !== null) ? floatval($rawOnTimeLast) : null;
+
+    $onTimeChange = ($onTimeRate !== null && $onTimeLastRate !== null) ? ($onTimeRate - $onTimeLastRate) : null;
 
     $stmt_cm_curr = $pdo->prepare("
         SELECT COALESCE(SUM(cubic_meters), 0) 
@@ -1435,23 +1438,34 @@ try {
         ? ('₱' . number_format($driverSalariesCurr / 1000, 1) . 'K') 
         : ('₱' . number_format($driverSalariesCurr, 2));
 
+    $onTimeValueStr = ($onTimeRate !== null) ? (number_format($onTimeRate, 1) . '%') : '-';
+    $onTimeSubtext = ($onTimeChange !== null) 
+        ? (($onTimeChange >= 0 ? '+' : '') . number_format($onTimeChange, 1) . '% vs ' . date('M', $lastMonthTimestamp)) 
+        : '-';
+
     $reportKpis = [
         ['title' => 'Driver Payroll', 'value' => $payrollKpiVal, 'subtext' => number_format($salariesChange, 1) . '% vs ' . date('M', $lastMonthTimestamp), 'color_class' => 'bg-blue-500', 'icon_class' => 'fa-wallet'],
         ['title' => 'Volume Delivered', 'value' => number_format($currMonthCm, 2) . ' cu.m', 'subtext' => number_format($cmChange, 1) . '% vs ' . date('M', $lastMonthTimestamp), 'color_class' => 'bg-green-500', 'icon_class' => 'fa-cube'],
         ['title' => 'Deliveries', 'value' => number_format($currDeliveries), 'subtext' => $subtextPeriod, 'color_class' => 'bg-orange-500', 'icon_class' => 'fa-truck-fast'],
-        ['title' => 'On-Time Rate', 'value' => number_format($onTimeRate, 1) . '%', 'subtext' => ($onTimeChange >= 0 ? '+' : '') . number_format($onTimeChange, 1) . '% vs ' . date('M', $lastMonthTimestamp), 'color_class' => 'bg-purple-500', 'icon_class' => 'fa-calendar']
+        ['title' => 'On-Time Rate', 'value' => $onTimeValueStr, 'subtext' => $onTimeSubtext, 'color_class' => 'bg-purple-500', 'icon_class' => 'fa-calendar']
     ];
 
     $performanceMetrics = [
         ['metric' => 'Total Deliveries', 'this_month' => number_format($currDeliveries), 'last_month' => number_format($lastDeliveries), 'change_str' => ($deliveriesChange >= 0 ? '+' : '') . number_format($deliveriesChange, 1) . '%', 'is_positive' => $deliveriesChange >= 0],
         ['metric' => 'Volume Delivered', 'this_month' => number_format($currMonthCm, 2) . ' cu.m', 'last_month' => number_format($lastMonthCm, 2) . ' cu.m', 'change_str' => ($cmChange >= 0 ? '+' : '') . number_format($cmChange, 1) . '%', 'is_positive' => $cmChange >= 0],
         ['metric' => 'Driver Payroll (Salaries)', 'this_month' => '₱' . number_format($driverSalariesCurr, 2), 'last_month' => '₱' . number_format($driverSalariesLast, 2), 'change_str' => ($salariesChange >= 0 ? '+' : '') . number_format($salariesChange, 1) . '%', 'is_positive' => $salariesChange >= 0],
-        ['metric' => 'On-Time Deliveries', 'this_month' => number_format($onTimeRate, 1) . '%', 'last_month' => number_format($onTimeLastRate, 1) . '%', 'change_str' => ($onTimeChange >= 0 ? '+' : '') . number_format($onTimeChange, 1) . '%', 'is_positive' => $onTimeChange >= 0]
+        [
+            'metric' => 'On-Time Deliveries', 
+            'this_month' => ($onTimeRate !== null ? number_format($onTimeRate, 1) . '%' : '-'), 
+            'last_month' => ($onTimeLastRate !== null ? number_format($onTimeLastRate, 1) . '%' : '-'), 
+            'change_str' => ($onTimeChange !== null ? (($onTimeChange >= 0 ? '+' : '') . number_format($onTimeChange, 1) . '%') : '-'), 
+            'is_positive' => ($onTimeChange !== null ? ($onTimeChange >= 0) : true)
+        ]
     ];
 } catch (PDOException $e) {
     $reportKpis = [];
     $performanceMetrics = [];
-    $onTimeRate = 100;
+    $onTimeRate = null;
     $currMonthLabel = date('F Y');
     $lastMonthLabel = date('F Y', strtotime('-1 month'));
     $isHistoricalReport = false;
@@ -1485,7 +1499,7 @@ try {
             DATE_FORMAT(COALESCE(transit_end_time, dispatch_date, created_at), '%Y-%m') AS ym,
             COUNT(id) AS delivery_count,
             COALESCE(SUM(cubic_meters), 0) AS total_cm,
-            COALESCE((SUM(is_on_time) / NULLIF(COUNT(id), 0)) * 100, 100) AS on_time_pct,
+            COALESCE(SUM(is_on_time), 0) AS on_time_count,
             COALESCE(SUM(pay_amount), 0) AS total_payroll,
             destination
         FROM dispatches 
@@ -1503,7 +1517,8 @@ try {
                 'deliveries' => 0,
                 'volume_cm' => 0,
                 'payroll' => 0,
-                'on_time_pct' => 100,
+                'on_time_count' => 0,
+                'on_time_pct' => null,
             ];
         }
         $cnt = intval($adr['delivery_count']);
@@ -1511,8 +1526,17 @@ try {
         $aggArchive[$ym]['volume_cm'] += floatval($adr['total_cm']);
         $pay = floatval($adr['total_payroll']);
         $aggArchive[$ym]['payroll'] += ($pay > 0) ? $pay : (getDestinationPay($adr['destination'], $DISTANCE_KM, $DRIVER_RATES) * $cnt);
-        $aggArchive[$ym]['on_time_pct'] = floatval($adr['on_time_pct']);
+        $aggArchive[$ym]['on_time_count'] += intval($adr['on_time_count']);
     }
+
+    foreach ($aggArchive as $ym => &$mItem) {
+        if ($mItem['deliveries'] > 0) {
+            $mItem['on_time_pct'] = round(($mItem['on_time_count'] / $mItem['deliveries']) * 100, 1);
+        } else {
+            $mItem['on_time_pct'] = null;
+        }
+    }
+    unset($mItem);
 
     foreach ($availableReportMonths as $ym => $label) {
         if (!empty($aggArchive[$ym]) && $aggArchive[$ym]['deliveries'] > 0) {
