@@ -1,4 +1,19 @@
 <?php
+// Catch and display any unhandled error to prevent blank 500 error screen
+set_exception_handler(function ($e) {
+    echo "<!DOCTYPE html><html><head><title>System Notice</title><script src='https://cdn.tailwindcss.com'></script></head><body class='bg-gray-900 text-gray-100 p-6 flex items-center justify-center min-h-screen'>";
+    echo "<div class='max-w-xl w-full bg-gray-800 border border-amber-500/50 rounded-2xl p-6 shadow-2xl space-y-4'>";
+    echo "<div class='flex items-center space-x-3 text-amber-400 font-bold text-lg'><i class='fa-solid fa-triangle-exclamation'></i><span>Dashboard Notice</span></div>";
+    echo "<p class='text-sm text-gray-300'>A database query or configuration item needs attention:</p>";
+    echo "<div class='p-3 bg-gray-900 rounded-xl font-mono text-xs text-amber-300 overflow-auto'>" . htmlspecialchars($e->getMessage()) . "</div>";
+    echo "<p class='text-xs text-gray-400'>File: " . htmlspecialchars(basename($e->getFile())) . " (Line " . $e->getLine() . ")</p>";
+    echo "<div class='pt-2 flex gap-3'>";
+    echo "<a href='../index.php' class='px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition'>Return to Home</a>";
+    echo "<a href='../create_admin.php' class='px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-xl text-xs font-bold transition'>Setup Tool</a>";
+    echo "</div></div></body></html>";
+    exit;
+});
+
 require_once __DIR__ . '/../includes/security_headers.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
@@ -13,30 +28,47 @@ if (empty($_SESSION['csrf_token'])) {
 require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../includes/activity_log.php';
 
+// Check if core tables exist; if system_settings is missing, auto-import ssv_trucking.sql
+try {
+    $hasSettings = $pdo->query("SHOW TABLES LIKE 'system_settings'")->fetch();
+    if (!$hasSettings) {
+        $sqlPath = __DIR__ . '/../ssv_trucking.sql';
+        if (file_exists($sqlPath)) {
+            $sqlContent = file_get_contents($sqlPath);
+            $statements = array_filter(array_map('trim', explode(';', $sqlContent)));
+            foreach ($statements as $stmtSql) {
+                if (!empty($stmtSql) && !str_starts_with($stmtSql, '--') && !str_starts_with($stmtSql, '/*')) {
+                    try {
+                        $pdo->exec($stmtSql);
+                    } catch (Throwable $ignore) {}
+                }
+            }
+        }
+    }
+} catch (Throwable $e) {}
+
 // Safe runtime schema synchronization
 try {
-    $pdo->exec("ALTER TABLE orders ADD COLUMN IF NOT EXISTS contact_number VARCHAR(50) DEFAULT NULL");
-    $pdo->exec("ALTER TABLE orders ADD COLUMN IF NOT EXISTS landmark VARCHAR(255) DEFAULT NULL");
-    $pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS client_name VARCHAR(255) DEFAULT NULL");
-    $pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS contact_number VARCHAR(50) DEFAULT NULL");
-    $pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS landmark VARCHAR(255) DEFAULT NULL");
-} catch (Exception $e) {
     $_ensureCol = function($pdo, $tbl, $col, $def) {
         try {
             $chk = $pdo->query("SHOW COLUMNS FROM `$tbl` LIKE '$col'")->fetch();
             if (!$chk) {
                 $pdo->exec("ALTER TABLE `$tbl` ADD COLUMN `$col` $def");
             }
-        } catch (Exception $ex) {}
+        } catch (Throwable $ex) {}
     };
     $_ensureCol($pdo, 'orders', 'contact_number', 'VARCHAR(50) DEFAULT NULL');
     $_ensureCol($pdo, 'orders', 'landmark', 'VARCHAR(255) DEFAULT NULL');
     $_ensureCol($pdo, 'dispatches', 'client_name', 'VARCHAR(255) DEFAULT NULL');
     $_ensureCol($pdo, 'dispatches', 'contact_number', 'VARCHAR(50) DEFAULT NULL');
     $_ensureCol($pdo, 'dispatches', 'landmark', 'VARCHAR(255) DEFAULT NULL');
-}
+} catch (Throwable $e) {}
 
-$_settings_raw = $pdo->query("SELECT setting_key, setting_value FROM system_settings")->fetchAll(PDO::FETCH_KEY_PAIR);
+try {
+    $_settings_raw = $pdo->query("SELECT setting_key, setting_value FROM system_settings")->fetchAll(PDO::FETCH_KEY_PAIR);
+} catch (Throwable $e) {
+    $_settings_raw = [];
+}
 $GARAGE_NAME = $_settings_raw['garage_name'] ?? 'San Leonardo (Quarry Garage)';
 $GARAGE_LAT  = floatval($_settings_raw['garage_lat'] ?? 15.359042);
 $GARAGE_LNG  = floatval($_settings_raw['garage_lng'] ?? 120.965016);
@@ -44,7 +76,11 @@ $OP_COST_PCT = floatval($_settings_raw['op_cost_pct'] ?? 0.40);
 $BASE_TRIP_RATE = floatval($_settings_raw['base_trip_rate'] ?? 300.00);
 $RATE_PER_KM    = floatval($_settings_raw['rate_per_km'] ?? 10.00);
 
-$_dest_rows  = $pdo->query("SELECT name, driver_rate, distance_km FROM destinations WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $_dest_rows  = $pdo->query("SELECT name, driver_rate, distance_km FROM destinations WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $_dest_rows = [];
+}
 $DRIVER_RATES = [];
 $DISTANCE_KM  = [];
 $destinations = [];
@@ -145,7 +181,7 @@ foreach ($_gravel_rows as $_g) {
 }
 
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
 
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         http_response_code(403);
@@ -1669,21 +1705,21 @@ $activityLogs = $pdo->query("
 // All destinations (incl. inactive) for Settings tab
 $allDestinations = $pdo->query("SELECT * FROM destinations ORDER BY is_active DESC, name ASC")->fetchAll(PDO::FETCH_ASSOC);
 
-include '../includes/header.php';
+include __DIR__ . '/../includes/header.php';
 ?>
 <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 relative">
-    <?php include 'views/home.php';
-    include 'views/tracking.php';
-    include 'views/dispatches.php';
-    include 'views/fleet.php';
-    include 'views/drivers.php';
-    include 'views/orders.php';
-    include 'views/reports.php';
-    include 'views/activity_logs.php';
-    include 'views/pwd_requests.php';
-    include 'views/cash_advances.php';
-    include 'views/settings.php';
-    include 'views/modals.php'; ?>
+    <?php include __DIR__ . '/views/home.php';
+    include __DIR__ . '/views/tracking.php';
+    include __DIR__ . '/views/dispatches.php';
+    include __DIR__ . '/views/fleet.php';
+    include __DIR__ . '/views/drivers.php';
+    include __DIR__ . '/views/orders.php';
+    include __DIR__ . '/views/reports.php';
+    include __DIR__ . '/views/activity_logs.php';
+    include __DIR__ . '/views/pwd_requests.php';
+    include __DIR__ . '/views/cash_advances.php';
+    include __DIR__ . '/views/settings.php';
+    include __DIR__ . '/views/modals.php'; ?>
 </div>
 </div><!-- close #main-content -->
 <?php if (isset($_SESSION['auto_print_id'])):
@@ -1724,4 +1760,4 @@ include '../includes/header.php';
         });
     </script>
 <?php endif; ?>
-<?php include '../includes/scripts.php'; ?>
+<?php include __DIR__ . '/../includes/scripts.php'; ?>

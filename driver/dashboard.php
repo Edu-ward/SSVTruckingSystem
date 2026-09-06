@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/security_headers.php';
-require '../db.php';
+require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../includes/activity_log.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Driver') {
@@ -185,15 +185,15 @@ $caSumStmt->execute([$driver_id]);
 $totalCashAdvancesClaimed = floatval($caSumStmt->fetchColumn());
 $netPay = max(0, $driverGrossEarnings + $driverRemainingBalance - $totalCashAdvancesClaimed);
 
-include '../includes/header.php';
+include __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
     <?php
-    include 'views/home.php';
-    include 'views/modals.php';
+    include __DIR__ . '/views/home.php';
+    include __DIR__ . '/views/modals.php';
     ?>
 </div>
 </div>
 
-<?php include '../includes/scripts.php'; ?>
+<?php include __DIR__ . '/../includes/scripts.php'; ?>

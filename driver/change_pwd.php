@@ -1,6 +1,6 @@
 <?php
-session_start();
-require '../db.php';
+require_once __DIR__ . '/../includes/security_headers.php';
+require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../includes/activity_log.php';
 
 header('Content-Type: application/json');

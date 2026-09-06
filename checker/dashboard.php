@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/security_headers.php';
-require '../db.php';
+require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../includes/activity_log.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Checker') {
@@ -15,13 +15,15 @@ if (empty($_SESSION['csrf_token'])) {
 
 $checker_id = $_SESSION['user_id'];
 
-$pdo->exec("CREATE TABLE IF NOT EXISTS checkers (
-    id INT PRIMARY KEY,
-    first_name VARCHAR(100),
-    last_name VARCHAR(100),
-    phone VARCHAR(20),
-    FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
-)");
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS checkers (
+        id INT PRIMARY KEY,
+        first_name VARCHAR(100),
+        last_name VARCHAR(100),
+        phone VARCHAR(20),
+        FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
+    )");
+} catch (Throwable $e) {}
 
 $stmt_profile = $pdo->prepare("SELECT u.username, c.first_name, c.last_name, c.phone FROM users u LEFT JOIN checkers c ON u.id = c.id WHERE u.id = ?");
 $stmt_profile->execute([$checker_id]);
@@ -34,11 +36,21 @@ if ($checker_profile && $checker_profile['first_name'] === null && $checker_prof
     }
 }
 
-$pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS cubic_meters DECIMAL(10,2) DEFAULT 0.00");
-$pdo->exec("ALTER TABLE orders ADD COLUMN IF NOT EXISTS cubic_meters_required DECIMAL(10,2) DEFAULT 0.00");
-$pdo->exec("ALTER TABLE orders ADD COLUMN IF NOT EXISTS cubic_meters_fulfilled DECIMAL(10,2) DEFAULT 0.00");
-$pdo->exec("UPDATE orders SET cubic_meters_required = trucks_required WHERE (cubic_meters_required IS NULL OR cubic_meters_required = 0.00) AND trucks_required > 0");
-$pdo->exec("UPDATE orders SET cubic_meters_fulfilled = trucks_fulfilled WHERE (cubic_meters_fulfilled IS NULL OR cubic_meters_fulfilled = 0.00) AND trucks_fulfilled > 0");
+try {
+    $_ensureCol = function($pdo, $tbl, $col, $def) {
+        try {
+            $chk = $pdo->query("SHOW COLUMNS FROM `$tbl` LIKE '$col'")->fetch();
+            if (!$chk) {
+                $pdo->exec("ALTER TABLE `$tbl` ADD COLUMN `$col` $def");
+            }
+        } catch (Throwable $ex) {}
+    };
+    $_ensureCol($pdo, 'dispatches', 'cubic_meters', 'DECIMAL(10,2) DEFAULT 0.00');
+    $_ensureCol($pdo, 'orders', 'cubic_meters_required', 'DECIMAL(10,2) DEFAULT 0.00');
+    $_ensureCol($pdo, 'orders', 'cubic_meters_fulfilled', 'DECIMAL(10,2) DEFAULT 0.00');
+    $pdo->exec("UPDATE orders SET cubic_meters_required = trucks_required WHERE (cubic_meters_required IS NULL OR cubic_meters_required = 0.00) AND trucks_required > 0");
+    $pdo->exec("UPDATE orders SET cubic_meters_fulfilled = trucks_fulfilled WHERE (cubic_meters_fulfilled IS NULL OR cubic_meters_fulfilled = 0.00) AND trucks_fulfilled > 0");
+} catch (Throwable $e) {}
 
 $checker_full_name = ($checker_profile && !empty($checker_profile['first_name']))
     ? ($checker_profile['first_name'] . ' ' . $checker_profile['last_name'])
@@ -186,7 +198,7 @@ $dispatchedTrucks = $pdo->query("
     ORDER BY (d.id IS NOT NULL) DESC, t.truck_code ASC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-include '../includes/header.php';
+include __DIR__ . '/../includes/header.php';
 
 $_gravel_rows = $pdo->query("SELECT type_key, label FROM gravel_types WHERE is_active = 1 ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
 $gravelTypeLabels = [];
@@ -657,4 +669,4 @@ foreach ($_gravel_rows as $_g) {
 </script>
 
 </div><!-- close #main-content -->
-<?php include '../includes/scripts.php'; ?>
+<?php include __DIR__ . '/../includes/scripts.php'; ?>

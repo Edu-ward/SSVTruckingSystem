@@ -7,7 +7,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     exit;
 }
 
-require_once '../db.php';
+require_once __DIR__ . '/../db.php';
 
 $plate = trim($_GET['plate'] ?? '');
 
