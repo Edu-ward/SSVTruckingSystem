@@ -138,37 +138,35 @@
         </div>
     </div>
 
-    <!-- Historical Monthly Archive Table -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-                <h3 class="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                    <i class="fa-solid fa-calendar-check text-blue-500"></i>
-                    <span>Historical Monthly Reports Archive</span>
-                </h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Summary of deliveries, volume, driver payroll, and efficiency across past months</p>
-            </div>
-            <?php if (!empty($monthlyArchive)): ?>
+    <?php if (!empty($monthlyArchive)): ?>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                    <h3 class="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                        <i class="fa-solid fa-calendar-check text-blue-500"></i>
+                        <span>Historical Monthly Reports Archive</span>
+                    </h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Summary of deliveries, volume, driver payroll, and efficiency across past months</p>
+                </div>
                 <span class="text-xs font-semibold px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg self-start sm:self-auto">
-                    <?= count($monthlyArchive); ?> Months Available
+                    <?= count($monthlyArchive); ?> Month<?= count($monthlyArchive) === 1 ? '' : 's'; ?> Available
                 </span>
-            <?php endif; ?>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-gray-600 dark:text-gray-300">
-                <thead class="bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-200 font-semibold border-b border-gray-100 dark:border-gray-700">
-                    <tr>
-                        <th class="px-6 py-4">Month Period</th>
-                        <th class="px-6 py-4">Deliveries</th>
-                        <th class="px-6 py-4">Volume Delivered</th>
-                        <th class="px-6 py-4">Driver Payroll</th>
-                        <th class="px-6 py-4">On-Time Rate</th>
-                        <th class="px-6 py-4 text-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                    <?php if (!empty($monthlyArchive)): ?>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-gray-600 dark:text-gray-300">
+                    <thead class="bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-200 font-semibold border-b border-gray-100 dark:border-gray-700">
+                        <tr>
+                            <th class="px-6 py-4">Month Period</th>
+                            <th class="px-6 py-4">Deliveries</th>
+                            <th class="px-6 py-4">Volume Delivered</th>
+                            <th class="px-6 py-4">Driver Payroll</th>
+                            <th class="px-6 py-4">On-Time Rate</th>
+                            <th class="px-6 py-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                         <?php foreach ($monthlyArchive as $ma): 
+                            if (empty($ma['deliveries']) || $ma['deliveries'] <= 0) continue;
                             $isSelected = ($ma['ym'] === $currMonthStr);
                             $isCurrent = ($ma['ym'] === date('Y-m'));
                         ?>
@@ -217,13 +215,9 @@
                                 </td>
                             </tr>
                         <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="6" class="px-6 py-8 text-center text-gray-400 text-xs italic">No monthly reports data available.</td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
+    <?php endif; ?>
 </div>

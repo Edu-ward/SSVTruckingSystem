@@ -1457,11 +1457,9 @@ try {
     $isHistoricalReport = false;
 }
 
-$availableReportMonths = [];
-for ($m = 0; $m < 12; $m++) {
-    $mVal = date('Y-m', strtotime("-$m months"));
-    $availableReportMonths[$mVal] = date('F Y', strtotime("-$m months"));
-}
+$availableReportMonths = [
+    date('Y-m') => date('F Y')
+];
 try {
     $dbMonths = $pdo->query("
         SELECT DISTINCT DATE_FORMAT(COALESCE(transit_end_time, dispatch_date, created_at), '%Y-%m') AS m_val 
@@ -1517,15 +1515,11 @@ try {
     }
 
     foreach ($availableReportMonths as $ym => $label) {
-        $row = $aggArchive[$ym] ?? [
-            'ym' => $ym,
-            'deliveries' => 0,
-            'volume_cm' => 0,
-            'payroll' => 0,
-            'on_time_pct' => 100
-        ];
-        $row['label'] = $label;
-        $monthlyArchive[] = $row;
+        if (!empty($aggArchive[$ym]) && $aggArchive[$ym]['deliveries'] > 0) {
+            $row = $aggArchive[$ym];
+            $row['label'] = $label;
+            $monthlyArchive[] = $row;
+        }
     }
 } catch (PDOException $e) {}
 
