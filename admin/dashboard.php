@@ -1231,7 +1231,30 @@ $rfidActive = $pdo->query("SELECT COUNT(*) FROM trucks WHERE rfid_active = 1")->
 $fleetStatusData = $pdo->query("SELECT status, COUNT(*) as count FROM trucks GROUP BY status")->fetchAll(PDO::FETCH_ASSOC);
 $recentDispatches = $pdo->query("SELECT d.ticket_number, t.truck_code, CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name, d.status, d.destination FROM dispatches d LEFT JOIN trucks t ON d.truck_id = t.id LEFT JOIN drivers dr ON d.driver_id = dr.id ORDER BY d.id DESC LIMIT 5")->fetchAll(PDO::FETCH_ASSOC);
 
-$trackingTrucks = $pdo->query("SELECT t.truck_code, t.status, t.current_location, t.speed, t.latitude, t.longitude, CONCAT(d.first_name, ' ', d.last_name) AS driver_name FROM trucks t LEFT JOIN drivers d ON t.id = d.truck_id WHERE t.status != 'Idle' AND t.latitude IS NOT NULL")->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $trackingTrucks = $pdo->query("
+        SELECT 
+            t.id,
+            t.truck_code, 
+            t.status, 
+            t.current_location, 
+            t.speed, 
+            t.latitude, 
+            t.longitude, 
+            CONCAT(d.first_name, ' ', d.last_name) AS driver_name,
+            disp.destination,
+            disp.ticket_number,
+            disp.transit_start_time,
+            COALESCE(disp.estimated_arrival_time, DATE_ADD(disp.transit_start_time, INTERVAL 45 MINUTE), DATE_ADD(disp.created_at, INTERVAL 45 MINUTE)) AS estimated_arrival_time
+        FROM trucks t 
+        LEFT JOIN drivers d ON t.id = d.truck_id 
+        LEFT JOIN dispatches disp ON t.id = disp.truck_id AND disp.status IN ('Pending', 'Loading', 'In Transit', 'Unloading')
+        WHERE t.status != 'Idle' AND t.latitude IS NOT NULL
+        ORDER BY (disp.id IS NOT NULL) DESC, t.truck_code ASC
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $trackingTrucks = [];
+}
 
 $allDispatches = $pdo->query("SELECT d.id, d.ticket_number, d.driver_id, d.cubic_meters, d.order_id, o.order_number, t.truck_code, CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name, d.status, d.destination, d.created_at, d.transit_start_time, d.transit_end_time, COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name, COALESCE(NULLIF(d.contact_number, ''), o.contact_number) AS contact_number, COALESCE(NULLIF(d.landmark, ''), o.landmark) AS landmark FROM dispatches d LEFT JOIN trucks t ON d.truck_id = t.id LEFT JOIN drivers dr ON d.driver_id = dr.id LEFT JOIN orders o ON d.order_id = o.id ORDER BY d.id DESC")->fetchAll(PDO::FETCH_ASSOC);
 $activeTickets = array_filter($allDispatches, function ($d) {

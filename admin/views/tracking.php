@@ -70,10 +70,48 @@
                                 <i class="fa-solid fa-location-dot w-4 text-center text-rose-500"></i>
                                 <span class="truncate"><?= htmlspecialchars($truck['current_location']); ?></span>
                             </div>
+                            <?php if (!empty($truck['destination'])): ?>
+                                <div class="flex items-center space-x-2">
+                                    <i class="fa-solid fa-flag-checkered w-4 text-center text-indigo-500"></i>
+                                    <span class="truncate">To: <strong class="text-gray-800 dark:text-gray-200"><?= htmlspecialchars($truck['destination']); ?></strong></span>
+                                </div>
+                            <?php endif; ?>
                             <div class="flex items-center space-x-2">
                                 <i class="fa-solid fa-gauge-high w-4 text-center text-blue-500"></i>
                                 <span>Speed: <strong class="font-bold text-gray-800 dark:text-gray-200"><?= htmlspecialchars($truck['speed']); ?> mph</strong></span>
                             </div>
+                            <?php if (!empty($truck['estimated_arrival_time'])): 
+                                $etaTs = strtotime($truck['estimated_arrival_time']);
+                                $nowTs = time();
+                                $diffMins = round(($etaTs - $nowTs) / 60);
+                                $etaFormatted = date('g:i A', $etaTs);
+                                $etaDateFormatted = (date('Y-m-d', $etaTs) !== date('Y-m-d', $nowTs)) ? date('M d, ', $etaTs) : '';
+                                
+                                if ($diffMins > 0) {
+                                    $badgeColor = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-800/40';
+                                    $iconColor = 'text-emerald-500';
+                                    $relText = "in {$diffMins} min" . ($diffMins > 1 ? 's' : '');
+                                } else if ($diffMins >= -15) {
+                                    $badgeColor = 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200/70 dark:border-blue-800/40';
+                                    $iconColor = 'text-blue-500';
+                                    $relText = "Arriving now";
+                                } else {
+                                    $badgeColor = 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/70 dark:border-amber-800/40';
+                                    $iconColor = 'text-amber-500';
+                                    $relText = abs($diffMins) . "m past schedule";
+                                }
+                            ?>
+                                <div class="flex items-center justify-between p-2 rounded-xl border <?= $badgeColor; ?> mt-2">
+                                    <div class="flex items-center space-x-1.5">
+                                        <i class="fa-regular fa-clock text-xs <?= $iconColor; ?>"></i>
+                                        <span class="text-[11px] font-semibold">Est. Arrival (ETA):</span>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="font-bold text-xs font-mono"><?= $etaDateFormatted . $etaFormatted; ?></span>
+                                        <span class="text-[10px] opacity-80 block leading-tight font-medium">(<?= $relText; ?>)</span>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
                         </div>
 
                         <?php if ($truck['status'] == 'Loading'): ?>

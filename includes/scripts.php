@@ -272,16 +272,58 @@
                 });
 
                 const statusBadgeBg = truck.status === 'In Transit' ? 'bg-emerald-600' : (truck.status === 'Idle' ? 'bg-amber-600' : 'bg-blue-600');
+                let etaHtml = '';
+                if (truck.estimated_arrival_time) {
+                    try {
+                        const etaDate = new Date(truck.estimated_arrival_time.replace(' ', 'T'));
+                        if (!isNaN(etaDate.getTime())) {
+                            const now = new Date();
+                            const diffMins = Math.round((etaDate.getTime() - now.getTime()) / 60000);
+                            const timeStr = etaDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                            let relStr = '';
+                            let badgeBg = 'background: rgba(16, 185, 129, 0.1); color: #059669; border-color: rgba(16, 185, 129, 0.3);';
+                            if (diffMins > 0) {
+                                relStr = `in ${diffMins} min${diffMins > 1 ? 's' : ''}`;
+                            } else if (diffMins >= -15) {
+                                relStr = 'Arriving now';
+                                badgeBg = 'background: rgba(59, 130, 246, 0.1); color: #2563eb; border-color: rgba(59, 130, 246, 0.3);';
+                            } else {
+                                relStr = `${Math.abs(diffMins)}m past ETA`;
+                                badgeBg = 'background: rgba(245, 158, 11, 0.1); color: #d97706; border-color: rgba(245, 158, 11, 0.3);';
+                            }
+                            etaHtml = `
+                                <div style="margin-top: 6px; padding: 4px 8px; border-radius: 8px; border: 1px solid; display: flex; align-items: center; justify-content: space-between; font-size: 11px; ${badgeBg}">
+                                    <span style="font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                                        <i class="fa-regular fa-clock"></i> ETA:
+                                    </span>
+                                    <span style="font-weight: 700; font-family: monospace;">${timeStr} <span style="font-weight: 500; font-size: 10px; opacity: 0.85;">(${relStr})</span></span>
+                                </div>
+                            `;
+                        }
+                    } catch (e) {}
+                }
+
+                const isDark = document.documentElement.classList.contains('dark');
+                const titleColor = isDark ? '#f9fafb' : '#111827';
+                const subColor = isDark ? '#d1d5db' : '#4b5563';
+                const mutedColor = isDark ? '#9ca3af' : '#6b7280';
+                const borderColor = isDark ? '#374151' : '#e5e7eb';
+
                 const popupContent = `
-                    <div class="p-1 min-w-[170px]">
-                        <div class="font-bold text-gray-900 text-sm flex items-center justify-between pb-1 border-b border-gray-100">
+                    <div class="osm-popup-card" style="padding: 8px 10px; min-width: 200px; max-width: 270px; font-family: inherit;">
+                        <div style="font-weight: 700; font-size: 13px; color: ${titleColor}; display: flex; align-items: center; justify-content: space-between; padding-bottom: 5px; border-bottom: 1px solid ${borderColor};">
                             <span>${truck.truck_code}</span>
                             <span class="text-[10px] px-2 py-0.5 rounded-full text-white font-semibold ${statusBadgeBg}">${truck.status}</span>
                         </div>
-                        <div class="text-xs text-gray-600 mt-1.5 font-medium"><i class="fa-regular fa-user mr-1.5 text-blue-500"></i>${truck.driver_name || 'Unassigned'}</div>
-                        <div class="text-xs text-gray-500 mt-1"><i class="fa-solid fa-location-dot mr-1.5 text-red-500"></i>${truck.current_location || 'San Leonardo'}</div>
-                        ${truck.destination ? '<div class="text-xs text-indigo-600 font-semibold mt-1"><i class="fa-solid fa-arrow-right mr-1.5"></i>To: ' + truck.destination + '</div>' : ''}
-                        ${truck.speed ? '<div class="text-[11px] text-gray-400 mt-1"><i class="fa-solid fa-gauge mr-1.5"></i>Speed: ' + truck.speed + ' mph</div>' : ''}
+                        <div style="font-size: 12px; color: ${subColor}; margin-top: 5px; font-weight: 500;">
+                            <i class="fa-regular fa-user mr-1.5 text-blue-500"></i>${truck.driver_name || 'Unassigned'}
+                        </div>
+                        <div style="font-size: 11.5px; color: ${mutedColor}; margin-top: 3px;">
+                            <i class="fa-solid fa-location-dot mr-1.5 text-rose-500"></i>${truck.current_location || 'San Leonardo'}
+                        </div>
+                        ${truck.destination ? '<div style="font-size: 12px; font-weight: 600; color: #6366f1; margin-top: 4px;"><i class="fa-solid fa-flag-checkered mr-1.5"></i>To: ' + truck.destination + '</div>' : ''}
+                        ${etaHtml}
+                        ${truck.speed ? '<div style="font-size: 11px; color: ' + mutedColor + '; margin-top: 4px;"><i class="fa-solid fa-gauge-high mr-1.5 text-blue-400"></i>Speed: ' + truck.speed + ' mph</div>' : ''}
                     </div>
                 `;
                 const latLng = [parseFloat(truck.latitude), parseFloat(truck.longitude)];

@@ -24,7 +24,8 @@ $stmt = $pdo->query("
         CONCAT(d.first_name, ' ', d.last_name) AS driver_name,
         disp.destination,
         disp.ticket_number,
-        disp.transit_start_time
+        disp.transit_start_time,
+        COALESCE(disp.estimated_arrival_time, DATE_ADD(disp.transit_start_time, INTERVAL 45 MINUTE), DATE_ADD(disp.created_at, INTERVAL 45 MINUTE)) AS estimated_arrival_time
     FROM trucks t
     LEFT JOIN drivers d   ON t.id = d.truck_id
     LEFT JOIN dispatches disp ON t.id = disp.truck_id 
