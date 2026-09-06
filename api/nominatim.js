@@ -1,20 +1,12 @@
-/**
- * Map Geocoding & Distance Service
- * SSV Trucking System
- * Relies directly on map coordinates, Leaflet map geometry, and BigDataCloud / OSM APIs.
- * NO hardcoded latitude/longitude dictionary.
- */
 const NominatimService = (function () {
     const cache = {};
 
-    // SSV Quarry Garage coordinates (Brgy. Burgos, San Leonardo, Nueva Ecija)
     const GARAGE_COORDS = {
         name: "San Leonardo (SSV Quarry Garage)",
         lat: 15.359042,
         lng: 120.965016
     };
 
-    // Helper: Detect if a location name/address is within San Leonardo
     function isWithinSanLeonardo(name) {
         if (!name || typeof name !== 'string') return false;
         const lower = name.toLowerCase();
@@ -27,9 +19,6 @@ const NominatimService = (function () {
         return slBarangays.some(b => new RegExp('\\b' + b + '\\b', 'i').test(lower));
     }
 
-    // Helper: get the round-trip boundary distance from garage to San Leonardo border
-    // Default: 12 km round-trip (e.g. 6 km one-way towards Gapan, Santa Rosa, Jaen, etc.)
-    // Towards East: 6 km round-trip (Peñaranda ~3 km one-way)
     function getSanLeonardoBoundaryDistance(name = '', destLat = null, destLng = null) {
         if (name) {
             const lower = name.toLowerCase();
@@ -48,11 +37,6 @@ const NominatimService = (function () {
         return 12; // 12 km round-trip from garage to San Leonardo municipal boundary
     }
 
-    /**
-     * Helper: Calculate driver trip pay
-     * - Trips within San Leonardo: Flat rate (custom rate if set > 0, else global base rate)
-     * - Trips outside San Leonardo: base rate + rate/km for distance outside (deducting boundary distance, e.g. 12 km)
-     */
     function calculateTripPay(km, name = '', destLat = null, destLng = null, customRate = null) {
         const rounded = Math.round(km);
         const globalBase = (typeof window !== 'undefined' && window.BASE_TRIP_RATE) ? Number(window.BASE_TRIP_RATE) : 300.00;
@@ -90,13 +74,6 @@ const NominatimService = (function () {
         };
     }
 
-    /**
-     * Calculate geodesic distance directly between two map coordinate points
-     * Uses the Haversine formula (same as Leaflet's L.latLng.distanceTo).
-     * Multiplies by 1.25 driving road curvature factor.
-     * Back and Forth (Round Trip): 2x distance, minimum 2 km.
-     * Driver pay: Flat ₱300 for San Leonardo, ₱300 + ₱10/km outside (garage to boundary distance deducted).
-     */
     function calculateMapDistance(destLat, destLng, origLat = GARAGE_COORDS.lat, origLng = GARAGE_COORDS.lng, destName = '') {
         if (destLat == null || destLng == null || isNaN(destLat) || isNaN(destLng)) return null;
 
@@ -109,10 +86,8 @@ const NominatimService = (function () {
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const straightLineKm = R * c;
 
-        // 1.25 road curvature multiplier to convert straight-line to actual driving distance
         const roadOneWayKm = straightLineKm * 1.25;
 
-        // Back and forth (round trip): 2x distance
         const roundTripKm = roadOneWayKm * 2;
         let roundedKm = Math.round(roundTripKm);
         if (roundedKm < 2 && straightLineKm > 0) roundedKm = 2;
@@ -136,11 +111,6 @@ const NominatimService = (function () {
         };
     }
 
-    /**
-     * Reverse geocode coordinates to human-readable address:
-     * Primary: BigDataCloud Reverse Geocoding API (Fast, Free, Client-side browser friendly, no CORS issues)
-     * Fallback: OpenStreetMap Nominatim
-     */
     async function reverseGeocode(lat, lng) {
         if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) return null;
 
@@ -149,7 +119,6 @@ const NominatimService = (function () {
             return cache[cacheKey];
         }
 
-        // 1. Try BigDataCloud API
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 2000);
@@ -164,7 +133,6 @@ const NominatimService = (function () {
                 if (data.locality && data.locality !== data.city) parts.push(data.locality);
                 if (data.city) parts.push(data.city);
 
-                // Province from administrative list
                 if (data.localityInfo && data.localityInfo.administrative) {
                     for (const adm of data.localityInfo.administrative) {
                         if (adm.description && adm.description.toLowerCase().includes('province') && !parts.includes(adm.name)) {
@@ -192,7 +160,6 @@ const NominatimService = (function () {
             console.warn('BigDataCloud geocode failed, falling back to OSM:', e);
         }
 
-        // 2. Fallback: OSM Nominatim
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 2500);
@@ -226,7 +193,6 @@ const NominatimService = (function () {
             console.warn('OSM reverse geocode error:', err);
         }
 
-        // Fallback default coordinates label
         return {
             formatted: `Point at ${parseFloat(lat).toFixed(4)}, ${parseFloat(lng).toFixed(4)}`,
             displayName: `Point at ${parseFloat(lat).toFixed(4)}, ${parseFloat(lng).toFixed(4)}`,
@@ -235,11 +201,6 @@ const NominatimService = (function () {
         };
     }
 
-    /**
-     * Search address or place name
-     * Primary: Komoot Photon API (OSM-backed, ultra fast <200ms, no rate limiting, biased around Nueva Ecija)
-     * Fallback: OpenStreetMap Nominatim
-     */
     async function searchAddress(query) {
         if (!query || query.trim().length < 2) return [];
         const cleanQuery = query.trim();
@@ -247,7 +208,6 @@ const NominatimService = (function () {
         const cacheKey = `search:${cleanQuery.toLowerCase()}`;
         if (cache[cacheKey]) return cache[cacheKey];
 
-        // 1. Try Komoot Photon API (Ultra fast & CORS friendly)
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 2000);
@@ -288,7 +248,6 @@ const NominatimService = (function () {
             console.warn('Photon search error, falling back to OSM Nominatim:', photonErr);
         }
 
-        // 2. Fallback: OpenStreetMap Nominatim
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 2500);
@@ -328,13 +287,7 @@ const NominatimService = (function () {
         }
     }
 
-    /**
-     * Query road driving route distance:
-     * First computes map distance immediately (0ms).
-     * Attempts OSRM routing with a short 1.2s timeout to refine if network allows.
-     */
     async function calculateDrivingDistance(destLat, destLng, origLat = GARAGE_COORDS.lat, origLng = GARAGE_COORDS.lng, destName = '') {
-        // Immediate baseline from the map (0ms, 100% reliable)
         const mapDist = calculateMapDistance(destLat, destLng, origLat, origLng, destName);
         if (!mapDist) return null;
 
@@ -374,16 +327,12 @@ const NominatimService = (function () {
                 }
             }
         } catch (e) {
-            // OSRM failed or timed out — return map distance
         }
 
         cache[cacheKey] = mapDist;
         return mapDist;
     }
 
-    /**
-     * Resolve distance for destination name by searching map
-     */
     async function getDistanceForDestination(destName, origLat = GARAGE_COORDS.lat, origLng = GARAGE_COORDS.lng) {
         if (!destName || typeof destName !== 'string') return null;
 

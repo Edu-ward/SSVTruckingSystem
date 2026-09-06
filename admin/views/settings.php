@@ -283,7 +283,6 @@
         lng: 120.965016
     };
 
-    // Known coordinates dictionary for instantaneous preset response
     const PRESET_COORDS = {
         'gapan': {
             name: 'Gapan City, Nueva Ecija',
@@ -372,12 +371,12 @@
         });
         window.settingsSimulatorMap = settingsSimMap;
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors',
-            maxZoom: 19
+        L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            attribution: '&copy; Google Maps Satellite'
         }).addTo(settingsSimMap);
 
-        // Garage Marker Icon
         const garageIcon = L.divIcon({
             className: 'sim-garage-icon',
             html: `<div style="background:#2563eb;color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,0.3);border:2px solid #fff;"><i class="fa-solid fa-warehouse" style="font-size:14px;"></i></div>`,
@@ -402,7 +401,6 @@
                 </div>
             `);
 
-        // Municipal boundary radius indicator (approx 6km radius = 12km RT diameter)
         simBoundaryCircle = L.circle([GARAGE_LOCATION.lat, GARAGE_LOCATION.lng], {
             radius: 6000,
             color: '#10b981',
@@ -412,19 +410,16 @@
             fillOpacity: 0.06
         }).addTo(settingsSimMap);
 
-        // Map click handler to test any coordinate
         settingsSimMap.on('click', async function(e) {
             await simulateLocation(e.latlng.lat, e.latlng.lng, 'Selected Map Location');
         });
 
-        // Default simulation: Gapan City (22 km RT)
         testPresetDest('Gapan City, Nueva Ecija');
     }
 
     async function simulateLocation(lat, lng, label = '') {
         if (!settingsSimMap) initSettingsSimulatorMap();
 
-        // Reverse geocode if label is generic
         let destName = label;
         if (!destName || destName === 'Selected Map Location') {
             try {
@@ -438,14 +433,12 @@
             }
         }
 
-        // Update search bar input to reflect current simulated place
         const searchInput = document.getElementById('simSearchInput');
         if (searchInput && destName && !destName.startsWith('Location (')) {
             searchInput.value = destName;
             document.getElementById('simClearBtn')?.classList.remove('hidden');
         }
 
-        // 1. Calculate dynamic distance using NominatimService / Haversine road curvature (round-trip x2)
         let distInfo = null;
         if (typeof NominatimService !== 'undefined' && NominatimService.calculateMapDistance) {
             distInfo = NominatimService.calculateMapDistance(lat, lng, GARAGE_LOCATION.lat, GARAGE_LOCATION.lng, destName);
@@ -460,7 +453,6 @@
         }
         if (roundedKm < 2) roundedKm = 2;
 
-        // 2. Calculate driver pay using boundary deduction
         let payInfo = null;
         if (typeof NominatimService !== 'undefined' && NominatimService.calculateTripPay) {
             payInfo = NominatimService.calculateTripPay(roundedKm, destName, lat, lng);
@@ -487,7 +479,6 @@
         const outsideKmNum = Number(payInfo.outsideKm) || 0;
         const boundaryKmNum = Number(payInfo.boundaryKm) || (payInfo.isWithin ? 0 : 12);
 
-        // 3. Update UI Output Elements
         document.getElementById('simResultDest').textContent = destName;
         document.getElementById('simResultDest').title = destName;
         document.getElementById('simResultCoords').textContent = `Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`;
@@ -506,7 +497,6 @@
             badgeEl.className = 'px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 shrink-0';
         }
 
-        // 4. Update Map Elements
         if (simDestMarker) settingsSimMap.removeLayer(simDestMarker);
         if (simRouteLine) settingsSimMap.removeLayer(simRouteLine);
 
@@ -560,7 +550,6 @@
             dashArray: '6, 8'
         }).addTo(settingsSimMap);
 
-        // Fit bounds to display both points
         const bounds = L.latLngBounds([
             [GARAGE_LOCATION.lat, GARAGE_LOCATION.lng],
             [lat, lng]
@@ -596,7 +585,6 @@
         try {
             const lower = query.toLowerCase();
 
-            // Check preset dictionary for instant coordinates
             for (const [key, item] of Object.entries(PRESET_COORDS)) {
                 if (lower.includes(key)) {
                     await simulateLocation(item.lat, item.lng, item.name);
@@ -604,7 +592,6 @@
                 }
             }
 
-            // Try NominatimService search
             if (typeof NominatimService !== 'undefined' && NominatimService.searchAddress) {
                 const results = await NominatimService.searchAddress(query);
                 if (results && results.length > 0) {
@@ -614,7 +601,6 @@
                 }
             }
 
-            // Fallback search fetch
             const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(query + ', Nueva Ecija, Philippines')}&limit=1`);
             const data = await res.json();
             if (data && data.length > 0) {

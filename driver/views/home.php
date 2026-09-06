@@ -7,7 +7,6 @@
             ? '../' . htmlspecialchars($driverPhotoPath) . '?v=' . filemtime($driverPhotoFull)
             : null;
 
-        // Build initials for avatar fallback
         $initials = 'DR';
         if (!empty($driverFullName)) {
             $parts = explode(' ', $driverFullName);
@@ -105,7 +104,6 @@
                 return;
             }
 
-            // Show preview bar
             const reader = new FileReader();
             reader.onload = function (e) {
                 document.getElementById('photoPreviewImg').src = e.target.result;
@@ -643,7 +641,6 @@
         </div>
 
 <script>
-    // ==================== DRIVER ROUTE & MAP NAVIGATION ENGINE ====================
     let driverMap = null;
     let driverRoutePolyline = null;
     let driverOriginMarker = null;
@@ -659,7 +656,6 @@
         lng: 120.965016
     };
 
-    // Fast coordinate lookup for standard provincial destinations
     const PRESET_DESTINATION_COORDS = {
         "San Leonardo": { lat: 15.359042, lng: 120.965016 },
         "Gapan": { lat: 15.3089, lng: 120.9464 },
@@ -711,32 +707,10 @@
         if (!mapContainer || typeof L === 'undefined') return;
 
         try {
-            // Layer providers
-            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                subdomains: ['a', 'b', 'c'],
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            });
-
-            const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, USGS, AeroGRID, IGN, and GIS User Community'
-            });
-            const esriLabels = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19
-            });
-            const satelliteLayer = L.layerGroup([esriImagery, esriLabels]);
-
-            const voyagerLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            const googleSatLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
                 maxZoom: 20,
-                subdomains: 'abcd',
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            });
-
-            const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                maxZoom: 20,
-                subdomains: 'abcd',
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                attribution: '&copy; Google Maps Satellite'
             });
 
             const googleStreetLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
@@ -745,29 +719,35 @@
                 attribution: '&copy; Google Maps'
             });
 
-            const googleSatLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                maxZoom: 20,
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                attribution: '&copy; Google Maps Satellite'
+            const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles &copy; Esri'
+            });
+            const esriLabels = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19
+            });
+            const satelliteLayer = L.layerGroup([esriImagery, esriLabels]);
+
+            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                subdomains: ['a', 'b', 'c'],
+                attribution: '&copy; OpenStreetMap contributors'
             });
 
             driverMap = L.map('driverRouteMap', {
                 center: [GARAGE_LOCATION.lat, GARAGE_LOCATION.lng],
                 zoom: 12,
-                layers: [streetLayer],
+                layers: [googleSatLayer],
                 zoomControl: true
             });
 
             L.control.layers({
-                "🗺️ OpenStreetMap": streetLayer,
-                "🛰️ Satellite (Hybrid)": satelliteLayer,
-                "🚗 Navigation (Voyager)": voyagerLayer,
-                "🌙 Dark Mode": darkLayer,
+                "🛰️ Google Satellite": googleSatLayer,
                 "🌐 Google Streets": googleStreetLayer,
-                "🛰️ Google Satellite": googleSatLayer
+                "🛰️ Satellite (Hybrid)": satelliteLayer,
+                "🗺️ OpenStreetMap": streetLayer
             }, null, { position: 'topright' }).addTo(driverMap);
 
-            // Add Origin marker (Quarry)
             const originIcon = L.divIcon({
                 className: 'custom-origin-icon',
                 html: `<div class="w-9 h-9 rounded-2xl bg-indigo-600 border-2 border-white text-white flex items-center justify-center shadow-lg transform -translate-x-1/2 -translate-y-1/2"><i class="fa-solid fa-warehouse text-sm"></i></div>`,
@@ -786,7 +766,6 @@
                     </div>
                 `);
 
-            // Initialize Driver GPS tracking and route plotting
             resolveAndPlotRoute(activeDestName);
             startDriverLiveLocation();
 
@@ -811,7 +790,6 @@
         if (distEl) distEl.textContent = 'Calculating...';
         if (durEl) durEl.textContent = 'Calculating...';
 
-        // 1. Get Destination Coordinates (Cache or Nominatim)
         let coords = getPresetCoords(destName);
         if (!coords) {
             try {
@@ -827,12 +805,10 @@
         }
 
         if (!coords) {
-            // Default fallback offset near Central Luzon
             coords = { lat: 15.4859, lng: 120.9673 };
         }
         activeDestCoords = coords;
 
-        // 2. Render Destination Marker
         if (driverDestMarker) {
             driverMap.removeLayer(driverDestMarker);
         }
@@ -861,12 +837,10 @@
                 </div>
             `);
 
-        // 3. Start Point: Driver current position or Garage
         const startPoint = (driverCurrentLat && driverCurrentLng) 
             ? [driverCurrentLat, driverCurrentLng] 
             : [GARAGE_LOCATION.lat, GARAGE_LOCATION.lng];
 
-        // 4. Query OSRM Driving Route
         try {
             const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startPoint[1]},${startPoint[0]};${coords.lng},${coords.lat}?overview=full&geometries=geojson`;
             const r = await fetch(osrmUrl);
@@ -888,7 +862,6 @@
                     }
                 }
 
-                // Draw OSRM polyline
                 const coordinates = primaryRoute.geometry.coordinates.map(c => [c[1], c[0]]);
                 drawRoutePolyline(coordinates);
 
@@ -900,7 +873,6 @@
             console.warn('OSRM routing request failed, using straight-line fallback:', routeErr);
         }
 
-        // Fallback straight-line polyline if OSRM is unreachable
         const fallbackPath = [startPoint, [coords.lat, coords.lng]];
         drawRoutePolyline(fallbackPath);
         const distKm = calculateDirectDistanceKm(startPoint[0], startPoint[1], coords.lat, coords.lng);

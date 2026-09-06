@@ -1,5 +1,4 @@
 <?php
-// $gravelTypes and $destinations are loaded from the DB in admin/dashboard.php
 ?>
 
 <div id="addTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
@@ -330,7 +329,6 @@
         const gravelSelect = document.getElementById('gravelType');
         if (gravelSelect && gravel) gravelSelect.value = gravel;
 
-        // Show customer name badge
         if (customerInfo && customerNameEl && customer) {
             customerNameEl.textContent = 'Customer: ' + customer + (contact ? ' (' + contact + ')' : '');
             customerInfo.classList.remove('hidden');
@@ -1278,7 +1276,6 @@
             <div id="osmSearchResults" class="space-y-1.5 max-h-40 overflow-y-auto hidden bg-white dark:bg-gray-800 rounded-xl p-2 border border-gray-200 dark:border-gray-700 text-xs shadow-inner"></div>
         </div>
         <style>
-            /* Leaflet popup padding & sizing fix to prevent text overlapping border */
             #osmMiniMap .leaflet-popup-content-wrapper,
             #settingsSimulatorMap .leaflet-popup-content-wrapper {
                 padding: 6px 8px !important;
@@ -1332,7 +1329,6 @@
         await calculateAndSetDispatchPay(destName, opt);
     }
 
-    // Helper: Detect if a location name/address is within San Leonardo
     function isSanLeonardo(name) {
         if (!name || typeof name !== 'string') return false;
         const lower = name.toLowerCase();
@@ -1345,9 +1341,6 @@
         return slBarangays.some(b => new RegExp('\\b' + b + '\\b', 'i').test(lower));
     }
 
-    // Helper: get the round-trip boundary distance from garage to San Leonardo border
-    // Default: 12 km round-trip (e.g. 6 km one-way towards Gapan, Santa Rosa, Jaen, etc.)
-    // Towards East: 6 km round-trip (Peñaranda ~3 km one-way)
     function getSanLeonardoBoundaryKm(name = '', lat = null, lng = null) {
         if (typeof NominatimService !== 'undefined' && NominatimService.getSanLeonardoBoundaryDistance) {
             return NominatimService.getSanLeonardoBoundaryDistance(name, lat, lng);
@@ -1369,7 +1362,6 @@
         return 12; // 12 km round-trip from garage to San Leonardo municipal boundary
     }
 
-    // Helper: Calculate driver trip pay (custom flat rate if set, else base rate; plus rate/km outside boundary)
     function computeDriverTripPay(km, name = '', lat = null, lng = null, customRate = null) {
         if (typeof NominatimService !== 'undefined' && NominatimService.calculateTripPay) {
             return NominatimService.calculateTripPay(km, name, lat, lng, customRate);
@@ -1433,8 +1425,6 @@
             payAmountEl.innerHTML = `Map Distance: <span class="font-bold text-blue-600 dark:text-blue-400">${rounded} km</span> (round trip) &bull; Driver Trip Pay: <span class="font-bold text-green-600 dark:text-green-400">₱${amount.toFixed(2)}</span> <span class="text-gray-500 dark:text-gray-400 font-normal">(${calc.breakdown})</span>`;
             payPreview.classList.remove('hidden');
 
-            // Auto-calculate ETA: Return of truck back to site
-            // Formula: Round-trip travel time at ~35 km/h + 20 min allowance for driver efficiency and unloading
             const roundTripKm = Math.min(180, Math.max(2, rounded));
             const drivingMins = Math.round((roundTripKm / 35) * 60);
             const allowanceMins = 20; // 20 min unloading & driver efficiency allowance
@@ -1555,8 +1545,10 @@
 
             if (!osmMiniMap) {
                 osmMiniMap = L.map('osmMiniMap').setView([15.359042, 120.965016], 13);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; OpenStreetMap contributors'
+                L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                    maxZoom: 20,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                    attribution: '&copy; Google Maps Satellite'
                 }).addTo(osmMiniMap);
                 const garageIcon = L.divIcon({
                     className: 'custom-garage-icon',
@@ -1583,11 +1575,9 @@
                         currentSelectedLat = lat;
                         currentSelectedLng = lng;
 
-                        // 1. Plot destination marker
                         if (osmMarker) osmMiniMap.removeLayer(osmMarker);
                         osmMarker = L.marker([lat, lng]).addTo(osmMiniMap);
 
-                        // 2. Draw route line from garage to destination
                         if (osmRouteLine) osmMiniMap.removeLayer(osmRouteLine);
                         osmRouteLine = L.polyline([
                             [15.359042, 120.965016],
@@ -1599,7 +1589,6 @@
                             dashArray: '6, 6'
                         }).addTo(osmMiniMap);
 
-                        // 3. Geodesic distance (1.25 road curvature factor * 2 for back and forth, rounded to whole number)
                         const garageLatLng = L.latLng(15.359042, 120.965016);
                         const straightMeters = garageLatLng.distanceTo(e.latlng);
                         const straightKm = straightMeters / 1000;
@@ -1630,7 +1619,6 @@
                         };
                         updateStatusText(currentSelectedLocation);
 
-                        // 4. Reverse geocode via BigDataCloud API / Nominatim
                         if (typeof NominatimService !== 'undefined') {
                             NominatimService.reverseGeocode(lat, lng).then(geo => {
                                 if (geo && geo.formatted) {
@@ -1679,7 +1667,6 @@
                     currentSelectedLat = res.lat;
                     currentSelectedLng = res.lng;
 
-                    // Back and forth (round trip): 2x distance
                     const garageLatLng = L.latLng(15.359042, 120.965016);
                     const destLatLng = L.latLng(res.lat, res.lng);
                     const straightKm = garageLatLng.distanceTo(destLatLng) / 1000;

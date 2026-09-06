@@ -11,7 +11,6 @@
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            // Reset all sidebar nav items
             document.querySelectorAll('.sidebar-nav-item').forEach(el => el.classList.remove('active'));
             const viewEl = document.getElementById('view-' + tabName);
             if (viewEl) viewEl.classList.remove('hidden');
@@ -42,7 +41,6 @@
                 }, 200);
             }
             window.history.pushState({}, '', '?tab=' + tabName);
-            // Close mobile sidebar if open
             const sidebar = document.getElementById('admin-sidebar');
             if (sidebar && !sidebar.classList.contains('sidebar-closed') && window.innerWidth < 1024) {
                 toggleSidebar();
@@ -50,7 +48,6 @@
         }
         switchTab(activeTab);
 
-        // ── Password Reset Badge Polling (Admin) ──
         function refreshPwdResetBadge() {
             fetch('get_pwd_reset_count.php')
                 .then(r => r.json())
@@ -62,7 +59,6 @@
                             badge.textContent = data.count;
                             badge.classList.remove('hidden');
                         } else if (navBtn) {
-                            // Create badge if not rendered (was 0 on page load)
                             const span = document.createElement('span');
                             span.id = 'pwdResetBadge';
                             span.className = 'ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-red-500 text-white flex items-center justify-center';
@@ -75,10 +71,8 @@
                 })
                 .catch(() => {});
         }
-        // Poll every 15 seconds
         setInterval(refreshPwdResetBadge, 15000);
 
-        // ── Cash Advance Badge Polling (Admin) ──
         function refreshCashAdvanceBadge() {
             fetch('get_cash_advance_count.php')
                 .then(r => r.json())
@@ -104,7 +98,6 @@
         }
         setInterval(refreshCashAdvanceBadge, 15000);
 
-        // ── Activity Logs Filter ──
         function filterActivityLogs() {
             const search = (document.getElementById('activityLogSearch')?.value || '').toLowerCase();
             const role = document.getElementById('activityLogRoleFilter')?.value || '';
@@ -127,83 +120,59 @@
         }
 
         const trackingData = <?= json_encode($trackingTrucks ?? []); ?>;
-        let streetLayer = null;
+        let googleSatLayer = null;
         let googleStreetLayer = null;
         let satelliteLayer = null;
-        let voyagerLayer = null;
-        let darkLayer = null;
+        let streetLayer = null;
 
         function initMap() {
             const mapDiv = document.getElementById('map');
             if (!mapDiv) return;
             try {
-                // Free, high-reliability tile providers (NO API Key required)
-                // 1. Standard OpenStreetMap
-                streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    subdomains: ['a', 'b', 'c'],
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                });
-
-                // 2. High-Resolution Esri World Imagery (Satellite) + Boundaries/Labels (Hybrid Satellite)
-                const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                    maxZoom: 19,
-                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, USGS, AeroGRID, IGN, and GIS User Community'
-                });
-                const esriLabels = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-                    maxZoom: 19
-                });
-                satelliteLayer = L.layerGroup([esriImagery, esriLabels]);
-
-                // 3. CartoDB Voyager (Modern detailed road navigation)
-                voyagerLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                googleSatLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
                     maxZoom: 20,
-                    subdomains: 'abcd',
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                    attribution: '&copy; Google Maps Satellite'
                 });
 
-                // 4. CartoDB Dark Matter (Dark mode map)
-                darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                    maxZoom: 20,
-                    subdomains: 'abcd',
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                });
-
-                // 5. Google Streets (with resilient subdomains)
                 googleStreetLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
                     maxZoom: 20,
                     subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
                     attribution: '&copy; Google Maps'
                 });
 
-                // 6. Google Satellite
-                const googleSatLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                    maxZoom: 20,
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                    attribution: '&copy; Google Maps Satellite'
+                const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 19,
+                    attribution: 'Tiles &copy; Esri'
+                });
+                const esriLabels = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 19
+                });
+                satelliteLayer = L.layerGroup([esriImagery, esriLabels]);
+
+                streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    subdomains: ['a', 'b', 'c'],
+                    attribution: '&copy; OpenStreetMap contributors'
                 });
 
                 map = L.map('map', {
                     center: [15.359042, 120.965016],
                     zoom: 14,
-                    layers: [streetLayer], // Default to OpenStreetMap for guaranteed 100% reliable initial load
+                    layers: [googleSatLayer],
                     zoomControl: true
                 });
 
-                // Interactive Layer Control Switcher (top right)
                 const baseMaps = {
-                    "🗺️ OpenStreetMap": streetLayer,
-                    "🛰️ Satellite (Hybrid)": satelliteLayer,
-                    "🚗 Navigation (Voyager)": voyagerLayer,
-                    "🌙 Dark Mode": darkLayer,
+                    "🛰️ Google Satellite": googleSatLayer,
                     "🌐 Google Streets": googleStreetLayer,
-                    "🛰️ Google Satellite": googleSatLayer
+                    "🛰️ Satellite (Hybrid)": satelliteLayer,
+                    "🗺️ OpenStreetMap": streetLayer
                 };
                 L.control.layers(baseMaps, null, {
                     position: 'topright'
                 }).addTo(map);
 
-                // Add Central Garage Marker
                 const garageIcon = L.divIcon({
                     className: 'custom-div-icon',
                     html: `<div class="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-xl border-2 border-white ring-4 ring-indigo-500/30 hover:scale-110 transition-transform cursor-pointer" title="SSV Garage (Quarry) — San Leonardo, Nueva Ecija"><i class="fa-solid fa-warehouse text-sm"></i></div>`,
@@ -226,14 +195,12 @@
                         </div>
                     `);
 
-                // Initial render from PHP data
                 renderMapMarkers(trackingData);
 
                 setTimeout(() => {
                     map.invalidateSize();
                 }, 300);
 
-                // Start live polling every 5 seconds
                 setInterval(refreshMap, 5000);
             } catch (error) {
                 console.error("Map initialization failed:", error);
@@ -346,11 +313,9 @@
                 const latLng = [parseFloat(truck.latitude), parseFloat(truck.longitude)];
 
                 if (truckMarkers[truck.truck_code]) {
-                    // Smoothly update existing marker position
                     truckMarkers[truck.truck_code].setLatLng(latLng);
                     truckMarkers[truck.truck_code].setPopupContent(popupContent);
                 } else {
-                    // Create new marker
                     truckMarkers[truck.truck_code] = L.marker(latLng, {
                             icon: customIcon
                         })
@@ -367,7 +332,6 @@
                 .then(data => {
                     if (data.success) {
                         renderMapMarkers(data.trucks);
-                        // Update the last-refreshed badge if it exists
                         const badge = document.getElementById('map-last-updated');
                         if (badge) {
                             const now = new Date();
@@ -387,7 +351,6 @@
                             animate: true,
                             duration: 1.2
                         });
-                        // Open the marker's popup to highlight the exact truck
                         if (truckCode && truckMarkers && truckMarkers[truckCode]) {
                             truckMarkers[truckCode].openPopup();
                         }
@@ -402,7 +365,6 @@
             }
         }
 
-        // ===== RECENTER FLEET MAP =====
         function recenterMap() {
             if (!map) {
                 switchTab('tracking');
@@ -490,11 +452,9 @@
         function openViewDriverModal(driver) {
             currentViewingDriver = driver;
 
-            // Handle profile photo vs initials avatar
             const photoEl    = document.getElementById('vd-photo');
             const initialsEl = document.getElementById('vd-initials');
             if (driver.profile_photo) {
-                // Build URL relative to admin dashboard (one level up reaches CAPSTONE root)
                 const photoUrl = '../' + driver.profile_photo + '?v=' + Date.now();
                 if (photoEl) {
                     photoEl.src = photoUrl;
@@ -526,7 +486,6 @@
             if (tripsContainer) {
                 tripsContainer.innerHTML = '';
                 const allTrips = driver.recent_trips || [];
-                // Limit to two (2) deliveries in the driver card details modal
                 const displayTrips = allTrips.slice(0, 2);
 
                 if (displayTrips.length > 0) {
@@ -578,7 +537,6 @@
                 }
             }
 
-            // Populate payroll overview in view driver modal
             const netPay = parseFloat(driver.net_earnings || 0);
             const grossPay = parseFloat(driver.gross_earnings || 0);
             const caAmount = parseFloat(driver.approved_cash_advances || 0);
@@ -612,7 +570,6 @@
             if (!driver) return;
             currentPerformanceDriverId = driver.id;
 
-            // Header info
             const nameEl = document.getElementById('dp-driver-name');
             const cdlEl = document.getElementById('dp-driver-cdl');
             const truckEl = document.getElementById('dp-driver-truck');
@@ -625,7 +582,6 @@
             if (truckEl) truckEl.innerHTML = `<i class="fa-solid fa-truck mr-1"></i>Truck: ${driver.truck_code || 'Unassigned'}`;
             if (ratingNumEl) ratingNumEl.innerText = (parseFloat(driver.rating !== undefined ? driver.rating : (stats.rating || 5.0))).toFixed(1);
 
-            // Avatar
             if (driver.profile_photo) {
                 if (photoEl) {
                     photoEl.src = '../' + driver.profile_photo + '?v=' + Date.now();
@@ -640,7 +596,6 @@
                 }
             }
 
-            // Stats
             const stats = driver.performance_stats || {};
             const thisWeekKm = parseFloat(stats.this_week_km || 0);
             const thisWeekTrips = parseInt(stats.this_week_dispatches || 0);
@@ -670,7 +625,6 @@
             if (lifetimeTripsEl) lifetimeTripsEl.innerText = `${lifetimeTrips} ${lifetimeTrips === 1 ? 'Trip' : 'Trips'}`;
             if (activeWeeksEl) activeWeeksEl.innerText = `${activeWeeks} ${activeWeeks === 1 ? 'Week' : 'Weeks'}`;
 
-            // Weekly history table
             const tableBody = document.getElementById('dp-weekly-table-body');
             const emptyEl = document.getElementById('dp-weekly-empty');
             const history = stats.weekly_history || [];
@@ -843,7 +797,6 @@
 
             const allTrips = driver.all_trips || driver.recent_trips || [];
 
-            // Populate unique months in the month filter dropdown
             const monthSelect = document.getElementById('ad-month-select');
             if (monthSelect) {
                 const monthSet = new Set();
@@ -1084,7 +1037,6 @@
             document.getElementById('st-truck-code').innerText = truckCode || 'None';
             document.getElementById('switch_truck_driver_id').value = driverId;
 
-            // Auto-detect redirect tab
             const activeTabContent = document.querySelector('.tab-content:not(.hidden)');
             if (activeTabContent) {
                 const tabId = activeTabContent.id.replace('view-', '');
@@ -1355,7 +1307,6 @@
 
 
 
-        // ===== REAL-TIME PLATE NUMBER DUPLICATE CHECK =====
         document.addEventListener("DOMContentLoaded", function() {
             const plateInput = document.getElementById('newTruckPlateInput');
             const plateFeedback = document.getElementById('plateCheckFeedback');
@@ -1368,7 +1319,6 @@
                 const val = this.value.trim();
                 clearTimeout(plateCheckTimer);
 
-                // Reset state
                 plateFeedback.innerHTML = '';
                 plateInput.classList.remove('border-red-500', 'border-green-500');
                 plateInput.classList.add('border-gray-300');
@@ -1401,7 +1351,6 @@
             });
         });
 
-        // ===== REAL-TIME PASSWORD COMPLEXITY CHECK FOR ALL PASSWORD RESETS =====
         document.addEventListener("DOMContentLoaded", function() {
             const pwdInputs = document.querySelectorAll('#new_driver_password, #newPasswordInput, .pw-complexity-input');
             pwdInputs.forEach(pwdInput => {
@@ -1485,7 +1434,6 @@
                                         return;
                                     }
 
-                                    // Block dispatch if truck has no assigned driver
                                     if (!data.driver_id) {
                                         rfidFeedback.innerHTML = '<span class="text-red-500 font-bold"><i class="fa-solid fa-user-slash"></i> No driver assigned to this truck! Assign a driver before dispatching.</span>';
                                         truckPlate.value = '';
@@ -1676,7 +1624,6 @@
     <!-- ================= DRIVER / CHECKER SCRIPTS ================= -->
     <script>
         <?php if ($_SESSION['role'] === 'Driver' && !empty($active_dispatch)): ?>
-                // ===== LIVE GPS TRACKING (Driver — Any Dispatched Status) =====
                 (function() {
                     const PUSH_INTERVAL_MS = 10000; // push every 10 seconds
                     let lastPushTime = 0;
@@ -1822,7 +1769,6 @@
                     }
 
                     function startGPS() {
-                        // HTTPS / Security Context Check
                         if ((window.isSecureContext === false || window.location.protocol !== 'https:') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
                             showToast("⚠️ Notice: Mobile browsers require HTTPS for real GPS hardware. Connect via https:// or enable SSL in InfinityFree for live GPS (simulated transit active).", "warning", 10000);
                         }
@@ -1861,7 +1807,6 @@
                             }
                         );
 
-                        // Continuous tracking watch loop
                         watchId = navigator.geolocation.watchPosition(
                             function(pos) {
                                 if (isTransit) {
@@ -1874,7 +1819,6 @@
                             },
                             function(err) {
                                 console.warn('GPS watch error:', err.message);
-                                // Fall back to simulation if watch fails
                                 startSimulatedGps();
                             }, {
                                 enableHighAccuracy: true,
@@ -1884,14 +1828,12 @@
                         );
                     }
 
-                    // Start as soon as DOM is ready
                     if (document.readyState === 'loading') {
                         document.addEventListener('DOMContentLoaded', startGPS);
                     } else {
                         startGPS();
                     }
 
-                    // Clean up watch on page unload
                     window.addEventListener('beforeunload', function() {
                         if (watchId !== null) navigator.geolocation.clearWatch(watchId);
                         if (simIntervalId !== null) clearInterval(simIntervalId);
@@ -1901,7 +1843,6 @@
 
 
 
-        // ── Password Reset Modal Functions ──────────────────────────
         let prPollingInterval = null;
         const prRole = '<?= strtolower($_SESSION['role'] ?? 'driver') ?>';
         const prBasePath = prRole === 'checker' ? '../checker/' : '../driver/';
@@ -1986,15 +1927,12 @@
                 checkCurrentResetStatus(function(status) {
                     if (status === 'Approved') {
                         stopPrPolling();
-                        // If modal is open, jump to set-password step
                         const overlay = document.getElementById('pwdResetOverlay');
                         if (overlay && !overlay.classList.contains('hidden')) {
                             showPrStep('prStepSetPwd');
                         }
-                        // Regardless, show a toast notification
                         showToast('✅ Your password reset was approved! You can now set your new password.', 'success', 8000);
                     } else if (status === 'none') {
-                        // Request was rejected
                         stopPrPolling();
                         const overlay = document.getElementById('pwdResetOverlay');
                         if (overlay && !overlay.classList.contains('hidden')) {
@@ -2051,18 +1989,15 @@
             el.classList.remove('hidden');
         }
 
-        // Legacy alias for any remaining openChangePasswordModal() calls
         function openChangePasswordModal() { openResetPasswordModal(); }
         function closeOtpModal() { closePwdResetModal(); }
 
-        // Theme icon initialisation
         document.addEventListener("DOMContentLoaded", function() {
             const icon = document.getElementById('themeIcon');
             if (icon && document.documentElement.classList.contains('dark')) {
                 icon.classList.replace('fa-moon', 'fa-sun');
             }
 
-            // If user already had a pending/approved request, start polling silently
             checkCurrentResetStatus(function(status) {
                 if (status === 'Pending') {
                     startPrPolling();
