@@ -8,12 +8,20 @@
     </script>
     <?php endif; ?>
 
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-6 mb-6 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div class="flex items-center space-x-2 text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-200">
             <i class="fa-solid fa-truck-fast text-blue-600 dark:text-blue-400"></i>
             <span>Fleet Management</span>
         </div>
         <div class="flex flex-wrap items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+            <!-- Fleet Live Search Bar -->
+            <div class="relative flex-1 sm:w-72">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input type="text" id="fleetSearchInput" placeholder="Search trucks, drivers, status, RFID..." oninput="filterFleetCards()" class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                <button type="button" id="fleetSearchClear" onclick="clearFleetSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
             <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium">Total: <?= count($fleetData); ?> trucks</div>
             <button onclick="toggleModal('addTruckModal', true)" class="btn-primary text-sm">
                 <i class="fa-solid fa-plus"></i>
@@ -22,7 +30,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="fleetCardsGrid">
         <?php foreach ($fleetData as $truck):
             $badgeClass = 'bg-gray-500';
             if ($truck['status'] == 'In Transit') $badgeClass = 'bg-green-500';
@@ -30,8 +38,11 @@
             if ($truck['status'] == 'Loading') $badgeClass = 'bg-blue-500';
             if ($truck['status'] == 'Unloading') $badgeClass = 'bg-orange-500';
             if ($truck['status'] == 'Maintenance') $badgeClass = 'bg-red-600';
+            if ($truck['status'] == 'Decommissioned') $badgeClass = 'bg-stone-500';
+
+            $searchMeta = htmlspecialchars(strtolower(($truck['truck_code'] ?? '') . ' ' . ($truck['driver_name'] ?? '') . ' ' . ($truck['status'] ?? '') . ' ' . ($truck['rfid_tag'] ?? '') . ' ' . ($truck['current_location'] ?? '') . ' ' . ($truck['destination'] ?? '')));
         ?>
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 sm:p-6 flex flex-col h-full relative hover:shadow-md transition">
+            <div class="fleet-card bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 sm:p-6 flex flex-col h-full relative hover:shadow-md transition" data-search="<?= $searchMeta; ?>">
                 <div class="flex justify-between items-start mb-5 gap-2">
                     <div class="flex items-center space-x-3 min-w-0">
                         <div class="w-11 h-11 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
@@ -51,8 +62,8 @@
                             <i class="fa-solid fa-pen-to-square"></i>
                         </button>
 
-                        <button onclick="openDeleteTruckModal(<?= $truck['id']; ?>, '<?= htmlspecialchars($truck['truck_code']); ?>')" class="text-gray-400 hover:text-red-600 transition p-1" title="Remove Truck">
-                            <i class="fa-solid fa-trash"></i>
+                        <button onclick="openDecommissionTruckModal(<?= $truck['id']; ?>, '<?= htmlspecialchars($truck['truck_code']); ?>')" class="text-gray-400 hover:text-amber-600 transition p-1 <?= $truck['status'] === 'Decommissioned' ? 'opacity-40 cursor-not-allowed' : '' ?>" title="<?= $truck['status'] === 'Decommissioned' ? 'Truck Already Decommissioned' : 'Decommission Truck' ?>" <?= $truck['status'] === 'Decommissioned' ? 'disabled' : '' ?>>
+                            <i class="fa-solid fa-ban"></i>
                         </button>
                     </div>
                 </div>
@@ -113,5 +124,59 @@
                 </div>
             </div>
         <?php endforeach; ?>
+        <div id="noFleetSearchResults" class="hidden col-span-full py-12 text-center bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+            <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-blue-500 flex items-center justify-center mx-auto mb-3 text-lg">
+                <i class="fa-solid fa-truck"></i>
+            </div>
+            <h4 class="font-bold text-gray-800 dark:text-gray-200 text-sm">No trucks found</h4>
+            <p class="text-xs text-gray-400 mt-1" id="noFleetSearchText">No fleet vehicles match your search filter.</p>
+            <button type="button" onclick="clearFleetSearch()" class="mt-3 px-3.5 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/60 transition cursor-pointer">
+                Clear search filter
+            </button>
+        </div>
     </div>
+
+<script>
+function filterFleetCards() {
+    const input = document.getElementById('fleetSearchInput');
+    const clearBtn = document.getElementById('fleetSearchClear');
+    const query = input ? input.value.toLowerCase().trim() : '';
+    const cards = document.querySelectorAll('#fleetCardsGrid .fleet-card');
+    const noResults = document.getElementById('noFleetSearchResults');
+    const noResultsText = document.getElementById('noFleetSearchText');
+
+    if (clearBtn) {
+        clearBtn.classList.toggle('hidden', query.length === 0);
+    }
+
+    let matchCount = 0;
+    cards.forEach(card => {
+        const meta = card.getAttribute('data-search') || '';
+        if (!query || meta.includes(query)) {
+            card.classList.remove('hidden');
+            matchCount++;
+        } else {
+            card.classList.add('hidden');
+        }
+    });
+
+    if (noResults) {
+        if (matchCount === 0 && cards.length > 0) {
+            noResults.classList.remove('hidden');
+            if (noResultsText) noResultsText.textContent = `No fleet vehicles match "${query}".`;
+        } else {
+            noResults.classList.add('hidden');
+        }
+    }
+}
+
+function clearFleetSearch() {
+    const input = document.getElementById('fleetSearchInput');
+    if (input) {
+        input.value = '';
+        filterFleetCards();
+        input.focus();
+    }
+}
+</script>
 </div>

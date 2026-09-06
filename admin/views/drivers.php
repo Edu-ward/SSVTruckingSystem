@@ -1,12 +1,29 @@
 <div id="view-drivers" class="tab-content hidden">
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div class="flex items-center space-x-2 text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-200">
-            <i class="fa-solid fa-users text-blue-600 dark:text-blue-400"></i>
-            <span>Driver Management</span>
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-6 flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-lg shadow-sm">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <div>
+                <h2 class="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">Driver Management</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Manage drivers, lifetime deliveries, payroll, and assignments</p>
+            </div>
         </div>
-        <button onclick="toggleModal('addDriverModal', true)" class="btn-primary text-sm w-full sm:w-auto">
-            <i class="fa-solid fa-user-plus"></i><span>Add Driver</span>
-        </button>
+
+        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <!-- Driver Live Search Bar -->
+            <div class="relative flex-1 sm:w-72">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input type="text" id="driverSearchInput" placeholder="Search drivers, CDL, trucks, phone..." oninput="filterDriverCards()" class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                <button type="button" id="driverSearchClear" onclick="clearDriverSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <button onclick="toggleModal('addDriverModal', true)" class="btn-primary text-sm w-full sm:w-auto">
+                <i class="fa-solid fa-user-plus"></i><span>Add Driver</span>
+            </button>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
@@ -41,11 +58,12 @@
     }
 </style>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="driverCardsGrid">
         <?php foreach ($allDrivers as $driver):
             $badgeClass = 'bg-gray-500';
             if ($driver['status'] == 'Active') $badgeClass = 'bg-emerald-500';
             if ($driver['status'] == 'Dispatched' || $driver['status'] == 'In Transit') $badgeClass = 'bg-blue-600';
+            if ($driver['status'] == 'Resigned') $badgeClass = 'bg-amber-600';
 
             $driverJson = htmlspecialchars(json_encode($driver), ENT_QUOTES, 'UTF-8');
 
@@ -57,8 +75,11 @@
             $dPhotoUrl  = ($dPhotoFull && file_exists($dPhotoFull))
                 ? '../' . htmlspecialchars($dPhotoPath) . '?v=' . filemtime($dPhotoFull)
                 : null;
+            
+            $hasPayable = ($driver['net_earnings'] ?? 0) > 0;
+            $searchMeta = htmlspecialchars(strtolower(($driver['name'] ?? '') . ' ' . ($driver['cdl_number'] ?? '') . ' ' . ($driver['truck_code'] ?? '') . ' ' . ($driver['phone'] ?? '') . ' ' . ($driver['status'] ?? '')));
         ?>
-            <div class="driver-card bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 flex flex-col justify-between hover:shadow-md transition-all duration-200 overflow-hidden">
+            <div class="driver-card bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 flex flex-col justify-between hover:shadow-md transition-all duration-200 overflow-hidden" data-search="<?= $searchMeta; ?>">
                 <div>
                     <!-- Card Top Header -->
                     <div class="flex justify-between items-start mb-4">
@@ -136,11 +157,55 @@
                             </span>
                             <span class="font-extrabold text-blue-700 dark:text-blue-400">₱<?= number_format($driver['net_earnings'] ?? 0, 2); ?></span>
                         </div>
+
+                        <!-- Deliveries Count & Distance -->
+                        <div class="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-gray-900 rounded-xl">
+                            <span class="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+                                <i class="fa-solid fa-route text-cyan-500 w-4 text-center"></i>
+                                <span>Completed Trips</span>
+                            </span>
+                            <span class="inline-flex items-center gap-1.5">
+                                <span class="font-bold text-gray-900 dark:text-gray-100"><?= $driver['total_deliveries'] ?? 0; ?> trips</span>
+                                <?php if (($driver['total_lifetime_km'] ?? 0) > 0): ?>
+                                    <span class="text-[11px] font-semibold text-cyan-700 dark:text-cyan-300 bg-cyan-100 dark:bg-cyan-900/40 px-1.5 py-0.5 rounded"><?= number_format($driver['total_lifetime_km'], 1); ?> km</span>
+                                <?php endif; ?>
+                            </span>
+                        </div>
+
+                        <!-- Recent Delivery with Duration -->
+                        <?php if (!empty($driver['recent_trips'])): 
+                            $latestTrip = $driver['recent_trips'][0];
+                        ?>
+                        <div class="p-2.5 bg-slate-50 dark:bg-gray-900/80 rounded-xl border border-gray-100 dark:border-gray-800">
+                            <div class="flex items-center justify-between text-gray-500 dark:text-gray-400 mb-1">
+                                <span class="flex items-center space-x-1.5 font-medium">
+                                    <i class="fa-solid fa-truck-ramp-box text-blue-500 w-4 text-center"></i>
+                                    <span>Recent Delivery</span>
+                                </span>
+                                <span class="text-[10px] font-semibold text-gray-400"><?= htmlspecialchars($latestTrip['trip_date'] ?? 'Recent'); ?></span>
+                            </div>
+                            <div class="flex items-center justify-between text-xs gap-2">
+                                <span class="font-bold text-gray-800 dark:text-gray-200 truncate"><?= htmlspecialchars($latestTrip['destination']); ?></span>
+                                <div class="flex items-center gap-1.5 flex-shrink-0">
+                                    <?php if (!empty($latestTrip['duration'])): ?>
+                                        <span class="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded-md" title="Delivery Duration">
+                                            <i class="fa-regular fa-clock text-[10px]"></i>
+                                            <span><?= htmlspecialchars($latestTrip['duration']); ?></span>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <?php else: ?>
+                        <div class="p-2.5 bg-gray-50/60 dark:bg-gray-900/40 rounded-xl border border-dashed border-gray-200 dark:border-gray-800 text-center text-[11px] text-gray-400">
+                            No completed deliveries recorded yet
+                        </div>
+                        <?php endif; ?>
                     </div>
 
                     <!-- Settle Payroll Primary Action Button -->
                     <div class="mb-3">
-                        <?php if (($driver['gross_earnings'] ?? 0) > 0 || ($driver['approved_cash_advances'] ?? 0) > 0 || ($driver['remaining_balance'] ?? 0) > 0): ?>
+                        <?php if ($hasPayable): ?>
                             <button type="button" 
                                     onclick="openSettlePayrollModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['gross_earnings'] ?? 0; ?>, <?= $driver['approved_cash_advances'] ?? 0; ?>, <?= $driver['net_earnings'] ?? 0; ?>, <?= $driver['remaining_balance'] ?? 0; ?>)" 
                                     class="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white text-xs font-bold rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-between">
@@ -160,11 +225,19 @@
                     <div class="flex items-center justify-between pt-2.5 border-t border-gray-100 dark:border-gray-700/60 mb-3">
                         <span class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Quick Actions</span>
                         <div class="flex items-center space-x-1">
-                            <button onclick="openSettlePayrollModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['gross_earnings'] ?? 0; ?>, <?= $driver['approved_cash_advances'] ?? 0; ?>, <?= $driver['net_earnings'] ?? 0; ?>, <?= $driver['remaining_balance'] ?? 0; ?>)" 
-                                    class="w-8 h-8 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-gray-700 transition-colors" 
-                                    title="Settle Driver Payroll">
-                                <i class="fa-solid fa-money-bill-transfer text-xs"></i>
-                            </button>
+                            <?php if ($hasPayable): ?>
+                                <button onclick="openSettlePayrollModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['gross_earnings'] ?? 0; ?>, <?= $driver['approved_cash_advances'] ?? 0; ?>, <?= $driver['net_earnings'] ?? 0; ?>, <?= $driver['remaining_balance'] ?? 0; ?>)" 
+                                        class="w-8 h-8 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-gray-700 transition-colors cursor-pointer" 
+                                        title="Settle Driver Payroll">
+                                    <i class="fa-solid fa-money-bill-transfer text-xs"></i>
+                                </button>
+                            <?php else: ?>
+                                <button disabled
+                                        class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50" 
+                                        title="Payroll Already Settled">
+                                    <i class="fa-solid fa-money-bill-transfer text-xs"></i>
+                                </button>
+                            <?php endif; ?>
                             <button onclick="openAdjustBalanceModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['remaining_balance'] ?? 0; ?>)" 
                                     class="w-8 h-8 rounded-lg flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-gray-700 transition-colors" 
                                     title="Adjust Remaining Balance">
@@ -190,10 +263,11 @@
                                     title="Reset Password">
                                 <i class="fa-solid fa-key text-xs"></i>
                             </button>
-                            <button onclick="openDeleteDriverModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>')" 
-                                    class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-gray-700 transition-colors" 
-                                    title="Delete Driver">
-                                <i class="fa-solid fa-trash text-xs"></i>
+                            <button onclick="openResignDriverModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>')" 
+                                    class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-gray-700 transition-colors <?= $driver['status'] === 'Resigned' ? 'opacity-40 cursor-not-allowed' : '' ?>" 
+                                    title="<?= $driver['status'] === 'Resigned' ? 'Driver Already Resigned' : 'Resign Driver' ?>"
+                                    <?= $driver['status'] === 'Resigned' ? 'disabled' : '' ?>>
+                                <i class="fa-solid fa-user-xmark text-xs"></i>
                             </button>
                         </div>
                     </div>
@@ -206,6 +280,16 @@
                 </div>
             </div>
         <?php endforeach; ?>
+        <div id="noDriverSearchResults" class="hidden col-span-full py-12 text-center bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+            <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-blue-500 flex items-center justify-center mx-auto mb-3 text-lg">
+                <i class="fa-solid fa-user-slash"></i>
+            </div>
+            <h4 class="font-bold text-gray-800 dark:text-gray-200 text-sm">No drivers found</h4>
+            <p class="text-xs text-gray-400 mt-1" id="noDriverSearchText">No driver profiles match your search filter.</p>
+            <button type="button" onclick="clearDriverSearch()" class="mt-3 px-3.5 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/60 transition cursor-pointer">
+                Clear search filter
+            </button>
+        </div>
     </div>
 
     <!-- Cash Advances Quick Banner in Drivers Tab -->
@@ -230,5 +314,49 @@
             <i class="fa-solid fa-arrow-right text-[10px]"></i>
         </button>
     </div>
+
+<script>
+function filterDriverCards() {
+    const input = document.getElementById('driverSearchInput');
+    const clearBtn = document.getElementById('driverSearchClear');
+    const query = input ? input.value.toLowerCase().trim() : '';
+    const cards = document.querySelectorAll('#driverCardsGrid .driver-card');
+    const noResults = document.getElementById('noDriverSearchResults');
+    const noResultsText = document.getElementById('noDriverSearchText');
+
+    if (clearBtn) {
+        clearBtn.classList.toggle('hidden', query.length === 0);
+    }
+
+    let matchCount = 0;
+    cards.forEach(card => {
+        const meta = card.getAttribute('data-search') || '';
+        if (!query || meta.includes(query)) {
+            card.classList.remove('hidden');
+            matchCount++;
+        } else {
+            card.classList.add('hidden');
+        }
+    });
+
+    if (noResults) {
+        if (matchCount === 0 && cards.length > 0) {
+            noResults.classList.remove('hidden');
+            if (noResultsText) noResultsText.textContent = `No driver profiles match "${query}".`;
+        } else {
+            noResults.classList.add('hidden');
+        }
+    }
+}
+
+function clearDriverSearch() {
+    const input = document.getElementById('driverSearchInput');
+    if (input) {
+        input.value = '';
+        filterDriverCards();
+        input.focus();
+    }
+}
+</script>
 
 </div>

@@ -16,10 +16,15 @@ $stmt = $pdo->prepare("
     SELECT d.*, 
            t.truck_code, 
            CONCAT(tr.first_name, ' ', tr.last_name) AS driver_name, 
-           tr.phone AS driver_phone
+           tr.phone AS driver_phone,
+           o.order_number,
+           COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name,
+           COALESCE(NULLIF(d.contact_number, ''), o.contact_number) AS contact_number,
+           COALESCE(NULLIF(d.landmark, ''), o.landmark) AS landmark
     FROM dispatches d
     LEFT JOIN trucks t ON d.truck_id = t.id
     LEFT JOIN drivers tr ON d.driver_id = tr.id
+    LEFT JOIN orders o ON d.order_id = o.id
     WHERE d.id = ?
 ");
 $stmt->execute([$ticket_id]);
@@ -195,7 +200,7 @@ if (!$ticket) {
         /* Body grid */
         .tc-body {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 3px;
             margin-bottom: 4px;
         }
@@ -495,7 +500,7 @@ if (!$ticket) {
                         </div>
                     </div>
 
-                    <!-- Carrier & Dispatch Details -->
+                    <!-- Carrier, Consignee & Dispatch Details -->
                     <div class="tc-body">
                         <div class="info-box">
                             <div class="box-label">Carrier Details</div>
@@ -508,15 +513,25 @@ if (!$ticket) {
                         </div>
 
                         <div class="info-box">
+                            <div class="box-label">Client / Consignee</div>
+                            <div class="driver-name" style="font-size:8.5px;"><?= htmlspecialchars($ticket['client_name'] ?: 'General Client'); ?></div>
+                            <div class="driver-phone"><?= htmlspecialchars($ticket['contact_number'] ?: 'No contact'); ?></div>
+                            <div class="vehicle-row">
+                                <span style="color:#666;">Order:</span>
+                                <span class="vehicle-badge" style="font-size:7.5px;"><?= htmlspecialchars($ticket['order_number'] ?: 'Direct'); ?></span>
+                            </div>
+                        </div>
+
+                        <div class="info-box">
                             <div class="box-label">Dispatch Details</div>
                             <table class="dispatch-table">
                                 <tbody>
                                     <tr>
-                                        <td style="color:#666;">Date Issued:</td>
+                                        <td style="color:#666;">Date:</td>
                                         <td><?= date('M d, Y', strtotime($ticket['dispatch_date'])); ?></td>
                                     </tr>
                                     <tr>
-                                        <td style="color:#666;">Load Volume:</td>
+                                        <td style="color:#666;">Volume:</td>
                                         <td><?= number_format($ticket['cubic_meters'] ?? 0, 2); ?> cu.m</td>
                                     </tr>
                                 </tbody>
@@ -541,6 +556,11 @@ if (!$ticket) {
                                 <div class="route-info">
                                     <div class="route-sub">Destination / Drop-off</div>
                                     <div class="route-val" style="text-transform:uppercase;text-decoration:underline;"><?= htmlspecialchars($ticket['destination']); ?></div>
+                                    <?php if (!empty($ticket['landmark'])): ?>
+                                        <div class="route-sub" style="margin-top:1px; color:#b45309; text-transform:none;">
+                                            <span style="font-weight:700; color:#888; text-transform:uppercase;">Landmark:</span> <?= htmlspecialchars($ticket['landmark']); ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>

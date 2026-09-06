@@ -33,10 +33,20 @@
                 <i class="fa-regular fa-file-lines text-blue-500"></i>
                 <span>Dispatch Tickets</span>
             </div>
-            <button onclick="toggleModal('dispatchModal', true)" class="btn-primary text-sm w-full sm:w-auto">
-                <i class="fa-solid fa-plus"></i>
-                <span>Create Dispatch</span>
-            </button>
+            <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                <!-- Dispatch Live Search Bar -->
+                <div class="relative flex-1 sm:w-72">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="text" id="dispatchSearchInput" placeholder="Search tickets, trucks, drivers, clients, destinations..." oninput="filterDispatches()" class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                    <button type="button" id="dispatchSearchClear" onclick="clearDispatchSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <button onclick="toggleModal('dispatchModal', true)" class="btn-primary text-sm w-full sm:w-auto">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Create Dispatch</span>
+                </button>
+            </div>
         </div>
 
         <div class="flex flex-wrap sm:inline-flex bg-gray-100 dark:bg-gray-700/70 p-1 rounded-xl sm:rounded-full gap-1 mb-6 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 w-full sm:w-auto">
@@ -50,7 +60,7 @@
                 <?php endif; ?>
             </button>
             <button id="btn-tab-completed" onclick="switchDispatchTab('completed')" class="flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full hover:text-gray-900 dark:text-gray-100 transition text-center">
-                Completed (<?= count($completedTickets); ?>)
+                Completed/Cancelled (<?= count($completedTickets); ?>)
             </button>
         </div>
 
@@ -58,8 +68,19 @@
             <?php foreach ($activeTickets as $ticket):
                 $statusClass = 'bg-blue-500';
                 if ($ticket['status'] == 'Pending') $statusClass = 'bg-yellow-500';
+                $searchMeta = strtolower(implode(' ', array_filter([
+                    $ticket['ticket_number'] ?? '',
+                    $ticket['truck_code'] ?? '',
+                    $ticket['driver_name'] ?? '',
+                    $ticket['client_name'] ?? '',
+                    $ticket['contact_number'] ?? '',
+                    $ticket['destination'] ?? '',
+                    $ticket['landmark'] ?? '',
+                    $ticket['order_number'] ?? '',
+                    $ticket['status'] ?? ''
+                ])));
             ?>
-                <div class="border border-gray-100 dark:border-gray-700 rounded-xl p-6 shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition">
+                <div class="dispatch-card border border-gray-100 dark:border-gray-700 rounded-xl p-6 shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition" data-search="<?= htmlspecialchars($searchMeta) ?>">
                     <div class="flex justify-between items-center mb-4">
                         <div class="flex items-center space-x-2 font-bold text-gray-800 dark:text-gray-200">
                             <i class="fa-regular fa-file-lines text-blue-500"></i>
@@ -93,10 +114,12 @@
                                 <button onclick="window.open('print_ticket.php?id=<?= $ticket['id']; ?>', '_blank')" class="text-gray-400 hover:text-blue-500 transition focus:outline-none" title="Print Waybill Ticket">
                                     <i class="fa-solid fa-print"></i>
                                 </button>
-                                <!-- Delete Button -->
-                                <button onclick="openDeleteDispatchModal(<?= $ticket['id']; ?>, '<?= htmlspecialchars($ticket['ticket_number']); ?>')" class="text-gray-400 hover:text-red-500 transition focus:outline-none" title="Cancel/Void Dispatch">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
+                                <!-- Cancel / Void Button -->
+                                <?php if ($ticket['status'] !== 'Cancelled' && $ticket['status'] !== 'Delivered'): ?>
+                                    <button onclick="openDeleteDispatchModal(<?= $ticket['id']; ?>, '<?= htmlspecialchars($ticket['ticket_number']); ?>')" class="text-gray-400 hover:text-red-500 transition focus:outline-none" title="Cancel/Void Dispatch">
+                                        <i class="fa-solid fa-ban"></i>
+                                    </button>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -116,6 +139,24 @@
                                 <?= htmlspecialchars($ticket['driver_name']); ?>
                             </span>
                         </div>
+                        <?php if (!empty($ticket['client_name'])): ?>
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-regular fa-id-badge text-blue-500 w-5 flex justify-center"></i>
+                                <span class="text-gray-600 dark:text-gray-300">
+                                    <span class="font-bold text-gray-800 dark:text-gray-200">Client:</span>
+                                    <?= htmlspecialchars($ticket['client_name']); ?>
+                                </span>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($ticket['contact_number'])): ?>
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-solid fa-phone text-emerald-500 w-5 flex justify-center"></i>
+                                <span class="text-gray-600 dark:text-gray-300">
+                                    <span class="font-bold text-gray-800 dark:text-gray-200">Contact:</span>
+                                    <?= htmlspecialchars($ticket['contact_number']); ?>
+                                </span>
+                            </div>
+                        <?php endif; ?>
                         <div class="flex items-center space-x-2">
                             <i class="fa-solid fa-cube text-gray-500 dark:text-gray-400 w-5 flex justify-center"></i>
                             <span class="text-gray-600 dark:text-gray-300">
@@ -159,16 +200,40 @@
                         <div class="relative pl-8"><i class="fa-regular fa-circle text-red-500 absolute left-0 top-0 mt-1 w-5 flex justify-center bg-white dark:bg-gray-800 rounded-full"></i>
                             <div>
                                 <span class="font-bold text-gray-800 dark:text-gray-200">To:</span> <?= htmlspecialchars($ticket['destination']); ?>
+                                <?php if (!empty($ticket['landmark'])): ?>
+                                    <div class="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-start gap-1">
+                                        <i class="fa-solid fa-location-dot mt-0.5 text-amber-500 text-[11px]"></i>
+                                        <span><span class="font-semibold">Landmark:</span> <?= htmlspecialchars($ticket['landmark']); ?></span>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
                 </div>
             <?php endforeach; ?>
+            <div id="noActiveDispatchesMatch" class="col-span-full py-12 text-center text-gray-400 dark:text-gray-500 hidden">
+                <i class="fa-solid fa-magnifying-glass text-3xl mb-3 opacity-40 block mx-auto"></i>
+                <p class="text-sm font-medium" id="noActiveDispatchesText">No active dispatches match your search.</p>
+                <button type="button" onclick="clearDispatchSearch()" class="text-xs text-blue-500 hover:underline mt-2 inline-block">Clear search</button>
+            </div>
         </div>
 
         <div id="dispatch-grid-requests" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
-            <?php foreach ($cancellationRequests as $ticket): ?>
-                <div class="border-2 border-orange-200 dark:border-orange-900 rounded-xl p-6 shadow-sm bg-orange-50/30 dark:bg-orange-900/10 hover:shadow-md transition">
+            <?php foreach ($cancellationRequests as $ticket):
+                $reqSearchMeta = strtolower(implode(' ', array_filter([
+                    $ticket['ticket_number'] ?? '',
+                    $ticket['truck_code'] ?? '',
+                    $ticket['driver_name'] ?? '',
+                    $ticket['client_name'] ?? '',
+                    $ticket['contact_number'] ?? '',
+                    $ticket['destination'] ?? '',
+                    $ticket['landmark'] ?? '',
+                    $ticket['order_number'] ?? '',
+                    $ticket['status'] ?? '',
+                    'pending cancel cancellation request'
+                ])));
+            ?>
+                <div class="dispatch-card border-2 border-orange-200 dark:border-orange-900 rounded-xl p-6 shadow-sm bg-orange-50/30 dark:bg-orange-900/10 hover:shadow-md transition" data-search="<?= htmlspecialchars($reqSearchMeta) ?>">
                     <div class="flex justify-between items-center mb-4">
                         <div class="flex items-center space-x-2 font-bold text-gray-800 dark:text-gray-200">
                             <i class="fa-solid fa-triangle-exclamation text-orange-500"></i>
@@ -189,7 +254,24 @@
                     <div class="space-y-3 mb-4 text-sm">
                         <div class="flex items-center space-x-2"><i class="fa-solid fa-truck text-gray-500 dark:text-gray-400 w-5 flex justify-center"></i><span class="text-gray-600 dark:text-gray-300"><span class="font-bold text-gray-800 dark:text-gray-200">Truck:</span> <?= htmlspecialchars($ticket['truck_code']); ?></span></div>
                         <div class="flex items-center space-x-2"><i class="fa-regular fa-user text-gray-500 dark:text-gray-400 w-5 flex justify-center"></i><span class="text-gray-600 dark:text-gray-300"><span class="font-bold text-gray-800 dark:text-gray-200">Driver:</span> <?= htmlspecialchars($ticket['driver_name']); ?></span></div>
+                        <?php if (!empty($ticket['client_name'])): ?>
+                            <div class="flex items-center space-x-2"><i class="fa-regular fa-id-badge text-blue-500 w-5 flex justify-center"></i><span class="text-gray-600 dark:text-gray-300"><span class="font-bold text-gray-800 dark:text-gray-200">Client:</span> <?= htmlspecialchars($ticket['client_name']); ?></span></div>
+                        <?php endif; ?>
+                        <?php if (!empty($ticket['contact_number'])): ?>
+                            <div class="flex items-center space-x-2"><i class="fa-solid fa-phone text-emerald-500 w-5 flex justify-center"></i><span class="text-gray-600 dark:text-gray-300"><span class="font-bold text-gray-800 dark:text-gray-200">Contact:</span> <?= htmlspecialchars($ticket['contact_number']); ?></span></div>
+                        <?php endif; ?>
                         <div class="flex items-center space-x-2"><i class="fa-solid fa-cube text-gray-500 dark:text-gray-400 w-5 flex justify-center"></i><span class="text-gray-600 dark:text-gray-300"><span class="font-bold text-gray-800 dark:text-gray-200">Volume:</span> <?= number_format($ticket['cubic_meters'] ?? 0, 2); ?> cu.m</span></div>
+                        <?php if (!empty($ticket['destination'])): ?>
+                            <div class="flex items-start space-x-2 text-xs text-gray-600 dark:text-gray-300 pt-1 border-t border-orange-100 dark:border-orange-900/30">
+                                <i class="fa-solid fa-map-marker-alt text-red-500 w-5 flex justify-center mt-0.5"></i>
+                                <div>
+                                    <span class="font-bold text-gray-800 dark:text-gray-200">To:</span> <?= htmlspecialchars($ticket['destination']); ?>
+                                    <?php if (!empty($ticket['landmark'])): ?>
+                                        <div class="text-amber-600 dark:text-amber-400 mt-0.5"><span class="font-semibold">Landmark:</span> <?= htmlspecialchars($ticket['landmark']); ?></div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     <div class="text-xs text-orange-600 dark:text-orange-400 italic bg-orange-100 dark:bg-orange-900/20 p-2 rounded-lg">
                         <i class="fa-solid fa-info-circle mr-1"></i> Waiting for admin to approve or re-assign truck.
@@ -202,11 +284,29 @@
                     No pending cancellation requests.
                 </div>
             <?php endif; ?>
+            <div id="noRequestsDispatchesMatch" class="col-span-full py-12 text-center text-gray-400 dark:text-gray-500 hidden">
+                <i class="fa-solid fa-magnifying-glass text-3xl mb-3 opacity-40 block mx-auto"></i>
+                <p class="text-sm font-medium" id="noRequestsDispatchesText">No cancellation requests match your search.</p>
+                <button type="button" onclick="clearDispatchSearch()" class="text-xs text-blue-500 hover:underline mt-2 inline-block">Clear search</button>
+            </div>
         </div>
 
         <div id="dispatch-grid-completed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
-            <?php foreach ($completedTickets as $ticket): ?>
-                <div class="border border-gray-100 dark:border-gray-700 rounded-xl p-6 shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition">
+            <?php foreach ($completedTickets as $ticket):
+                $compSearchMeta = strtolower(implode(' ', array_filter([
+                    $ticket['ticket_number'] ?? '',
+                    $ticket['truck_code'] ?? '',
+                    $ticket['driver_name'] ?? '',
+                    $ticket['client_name'] ?? '',
+                    $ticket['contact_number'] ?? '',
+                    $ticket['destination'] ?? '',
+                    $ticket['landmark'] ?? '',
+                    $ticket['order_number'] ?? '',
+                    $ticket['status'] ?? '',
+                    ($ticket['status'] === 'Cancelled' ? 'cancelled' : 'delivered completed')
+                ])));
+            ?>
+                <div class="dispatch-card border border-gray-100 dark:border-gray-700 rounded-xl p-6 shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition" data-search="<?= htmlspecialchars($compSearchMeta) ?>">
                     <div class="flex justify-between items-center mb-4">
                         <div class="flex items-center space-x-2 font-bold text-gray-800 dark:text-gray-200">
                             <i class="fa-regular fa-file-lines text-blue-500"></i>
@@ -238,6 +338,24 @@
                                 <?= htmlspecialchars($ticket['driver_name']); ?>
                             </span>
                         </div>
+                        <?php if (!empty($ticket['client_name'])): ?>
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-regular fa-id-badge text-blue-500 w-5 flex justify-center"></i>
+                                <span class="text-gray-600 dark:text-gray-300">
+                                    <span class="font-bold text-gray-800 dark:text-gray-200">Client:</span>
+                                    <?= htmlspecialchars($ticket['client_name']); ?>
+                                </span>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($ticket['contact_number'])): ?>
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-solid fa-phone text-emerald-500 w-5 flex justify-center"></i>
+                                <span class="text-gray-600 dark:text-gray-300">
+                                    <span class="font-bold text-gray-800 dark:text-gray-200">Contact:</span>
+                                    <?= htmlspecialchars($ticket['contact_number']); ?>
+                                </span>
+                            </div>
+                        <?php endif; ?>
                         <div class="flex items-center space-x-2"><i class="fa-solid fa-cube text-gray-500 dark:text-gray-400 w-5 flex justify-center"></i>
                             <span class="text-gray-600 dark:text-gray-300">
                                 <span class="font-bold text-gray-800 dark:text-gray-200">Volume:</span>
@@ -282,11 +400,22 @@
                             <div>
                                 <span class="font-bold text-gray-800 dark:text-gray-200">To:</span>
                                 <?= htmlspecialchars($ticket['destination']); ?>
+                                <?php if (!empty($ticket['landmark'])): ?>
+                                    <div class="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-start gap-1">
+                                        <i class="fa-solid fa-location-dot mt-0.5 text-amber-500 text-[11px]"></i>
+                                        <span><span class="font-semibold">Landmark:</span> <?= htmlspecialchars($ticket['landmark']); ?></span>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
                 </div>
             <?php endforeach; ?>
+            <div id="noCompletedDispatchesMatch" class="col-span-full py-12 text-center text-gray-400 dark:text-gray-500 hidden">
+                <i class="fa-solid fa-magnifying-glass text-3xl mb-3 opacity-40 block mx-auto"></i>
+                <p class="text-sm font-medium" id="noCompletedDispatchesText">No completed dispatches match your search.</p>
+                <button type="button" onclick="clearDispatchSearch()" class="text-xs text-blue-500 hover:underline mt-2 inline-block">Clear search</button>
+            </div>
         </div>
     </div>
 </div>
@@ -300,4 +429,71 @@
             }
         }
     <?php endif; ?>
+
+    function filterDispatches() {
+        const input = document.getElementById('dispatchSearchInput');
+        const clearBtn = document.getElementById('dispatchSearchClear');
+        const query = input ? input.value.toLowerCase().trim() : '';
+
+        if (clearBtn) {
+            clearBtn.classList.toggle('hidden', query.length === 0);
+        }
+
+        const grids = [{
+                id: 'dispatch-grid-active',
+                noResId: 'noActiveDispatchesMatch',
+                noResTextId: 'noActiveDispatchesText',
+                label: 'active dispatches'
+            },
+            {
+                id: 'dispatch-grid-requests',
+                noResId: 'noRequestsDispatchesMatch',
+                noResTextId: 'noRequestsDispatchesText',
+                label: 'cancellation requests'
+            },
+            {
+                id: 'dispatch-grid-completed',
+                noResId: 'noCompletedDispatchesMatch',
+                noResTextId: 'noCompletedDispatchesText',
+                label: 'completed dispatches'
+            }
+        ];
+
+        grids.forEach(g => {
+            const gridEl = document.getElementById(g.id);
+            if (!gridEl) return;
+            const cards = gridEl.querySelectorAll('.dispatch-card');
+            let matchCount = 0;
+
+            cards.forEach(card => {
+                const meta = card.getAttribute('data-search') || '';
+                if (!query || meta.includes(query)) {
+                    card.classList.remove('hidden');
+                    matchCount++;
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+
+            const noResEl = document.getElementById(g.noResId);
+            const noResTextEl = document.getElementById(g.noResTextId);
+            if (noResEl) {
+                if (matchCount === 0 && cards.length > 0) {
+                    noResEl.classList.remove('hidden');
+                    if (noResTextEl) noResTextEl.textContent = `No ${g.label} match "${query}".`;
+                } else {
+                    noResEl.classList.add('hidden');
+                }
+            }
+        });
+    }
+
+    function clearDispatchSearch() {
+        const input = document.getElementById('dispatchSearchInput');
+        if (input) {
+            input.value = '';
+            filterDispatches();
+            input.focus();
+        }
+    }
 </script>

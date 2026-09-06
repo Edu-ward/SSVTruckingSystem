@@ -6,10 +6,11 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     die("Unauthorized Access");
 }
 
-$allowedPeriods = ['all', 'weekly', 'monthly', 'yearly', 'custom'];
+$allowedPeriods = ['all', 'weekly', 'monthly', 'yearly', 'custom', 'month'];
 $period = in_array($_GET['period'] ?? 'all', $allowedPeriods) ? $_GET['period'] : 'all';
 $start_date = $_GET['start_date'] ?? null;
 $end_date = $_GET['end_date'] ?? null;
+$month = $_GET['month'] ?? null;
 
 $where = "WHERE 1=1";
 $params = [];
@@ -18,6 +19,9 @@ if ($period === 'weekly') {
     $where .= " AND trip_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
 } elseif ($period === 'monthly') {
     $where .= " AND MONTH(trip_date) = MONTH(CURDATE()) AND YEAR(trip_date) = YEAR(CURDATE())";
+} elseif ($period === 'month' && !empty($month) && preg_match('/^\d{4}-\d{2}$/', $month)) {
+    $where .= " AND DATE_FORMAT(trip_date, '%Y-%m') = ?";
+    $params[] = $month;
 } elseif ($period === 'yearly') {
     $where .= " AND YEAR(trip_date) = YEAR(CURDATE())";
 } elseif ($period === 'custom' && $start_date && $end_date) {

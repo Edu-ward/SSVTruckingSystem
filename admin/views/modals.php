@@ -196,12 +196,24 @@
                             data-destination="<?= htmlspecialchars($_ao['destination']) ?>"
                             data-gravel="<?= htmlspecialchars($_ao['gravel_type']) ?>"
                             data-customer="<?= htmlspecialchars($_ao['client_name']) ?>"
+                            data-contact="<?= htmlspecialchars($_ao['contact_number'] ?? '') ?>"
+                            data-landmark="<?= htmlspecialchars($_ao['landmark'] ?? '') ?>"
                             data-remaining="<?= $rem ?>">
                             <?= htmlspecialchars($_ao['order_number']) ?> · <?= htmlspecialchars($_ao['client_name']) ?> — <?= htmlspecialchars($_ao['destination']) ?> (<?= number_format($rem, 2) ?> cu.m remaining)
                         </option>
                     <?php endforeach; ?>
                 </select>
                 <p id="dispatchCustomerInfo" class="text-xs text-blue-600 dark:text-blue-400 mt-1 hidden"><i class="fa-solid fa-user mr-1"></i><span id="dispatchCustomerName"></span></p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Client's Name</label>
+                    <input type="text" name="client_name" id="dispatchClientName" placeholder="e.g. Juan dela Cruz" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Contact Number</label>
+                    <input type="text" name="contact_number" id="dispatchContactNumber" placeholder="e.g. 0912 345 6789" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
+                </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -238,6 +250,20 @@
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Landmark / Drop-off Note <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <input type="text" name="landmark" id="dispatchLandmark" placeholder="e.g. Near Brgy. Hall, White Gate, Beside Petron" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-1.5">
+                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Estimated Arrival (ETA)</label>
+                        <span id="dispatchEtaBadge" class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/40 px-2 py-0.5 rounded-md hidden"></span>
+                    </div>
+                    <input type="datetime-local" name="estimated_arrival_time" id="dispatchEtaInput" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
+                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Used to evaluate accurate on-time delivery rate upon site arrival.</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Gravel Type <span class="text-red-500">*</span></label>
                     <select id="gravelType" name="gravel_type" required class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
                         <option value="">Select gravel type</option>
@@ -264,6 +290,10 @@
         const customerInfo = document.getElementById('dispatchCustomerInfo');
         const customerNameEl = document.getElementById('dispatchCustomerName');
 
+        const clientNameInput = document.getElementById('dispatchClientName');
+        const contactInput = document.getElementById('dispatchContactNumber');
+        const landmarkInput = document.getElementById('dispatchLandmark');
+
         if (!opt || !opt.value) {
             if (customerInfo) customerInfo.classList.add('hidden');
             return;
@@ -272,6 +302,12 @@
         const dest = opt.dataset.destination;
         const gravel = opt.dataset.gravel;
         const customer = opt.dataset.customer;
+        const contact = opt.dataset.contact;
+        const landmark = opt.dataset.landmark;
+
+        if (clientNameInput && customer) clientNameInput.value = customer;
+        if (contactInput && contact !== undefined) contactInput.value = contact;
+        if (landmarkInput && landmark !== undefined) landmarkInput.value = landmark;
 
         const destSelect = document.getElementById('destinationSelect');
         if (destSelect && dest) {
@@ -294,9 +330,9 @@
         const gravelSelect = document.getElementById('gravelType');
         if (gravelSelect && gravel) gravelSelect.value = gravel;
 
-        // Show customer name
+        // Show customer name badge
         if (customerInfo && customerNameEl && customer) {
-            customerNameEl.textContent = 'Customer: ' + customer;
+            customerNameEl.textContent = 'Customer: ' + customer + (contact ? ' (' + contact + ')' : '');
             customerInfo.classList.remove('hidden');
         } else if (customerInfo) {
             customerInfo.classList.add('hidden');
@@ -609,6 +645,25 @@
             </div>
         </div>
 
+        <!-- Month Filter Toolbar in View All Deliveries Modal -->
+        <div class="px-4 sm:px-6 py-3 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 flex-shrink-0">
+            <div class="flex items-center gap-2">
+                <i class="fa-regular fa-calendar-days text-blue-500 text-sm"></i>
+                <label for="ad-month-select" class="text-xs font-bold text-gray-700 dark:text-gray-200">
+                    Filter by Month:
+                </label>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <select id="ad-month-select" onchange="filterAllDriverDeliveriesByMonth(this.value)" class="w-full sm:w-auto border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 text-xs font-semibold bg-gray-50 dark:bg-gray-750 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:outline-none transition cursor-pointer">
+                    <option value="all">All Deliveries (All Time)</option>
+                    <!-- Populated dynamically via JS -->
+                </select>
+                <span id="ad-month-count-pill" class="text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800 flex-shrink-0">
+                    0 trips
+                </span>
+            </div>
+        </div>
+
         <!-- Scrollable Deliveries List -->
         <div class="p-4 sm:p-6 overflow-y-auto space-y-2.5 flex-1 max-h-[50vh]" id="ad-all-trips-list">
             <!-- Populated via JavaScript -->
@@ -827,20 +882,20 @@
     </div>
 </div>
 
-<div id="deleteDriverModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+<div id="resignDriverModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative p-6 text-center">
-        <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
-            <i class="fa-solid fa-triangle-exclamation"></i>
+        <div class="w-16 h-16 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
+            <i class="fa-solid fa-user-xmark"></i>
         </div>
-        <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Remove Driver</h3>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to remove <strong id="dd-name" class="text-gray-800 dark:text-gray-200"></strong> from the system? This action cannot be undone.</p>
+        <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Resign Driver</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to mark <strong id="dd-name" class="text-gray-800 dark:text-gray-200"></strong> as <span class="text-amber-600 dark:text-amber-400 font-semibold">Resigned</span>?<br><span class="text-xs text-gray-400 dark:text-gray-500 mt-2 block">All historical trips, payroll records, and delivery logs will remain safely preserved in the database.</span></p>
         <form method="POST" action="dashboard.php">
-            <input type="hidden" name="action" value="delete_driver">
+            <input type="hidden" name="action" value="resign_driver">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="driver_id" id="delete_driver_id" value="">
             <div class="flex space-x-3">
-                <button type="button" onclick="toggleModal('deleteDriverModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition dark:bg-black">Cancel</button>
-                <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">Yes, Remove</button>
+                <button type="button" onclick="toggleModal('resignDriverModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition dark:bg-gray-700 dark:hover:bg-gray-600">Cancel</button>
+                <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 transition shadow-sm">Confirm Resign</button>
             </div>
         </form>
     </div>
@@ -888,21 +943,21 @@
     </div>
 </div>
 
-<div id="deleteTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+<div id="decommissionTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden relative">
         <div class="p-6 text-center">
-            <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                <i class="fa-solid fa-triangle-exclamation text-3xl text-red-600"></i>
+            <div class="w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-ban text-3xl text-amber-600 dark:text-amber-400"></i>
             </div>
-            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Remove Truck</h3>
-            <p class="text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to remove <strong id="dt-truck-code" class="text-gray-800 dark:text-gray-200"></strong>? This action cannot be undone.</p>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Decommission Truck</h3>
+            <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">Are you sure you want to decommission truck <strong id="dt-truck-code" class="text-gray-800 dark:text-gray-200"></strong>?<br><span class="text-xs text-gray-400 dark:text-gray-500 mt-2 block">The truck's status will be set to Decommissioned and its RFID tag deactivated. All past dispatches and maintenance history will remain safely preserved in the database.</span></p>
             <form method="POST" action="dashboard.php">
-                <input type="hidden" name="action" value="delete_truck">
+                <input type="hidden" name="action" value="decommission_truck">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                 <input type="hidden" name="truck_id" id="delete_truck_id">
                 <div class="flex justify-center space-x-3">
-                    <button type="button" onclick="toggleModal('deleteTruckModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition dark:bg-black">Cancel</button>
-                    <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">Yes, Remove</button>
+                    <button type="button" onclick="toggleModal('decommissionTruckModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 transition shadow-sm">Confirm Decommission</button>
                 </div>
             </form>
         </div>
@@ -948,15 +1003,15 @@
             <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
                 <i class="fa-solid fa-ban text-3xl text-red-600"></i>
             </div>
-            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Void / Cancel Dispatch</h3>
-            <p class="text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to void ticket <strong id="dd-ticket-number" class="text-gray-800 dark:text-gray-200"></strong>? This will release the truck and driver and reverse any payroll added for this trip.</p>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Cancel / Void Dispatch</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to cancel ticket <strong id="dd-ticket-number" class="text-gray-800 dark:text-gray-200"></strong>?<br><span class="text-xs text-gray-400 dark:text-gray-500 mt-2 block">This dispatch record will remain preserved with status <strong class="text-red-500 font-semibold">Cancelled</strong>, and the assigned truck and driver will be released.</span></p>
             <form method="POST" action="dashboard.php">
-                <input type="hidden" name="action" value="delete_dispatch">
+                <input type="hidden" name="action" value="cancel_dispatch">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                 <input type="hidden" name="dispatch_id" id="delete_dispatch_id">
                 <div class="flex justify-center space-x-3">
                     <button type="button" onclick="toggleModal('deleteDispatchModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition">Keep Dispatch</button>
-                    <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">Yes, Void It</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition shadow-sm">Confirm Cancel</button>
                 </div>
             </form>
         </div>
@@ -1005,6 +1060,12 @@
                     <input type="text" name="client_name" required placeholder="e.g. Juan dela Cruz" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
                 </div>
                 <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Contact Number <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <input type="text" name="contact_number" placeholder="e.g. 0912 345 6789" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
                     <div class="flex justify-between items-center mb-1">
                         <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Destination <span class="text-red-500">*</span></label>
                         <button type="button" onclick="openNominatimSearch('order')" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1">
@@ -1017,6 +1078,10 @@
                             <option value="<?= htmlspecialchars($_dest['name']); ?>"><?= htmlspecialchars($_dest['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Landmark <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <input type="text" name="landmark" placeholder="e.g. Near Brgy. Hall, White Gate" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1039,6 +1104,7 @@
                 <select name="checker_id" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
                     <option value="">— Assign later —</option>
                     <?php foreach ($allCheckers ?? [] as $chk): ?>
+                        <?php if (($chk['status'] ?? 'Active') === 'Resigned') continue; ?>
                         <option value="<?= $chk['id'] ?>"><?= htmlspecialchars($chk['username']) ?></option>
                     <?php endforeach; ?>
                 </select>
@@ -1131,6 +1197,7 @@
                 <select name="checker_id" required class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
                     <option value="">— Select —</option>
                     <?php foreach ($allCheckers ?? [] as $chk): ?>
+                        <?php if (($chk['status'] ?? 'Active') === 'Resigned') continue; ?>
                         <option value="<?= $chk['id'] ?>">
                             <?= htmlspecialchars($chk['full_name'] ?: $chk['username']) ?>
                             (<?= htmlspecialchars($chk['username']) ?>)
@@ -1146,21 +1213,21 @@
     </div>
 </div>
 
-<div id="deleteCheckerModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
+<div id="resignCheckerModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden relative p-5 sm:p-6 text-center max-h-[90vh] overflow-y-auto">
-        <button onclick="toggleModal('deleteCheckerModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200"><i class="fa-solid fa-xmark fa-lg"></i></button>
-        <div class="w-14 h-14 sm:w-16 sm:h-16 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-3 sm:mb-4">
-            <i class="fa-solid fa-triangle-exclamation"></i>
+        <button onclick="toggleModal('resignCheckerModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200"><i class="fa-solid fa-xmark fa-lg"></i></button>
+        <div class="w-14 h-14 sm:w-16 sm:h-16 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center text-2xl mx-auto mb-3 sm:mb-4">
+            <i class="fa-solid fa-user-xmark"></i>
         </div>
-        <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Remove Checker</h3>
-        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to remove <strong id="dc-checker-name" class="text-gray-800 dark:text-gray-200"></strong> from the system? Their account will be permanently deleted.</p>
+        <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Resign Checker</h3>
+        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to mark <strong id="dc-checker-name" class="text-gray-800 dark:text-gray-200"></strong> as <span class="text-amber-600 dark:text-amber-400 font-semibold">Resigned</span>?<br><span class="text-xs text-gray-400 dark:text-gray-500 mt-2 block">All order checking history and records will remain safely preserved in the database.</span></p>
         <form method="POST" action="dashboard.php">
-            <input type="hidden" name="action" value="delete_checker">
+            <input type="hidden" name="action" value="resign_checker">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="checker_id" id="delete_checker_id">
             <div class="flex space-x-3">
-                <button type="button" onclick="toggleModal('deleteCheckerModal', false)" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition">Cancel</button>
-                <button type="submit" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">Yes, Remove</button>
+                <button type="button" onclick="toggleModal('resignCheckerModal', false)" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition">Cancel</button>
+                <button type="submit" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 transition shadow-sm">Confirm Resign</button>
             </div>
         </form>
     </div>
@@ -1363,6 +1430,21 @@
             }
             payAmountEl.innerHTML = `Map Distance: <span class="font-bold text-blue-600 dark:text-blue-400">${rounded} km</span> (round trip) &bull; Driver Trip Pay: <span class="font-bold text-green-600 dark:text-green-400">₱${amount.toFixed(2)}</span> <span class="text-gray-500 dark:text-gray-400 font-normal">(${calc.breakdown})</span>`;
             payPreview.classList.remove('hidden');
+
+            // Auto-calculate ETA
+            const oneWayKm = (rounded > 40) ? (rounded / 2) : rounded;
+            const transitMins = Math.max(25, Math.round((oneWayKm / 35) * 60) + 15);
+            const now = new Date();
+            const etaDate = new Date(now.getTime() + (transitMins * 60000));
+            const pad = (n) => String(n).padStart(2, '0');
+            const etaFormatted = `${etaDate.getFullYear()}-${pad(etaDate.getMonth() + 1)}-${pad(etaDate.getDate())}T${pad(etaDate.getHours())}:${pad(etaDate.getMinutes())}`;
+            const etaInput = document.getElementById('dispatchEtaInput');
+            const etaBadge = document.getElementById('dispatchEtaBadge');
+            if (etaInput) etaInput.value = etaFormatted;
+            if (etaBadge) {
+                etaBadge.textContent = `~${transitMins} mins`;
+                etaBadge.classList.remove('hidden');
+            }
             return rounded;
         };
 

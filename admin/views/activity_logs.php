@@ -131,7 +131,7 @@
                                 default                                      => 'fa-circle-info text-gray-400',
                             };
                             ?>
-                            <tr class="activity-log-row hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors" 
+                            <tr class="activity-log-row hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors" 
                                 data-role="<?= htmlspecialchars($log['role'] ?? '') ?>"
                                 data-search="<?= htmlspecialchars(strtolower(($log['username'] ?? '') . ' ' . ($log['action'] ?? '') . ' ' . ($log['details'] ?? ''))) ?>">
                                 <td class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">

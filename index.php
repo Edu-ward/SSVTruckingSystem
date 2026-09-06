@@ -119,18 +119,23 @@ try {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        /* ── Custom Scrollbar ── */
-        ::-webkit-scrollbar {
-            width: 6px;
+        /* ── Remove All Scrollbars Globally While Keeping Elements Scrollable ── */
+        html,
+        body,
+        *,
+        *::before,
+        *::after {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
         }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #94a3b8;
-            border-radius: 9999px;
+        ::-webkit-scrollbar,
+        *::-webkit-scrollbar,
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            background: transparent !important;
         }
 
         /* ── Glassmorphism Panel ── */
@@ -476,6 +481,16 @@ try {
                         <div>
                             <p class="font-semibold">Authentication Failed</p>
                             <p class="text-red-500/80 dark:text-red-400/70 text-xs mt-0.5">Invalid username or password. Please try again.</p>
+                        </div>
+                    </div>
+                <?php elseif (isset($_GET['error']) && htmlspecialchars($_GET['error']) == 'resigned'): ?>
+                    <div id="errorAlert" class="flex items-start space-x-3 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 p-4 rounded-xl mb-6 text-sm border border-amber-100 dark:border-amber-900/40 animate-slide-up">
+                        <div class="w-5 h-5 bg-amber-100 dark:bg-amber-900/40 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fa-solid fa-user-xmark text-xs"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold">Account Inactive</p>
+                            <p class="text-amber-600/80 dark:text-amber-400/70 text-xs mt-0.5">This account has been marked as resigned. Please contact an administrator.</p>
                         </div>
                     </div>
                 <?php endif; ?>

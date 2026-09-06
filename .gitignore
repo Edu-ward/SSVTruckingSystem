@@ -6,6 +6,9 @@
 .env
 .env.*
 *.env
+.htaccess
+.htaccess.*
+*.htaccess
 
 # PHP error logs
 *.log
@@ -26,6 +29,7 @@ desktop.ini
 # Temporary / uploaded files (if stored locally)
 uploads/temp/
 tmp/
+docs/
 
 # Node (if ever used)
 node_modules/

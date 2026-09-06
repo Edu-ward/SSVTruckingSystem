@@ -96,11 +96,17 @@ $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type']
 
         <!-- Client + Order info grid -->
         <div class="grid grid-cols-2 gap-8 mb-8">
-            <div class="bg-gray-50 p-4 border border-gray-200">
+            <div class="bg-gray-50 p-4 border border-gray-200 rounded-lg">
                 <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-2">Client Details</p>
                 <p class="font-semibold text-xl text-gray-800"><?= htmlspecialchars($order['client_name']) ?></p>
-                <div class="mt-3 pt-3 border-t border-gray-200">
+                <?php if (!empty($order['contact_number'])): ?>
+                    <p class="text-sm text-gray-600 mt-1"><span class="font-semibold text-gray-800">Contact:</span> <?= htmlspecialchars($order['contact_number']) ?></p>
+                <?php endif; ?>
+                <div class="mt-3 pt-3 border-t border-gray-200 space-y-1">
                     <p class="text-sm text-gray-600"><span class="font-semibold text-gray-800">Destination:</span> <?= htmlspecialchars($order['destination']) ?></p>
+                    <?php if (!empty($order['landmark'])): ?>
+                        <p class="text-sm text-amber-800"><span class="font-semibold">Landmark:</span> <?= htmlspecialchars($order['landmark']) ?></p>
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="bg-gray-50 p-4 border border-gray-200">

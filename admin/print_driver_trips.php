@@ -67,7 +67,7 @@ $sql = "
         COALESCE(d.cubic_meters, 0.00) AS cubic_meters,
         t.truck_code AS dispatch_truck,
         o.order_number,
-        o.client_name
+        COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name
     FROM driver_trips dt
     LEFT JOIN destinations dest ON dest.name = dt.destination
     LEFT JOIN dispatches d ON d.driver_id = dt.driver_id AND d.destination = dt.destination AND DATE(COALESCE(d.dispatch_date, d.created_at)) = DATE(COALESCE(dt.trip_date, dt.created_at))

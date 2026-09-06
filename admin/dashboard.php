@@ -13,6 +13,29 @@ if (empty($_SESSION['csrf_token'])) {
 require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../includes/activity_log.php';
 
+// Safe runtime schema synchronization
+try {
+    $pdo->exec("ALTER TABLE orders ADD COLUMN IF NOT EXISTS contact_number VARCHAR(50) DEFAULT NULL");
+    $pdo->exec("ALTER TABLE orders ADD COLUMN IF NOT EXISTS landmark VARCHAR(255) DEFAULT NULL");
+    $pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS client_name VARCHAR(255) DEFAULT NULL");
+    $pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS contact_number VARCHAR(50) DEFAULT NULL");
+    $pdo->exec("ALTER TABLE dispatches ADD COLUMN IF NOT EXISTS landmark VARCHAR(255) DEFAULT NULL");
+} catch (Exception $e) {
+    $_ensureCol = function($pdo, $tbl, $col, $def) {
+        try {
+            $chk = $pdo->query("SHOW COLUMNS FROM `$tbl` LIKE '$col'")->fetch();
+            if (!$chk) {
+                $pdo->exec("ALTER TABLE `$tbl` ADD COLUMN `$col` $def");
+            }
+        } catch (Exception $ex) {}
+    };
+    $_ensureCol($pdo, 'orders', 'contact_number', 'VARCHAR(50) DEFAULT NULL');
+    $_ensureCol($pdo, 'orders', 'landmark', 'VARCHAR(255) DEFAULT NULL');
+    $_ensureCol($pdo, 'dispatches', 'client_name', 'VARCHAR(255) DEFAULT NULL');
+    $_ensureCol($pdo, 'dispatches', 'contact_number', 'VARCHAR(50) DEFAULT NULL');
+    $_ensureCol($pdo, 'dispatches', 'landmark', 'VARCHAR(255) DEFAULT NULL');
+}
+
 $_settings_raw = $pdo->query("SELECT setting_key, setting_value FROM system_settings")->fetchAll(PDO::FETCH_KEY_PAIR);
 $GARAGE_NAME = $_settings_raw['garage_name'] ?? 'San Leonardo (Quarry Garage)';
 $GARAGE_LAT  = floatval($_settings_raw['garage_lat'] ?? 15.359042);
@@ -95,6 +118,24 @@ function getDestinationPay(string $destName, array $DISTANCE_KM, array $DRIVER_R
     $km = floatval($DISTANCE_KM[$destName] ?? 0);
     $rate = floatval($DRIVER_RATES[$destName] ?? 0);
     return calculateTripPay($km, $destName, $rate);
+}
+
+// Helper: compute whether delivery arrival is on-time based on ETA
+function computeIsOnTime(array $dispatch, ?string $nowTime = null): int {
+    global $DISTANCE_KM;
+    $nowTs = $nowTime ? strtotime($nowTime) : time();
+    if (!empty($dispatch['estimated_arrival_time'])) {
+        return ($nowTs <= strtotime($dispatch['estimated_arrival_time'])) ? 1 : 0;
+    }
+    $start = !empty($dispatch['transit_start_time']) ? $dispatch['transit_start_time'] : ($dispatch['created_at'] ?? null);
+    if ($start) {
+        $dist = floatval($dispatch['distance_km'] ?? ($DISTANCE_KM[$dispatch['destination']] ?? 20));
+        $oneWay = max(5, round($dist > 40 ? ($dist / 2) : $dist));
+        $etaMins = max(25, round(($oneWay / 35) * 60) + 15);
+        $expectedTs = strtotime($start) + ($etaMins * 60);
+        return ($nowTs <= $expectedTs) ? 1 : 0;
+    }
+    return 1;
 }
 
 $_gravel_rows = $pdo->query("SELECT type_key, label FROM gravel_types WHERE is_active = 1 ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
@@ -191,6 +232,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $destination = $_POST['destination'];
         $cubic_meters = !empty($_POST['cubic_meters']) ? floatval($_POST['cubic_meters']) : 0.00;
         $order_id = !empty($_POST['order_id']) ? intval($_POST['order_id']) : null;
+        $client_name = !empty($_POST['client_name']) ? trim($_POST['client_name']) : null;
+        $contact_number = !empty($_POST['contact_number']) ? trim($_POST['contact_number']) : null;
+        $landmark = !empty($_POST['landmark']) ? trim($_POST['landmark']) : null;
+
+        if ($order_id) {
+            $ordStmt = $pdo->prepare("SELECT client_name, contact_number, landmark FROM orders WHERE id = ?");
+            $ordStmt->execute([$order_id]);
+            $ordData = $ordStmt->fetch(PDO::FETCH_ASSOC);
+            if ($ordData) {
+                if (empty($client_name)) $client_name = $ordData['client_name'] ?? null;
+                if (empty($contact_number)) $contact_number = $ordData['contact_number'] ?? null;
+                if (empty($landmark)) $landmark = $ordData['landmark'] ?? null;
+            }
+        }
 
         // Distance-based pay: 10 PHP per km (one-way only) - whole number rounded
         $dist_km = 0;
@@ -240,14 +295,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
 
+        // Calculate ETA to site (one-way distance, ~35 km/h + 15 min buffer)
+        $oneWayKm = floatval($dist_km > 0 ? ($dist_km > 40 ? $dist_km / 2 : $dist_km) : 20.0);
+        $etaMinutes = max(25, round(($oneWayKm / 35) * 60) + 15);
+        if (!empty($_POST['estimated_arrival_time'])) {
+            $estimated_arrival_time = date('Y-m-d H:i:s', strtotime($_POST['estimated_arrival_time']));
+        } else {
+            $estimated_arrival_time = date('Y-m-d H:i:s', strtotime("+{$etaMinutes} minutes"));
+        }
+
         $ticketNum = 'TKT-' . date('Y') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
 
-        $insert = $pdo->prepare("INSERT INTO dispatches (ticket_number, truck_id, driver_id, status, origin, destination, pay_amount, dispatch_date, cubic_meters, order_id, transit_start_time) VALUES (?, ?, ?, 'In Transit', ?, ?, ?, CURDATE(), ?, ?, NOW())");
-        $insert->execute([$ticketNum, $truck_id, $driver_id, $origin, $destination, $driver_pay, $cubic_meters, $order_id]);
+        $insert = $pdo->prepare("INSERT INTO dispatches (ticket_number, truck_id, driver_id, client_name, contact_number, status, origin, destination, landmark, pay_amount, dispatch_date, cubic_meters, order_id, transit_start_time, estimated_arrival_time) VALUES (?, ?, ?, ?, ?, 'In Transit', ?, ?, ?, ?, CURDATE(), ?, ?, NOW(), ?)");
+        $insert->execute([$ticketNum, $truck_id, $driver_id, $client_name, $contact_number, $origin, $destination, $landmark, $driver_pay, $cubic_meters, $order_id, $estimated_arrival_time]);
         $new_dispatch_id = $pdo->lastInsertId();
 
-        $trip_insert = $pdo->prepare("INSERT INTO driver_trips (driver_id, destination, trip_date, status, order_id, transit_start_time, distance_km, pay_amount) VALUES (?, ?, CURDATE(), 'In Transit', ?, NOW(), ?, ?)");
-        $trip_insert->execute([$driver_id, $destination, $order_id, $dist_km, $driver_pay]);
+        $trip_insert = $pdo->prepare("INSERT INTO driver_trips (driver_id, destination, trip_date, status, order_id, transit_start_time, estimated_arrival_time, distance_km, pay_amount) VALUES (?, ?, CURDATE(), 'In Transit', ?, NOW(), ?, ?, ?)");
+        $trip_insert->execute([$driver_id, $destination, $order_id, $estimated_arrival_time, $dist_km, $driver_pay]);
 
         // Keep destinations table in sync so future lookups have this distance and rate
         $chkDest = $pdo->prepare("SELECT id, distance_km FROM destinations WHERE name = ?");
@@ -338,10 +402,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
             if ($dispatch) {
                 if ($dispatch['status'] === 'In Transit' || $dispatch['status'] === 'Pending') {
-                    $pdo->prepare("UPDATE dispatches SET status = 'Delivered', transit_end_time = NOW() WHERE id = ?")->execute([$dispatch['id']]);
+                    $isOnTime = computeIsOnTime($dispatch, date('Y-m-d H:i:s'));
+                    $pdo->prepare("UPDATE dispatches SET status = 'Delivered', transit_end_time = NOW(), is_on_time = ? WHERE id = ?")->execute([$isOnTime, $dispatch['id']]);
                     $pdo->prepare("UPDATE trucks SET status = 'Idle', current_location = ? WHERE id = ?")->execute([$GARAGE_NAME, $truck['id']]);
                     $pdo->prepare("UPDATE drivers SET status = 'Active' WHERE id = ?")->execute([$dispatch['driver_id']]);
-                    $pdo->prepare("UPDATE driver_trips SET status = 'Delivered', transit_end_time = NOW() WHERE driver_id = ? AND destination = ? AND status IN ('In Transit', 'Pending') ORDER BY id DESC LIMIT 1")->execute([$dispatch['driver_id'], $dispatch['destination']]);
+                    $pdo->prepare("UPDATE driver_trips SET status = 'Delivered', transit_end_time = NOW(), is_on_time = ? WHERE driver_id = ? AND destination = ? AND status IN ('In Transit', 'Pending') ORDER BY id DESC LIMIT 1")->execute([$isOnTime, $dispatch['driver_id'], $dispatch['destination']]);
 
                     // Update order progress
                     $order_id = $dispatch['order_id'] ?? null;
@@ -415,10 +480,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $dispatch = $stmt->fetch();
 
         if ($dispatch) {
-            $pdo->prepare("UPDATE dispatches SET status = 'Delivered', transit_end_time = NOW() WHERE id = ?")->execute([$dispatch_id]);
+            $isOnTime = computeIsOnTime($dispatch, date('Y-m-d H:i:s'));
+            $pdo->prepare("UPDATE dispatches SET status = 'Delivered', transit_end_time = NOW(), is_on_time = ? WHERE id = ?")->execute([$isOnTime, $dispatch_id]);
             $pdo->prepare("UPDATE trucks SET status = 'Idle', current_location = ? WHERE id = ?")->execute([$GARAGE_NAME, $dispatch['truck_id']]);
             $pdo->prepare("UPDATE drivers SET status = 'Active' WHERE id = ?")->execute([$dispatch['driver_id']]);
-            $pdo->prepare("UPDATE driver_trips SET status = 'Delivered', transit_end_time = NOW() WHERE driver_id = ? AND destination = ? AND status = 'In Transit' ORDER BY id DESC LIMIT 1")->execute([$dispatch['driver_id'], $dispatch['destination']]);
+            $pdo->prepare("UPDATE driver_trips SET status = 'Delivered', transit_end_time = NOW(), is_on_time = ? WHERE driver_id = ? AND destination = ? AND status = 'In Transit' ORDER BY id DESC LIMIT 1")->execute([$isOnTime, $dispatch['driver_id'], $dispatch['destination']]);
 
             // Update order progress
             $order_id = $dispatch['order_id'] ?? null;
@@ -469,21 +535,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-    if ($_POST['action'] == 'delete_dispatch') {
+    if ($_POST['action'] == 'delete_dispatch' || $_POST['action'] == 'cancel_dispatch') {
         $dispatch_id = $_POST['dispatch_id'];
         $stmt = $pdo->prepare("SELECT truck_id, driver_id, destination FROM dispatches WHERE id = ?");
         $stmt->execute([$dispatch_id]);
         $dispatch = $stmt->fetch();
 
         if ($dispatch) {
-            $pdo->prepare("DELETE FROM driver_trips WHERE driver_id = ? AND destination = ? ORDER BY id DESC LIMIT 1")->execute([$dispatch['driver_id'], $dispatch['destination']]);
-            $pdo->prepare("UPDATE trucks SET status = 'Idle' WHERE id = ?")->execute([$dispatch['truck_id']]);
-            $pdo->prepare("UPDATE drivers SET status = 'Off Duty' WHERE id = ?")->execute([$dispatch['driver_id']]);
-            $pdo->prepare("DELETE FROM dispatches WHERE id = ?")->execute([$dispatch_id]);
-            $_SESSION['success'] = "Dispatch deleted successfully.";
-            log_activity($pdo, 'Deleted Dispatch', 'Deleted dispatch ID ' . $dispatch_id);
+            // Soft cancel - preserve records in database without deleting
+            $pdo->prepare("UPDATE driver_trips SET status = 'Cancelled' WHERE driver_id = ? AND destination = ? AND status != 'Completed' ORDER BY id DESC LIMIT 1")->execute([$dispatch['driver_id'], $dispatch['destination']]);
+            $pdo->prepare("UPDATE trucks SET status = 'Idle', speed = 0 WHERE id = ?")->execute([$dispatch['truck_id']]);
+            $pdo->prepare("UPDATE drivers SET status = 'Off Duty' WHERE id = ? AND status != 'Resigned'")->execute([$dispatch['driver_id']]);
+            $pdo->prepare("UPDATE dispatches SET status = 'Cancelled' WHERE id = ?")->execute([$dispatch_id]);
+            $_SESSION['success'] = "Dispatch cancelled successfully. Record has been preserved.";
+            log_activity($pdo, 'Cancelled Dispatch', 'Cancelled dispatch ID ' . $dispatch_id);
         } else {
-            $_SESSION['error'] = "Failed to delete dispatch: Dispatch not found.";
+            $_SESSION['error'] = "Failed to cancel dispatch: Dispatch not found.";
         }
         header("Location: dashboard.php?tab=dispatches");
         exit;
@@ -491,7 +558,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 
 
-    if ($_POST['action'] == 'delete_driver') {
+    if ($_POST['action'] == 'resign_driver' || $_POST['action'] == 'delete_driver') {
         $driver_id = $_POST['driver_id'];
         if (!$driver_id) {
             http_response_code(400);
@@ -514,21 +581,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $pdo->prepare("UPDATE trucks SET status = 'Idle', speed = 0, current_location = ?, latitude = ?, longitude = ? WHERE id = ?")->execute([$GARAGE_NAME, $GARAGE_LAT, $GARAGE_LNG, $truckToReset]);
             }
 
-            $pdo->prepare("UPDATE dispatches SET driver_id = NULL WHERE driver_id = ?")->execute([$driver_id]);
-            $pdo->prepare("UPDATE orders SET checker_id = NULL WHERE checker_id = ?")->execute([$driver_id]);
-            $pdo->prepare("DELETE FROM driver_payroll WHERE driver_id = ?")->execute([$driver_id]);
-            $pdo->prepare("DELETE FROM driver_trips WHERE driver_id = ?")->execute([$driver_id]);
-            $pdo->prepare("DELETE FROM drivers WHERE id = ?")->execute([$driver_id]);
-            $pdo->prepare("DELETE FROM users WHERE id = ?")->execute([$driver_id]);
+            // Cancel any active/in-progress dispatches and trips, preserving their records
+            $pdo->prepare("UPDATE dispatches SET status = 'Cancelled' WHERE driver_id = ? AND status IN ('Pending', 'Loading', 'In Transit', 'Unloading')")->execute([$driver_id]);
+            $pdo->prepare("UPDATE driver_trips SET status = 'Cancelled' WHERE driver_id = ? AND status IN ('Pending', 'Loading', 'In Transit', 'Unloading')")->execute([$driver_id]);
+
+            // Mark driver as Resigned and clear truck assignment (NO rows deleted from drivers, users, payroll, or trips)
+            $pdo->prepare("UPDATE drivers SET status = 'Resigned', truck_id = NULL WHERE id = ?")->execute([$driver_id]);
 
             $pdo->commit();
-            $_SESSION['success'] = "Driver deleted successfully.";
-            log_activity($pdo, 'Deleted Driver', 'Deleted driver ID ' . $driver_id);
+            $_SESSION['success'] = "Driver marked as Resigned successfully. All historical trips, payroll, and logs are preserved.";
+            log_activity($pdo, 'Resigned Driver', 'Marked driver ID ' . $driver_id . ' as Resigned');
             header("Location: dashboard.php?tab=drivers");
             exit;
         } catch (Exception $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
-            $_SESSION['error'] = "Failed to delete driver. Please try again.";
+            $_SESSION['error'] = "Failed to update driver status. Please try again.";
             header("Location: dashboard.php?tab=drivers");
             exit;
         }
@@ -589,17 +656,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-    if ($_POST['action'] == 'delete_truck') {
+    if ($_POST['action'] == 'decommission_truck' || $_POST['action'] == 'delete_truck') {
         $truck_id = $_POST['truck_id'];
         $stmt = $pdo->prepare("SELECT driver_id FROM dispatches WHERE truck_id = ? AND status IN ('Pending', 'Loading', 'In Transit', 'Unloading') LIMIT 1");
         $stmt->execute([$truck_id]);
         $activeDispatch = $stmt->fetch();
 
-        if ($activeDispatch && $activeDispatch['driver_id']) $pdo->prepare("UPDATE drivers SET status = 'Off Duty' WHERE id = ?")->execute([$activeDispatch['driver_id']]);
-        $pdo->prepare("UPDATE dispatches SET truck_id = NULL WHERE truck_id = ?")->execute([$truck_id]);
-        $pdo->prepare("DELETE FROM trucks WHERE id = ?")->execute([$truck_id]);
-        $_SESSION['success'] = "Truck deleted successfully.";
-        log_activity($pdo, 'Deleted Truck', 'Deleted truck ID ' . $truck_id);
+        if ($activeDispatch && $activeDispatch['driver_id']) {
+            $pdo->prepare("UPDATE drivers SET status = 'Off Duty' WHERE id = ? AND status != 'Resigned'")->execute([$activeDispatch['driver_id']]);
+        }
+        // Release any driver assigned to this truck
+        $pdo->prepare("UPDATE drivers SET truck_id = NULL WHERE truck_id = ?")->execute([$truck_id]);
+        // Cancel active dispatches on this truck
+        $pdo->prepare("UPDATE dispatches SET status = 'Cancelled' WHERE truck_id = ? AND status IN ('Pending', 'Loading', 'In Transit', 'Unloading')")->execute([$truck_id]);
+        // Mark truck as Decommissioned (NO rows deleted from trucks)
+        $pdo->prepare("UPDATE trucks SET status = 'Decommissioned', rfid_active = 0, speed = 0 WHERE id = ?")->execute([$truck_id]);
+
+        $_SESSION['success'] = "Truck marked as Decommissioned. All historical dispatches and logs are safely preserved.";
+        log_activity($pdo, 'Decommissioned Truck', 'Decommissioned truck ID ' . $truck_id);
         header("Location: dashboard.php?tab=fleet");
         exit;
     }
@@ -609,9 +683,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $orderNum = 'ORD-' . date('Ymd') . '-' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
         $cubic_meters_required = !empty($_POST['cubic_meters_required']) ? floatval($_POST['cubic_meters_required']) : (isset($_POST['trucks_required']) ? floatval($_POST['trucks_required']) : 1.00);
         $trucks_req = max(1, (int)ceil($cubic_meters_required));
-        $stmt = $pdo->prepare("INSERT INTO orders (order_number, client_name, gravel_type, destination, trucks_required, cubic_meters_required, checker_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $contact_number = !empty($_POST['contact_number']) ? trim($_POST['contact_number']) : null;
+        $landmark = !empty($_POST['landmark']) ? trim($_POST['landmark']) : null;
+        $stmt = $pdo->prepare("INSERT INTO orders (order_number, client_name, contact_number, gravel_type, destination, landmark, trucks_required, cubic_meters_required, checker_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $checker_id = !empty($_POST['checker_id']) ? intval($_POST['checker_id']) : null;
-        $stmt->execute([$orderNum, $_POST['client_name'], $_POST['gravel_type'], $_POST['destination'], $trucks_req, $cubic_meters_required, $checker_id, $_POST['notes'] ?? '']);
+        $stmt->execute([$orderNum, $_POST['client_name'], $contact_number, $_POST['gravel_type'], $_POST['destination'], $landmark, $trucks_req, $cubic_meters_required, $checker_id, $_POST['notes'] ?? '']);
         $_SESSION['success'] = "Order <strong>{$orderNum}</strong> created successfully.";
         log_activity($pdo, 'Created Order', 'Created order ' . $orderNum . ' for ' . $_POST['client_name']);
         header("Location: dashboard.php?tab=orders");
@@ -666,23 +742,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-    if ($_POST['action'] == 'delete_checker') {
+    if ($_POST['action'] == 'resign_checker' || $_POST['action'] == 'delete_checker') {
         $checker_id = intval($_POST['checker_id']);
         if ($checker_id > 0) {
             try {
                 $pdo->beginTransaction();
-                $pdo->prepare("UPDATE orders SET checker_id = NULL WHERE checker_id = ?")->execute([$checker_id]);
-                $pdo->prepare("DELETE FROM checkers WHERE id = ?")->execute([$checker_id]);
-                $pdo->prepare("DELETE FROM users WHERE id = ? AND role = 'Checker'")->execute([$checker_id]);
+                // Unassign from pending orders so another checker can be assigned, but keep completed orders intact
+                $pdo->prepare("UPDATE orders SET checker_id = NULL WHERE checker_id = ? AND status = 'Pending'")->execute([$checker_id]);
+                // Mark checker as Resigned (NO rows deleted from checkers or users)
+                $pdo->prepare("UPDATE checkers SET status = 'Resigned' WHERE id = ?")->execute([$checker_id]);
                 $pdo->commit();
-                $_SESSION['success'] = "Checker deleted successfully.";
-                log_activity($pdo, 'Deleted Checker', 'Deleted checker ID ' . $checker_id);
+                $_SESSION['success'] = "Checker marked as Resigned successfully. All past order scans and records are preserved.";
+                log_activity($pdo, 'Resigned Checker', 'Marked checker ID ' . $checker_id . ' as Resigned');
             } catch (Exception $e) {
                 if ($pdo->inTransaction()) $pdo->rollBack();
-                $_SESSION['error'] = "Failed to delete checker. Please try again.";
+                $_SESSION['error'] = "Failed to update checker status. Please try again.";
             }
         } else {
-            $_SESSION['error'] = "Failed to delete checker: Invalid ID.";
+            $_SESSION['error'] = "Failed to update checker: Invalid ID.";
         }
         header("Location: dashboard.php?tab=orders");
         exit;
@@ -1023,7 +1100,7 @@ $recentDispatches = $pdo->query("SELECT d.ticket_number, t.truck_code, CONCAT(dr
 
 $trackingTrucks = $pdo->query("SELECT t.truck_code, t.status, t.current_location, t.speed, t.latitude, t.longitude, CONCAT(d.first_name, ' ', d.last_name) AS driver_name FROM trucks t LEFT JOIN drivers d ON t.id = d.truck_id WHERE t.status != 'Idle' AND t.latitude IS NOT NULL")->fetchAll(PDO::FETCH_ASSOC);
 
-$allDispatches = $pdo->query("SELECT d.id, d.ticket_number, d.driver_id, d.cubic_meters, d.order_id, o.order_number, t.truck_code, CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name, d.status, d.destination, d.created_at, d.transit_start_time, d.transit_end_time FROM dispatches d LEFT JOIN trucks t ON d.truck_id = t.id LEFT JOIN drivers dr ON d.driver_id = dr.id LEFT JOIN orders o ON d.order_id = o.id ORDER BY d.id DESC")->fetchAll(PDO::FETCH_ASSOC);
+$allDispatches = $pdo->query("SELECT d.id, d.ticket_number, d.driver_id, d.cubic_meters, d.order_id, o.order_number, t.truck_code, CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name, d.status, d.destination, d.created_at, d.transit_start_time, d.transit_end_time, COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name, COALESCE(NULLIF(d.contact_number, ''), o.contact_number) AS contact_number, COALESCE(NULLIF(d.landmark, ''), o.landmark) AS landmark FROM dispatches d LEFT JOIN trucks t ON d.truck_id = t.id LEFT JOIN drivers dr ON d.driver_id = dr.id LEFT JOIN orders o ON d.order_id = o.id ORDER BY d.id DESC")->fetchAll(PDO::FETCH_ASSOC);
 $activeTickets = array_filter($allDispatches, function ($d) {
     return in_array($d['status'], ['Pending', 'In Transit', 'Loading', 'Unloading']);
 });
@@ -1036,13 +1113,9 @@ $completedTickets = array_filter($allDispatches, function ($d) {
 
 $fleetData = $pdo->query("SELECT t.id, t.truck_code, t.rfid_tag, t.status, t.speed, t.latitude, t.longitude, t.current_location, CONCAT(d.first_name, ' ', d.last_name) AS driver_name, disp.ticket_number, disp.destination FROM trucks t LEFT JOIN dispatches disp ON t.id = disp.truck_id AND disp.status IN ('Pending', 'In Transit', 'Loading', 'Unloading') LEFT JOIN drivers d ON t.id = d.truck_id ORDER BY t.truck_code ASC")->fetchAll(PDO::FETCH_ASSOC);
 
-$driverStats = $pdo->query("SELECT COUNT(*) as total_drivers, SUM(IF(status='Active', 1, 0)) as on_duty, AVG(rating) as avg_rating FROM drivers")->fetch(PDO::FETCH_ASSOC);
-
 $allDrivers = $pdo->query("
     SELECT 
-        d.*, CONCAT(d.first_name, ' ', d.last_name) AS name, t.truck_code,
-        (SELECT COUNT(*) FROM driver_trips WHERE driver_id = d.id AND status = 'Delivered') AS total_deliveries,
-        (SELECT COALESCE((SUM(is_on_time) / NULLIF(COUNT(*), 0)) * 100, 100) FROM dispatches WHERE driver_id = d.id AND status = 'Delivered') AS on_time_pct
+        d.*, CONCAT(d.first_name, ' ', d.last_name) AS name, t.truck_code
     FROM drivers d 
     LEFT JOIN trucks t ON t.id = d.truck_id
     ORDER BY d.first_name ASC
@@ -1068,7 +1141,8 @@ if (!function_exists('computeDriverPerformanceStats')) {
             $pay = floatval($t['pay_amount'] ?? 0);
             $totalLifetimeKm += $dist;
 
-            $time = strtotime($t['trip_date'] ?: ($t['created_at'] ?? ''));
+            $dateStr = !empty($t['trip_date']) ? $t['trip_date'] : (!empty($t['transit_end_time']) ? date('Y-m-d', strtotime($t['transit_end_time'])) : (!empty($t['transit_start_time']) ? date('Y-m-d', strtotime($t['transit_start_time'])) : (!empty($t['created_at']) ? date('Y-m-d', strtotime($t['created_at'])) : date('Y-m-d'))));
+            $time = strtotime($dateStr);
             if (!$time) $time = time();
 
             $weekKey = date('o-\WW', $time);
@@ -1101,7 +1175,7 @@ if (!function_exists('computeDriverPerformanceStats')) {
             if (!empty($t['transit_start_time']) && !empty($t['transit_end_time'])) {
                 $t1 = strtotime($t['transit_start_time']);
                 $t2 = strtotime($t['transit_end_time']);
-                if ($t2 > $t1) {
+                if ($t2 > $t1 && ($t2 - $t1) < 86400 * 3) {
                     $totalTransitMinutes += round(($t2 - $t1) / 60);
                     $transitCount++;
                 }
@@ -1130,7 +1204,7 @@ if (!function_exists('computeDriverPerformanceStats')) {
             'this_week_pay'             => $thisWeekStats['total_pay'],
             'avg_km_per_week'           => $avgKmPerWeek,
             'avg_dispatches_per_week'   => $avgDispatchesPerWeek,
-            'total_lifetime_km'         => $totalLifetimeKm,
+            'total_lifetime_km'         => round($totalLifetimeKm, 1),
             'total_lifetime_dispatches' => $totalLifetimeDispatches,
             'on_time_pct'               => floatval($onTimePct),
             'rating'                    => floatval($rating),
@@ -1142,6 +1216,7 @@ if (!function_exists('computeDriverPerformanceStats')) {
 }
 
 foreach ($allDrivers as &$dr) {
+    // Fetch unique trips for this driver without cartesian dispatches duplicate
     $stmt = $pdo->prepare("
         SELECT 
             dt.id,
@@ -1150,18 +1225,52 @@ foreach ($allDrivers as &$dr) {
             dt.status, 
             dt.transit_start_time, 
             dt.transit_end_time,
+            dt.estimated_arrival_time,
             COALESCE(NULLIF(dt.distance_km, 0), dest.distance_km, 0.00) AS distance_km,
-            COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - 12) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount
+            COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - 12) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
+            COALESCE(dt.is_on_time, 1) AS is_on_time,
+            dt.created_at
         FROM driver_trips dt
         LEFT JOIN destinations dest ON dest.name = dt.destination
         WHERE dt.driver_id = ? 
         ORDER BY dt.trip_date DESC, dt.id DESC
     ");
     $stmt->execute([$dr['id']]);
-    $dr['recent_trips'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $allTrips = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Compute duration for each trip
+    foreach ($allTrips as &$rt) {
+        $rt['duration'] = null;
+        if (!empty($rt['transit_start_time']) && !empty($rt['transit_end_time'])) {
+            try {
+                $start = new DateTime($rt['transit_start_time']);
+                $end = new DateTime($rt['transit_end_time']);
+                $diff = $start->diff($end);
+                $parts = [];
+                if ($diff->days > 0) $parts[] = $diff->days . 'd';
+                if ($diff->h > 0) $parts[] = $diff->h . 'h';
+                $parts[] = $diff->i . 'm';
+                $rt['duration'] = !empty($parts) ? implode(' ', $parts) : '0m';
+            } catch (Exception $e) {}
+        }
+    }
+    unset($rt);
+
+    $deliveredTrips = array_values(array_filter($allTrips, fn($t) => ($t['status'] ?? '') === 'Delivered'));
+    $deliveredCount = count($deliveredTrips);
+    $onTimeCount    = count(array_filter($deliveredTrips, fn($t) => intval($t['is_on_time'] ?? 1) === 1));
+    $onTimePct      = $deliveredCount > 0 ? round(($onTimeCount / $deliveredCount) * 100, 1) : 100.0;
+    $rating         = $deliveredCount > 0 ? min(5.0, max(1.0, round(($onTimePct / 100) * 5.0, 1))) : 5.0;
+
+    $dr['total_deliveries']  = $deliveredCount;
+    $dr['on_time_pct']       = $onTimePct;
+    $dr['rating']            = $rating;
+    $dr['all_trips']         = $allTrips;
+    $dr['recent_trips']      = $allTrips;
+    $dr['total_lifetime_km'] = round(array_sum(array_map(fn($t) => floatval($t['distance_km'] ?? 0), $deliveredTrips)), 1);
 
     // Performance analytics (kilometers per week, completed dispatches per week, etc.)
-    $dr['performance_stats'] = computeDriverPerformanceStats($dr['recent_trips'], $dr['on_time_pct'] ?? 100, $dr['rating'] ?? 5.0);
+    $dr['performance_stats'] = computeDriverPerformanceStats($dr['all_trips'], $onTimePct, $rating);
 
     // Payroll info
     $payStmt = $pdo->prepare("SELECT total_amount, amount_claimed, remaining_balance FROM driver_payroll WHERE driver_id = ?");
@@ -1188,6 +1297,12 @@ foreach ($allDrivers as &$dr) {
     $dr['cash_advances'] = $caStmt->fetchAll(PDO::FETCH_ASSOC);
 }
 unset($dr);
+
+$driverStats = [
+    'total_drivers' => count($allDrivers),
+    'on_duty'       => count(array_filter($allDrivers, fn($d) => ($d['status'] ?? '') === 'Active')),
+    'avg_rating'    => !empty($allDrivers) ? round(array_sum(array_column($allDrivers, 'rating')) / count($allDrivers), 1) : 5.0
+];
 
 // All pending cash advances (for badge & review)
 $pendingCashAdvances = $pdo->query("
@@ -1230,7 +1345,17 @@ $availableTrucks = $pdo->query("SELECT id, truck_code, rfid_tag, NULL as driver_
 
 
 try {
-    $currMonthStr = date('Y-m');
+    $requestedReportMonth = !empty($_GET['report_month']) && preg_match('/^\d{4}-\d{2}$/', $_GET['report_month']) ? $_GET['report_month'] : date('Y-m');
+    $currMonthStr = $requestedReportMonth;
+    $isHistoricalReport = ($currMonthStr !== date('Y-m'));
+    $currMonthTimestamp = strtotime($currMonthStr . '-01');
+    $currMonthLabel = date('F Y', $currMonthTimestamp);
+    
+    $lastMonthTimestamp = strtotime('-1 month', $currMonthTimestamp);
+    $lastMonthStr = date('Y-m', $lastMonthTimestamp);
+    $lastMonthLabel = date('F Y', $lastMonthTimestamp);
+
+    // 1. Current (selected) month deliveries & salaries
     $stmt_sal_curr = $pdo->prepare("
         SELECT d.destination 
         FROM dispatches d 
@@ -1259,7 +1384,7 @@ try {
         }
     }
 
-    $lastMonthStr = date('Y-m', strtotime('-1 month'));
+    // 2. Previous month deliveries & salaries
     $stmt_sal_last = $pdo->prepare("
         SELECT d.destination 
         FROM dispatches d 
@@ -1288,53 +1413,153 @@ try {
         }
     }
 
-    $salariesChange = ($driverSalariesLast > 0) ? (($driverSalariesCurr - $driverSalariesLast) / $driverSalariesLast) * 100 : 100;
-    $deliveriesChange = ($lastDeliveries > 0) ? (($currDeliveries - $lastDeliveries) / $lastDeliveries) * 100 : 100;
+    $salariesChange = ($driverSalariesLast > 0) ? (($driverSalariesCurr - $driverSalariesLast) / $driverSalariesLast) * 100 : ($driverSalariesCurr > 0 ? 100 : 0);
+    $deliveriesChange = ($lastDeliveries > 0) ? (($currDeliveries - $lastDeliveries) / $lastDeliveries) * 100 : ($currDeliveries > 0 ? 100 : 0);
 
-    $onTimeQuery = $pdo->query("SELECT COALESCE((SUM(is_on_time) / NULLIF(COUNT(id), 0)) * 100, 100) AS on_time_rate FROM dispatches WHERE MONTH(dispatch_date) = MONTH(CURDATE()) AND YEAR(dispatch_date) = YEAR(CURDATE()) AND status = 'Delivered'")->fetch(PDO::FETCH_ASSOC);
-    $onTimeRate = $onTimeQuery['on_time_rate'] ?? 100;
+    // 3. On-time rates
+    $stmt_ontime = $pdo->prepare("
+        SELECT COALESCE((SUM(is_on_time) / NULLIF(COUNT(id), 0)) * 100, 100) AS on_time_rate 
+        FROM dispatches 
+        WHERE DATE_FORMAT(COALESCE(transit_end_time, dispatch_date, created_at), '%Y-%m') = ? 
+          AND status = 'Delivered'
+    ");
+    $stmt_ontime->execute([$currMonthStr]);
+    $onTimeRate = floatval($stmt_ontime->fetchColumn() ?? 100);
 
-    $currMonthCm = floatval($pdo->query("
+    $stmt_ontime_last = $pdo->prepare("
+        SELECT COALESCE((SUM(is_on_time) / NULLIF(COUNT(id), 0)) * 100, 100) AS on_time_rate 
+        FROM dispatches 
+        WHERE DATE_FORMAT(COALESCE(transit_end_time, dispatch_date, created_at), '%Y-%m') = ? 
+          AND status = 'Delivered'
+    ");
+    $stmt_ontime_last->execute([$lastMonthStr]);
+    $onTimeLastRate = floatval($stmt_ontime_last->fetchColumn() ?? 100);
+    $onTimeChange = $onTimeRate - $onTimeLastRate;
+
+    // 4. Volume delivered (cubic meters)
+    $stmt_cm_curr = $pdo->prepare("
         SELECT COALESCE(SUM(cubic_meters), 0) 
         FROM dispatches 
         WHERE status = 'Delivered' 
-          AND MONTH(COALESCE(transit_end_time, dispatch_date, created_at)) = MONTH(CURDATE()) 
-          AND YEAR(COALESCE(transit_end_time, dispatch_date, created_at)) = YEAR(CURDATE())
-    ")->fetchColumn());
+          AND DATE_FORMAT(COALESCE(transit_end_time, dispatch_date, created_at), '%Y-%m') = ?
+    ");
+    $stmt_cm_curr->execute([$currMonthStr]);
+    $currMonthCm = floatval($stmt_cm_curr->fetchColumn());
 
-    $lastMonthCm = floatval($pdo->query("
+    $stmt_cm_last = $pdo->prepare("
         SELECT COALESCE(SUM(cubic_meters), 0) 
         FROM dispatches 
         WHERE status = 'Delivered' 
-          AND MONTH(COALESCE(transit_end_time, dispatch_date, created_at)) = MONTH(CURDATE() - INTERVAL 1 MONTH) 
-          AND YEAR(COALESCE(transit_end_time, dispatch_date, created_at)) = YEAR(CURDATE() - INTERVAL 1 MONTH)
-    ")->fetchColumn());
+          AND DATE_FORMAT(COALESCE(transit_end_time, dispatch_date, created_at), '%Y-%m') = ?
+    ");
+    $stmt_cm_last->execute([$lastMonthStr]);
+    $lastMonthCm = floatval($stmt_cm_last->fetchColumn());
 
-    $cmChange = ($lastMonthCm > 0) ? (($currMonthCm - $lastMonthCm) / $lastMonthCm) * 100 : 100;
+    $cmChange = ($lastMonthCm > 0) ? (($currMonthCm - $lastMonthCm) / $lastMonthCm) * 100 : ($currMonthCm > 0 ? 100 : 0);
+
+    $subtextPeriod = $isHistoricalReport ? "Month: $currMonthLabel" : "This month (Live Data)";
 
     $reportKpis = [
-        ['title' => 'Driver Payroll', 'value' => '₱' . number_format($driverSalariesCurr / 1000, 1) . 'K', 'subtext' => number_format($salariesChange, 1) . '% from last period', 'color_class' => 'bg-blue-500', 'icon_class' => 'fa-wallet'],
-        ['title' => 'Volume Delivered', 'value' => number_format($currMonthCm, 2) . ' cu.m', 'subtext' => number_format($cmChange, 1) . '% vs last month', 'color_class' => 'bg-green-500', 'icon_class' => 'fa-cube'],
-        ['title' => 'Deliveries', 'value' => number_format($currDeliveries), 'subtext' => 'This month (Live Data)', 'color_class' => 'bg-orange-500', 'icon_class' => 'fa-truck-fast'],
-        ['title' => 'On-Time Rate', 'value' => number_format($onTimeRate, 1) . '%', 'subtext' => 'Live performance analysis', 'color_class' => 'bg-purple-500', 'icon_class' => 'fa-calendar']
+        ['title' => 'Driver Payroll', 'value' => '₱' . number_format($driverSalariesCurr / 1000, 1) . 'K', 'subtext' => number_format($salariesChange, 1) . '% vs ' . date('M', $lastMonthTimestamp), 'color_class' => 'bg-blue-500', 'icon_class' => 'fa-wallet'],
+        ['title' => 'Volume Delivered', 'value' => number_format($currMonthCm, 2) . ' cu.m', 'subtext' => number_format($cmChange, 1) . '% vs ' . date('M', $lastMonthTimestamp), 'color_class' => 'bg-green-500', 'icon_class' => 'fa-cube'],
+        ['title' => 'Deliveries', 'value' => number_format($currDeliveries), 'subtext' => $subtextPeriod, 'color_class' => 'bg-orange-500', 'icon_class' => 'fa-truck-fast'],
+        ['title' => 'On-Time Rate', 'value' => number_format($onTimeRate, 1) . '%', 'subtext' => ($onTimeChange >= 0 ? '+' : '') . number_format($onTimeChange, 1) . '% vs ' . date('M', $lastMonthTimestamp), 'color_class' => 'bg-purple-500', 'icon_class' => 'fa-calendar']
     ];
 
     $performanceMetrics = [
-        ['metric' => 'Total Deliveries', 'this_month' => number_format($currDeliveries), 'last_month' => number_format($lastDeliveries), 'change_str' => number_format($deliveriesChange, 1) . '%', 'is_positive' => $deliveriesChange >= 0],
-        ['metric' => 'Volume Delivered', 'this_month' => number_format($currMonthCm, 2) . ' cu.m', 'last_month' => number_format($lastMonthCm, 2) . ' cu.m', 'change_str' => number_format($cmChange, 1) . '%', 'is_positive' => $cmChange >= 0],
-        ['metric' => 'Driver Payroll (Salaries)', 'this_month' => '₱' . number_format($driverSalariesCurr, 2), 'last_month' => '₱' . number_format($driverSalariesLast, 2), 'change_str' => number_format($salariesChange, 1) . '%', 'is_positive' => $salariesChange >= 0],
-        ['metric' => 'On-Time Deliveries', 'this_month' => number_format($onTimeRate, 1) . '%', 'last_month' => '93.1%', 'change_str' => '+1.1%', 'is_positive' => 1]
+        ['metric' => 'Total Deliveries', 'this_month' => number_format($currDeliveries), 'last_month' => number_format($lastDeliveries), 'change_str' => ($deliveriesChange >= 0 ? '+' : '') . number_format($deliveriesChange, 1) . '%', 'is_positive' => $deliveriesChange >= 0],
+        ['metric' => 'Volume Delivered', 'this_month' => number_format($currMonthCm, 2) . ' cu.m', 'last_month' => number_format($lastMonthCm, 2) . ' cu.m', 'change_str' => ($cmChange >= 0 ? '+' : '') . number_format($cmChange, 1) . '%', 'is_positive' => $cmChange >= 0],
+        ['metric' => 'Driver Payroll (Salaries)', 'this_month' => '₱' . number_format($driverSalariesCurr, 2), 'last_month' => '₱' . number_format($driverSalariesLast, 2), 'change_str' => ($salariesChange >= 0 ? '+' : '') . number_format($salariesChange, 1) . '%', 'is_positive' => $salariesChange >= 0],
+        ['metric' => 'On-Time Deliveries', 'this_month' => number_format($onTimeRate, 1) . '%', 'last_month' => number_format($onTimeLastRate, 1) . '%', 'change_str' => ($onTimeChange >= 0 ? '+' : '') . number_format($onTimeChange, 1) . '%', 'is_positive' => $onTimeChange >= 0]
     ];
 } catch (PDOException $e) {
     $reportKpis = [];
     $performanceMetrics = [];
     $onTimeRate = 100;
+    $currMonthLabel = date('F Y');
+    $lastMonthLabel = date('F Y', strtotime('-1 month'));
+    $isHistoricalReport = false;
 }
 
+// 5. Available past months & Monthly Archive
+$availableReportMonths = [];
+for ($m = 0; $m < 12; $m++) {
+    $mVal = date('Y-m', strtotime("-$m months"));
+    $availableReportMonths[$mVal] = date('F Y', strtotime("-$m months"));
+}
+try {
+    $dbMonths = $pdo->query("
+        SELECT DISTINCT DATE_FORMAT(COALESCE(transit_end_time, dispatch_date, created_at), '%Y-%m') AS m_val 
+        FROM dispatches 
+        WHERE status = 'Delivered' AND COALESCE(transit_end_time, dispatch_date, created_at) IS NOT NULL
+        UNION
+        SELECT DISTINCT DATE_FORMAT(COALESCE(transit_end_time, trip_date, created_at), '%Y-%m') AS m_val 
+        FROM driver_trips 
+        WHERE status = 'Delivered' AND COALESCE(transit_end_time, trip_date, created_at) IS NOT NULL
+    ")->fetchAll(PDO::FETCH_COLUMN);
+    foreach ($dbMonths as $dbm) {
+        if (!empty($dbm) && preg_match('/^\d{4}-\d{2}$/', $dbm)) {
+            $availableReportMonths[$dbm] = date('F Y', strtotime($dbm . '-01'));
+        }
+    }
+} catch (PDOException $e) {}
+krsort($availableReportMonths);
+
+// Build monthly archive summaries
+$monthlyArchive = [];
+try {
+    $stmtArchiveDisp = $pdo->query("
+        SELECT 
+            DATE_FORMAT(COALESCE(transit_end_time, dispatch_date, created_at), '%Y-%m') AS ym,
+            COUNT(id) AS delivery_count,
+            COALESCE(SUM(cubic_meters), 0) AS total_cm,
+            COALESCE((SUM(is_on_time) / NULLIF(COUNT(id), 0)) * 100, 100) AS on_time_pct,
+            destination
+        FROM dispatches 
+        WHERE status = 'Delivered'
+        GROUP BY ym, destination
+    ");
+    $archiveDispRows = $stmtArchiveDisp->fetchAll(PDO::FETCH_ASSOC);
+    $aggArchive = [];
+    foreach ($archiveDispRows as $adr) {
+        $ym = $adr['ym'];
+        if (!$ym) continue;
+        if (!isset($aggArchive[$ym])) {
+            $aggArchive[$ym] = [
+                'ym' => $ym,
+                'deliveries' => 0,
+                'volume_cm' => 0,
+                'payroll' => 0,
+                'on_time_pct' => 100,
+            ];
+        }
+        $cnt = intval($adr['delivery_count']);
+        $aggArchive[$ym]['deliveries'] += $cnt;
+        $aggArchive[$ym]['volume_cm'] += floatval($adr['total_cm']);
+        $aggArchive[$ym]['payroll'] += getDestinationPay($adr['destination'], $DISTANCE_KM, $DRIVER_RATES) * $cnt;
+        $aggArchive[$ym]['on_time_pct'] = floatval($adr['on_time_pct']);
+    }
+
+    foreach ($availableReportMonths as $ym => $label) {
+        $row = $aggArchive[$ym] ?? [
+            'ym' => $ym,
+            'deliveries' => 0,
+            'volume_cm' => 0,
+            'payroll' => 0,
+            'on_time_pct' => 100
+        ];
+        $row['label'] = $label;
+        $monthlyArchive[] = $row;
+    }
+} catch (PDOException $e) {}
+
+// Trailing 6 months ending on selected month for charts
 $financeReports = [];
 $efficiencyData = [];
 for ($i = 5; $i >= 1; $i--) {
-    $mDate = date('Y-m', strtotime("-$i months"));
+    $mTimestamp = strtotime("-$i months", $currMonthTimestamp);
+    $mDate = date('Y-m', $mTimestamp);
+    $mLabel = date('M Y', $mTimestamp);
     try {
         $mStmt = $pdo->prepare("
             SELECT destination 
@@ -1372,22 +1597,22 @@ for ($i = 5; $i >= 1; $i--) {
         $deliv = 0;
     }
     $financeReports[] = [
-        'month_name' => date('M', strtotime("-$i months")),
+        'month_name' => $mLabel,
         'payroll' => $payroll,
         'deliveries' => $deliv
     ];
     $efficiencyData[] = [
-        'month_name' => date('M', strtotime("-$i months")),
+        'month_name' => $mLabel,
         'efficiency_pct' => 100
     ];
 }
 $financeReports[] = [
-    'month_name' => date('M'),
+    'month_name' => date('M Y', $currMonthTimestamp),
     'payroll' => $driverSalariesCurr,
     'deliveries' => $currDeliveries
 ];
 $efficiencyData[] = [
-    'month_name' => date('M'),
+    'month_name' => date('M Y', $currMonthTimestamp),
     'efficiency_pct' => $onTimeRate
 ];
 
@@ -1419,7 +1644,7 @@ function getInitials($name)
 }
 
 $allCheckers = $pdo->query("
-    SELECT u.id, u.username, c.first_name, c.last_name, c.phone, CONCAT(c.first_name, ' ', c.last_name) AS full_name 
+    SELECT u.id, u.username, c.first_name, c.last_name, c.phone, COALESCE(c.status, 'Active') AS status, CONCAT(c.first_name, ' ', c.last_name) AS full_name 
     FROM users u 
     LEFT JOIN checkers c ON u.id = c.id 
     WHERE u.role = 'Checker' 

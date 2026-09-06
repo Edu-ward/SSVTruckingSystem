@@ -49,7 +49,7 @@
                     if ($truck['status'] == 'Loading') $chipClass = 'chip-blue';
                     if ($truck['status'] == 'Unloading') $chipClass = 'chip-rose';
                 ?>
-                    <div class="border border-gray-100 dark:border-gray-700/80 rounded-2xl p-4 hover:shadow-md transition-all bg-gray-50/60 dark:bg-gray-900/60 hover:bg-white dark:hover:bg-gray-800 group">
+                    <div class="border border-gray-100 dark:border-gray-700/80 rounded-2xl p-4 hover:shadow-md transition-all bg-gray-50/60 dark:bg-gray-900/60 hover:bg-gray-100/70 dark:hover:bg-gray-800 group">
                         <div class="flex justify-between items-start mb-2">
                             <div class="flex items-center space-x-3">
                                 <div class="w-9 h-9 rounded-xl bg-gray-200/70 dark:bg-gray-700 flex items-center justify-center text-gray-700 dark:text-gray-200 group-hover:bg-blue-600 group-hover:text-white transition-colors">

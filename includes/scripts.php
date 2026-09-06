@@ -405,6 +405,10 @@
                 document.getElementById('dispatch-grid-completed').classList.remove('hidden');
                 document.getElementById('btn-tab-completed').className = "px-6 py-2 rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition";
             }
+
+            if (typeof filterDispatches === 'function') {
+                filterDispatches();
+            }
         }
 
         function toggleModal(modalID, show) {
@@ -477,6 +481,9 @@
                         const payNum = parseFloat(trip.pay_amount || 0);
                         const payDisplay = payNum > 0 ? `₱${payNum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '₱0.00';
 
+                        const durationBadge = trip.duration ?
+                            `<span class="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-gray-800 px-2 py-0.5 rounded-md" title="Delivery Duration"><i class="fa-regular fa-clock text-[10px]"></i><span>${trip.duration}</span></span>` : '';
+
                         tripsContainer.innerHTML += `
                         <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700/60 p-3 rounded-xl border-l-4 border-blue-500 shadow-sm mb-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
                             <div class="min-w-0 flex-1 pr-2">
@@ -489,6 +496,7 @@
                                     <span class="inline-flex items-center text-blue-600 dark:text-blue-400 font-semibold">
                                         <i class="fa-solid fa-route mr-1"></i>${distanceDisplay}
                                     </span>
+                                    ${durationBadge}
                                 </div>
                             </div>
                             <div class="text-right flex-shrink-0 pl-2">
@@ -525,7 +533,7 @@
             if (breakdownEl) breakdownEl.innerText = `Remaining Bal: ₱${remBal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} • CA: -₱${caAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
             if (settleBtn) {
-                if (netPay > 0 || remBal > 0 || grossPay > 0 || caAmount > 0) {
+                if (netPay > 0) {
                     settleBtn.disabled = false;
                     settleBtn.className = 'px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition shadow-sm flex items-center gap-1.5 flex-shrink-0 cursor-pointer';
                     settleBtn.innerHTML = '<i class="fa-solid fa-money-bill-transfer"></i><span>Settle</span>';
@@ -556,7 +564,7 @@
             if (nameEl) nameEl.innerText = driver.name || 'Driver';
             if (cdlEl) cdlEl.innerHTML = `<i class="fa-solid fa-id-card mr-1"></i>CDL: ${driver.cdl_number || 'N/A'}`;
             if (truckEl) truckEl.innerHTML = `<i class="fa-solid fa-truck mr-1"></i>Truck: ${driver.truck_code || 'Unassigned'}`;
-            if (ratingNumEl) ratingNumEl.innerText = (parseFloat(driver.rating || 5.0)).toFixed(1);
+            if (ratingNumEl) ratingNumEl.innerText = (parseFloat(driver.rating !== undefined ? driver.rating : (stats.rating || 5.0))).toFixed(1);
 
             // Avatar
             if (driver.profile_photo) {
@@ -579,7 +587,7 @@
             const thisWeekTrips = parseInt(stats.this_week_dispatches || 0);
             const avgKm = parseFloat(stats.avg_km_per_week || 0);
             const avgTrips = parseFloat(stats.avg_dispatches_per_week || 0);
-            const ontime = parseFloat(stats.on_time_pct !== undefined ? stats.on_time_pct : 100);
+            const ontime = parseFloat(stats.on_time_pct !== undefined ? stats.on_time_pct : (driver.on_time_pct !== undefined ? driver.on_time_pct : 100));
             const lifetimeKm = parseFloat(stats.total_lifetime_km || 0);
             const lifetimeTrips = parseInt(stats.total_lifetime_dispatches || 0);
             const activeWeeks = parseInt(stats.active_weeks_count || 0);
@@ -622,7 +630,7 @@
                         const tripsCount = parseInt(w.dispatches || 0);
 
                         tableBody.innerHTML += `
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-750 transition">
+                            <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors">
                                 <td class="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">
                                     <div class="flex items-center gap-2">
                                         <i class="fa-regular fa-calendar-check text-amber-500"></i>
@@ -662,6 +670,8 @@
 
         function triggerSettleFromModal() {
             if (!currentViewingDriver) return;
+            const netPay = parseFloat(currentViewingDriver.net_earnings || 0);
+            if (netPay <= 0) return;
             toggleModal('viewDriverModal', false);
             openSettlePayrollModal(
                 currentViewingDriver.id,
@@ -674,6 +684,11 @@
         }
 
         function openSettlePayrollModal(driverId, driverName, gross, advances, net, prevBalance) {
+            const netNum = parseFloat(net || 0);
+            if (netNum <= 0) {
+                return;
+            }
+
             const idEl = document.getElementById('sp-driver-id');
             const nameEl = document.getElementById('sp-driver-name');
             if (idEl) idEl.value = driverId;
@@ -682,7 +697,6 @@
             const grossNum = parseFloat(gross || 0);
             const advNum = parseFloat(advances || 0);
             const prevBalNum = parseFloat(prevBalance || 0);
-            const netNum = parseFloat(net || 0);
 
             currentSettleTotalPayable = netNum;
 
@@ -768,19 +782,58 @@
             const nameEl = document.getElementById('ad-driver-name');
             if (nameEl) nameEl.textContent = driver.name;
 
-            const countBadge = document.getElementById('ad-trip-count-badge');
-            const allTrips = driver.recent_trips || [];
-            if (countBadge) countBadge.textContent = `${allTrips.length} Trips`;
+            const allTrips = driver.all_trips || driver.recent_trips || [];
+
+            // Populate unique months in the month filter dropdown
+            const monthSelect = document.getElementById('ad-month-select');
+            if (monthSelect) {
+                const monthSet = new Set();
+                allTrips.forEach(t => {
+                    const dStr = t.trip_date || (t.transit_end_time ? t.transit_end_time.substring(0, 10) : (t.transit_start_time ? t.transit_start_time.substring(0, 10) : ''));
+                    if (dStr && dStr.length >= 7) {
+                        monthSet.add(dStr.substring(0, 7));
+                    }
+                });
+
+                const sortedMonths = Array.from(monthSet).sort().reverse();
+                let optionsHtml = '<option value="all">All Deliveries (All Time)</option>';
+                sortedMonths.forEach(ym => {
+                    const [y, m] = ym.split('-');
+                    const dateObj = new Date(parseInt(y), parseInt(m) - 1, 1);
+                    const label = dateObj.toLocaleString('default', { month: 'long', year: 'numeric' });
+                    optionsHtml += `<option value="${ym}">${label}</option>`;
+                });
+                monthSelect.innerHTML = optionsHtml;
+                monthSelect.value = 'all';
+            }
+
+            filterAllDriverDeliveriesByMonth('all');
+            toggleModal('allDriverDeliveriesModal', true);
+        }
+
+        function filterAllDriverDeliveriesByMonth(selectedMonth) {
+            if (!currentViewingDriver) return;
+            const allTrips = currentViewingDriver.all_trips || currentViewingDriver.recent_trips || [];
+
+            const filteredTrips = (selectedMonth === 'all')
+                ? allTrips
+                : allTrips.filter(t => {
+                    const dStr = t.trip_date || (t.transit_end_time ? t.transit_end_time.substring(0, 10) : (t.transit_start_time ? t.transit_start_time.substring(0, 10) : ''));
+                    return dStr && dStr.startsWith(selectedMonth);
+                });
 
             let totalKm = 0;
             let totalPay = 0;
-            allTrips.forEach(t => {
+            filteredTrips.forEach(t => {
                 totalKm += parseFloat(t.distance_km || 0);
                 totalPay += parseFloat(t.pay_amount || 0);
             });
 
+            const countBadge = document.getElementById('ad-trip-count-badge');
+            if (countBadge) countBadge.textContent = `${filteredTrips.length} Trips`;
+
             const sumTripsEl = document.getElementById('ad-sum-trips');
-            if (sumTripsEl) sumTripsEl.textContent = allTrips.length;
+            if (sumTripsEl) sumTripsEl.textContent = filteredTrips.length;
 
             const sumDistEl = document.getElementById('ad-sum-distance');
             if (sumDistEl) sumDistEl.textContent = `${totalKm.toFixed(1)} km`;
@@ -788,11 +841,16 @@
             const sumPayEl = document.getElementById('ad-sum-pay');
             if (sumPayEl) sumPayEl.textContent = `₱${totalPay.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
+            const monthCountPill = document.getElementById('ad-month-count-pill');
+            if (monthCountPill) {
+                monthCountPill.textContent = `${filteredTrips.length} ${filteredTrips.length === 1 ? 'trip' : 'trips'}`;
+            }
+
             const listEl = document.getElementById('ad-all-trips-list');
             if (listEl) {
                 listEl.innerHTML = '';
-                if (allTrips.length > 0) {
-                    allTrips.forEach((trip, idx) => {
+                if (filteredTrips.length > 0) {
+                    filteredTrips.forEach((trip, idx) => {
                         let statusBadge = (trip.status === 'Delivered' || !trip.status) ?
                             `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"><i class="fa-solid fa-check mr-1 text-[8px]"></i>Delivered</span>` :
                             `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"><i class="fa-solid fa-truck-fast mr-1 text-[8px]"></i>${trip.status}</span>`;
@@ -802,8 +860,11 @@
                         const payNum = parseFloat(trip.pay_amount || 0);
                         const payDisplay = payNum > 0 ? `₱${payNum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '₱0.00';
 
+                        const durationBadge = trip.duration ?
+                            `<span class="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-gray-800 px-2 py-0.5 rounded-md" title="Delivery Duration"><i class="fa-regular fa-clock text-[10px]"></i><span>${trip.duration}</span></span>` : '';
+
                         listEl.innerHTML += `
-                        <div class="p-3.5 bg-gray-50 dark:bg-gray-700/60 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-500/50 transition">
+                        <div class="p-3.5 bg-gray-50 dark:bg-gray-700/60 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-gray-100/70 dark:hover:bg-gray-700/90 hover:border-blue-300 dark:hover:border-blue-500/50 transition-colors">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-2 flex-wrap">
@@ -816,6 +877,7 @@
                                         <span class="font-semibold text-blue-600 dark:text-blue-400">
                                             <i class="fa-solid fa-route mr-1"></i>${distanceDisplay}
                                         </span>
+                                        ${durationBadge}
                                     </div>
                                 </div>
                                 <div class="text-right flex-shrink-0">
@@ -827,11 +889,9 @@
                         </div>`;
                     });
                 } else {
-                    listEl.innerHTML = '<div class="text-center py-8 text-xs text-gray-400">No deliveries found for this driver.</div>';
+                    listEl.innerHTML = '<div class="text-center py-10 text-xs text-gray-400 dark:text-gray-500 italic"><i class="fa-solid fa-inbox text-2xl mb-1 text-gray-300 dark:text-gray-600 block"></i>No deliveries found for this month.</div>';
                 }
             }
-
-            toggleModal('allDriverDeliveriesModal', true);
         }
 
         function openPrintDriverTripsModal(driverId, driverName) {
@@ -907,10 +967,15 @@
             toggleModal('contactDriverModal', true);
         }
 
+        function openResignDriverModal(id, name) {
+            const nameEl = document.getElementById('dd-name');
+            if (nameEl) nameEl.innerText = name;
+            const idEl = document.getElementById('delete_driver_id');
+            if (idEl) idEl.value = id;
+            toggleModal('resignDriverModal', true);
+        }
         function openDeleteDriverModal(id, name) {
-            document.getElementById('dd-name').innerText = name;
-            document.getElementById('delete_driver_id').value = id;
-            toggleModal('deleteDriverModal', true);
+            openResignDriverModal(id, name);
         }
 
         function openResetPasswordModal(id, name) {
@@ -924,16 +989,15 @@
             toggleModal('resetPasswordModal', true);
         }
 
-        function openDeleteCheckerModal(id, name) {
-            document.getElementById('dc-name').innerText = name;
-            document.getElementById('delete_checker_id').value = id;
-            toggleModal('deleteCheckerModal', true);
+        function openDecommissionTruckModal(truckId, truckCode) {
+            const codeEl = document.getElementById('dt-truck-code');
+            if (codeEl) codeEl.innerText = truckCode;
+            const idEl = document.getElementById('delete_truck_id');
+            if (idEl) idEl.value = truckId;
+            toggleModal('decommissionTruckModal', true);
         }
-
         function openDeleteTruckModal(truckId, truckCode) {
-            document.getElementById('dt-truck-code').innerText = truckCode;
-            document.getElementById('delete_truck_id').value = truckId;
-            toggleModal('deleteTruckModal', true);
+            openDecommissionTruckModal(truckId, truckCode);
         }
 
         function openMarkFixedModal(truckId, truckCode) {
@@ -1001,10 +1065,15 @@
             toggleModal('cancelOrderModal', true);
         }
 
+        function openResignCheckerModal(checkerId, checkerName) {
+            const nameEl = document.getElementById('dc-checker-name');
+            if (nameEl) nameEl.innerText = checkerName;
+            const idEl = document.getElementById('delete_checker_id');
+            if (idEl) idEl.value = checkerId;
+            toggleModal('resignCheckerModal', true);
+        }
         function openDeleteCheckerModal(checkerId, checkerName) {
-            document.getElementById('dc-checker-name').innerText = checkerName;
-            document.getElementById('delete_checker_id').value = checkerId;
-            toggleModal('deleteCheckerModal', true);
+            openResignCheckerModal(checkerId, checkerName);
         }
 
         try {

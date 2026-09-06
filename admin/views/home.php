@@ -171,7 +171,7 @@
                 if ($dispatch['status'] == 'Pending') $chipStyle = 'chip-amber';
                 if ($dispatch['status'] == 'Delivered') $chipStyle = 'chip-emerald';
             ?>
-                <div class="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-gray-50/80 dark:hover:bg-gray-750 transition-colors">
+                <div class="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors">
                     <div class="flex items-center space-x-3.5 min-w-0">
                         <div class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 flex-shrink-0">
                             <i class="fa-solid fa-ticket text-sm"></i>

@@ -23,14 +23,22 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
                 </div>
             </div>
         </div>
-        <div class="flex items-center gap-2.5">
+        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <!-- Cash Advance Live Search Bar -->
+            <div class="relative flex-1 md:w-72">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input type="text" id="caSearchInput" placeholder="Search driver, reason, amount, ticket #..." oninput="syncCaSearch(this.value, 'top')" class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                <button type="button" id="caSearchClear" onclick="clearCaSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
             <?php if (!empty($pendingCashAdvances)): ?>
-                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                <span class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 whitespace-nowrap">
                     <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
                     <?= count($pendingCashAdvances) ?> Awaiting Approval (₱<?= number_format($totalPendingAmount, 2) ?>)
                 </span>
             <?php else: ?>
-                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/40">
+                <span class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/40 whitespace-nowrap">
                     <i class="fa-solid fa-check"></i> All Requests Reviewed
                 </span>
             <?php endif; ?>
@@ -150,8 +158,17 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
                 </div>
             <?php else: ?>
                 <div class="divide-y divide-gray-100 dark:divide-gray-700">
-                    <?php foreach ($pendingCashAdvances as $ca): ?>
-                        <div class="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-amber-50/20 dark:hover:bg-gray-750 transition-colors">
+                    <?php foreach ($pendingCashAdvances as $ca):
+                        $pendingSearchMeta = strtolower(implode(' ', array_filter([
+                            $ca['driver_name'] ?? '',
+                            $ca['cdl_number'] ?? '',
+                            $ca['phone'] ?? '',
+                            $ca['reason'] ?? '',
+                            $ca['amount'] ?? '',
+                            'pending'
+                        ])));
+                    ?>
+                        <div class="pending-ca-card p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-amber-50/20 dark:hover:bg-gray-700/50 transition-colors" data-search="<?= htmlspecialchars($pendingSearchMeta) ?>">
                             <div class="flex items-start sm:items-center space-x-4">
                                 <div class="w-12 h-12 rounded-2xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 flex items-center justify-center text-lg font-bold flex-shrink-0">
                                     <i class="fa-solid fa-user"></i>
@@ -201,6 +218,10 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
                             </div>
                         </div>
                     <?php endforeach; ?>
+                    <div id="caPendingNoMatches" class="p-8 text-center text-xs text-gray-500 dark:text-gray-400 hidden">
+                        <i class="fa-solid fa-magnifying-glass text-xl mb-2 opacity-40 block mx-auto"></i>
+                        No pending requests match your search.
+                    </div>
                 </div>
             <?php endif; ?>
         </div>
@@ -223,7 +244,7 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
             <div class="flex flex-wrap items-center gap-2">
                 <div class="relative">
                     <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
-                    <input type="text" id="caSearchInput" onkeyup="filterCashAdvances()" placeholder="Search driver or reason..." class="pl-8 pr-3 py-1.5 rounded-xl text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-48 sm:w-56 text-gray-800 dark:text-gray-200">
+                    <input type="text" id="caTableSearchInput" oninput="syncCaSearch(this.value, 'table')" placeholder="Filter table records..." class="pl-8 pr-3 py-1.5 rounded-xl text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-44 sm:w-52 text-gray-800 dark:text-gray-200">
                 </div>
                 <select id="caStatusFilter" onchange="filterCashAdvances()" class="px-3 py-1.5 rounded-xl text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-300">
                     <option value="">All Statuses</option>
@@ -267,11 +288,12 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
                             $ticketNum = 'CA-' . date('Y', strtotime($ca['requested_at'] ?? 'now')) . '-' . str_pad($ca['driver_id'], 3, '0', STR_PAD_LEFT) . '-' . str_pad($ca['id'], 4, '0', STR_PAD_LEFT);
                             $isSettled = !empty($ca['is_settled']);
                         ?>
-                            <tr class="ca-row hover:bg-gray-50/70 dark:hover:bg-gray-750 transition-colors"
+                            <tr class="ca-row hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors"
                                 data-driver="<?= htmlspecialchars(strtolower($ca['driver_name'] ?? '')) ?>"
                                 data-reason="<?= htmlspecialchars(strtolower($ca['reason'] ?? '')) ?>"
                                 data-status="<?= htmlspecialchars($ca['status'] ?? '') ?>"
-                                data-settled="<?= $isSettled ? 'settled' : 'unsettled' ?>">
+                                data-settled="<?= $isSettled ? 'settled' : 'unsettled' ?>"
+                                data-search="<?= htmlspecialchars(strtolower($ticketNum . ' ' . ($ca['ticket_number'] ?? '') . ' ' . ($ca['driver_name'] ?? '') . ' ' . ($ca['reason'] ?? '') . ' ' . ($ca['amount'] ?? '') . ' ' . ($ca['status'] ?? '') . ' ' . ($isSettled ? 'settled' : 'unsettled active'))) ?>">
                                 <td class="py-3.5 px-4 font-mono font-bold text-gray-900 dark:text-gray-100">
                                     #<?= htmlspecialchars($ticketNum) ?>
                                 </td>
@@ -468,20 +490,64 @@ document.getElementById('caConfirmModal').addEventListener('click', function(e) 
     if (e.target === this) closeCaConfirmModal();
 });
 
+function syncCaSearch(val, source) {
+    const topInput = document.getElementById('caSearchInput');
+    const tableInput = document.getElementById('caTableSearchInput');
+    if (source === 'top' && tableInput) tableInput.value = val;
+    if (source === 'table' && topInput) topInput.value = val;
+    filterCashAdvances();
+}
+
+function clearCaSearch() {
+    const topInput = document.getElementById('caSearchInput');
+    const tableInput = document.getElementById('caTableSearchInput');
+    if (topInput) topInput.value = '';
+    if (tableInput) tableInput.value = '';
+    filterCashAdvances();
+    if (topInput) topInput.focus();
+}
+
 function filterCashAdvances() {
-    const search = (document.getElementById('caSearchInput')?.value || '').toLowerCase().trim();
+    const topInput = document.getElementById('caSearchInput');
+    const tableInput = document.getElementById('caTableSearchInput');
+    const clearBtn = document.getElementById('caSearchClear');
+    const search = (topInput?.value || tableInput?.value || '').toLowerCase().trim();
     const status = document.getElementById('caStatusFilter')?.value || '';
     const settled = document.getElementById('caSettledFilter')?.value || '';
+
+    if (clearBtn) {
+        clearBtn.classList.toggle('hidden', search.length === 0);
+    }
+
+    // Filter pending cards
+    const pendingCards = document.querySelectorAll('.pending-ca-card');
+    let pendingMatches = 0;
+    pendingCards.forEach(card => {
+        const meta = card.getAttribute('data-search') || '';
+        if (!search || meta.includes(search)) {
+            card.style.display = '';
+            pendingMatches++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    const pendingNoMatch = document.getElementById('caPendingNoMatches');
+    if (pendingNoMatch) {
+        pendingNoMatch.classList.toggle('hidden', !(pendingCards.length > 0 && pendingMatches === 0 && search.length > 0));
+    }
+
+    // Filter history table rows
     const rows = document.querySelectorAll('.ca-row');
     let visibleCount = 0;
 
     rows.forEach(row => {
+        const meta = (row.getAttribute('data-search') || '').toLowerCase();
         const driver = (row.dataset.driver || '').toLowerCase();
         const reason = (row.dataset.reason || '').toLowerCase();
         const rowStatus = row.dataset.status || '';
         const rowSettled = row.dataset.settled || '';
 
-        const matchesSearch = !search || driver.includes(search) || reason.includes(search);
+        const matchesSearch = !search || meta.includes(search) || driver.includes(search) || reason.includes(search);
         const matchesStatus = !status || rowStatus === status;
         const matchesSettled = !settled || rowSettled === settled;
 

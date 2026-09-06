@@ -39,6 +39,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password'])) {
+        // Block resigned drivers and checkers from logging into their portals
+        if ($user['role'] == 'Driver') {
+            $chkStatus = $pdo->prepare("SELECT status FROM drivers WHERE id = ?");
+            $chkStatus->execute([$user['id']]);
+            $dStatus = $chkStatus->fetchColumn();
+            if ($dStatus === 'Resigned') {
+                log_activity($pdo, 'Failed Login', 'Resigned driver tried to log in: ' . $username);
+                header("Location: index.php?error=resigned");
+                exit;
+            }
+        } elseif ($user['role'] == 'Checker') {
+            $chkStatus = $pdo->prepare("SELECT status FROM checkers WHERE id = ?");
+            $chkStatus->execute([$user['id']]);
+            $cStatus = $chkStatus->fetchColumn();
+            if ($cStatus === 'Resigned') {
+                log_activity($pdo, 'Failed Login', 'Resigned checker tried to log in: ' . $username);
+                header("Location: index.php?error=resigned");
+                exit;
+            }
+        }
+
         // ── Successful login — reset counters & regenerate session ──
         $_SESSION['login_attempts'] = 0;
         session_regenerate_id(true);
