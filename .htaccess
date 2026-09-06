@@ -20,7 +20,7 @@
     RewriteEngine On
     RewriteCond %{HTTP_HOST} !^localhost [NC]
     RewriteCond %{HTTP_HOST} !^127\.0\.0\.1 [NC]
-    RewriteRule ^(config|db|auth)\.php$ - [F,L]
+    RewriteRule ^(config|db)\.php$ - [F,L]
 </IfModule>
 
 # ── Protect deploy folder ──

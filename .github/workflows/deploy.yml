@@ -43,7 +43,7 @@ jobs:
             **/node_modules/**
             deploy/**
             .github/**
-            config.php
+            config.prod.php
             commands.txt
             checklist
             *.md

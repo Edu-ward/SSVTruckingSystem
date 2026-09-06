@@ -1,4 +1,4 @@
-﻿# SSV Trucking System — Deployment Guide
+# SSV Trucking System — Deployment Guide
 # One-Time Setup on InfinityFree + GitHub Actions CI/CD
 
 Follow these steps ONCE to set up your live server.
@@ -41,22 +41,26 @@ After that, every `git push` auto-deploys your code.
 
 ## STEP 4: Set DB Credentials on the Live Server
 
-The live server uses `.htaccess` environment variables so you
-don't need to edit config.php manually.
+On InfinityFree (which uses FastCGI), the most reliable method is creating a `config.prod.php` file directly in the file manager.
 
 1. In the InfinityFree control panel, go to **File Manager**
-2. Navigate to `htdocs/`
-3. Find and open `.htaccess` for editing
-4. Find these commented-out lines near the top and **uncomment + fill them in**:
+2. Navigate into the **`htdocs/`** directory
+3. Click **New File** and name it **`config.prod.php`**
+4. Paste the following with your real InfinityFree database credentials:
 
-```apache
-SetEnv DB_HOST     sql123.infinityfree.com
-SetEnv DB_NAME     if0_12345678_ssv_trucking
-SetEnv DB_USER     if0_12345678
-SetEnv DB_PASS     your_password_here
+```php
+<?php
+define('DB_HOST', 'sql302.infinityfree.com');
+define('DB_NAME', 'if0_42840593_ssv_trucking');
+define('DB_USER', 'if0_42840593');
+define('DB_PASS', 'your_password_here');
+define('IS_PRODUCTION', true);
 ```
 
 5. Save the file.
+*(Note: `config.prod.php` is ignored by git and will never be overwritten by GitHub deployments).*
+
+6. Also ensure your Apache rules file inside `htdocs/` is named **`.htaccess`** (NOT `.htdocs`).
 
 ---
 
