@@ -45,7 +45,7 @@ if ($settlement_id > 0) {
     $stStmt = $pdo->prepare("
         SELECT 
             d.id, d.ticket_number, d.destination, d.dispatch_date, d.created_at, d.transit_end_time,
-            COALESCE(NULLIF(d.pay_amount, 0), IF(dest.distance_km > 0, ROUND(dest.distance_km * 10, 2), dest.driver_rate), 0.00) AS pay_amount,
+            COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
             COALESCE(dest.distance_km, ROUND(d.pay_amount / 10, 1), 0.00) AS distance_km
         FROM dispatches d
         LEFT JOIN destinations dest ON dest.name = d.destination
@@ -59,7 +59,7 @@ if ($settlement_id > 0) {
         $dtStmt = $pdo->prepare("
             SELECT 
                 dt.id, '' AS ticket_number, dt.destination, dt.trip_date AS dispatch_date, dt.created_at, dt.transit_end_time,
-                COALESCE(NULLIF(dt.pay_amount, 0), IF(dest.distance_km > 0, ROUND(dest.distance_km * 10, 2), dest.driver_rate), 0.00) AS pay_amount,
+                COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
                 COALESCE(NULLIF(dt.distance_km, 0), dest.distance_km, 0.00) AS distance_km
             FROM driver_trips dt
             LEFT JOIN destinations dest ON dest.name = dt.destination
@@ -120,7 +120,7 @@ if ($settlement_id > 0) {
 $ptStmt = $pdo->prepare("
     SELECT 
         d.id, d.ticket_number, d.destination, d.status, d.created_at,
-        COALESCE(NULLIF(d.pay_amount, 0), IF(dest.distance_km > 0, ROUND(dest.distance_km * 10, 2), dest.driver_rate), 0.00) AS pay_amount,
+        COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
         COALESCE(dest.distance_km, ROUND(d.pay_amount / 10, 1), 0.00) AS distance_km
     FROM dispatches d
     LEFT JOIN destinations dest ON dest.name = d.destination

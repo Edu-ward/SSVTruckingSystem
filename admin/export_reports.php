@@ -51,12 +51,72 @@ $stmt->execute($params);
 $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 
-// Rate mapping from DB (one-way distance-based pay: distance_km * 10 takes priority over flat driver_rate)
+// Helper: calculate driver trip pay
+if (!function_exists('isWithinSanLeonardo')) {
+    function isWithinSanLeonardo(string $destName): bool {
+        $d = strtolower(trim($destName));
+        if ($d === '') return false;
+        if (strpos($d, 'san leonardo') !== false) return true;
+        $barangays = [
+            'bonifacio', 'burgos', 'castillejos', 'diversion', 'magpapalayoc',
+            'mallorca', 'mambangnan', 'nieves', 'san anton', 'san bartolome',
+            'san francisco', 'san roque', 'santa cruz', 'sta. cruz', 'tabuating', 'tagumpay'
+        ];
+        foreach ($barangays as $b) {
+            if (preg_match('/\b' . preg_quote($b, '/') . '\b/i', $d)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+if (!function_exists('getSanLeonardoBoundaryDistance')) {
+    function getSanLeonardoBoundaryDistance(string $destName): float {
+        $d = strtolower(trim($destName));
+        if ($d === '') return 12.0;
+        // East border (Peñaranda / Gen. Tinio) is ~3 km one-way = 6 km round-trip
+        if (strpos($d, 'peñaranda') !== false || strpos($d, 'penaranda') !== false || strpos($d, 'general tinio') !== false || strpos($d, 'gen. tinio') !== false || strpos($d, 'papaya') !== false) {
+            return 6.0;
+        }
+        // South (Gapan), North (Santa Rosa/Cabanatuan), West (Jaen/San Isidro) ~6 km one-way = 12 km round-trip
+        return 12.0;
+    }
+}
+
+$_settings_raw = $pdo->query("SELECT setting_key, setting_value FROM system_settings")->fetchAll(PDO::FETCH_KEY_PAIR);
+$BASE_TRIP_RATE = floatval($_settings_raw['base_trip_rate'] ?? 300.00);
+$RATE_PER_KM    = floatval($_settings_raw['rate_per_km'] ?? 10.00);
+
+if (!function_exists('calculateTripPay')) {
+    function calculateTripPay(float $dist_km, string $destName = '', float $customRate = 0.0, ?float $baseRate = null, ?float $perKmRate = null): float {
+        global $BASE_TRIP_RATE, $RATE_PER_KM;
+        $base = ($baseRate !== null && $baseRate > 0) ? $baseRate : (isset($BASE_TRIP_RATE) && $BASE_TRIP_RATE > 0 ? $BASE_TRIP_RATE : 300.00);
+        $perKm = ($perKmRate !== null && $perKmRate >= 0) ? $perKmRate : (isset($RATE_PER_KM) && $RATE_PER_KM >= 0 ? $RATE_PER_KM : 10.00);
+
+        if (isWithinSanLeonardo($destName)) {
+            return $customRate > 0 ? $customRate : $base;
+        }
+        $km = round($dist_km);
+        if ($km > 0) {
+            $boundaryKm = getSanLeonardoBoundaryDistance($destName);
+            $outsideKm = max(0, $km - $boundaryKm);
+            $tripBase = ($customRate > 0) ? $customRate : $base;
+            return round($tripBase + ($outsideKm * $perKm), 2);
+        }
+        if ($customRate > 0) {
+            return $customRate;
+        }
+        return $base;
+    }
+}
+
+// Rate mapping from DB (flat rate within San Leonardo; base + rate/km for distance outside San Leonardo boundary)
 $_dest_rows = $pdo->query("SELECT name, driver_rate, distance_km FROM destinations WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
 $rates = [];
 foreach ($_dest_rows as $_d) {
     $km = floatval($_d['distance_km']);
-    $rates[$_d['name']] = $km > 0 ? round($km * 10, 2) : floatval($_d['driver_rate']);
+    $rates[$_d['name']] = calculateTripPay($km, $_d['name'], floatval($_d['driver_rate']));
 }
 
 // Gravel type reference prices from DB

@@ -18,6 +18,8 @@ $GARAGE_NAME = $_settings_raw['garage_name'] ?? 'San Leonardo (Quarry Garage)';
 $GARAGE_LAT  = floatval($_settings_raw['garage_lat'] ?? 15.359042);
 $GARAGE_LNG  = floatval($_settings_raw['garage_lng'] ?? 120.965016);
 $OP_COST_PCT = floatval($_settings_raw['op_cost_pct'] ?? 0.40);
+$BASE_TRIP_RATE = floatval($_settings_raw['base_trip_rate'] ?? 300.00);
+$RATE_PER_KM    = floatval($_settings_raw['rate_per_km'] ?? 10.00);
 
 $_dest_rows  = $pdo->query("SELECT name, driver_rate, distance_km FROM destinations WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
 $DRIVER_RATES = [];
@@ -29,13 +31,70 @@ foreach ($_dest_rows as $_d) {
     $destinations[] = $_d;
 }
 
-// Helper: get one-way driver pay for a destination (whole number rounded distance_km * 10 takes priority over flat driver_rate)
-function getDestinationPay(string $destName, array $DISTANCE_KM, array $DRIVER_RATES): float {
-    $km = round(floatval($DISTANCE_KM[$destName] ?? 0));
-    if ($km > 0) {
-        return round($km * 10, 2);
+// Helper: detect if a destination is located within San Leonardo municipality
+function isWithinSanLeonardo(string $destName): bool {
+    $d = strtolower(trim($destName));
+    if ($d === '') return false;
+    if (strpos($d, 'san leonardo') !== false) return true;
+    $barangays = [
+        'bonifacio', 'burgos', 'castillejos', 'diversion', 'magpapalayoc',
+        'mallorca', 'mambangnan', 'nieves', 'san anton', 'san bartolome',
+        'san francisco', 'san roque', 'santa cruz', 'sta. cruz', 'tabuating', 'tagumpay'
+    ];
+    foreach ($barangays as $b) {
+        if (preg_match('/\b' . preg_quote($b, '/') . '\b/i', $d)) {
+            return true;
+        }
     }
-    return floatval($DRIVER_RATES[$destName] ?? 0);
+    return false;
+}
+
+// Helper: get the round-trip boundary distance from garage to the San Leonardo border
+// Default is 12 km round-trip (e.g. 6 km one-way towards Gapan, Santa Rosa, Jaen, etc.)
+// Narrower towards East (Peñaranda ~6 km round-trip)
+function getSanLeonardoBoundaryDistance(string $destName): float {
+    $d = strtolower(trim($destName));
+    if (strpos($d, 'peñaranda') !== false || strpos($d, 'penaranda') !== false || strpos($d, 'general tinio') !== false || strpos($d, 'gen. tinio') !== false || strpos($d, 'papaya') !== false) {
+        return 6.0;
+    }
+    return 12.0; // 12 km round-trip from garage to San Leonardo municipal boundary
+}
+
+// Helper: calculate driver trip pay
+// - Trips within San Leonardo: flat rate (uses destination custom rate if set > 0, else global base rate)
+// - Trips outside San Leonardo: base rate + rate/km for distance outside (deducting boundary distance, e.g. 12 km)
+function calculateTripPay(float $dist_km, string $destName = '', float $customRate = 0.0, ?float $baseRate = null, ?float $perKmRate = null): float {
+    global $BASE_TRIP_RATE, $RATE_PER_KM, $DRIVER_RATES;
+    $base  = ($baseRate !== null && $baseRate > 0) ? $baseRate : (isset($BASE_TRIP_RATE) && $BASE_TRIP_RATE > 0 ? $BASE_TRIP_RATE : 300.00);
+    $perKm = ($perKmRate !== null && $perKmRate >= 0) ? $perKmRate : (isset($RATE_PER_KM) && $RATE_PER_KM >= 0 ? $RATE_PER_KM : 10.00);
+
+    if ($customRate <= 0 && !empty($destName) && isset($DRIVER_RATES[$destName])) {
+        $customRate = floatval($DRIVER_RATES[$destName]);
+    }
+
+    if (isWithinSanLeonardo($destName)) {
+        return $customRate > 0 ? $customRate : $base;
+    }
+
+    $km = round($dist_km);
+    if ($km > 0) {
+        $boundaryKm = getSanLeonardoBoundaryDistance($destName);
+        $outsideKm = max(0, $km - $boundaryKm);
+        $tripBase = ($customRate > 0) ? $customRate : $base;
+        return round($tripBase + ($outsideKm * $perKm), 2);
+    }
+
+    if ($customRate > 0) {
+        return $customRate;
+    }
+    return $base;
+}
+
+// Helper: get driver pay for a destination
+function getDestinationPay(string $destName, array $DISTANCE_KM, array $DRIVER_RATES): float {
+    $km = floatval($DISTANCE_KM[$destName] ?? 0);
+    $rate = floatval($DRIVER_RATES[$destName] ?? 0);
+    return calculateTripPay($km, $destName, $rate);
 }
 
 $_gravel_rows = $pdo->query("SELECT type_key, label FROM gravel_types WHERE is_active = 1 ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
@@ -50,6 +109,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         http_response_code(403);
         die("CSRF token validation failed.");
+    }
+
+    // ── General Trip Rates: Update ──
+    if ($_POST['action'] === 'update_trip_rates') {
+        $baseRate  = floatval($_POST['base_trip_rate'] ?? 300.00);
+        $perKmRate = floatval($_POST['rate_per_km'] ?? 10.00);
+        if ($baseRate < 0 || $perKmRate < 0) {
+            $_SESSION['dest_error'] = 'Trip rates cannot be negative.';
+        } else {
+            try {
+                $stmt = $pdo->prepare("INSERT INTO system_settings (setting_key, setting_value, description) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
+                $stmt->execute(['base_trip_rate', number_format($baseRate, 2, '.', ''), 'Base flat rate for trips within San Leonardo (PHP)']);
+                $stmt->execute(['rate_per_km', number_format($perKmRate, 2, '.', ''), 'Rate per kilometer for distance outside San Leonardo boundary (PHP)']);
+                $_SESSION['dest_success'] = "General Trip Rates updated: Base Flat Rate = ₱" . number_format($baseRate, 2) . ", Rate/km = ₱" . number_format($perKmRate, 2) . ".";
+                log_activity($pdo, 'Updated Trip Rates', "Updated base rate to ₱{$baseRate} and rate/km to ₱{$perKmRate}");
+            } catch (Exception $e) {
+                $_SESSION['dest_error'] = 'Failed to update trip rates: ' . $e->getMessage();
+            }
+        }
+        header('Location: dashboard.php?tab=settings');
+        exit;
     }
 
     // ── Destination: Add ──
@@ -86,7 +166,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             try {
                 $pdo->prepare("UPDATE destinations SET name = ?, distance_km = ?, driver_rate = ?, is_active = ? WHERE id = ?")
                     ->execute([$dname, $dkm, $drate, $active, $did]);
-                $_SESSION['dest_success'] = "Destination updated: '" . htmlspecialchars($dname) . "' — " . ($dkm > 0 ? number_format($dkm, 1) . " km (₱" . number_format($dkm * 10, 2) . " pay)" : "Flat rate ₱" . number_format($drate, 2)) . ".";
+                $payText = calculateTripPay($dkm, $dname, $drate);
+                $_SESSION['dest_success'] = "Destination updated: '" . htmlspecialchars($dname) . "' — " . ($dkm > 0 ? number_format($dkm, 1) . " km (₱" . number_format($payText, 2) . " pay)" : "Flat rate ₱" . number_format($drate, 2)) . ".";
                 log_activity($pdo, 'Edited Destination', "Updated destination ID $did: $dname (distance: {$dkm} km, rate: ₱{$drate})");
             } catch (Exception $e) {
                 $_SESSION['dest_error'] = 'Failed to update destination.';
@@ -146,8 +227,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $dist_km = 1;
         }
 
-        // Calculate driver pay: 10 PHP per km
-        $driver_pay = round($dist_km * 10, 2);
+        // Calculate driver pay:
+        // - Trips within San Leonardo: ₱300 flat
+        // - Trips outside San Leonardo: ₱300 base + ₱10/km for distance outside boundary (garage to boundary distance deducted)
+        $driver_pay = calculateTripPay($dist_km, $destination, floatval($DRIVER_RATES[$destination] ?? 0));
+        if (!empty($_POST['pay_amount']) && floatval($_POST['pay_amount']) > 0) {
+            $postedPay = floatval($_POST['pay_amount']);
+            if (isWithinSanLeonardo($destination)) {
+                $driver_pay = 300.00;
+            } else {
+                $driver_pay = $postedPay;
+            }
+        }
 
         $ticketNum = 'TKT-' . date('Y') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
 
@@ -1060,7 +1151,7 @@ foreach ($allDrivers as &$dr) {
             dt.transit_start_time, 
             dt.transit_end_time,
             COALESCE(NULLIF(dt.distance_km, 0), dest.distance_km, 0.00) AS distance_km,
-            COALESCE(NULLIF(dt.pay_amount, 0), IF(dest.distance_km > 0, ROUND(dest.distance_km * 10, 2), dest.driver_rate), 0.00) AS pay_amount
+            COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - 12) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount
         FROM driver_trips dt
         LEFT JOIN destinations dest ON dest.name = dt.destination
         WHERE dt.driver_id = ? 

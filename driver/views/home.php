@@ -182,7 +182,7 @@
                                 </span>
                             </div>
                             <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                                <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Trip Pay (₱10/km)</span>
+                                <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Trip Pay</span>
                                 <span class="text-base sm:text-lg font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                                     <i class="fa-solid fa-peso-sign text-emerald-500 flex-shrink-0"></i>
                                     ₱<?= number_format($active_dispatch['pay_amount'] ?? 0, 2); ?>
@@ -399,7 +399,7 @@
                     <i class="fa-solid fa-wallet text-2xl opacity-90"></i>
                     <div>
                         <h3 class="font-bold text-lg">My Payroll Summary</h3>
-                        <p class="text-emerald-100 text-xs">Earnings based on distance (₱10/km) — Cash advances auto-deducted</p>
+                        <p class="text-emerald-100 text-xs">Earnings based on distance (₱300 San Leonardo / +₱10/km outside) — Cash advances auto-deducted</p>
                     </div>
                 </div>
                 <button onclick="openCashAdvanceModal()"

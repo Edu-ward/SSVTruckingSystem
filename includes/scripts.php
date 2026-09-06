@@ -26,6 +26,15 @@
                     }
                 }, 250);
             }
+            if (tabName === 'settings') {
+                setTimeout(() => {
+                    if (window.initSettingsSimulatorMap) {
+                        window.initSettingsSimulatorMap();
+                    } else if (window.settingsSimulatorMap) {
+                        window.settingsSimulatorMap.invalidateSize();
+                    }
+                }, 250);
+            }
             if (tabName === 'dispatches') {
                 setTimeout(() => {
                     const input = document.getElementById('dispatchScannerRfidInput');

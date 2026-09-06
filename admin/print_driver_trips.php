@@ -62,7 +62,7 @@ $sql = "
     SELECT 
         dt.*,
         COALESCE(NULLIF(dt.distance_km, 0), dest.distance_km, 0.00) AS distance_km,
-        COALESCE(NULLIF(dt.pay_amount, 0), d.pay_amount, IF(dest.distance_km > 0, ROUND(dest.distance_km * 10, 2), dest.driver_rate), 0.00) AS pay_amount,
+        COALESCE(NULLIF(dt.pay_amount, 0), d.pay_amount, IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
         COALESCE(d.ticket_number, CONCAT('TRIP-', dt.id)) AS ticket_no,
         COALESCE(d.cubic_meters, 0.00) AS cubic_meters,
         t.truck_code AS dispatch_truck,

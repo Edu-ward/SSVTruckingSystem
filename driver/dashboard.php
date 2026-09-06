@@ -112,7 +112,7 @@ $stmt2 = $pdo->prepare("
         dt.transit_start_time, 
         dt.transit_end_time,
         COALESCE(NULLIF(dt.distance_km, 0), dest.distance_km, 0.00) AS distance_km,
-        COALESCE(NULLIF(dt.pay_amount, 0), IF(dest.distance_km > 0, ROUND(dest.distance_km * 10, 2), dest.driver_rate), 0.00) AS pay_amount
+        COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount
     FROM driver_trips dt
     LEFT JOIN destinations dest ON dest.name = dt.destination
     WHERE dt.driver_id = ? 
@@ -153,7 +153,7 @@ $has_pending_cancellation = $stmtCancel->fetch() ? true : false;
 $stmtActive = $pdo->prepare("
     SELECT 
         d.id, d.ticket_number, d.origin, d.destination, d.status, d.cubic_meters, d.created_at, d.transit_start_time, d.transit_end_time, t.truck_code,
-        COALESCE(NULLIF(d.pay_amount, 0), IF(dest.distance_km > 0, ROUND(dest.distance_km * 10, 2), dest.driver_rate), 0.00) AS pay_amount,
+        COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
         COALESCE(dest.distance_km, ROUND(d.pay_amount / 10, 1), 0.00) AS distance_km
     FROM dispatches d 
     JOIN trucks t ON d.truck_id = t.id 

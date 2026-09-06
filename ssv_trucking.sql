@@ -256,7 +256,7 @@ ON DUPLICATE KEY UPDATE `username` = `username`;
 
 -- Default destinations
 INSERT INTO `destinations` (`name`, `driver_rate`, `distance_km`) VALUES
-('San Leonardo', 150.00, 0.00),
+('San Leonardo', 300.00, 0.00),
 ('Tarlac', 800.00, 0.00),
 ('Laur', 900.00, 0.00),
 ('Gabaldon', 1000.00, 0.00)
@@ -283,7 +283,9 @@ INSERT INTO `system_settings` (`setting_key`, `setting_value`, `description`) VA
 ('garage_lat',  '15.3621',              'Garage latitude coordinate'),
 ('garage_lng',  '120.9632',             'Garage longitude coordinate'),
 ('op_cost_pct', '0.40',                 'Estimated operational cost as a decimal fraction'),
-('payday_day',  'Saturday',             'Day of the week when drivers are paid')
+('payday_day',  'Saturday',             'Day of the week when drivers are paid'),
+('base_trip_rate', '300.00',            'Base flat rate for trips within San Leonardo (PHP)'),
+('rate_per_km', '10.00',                'Rate per kilometer for distance outside San Leonardo boundary (PHP)')
 ON DUPLICATE KEY UPDATE `setting_value` = VALUES(`setting_value`);
 
 -- ============================================================

@@ -14,14 +14,90 @@ const NominatimService = (function () {
         lng: 120.965016
     };
 
+    // Helper: Detect if a location name/address is within San Leonardo
+    function isWithinSanLeonardo(name) {
+        if (!name || typeof name !== 'string') return false;
+        const lower = name.toLowerCase();
+        if (lower.includes('san leonardo')) return true;
+        const slBarangays = [
+            'bonifacio', 'burgos', 'castillejos', 'diversion', 'magpapalayoc',
+            'mallorca', 'mambangnan', 'nieves', 'san anton', 'san bartolome',
+            'san francisco', 'san roque', 'santa cruz', 'sta. cruz', 'tabuating', 'tagumpay'
+        ];
+        return slBarangays.some(b => new RegExp('\\b' + b + '\\b', 'i').test(lower));
+    }
+
+    // Helper: get the round-trip boundary distance from garage to San Leonardo border
+    // Default: 12 km round-trip (e.g. 6 km one-way towards Gapan, Santa Rosa, Jaen, etc.)
+    // Towards East: 6 km round-trip (Peñaranda ~3 km one-way)
+    function getSanLeonardoBoundaryDistance(name = '', destLat = null, destLng = null) {
+        if (name) {
+            const lower = name.toLowerCase();
+            if (lower.includes('peñaranda') || lower.includes('penaranda') || lower.includes('general tinio') || lower.includes('gen. tinio') || lower.includes('papaya')) {
+                return 6;
+            }
+        }
+        if (destLat != null && destLng != null && !isNaN(destLat) && !isNaN(destLng)) {
+            const dLng = destLng - 120.965016;
+            const dLat = destLat - 15.359042;
+            const angle = Math.atan2(dLng, dLat) * 180 / Math.PI;
+            if (angle >= 45 && angle <= 135) {
+                return 6;
+            }
+        }
+        return 12; // 12 km round-trip from garage to San Leonardo municipal boundary
+    }
+
+    /**
+     * Helper: Calculate driver trip pay
+     * - Trips within San Leonardo: Flat rate (custom rate if set > 0, else global base rate)
+     * - Trips outside San Leonardo: base rate + rate/km for distance outside (deducting boundary distance, e.g. 12 km)
+     */
+    function calculateTripPay(km, name = '', destLat = null, destLng = null, customRate = null) {
+        const rounded = Math.round(km);
+        const globalBase = (typeof window !== 'undefined' && window.BASE_TRIP_RATE) ? Number(window.BASE_TRIP_RATE) : 300.00;
+        const globalPerKm = (typeof window !== 'undefined' && window.RATE_PER_KM) ? Number(window.RATE_PER_KM) : 10.00;
+
+        let basePay = globalBase;
+        if (customRate != null && Number(customRate) > 0) {
+            basePay = Number(customRate);
+        } else if (typeof window !== 'undefined' && window.DESTINATION_DRIVER_RATES && name && window.DESTINATION_DRIVER_RATES[name] > 0) {
+            basePay = Number(window.DESTINATION_DRIVER_RATES[name]);
+        }
+
+        if (isWithinSanLeonardo(name)) {
+            return {
+                pay: basePay,
+                payAmount: basePay,
+                outsideKm: 0,
+                boundaryKm: 0,
+                isWithin: true,
+                breakdown: `Within San Leonardo (Flat Rate: ₱${basePay.toFixed(2)})`
+            };
+        }
+        const boundaryKm = getSanLeonardoBoundaryDistance(name, destLat, destLng);
+        const outsideKm = Math.max(0, rounded - boundaryKm);
+        const pay = basePay + (outsideKm * globalPerKm);
+        return {
+            pay: pay,
+            payAmount: pay,
+            outsideKm: outsideKm,
+            boundaryKm: boundaryKm,
+            isWithin: false,
+            breakdown: outsideKm > 0
+                ? `₱${basePay.toFixed(2)} base + ${outsideKm} km outside × ₱${globalPerKm.toFixed(2)}/km`
+                : `₱${basePay.toFixed(2)} base (within boundary)`
+        };
+    }
+
     /**
      * Calculate geodesic distance directly between two map coordinate points
      * Uses the Haversine formula (same as Leaflet's L.latLng.distanceTo).
      * Multiplies by 1.25 driving road curvature factor.
      * Back and Forth (Round Trip): 2x distance, minimum 2 km.
-     * Pay rate: ₱10 per km (e.g., 2 km one-way = 4 km round-trip = ₱40.00 pay).
+     * Driver pay: Flat ₱300 for San Leonardo, ₱300 + ₱10/km outside (garage to boundary distance deducted).
      */
-    function calculateMapDistance(destLat, destLng, origLat = GARAGE_COORDS.lat, origLng = GARAGE_COORDS.lng) {
+    function calculateMapDistance(destLat, destLng, origLat = GARAGE_COORDS.lat, origLng = GARAGE_COORDS.lng, destName = '') {
         if (destLat == null || destLng == null || isNaN(destLat) || isNaN(destLng)) return null;
 
         const R = 6371; // Earth radius in km
@@ -41,14 +117,19 @@ const NominatimService = (function () {
         let roundedKm = Math.round(roundTripKm);
         if (roundedKm < 2 && straightLineKm > 0) roundedKm = 2;
 
-        const pay = roundedKm * 10;
+        const payInfo = calculateTripPay(roundedKm, destName, destLat, destLng);
 
         return {
             km: roundedKm,
+            roundedKm: roundedKm,
+            pay: payInfo.payAmount,
+            payAmount: payInfo.payAmount,
             oneWayKm: Math.round(roadOneWayKm),
             exactKm: parseFloat(roundTripKm.toFixed(1)),
             straightLineKm: parseFloat(straightLineKm.toFixed(1)),
-            payAmount: pay,
+            outsideKm: payInfo.outsideKm,
+            payBreakdown: payInfo.breakdown,
+            isWithinSanLeonardo: payInfo.isWithin,
             durationMins: Math.round((roundTripKm / 40) * 60),
             destLat: parseFloat(destLat),
             destLng: parseFloat(destLng)
@@ -252,12 +333,12 @@ const NominatimService = (function () {
      * First computes map distance immediately (0ms).
      * Attempts OSRM routing with a short 1.2s timeout to refine if network allows.
      */
-    async function calculateDrivingDistance(destLat, destLng, origLat = GARAGE_COORDS.lat, origLng = GARAGE_COORDS.lng) {
+    async function calculateDrivingDistance(destLat, destLng, origLat = GARAGE_COORDS.lat, origLng = GARAGE_COORDS.lng, destName = '') {
         // Immediate baseline from the map (0ms, 100% reliable)
-        const mapDist = calculateMapDistance(destLat, destLng, origLat, origLng);
+        const mapDist = calculateMapDistance(destLat, destLng, origLat, origLng, destName);
         if (!mapDist) return null;
 
-        const cacheKey = `dist:${parseFloat(origLat).toFixed(4)},${parseFloat(origLng).toFixed(4)}->${parseFloat(destLat).toFixed(4)},${parseFloat(destLng).toFixed(4)}`;
+        const cacheKey = `dist:${parseFloat(origLat).toFixed(4)},${parseFloat(origLng).toFixed(4)}->${parseFloat(destLat).toFixed(4)},${parseFloat(destLng).toFixed(4)}:${destName}`;
         if (cache[cacheKey]) return cache[cacheKey];
 
         try {
@@ -274,11 +355,16 @@ const NominatimService = (function () {
                     const roundTripKm = oneWayKm * 2;
                     let roundedKm = Math.round(roundTripKm);
                     if (roundedKm < 2 && oneWayKm > 0) roundedKm = 2;
+                    const payInfo = calculateTripPay(roundedKm, destName, destLat, destLng);
                     const result = {
                         km: roundedKm,
                         oneWayKm: Math.round(oneWayKm),
                         exactKm: parseFloat(roundTripKm.toFixed(1)),
-                        payAmount: roundedKm * 10,
+                        payAmount: payInfo.payAmount,
+                        outsideKm: payInfo.outsideKm,
+                        boundaryKm: payInfo.boundaryKm,
+                        payBreakdown: payInfo.breakdown,
+                        isWithinSanLeonardo: payInfo.isWithin,
                         durationMins: Math.round((roundTripKm / 40) * 60),
                         destLat: destLat,
                         destLng: destLng
@@ -305,7 +391,7 @@ const NominatimService = (function () {
         if (!searchResults || searchResults.length === 0) return null;
 
         const top = searchResults[0];
-        const dist = await calculateDrivingDistance(top.lat, top.lng, origLat, origLng);
+        const dist = await calculateDrivingDistance(top.lat, top.lng, origLat, origLng, destName);
         if (!dist) return null;
 
         return {
@@ -317,6 +403,9 @@ const NominatimService = (function () {
 
     return {
         GARAGE_COORDS: GARAGE_COORDS,
+        isWithinSanLeonardo: isWithinSanLeonardo,
+        getSanLeonardoBoundaryDistance: getSanLeonardoBoundaryDistance,
+        calculateTripPay: calculateTripPay,
         calculateMapDistance: calculateMapDistance,
         calculateDirectRoadDistance: calculateMapDistance, // alias
         calculateDrivingDistance: calculateDrivingDistance,

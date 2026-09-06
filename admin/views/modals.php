@@ -220,9 +220,10 @@
                         <?php foreach ($destinations as $_dest): ?>
                             <?php
                             $_dist = round(floatval($_dest['distance_km']));
-                            $_pay = $_dist > 0 ? $_dist * 10 : floatval($_dest['driver_rate']);
+                            $_rate = floatval($_dest['driver_rate']);
+                            $_pay = calculateTripPay($_dist, $_dest['name'], $_rate);
                             ?>
-                            <option value="<?= htmlspecialchars($_dest['name']); ?>" data-distance="<?= $_dist; ?>" data-pay="<?= $_pay; ?>"><?= htmlspecialchars($_dest['name']); ?><?php if ($_dist > 0): ?> (<?= $_dist; ?> km)<?php endif; ?></option>
+                            <option value="<?= htmlspecialchars($_dest['name']); ?>" data-distance="<?= $_dist; ?>" data-pay="<?= $_pay; ?>" data-rate="<?= $_rate; ?>"><?= htmlspecialchars($_dest['name']); ?><?php if ($_dist > 0): ?> (<?= $_dist; ?> km)<?php endif; ?></option>
                         <?php endforeach; ?>
                     </select>
                     <div id="dispatchPayPreview" class="text-xs mt-2 hidden">
@@ -1244,6 +1245,10 @@
 </div>
 
 <script>
+    window.BASE_TRIP_RATE = <?= floatval($BASE_TRIP_RATE ?? 300.00); ?>;
+    window.RATE_PER_KM = <?= floatval($RATE_PER_KM ?? 10.00); ?>;
+    window.DESTINATION_DRIVER_RATES = <?= json_encode($DRIVER_RATES ?? []); ?>;
+
     async function handleDispatchDestinationChange() {
         const destSelect = document.getElementById('destinationSelect');
         if (!destSelect) return;
@@ -1258,6 +1263,82 @@
         await calculateAndSetDispatchPay(destName, opt);
     }
 
+    // Helper: Detect if a location name/address is within San Leonardo
+    function isSanLeonardo(name) {
+        if (!name || typeof name !== 'string') return false;
+        const lower = name.toLowerCase();
+        if (lower.includes('san leonardo')) return true;
+        const slBarangays = [
+            'bonifacio', 'burgos', 'castillejos', 'diversion', 'magpapalayoc',
+            'mallorca', 'mambangnan', 'nieves', 'san anton', 'san bartolome',
+            'san francisco', 'san roque', 'santa cruz', 'sta. cruz', 'tabuating', 'tagumpay'
+        ];
+        return slBarangays.some(b => new RegExp('\\b' + b + '\\b', 'i').test(lower));
+    }
+
+    // Helper: get the round-trip boundary distance from garage to San Leonardo border
+    // Default: 12 km round-trip (e.g. 6 km one-way towards Gapan, Santa Rosa, Jaen, etc.)
+    // Towards East: 6 km round-trip (Peñaranda ~3 km one-way)
+    function getSanLeonardoBoundaryKm(name = '', lat = null, lng = null) {
+        if (typeof NominatimService !== 'undefined' && NominatimService.getSanLeonardoBoundaryDistance) {
+            return NominatimService.getSanLeonardoBoundaryDistance(name, lat, lng);
+        }
+        if (name) {
+            const lower = name.toLowerCase();
+            if (lower.includes('peñaranda') || lower.includes('penaranda') || lower.includes('general tinio') || lower.includes('gen. tinio') || lower.includes('papaya')) {
+                return 6;
+            }
+        }
+        if (lat != null && lng != null && !isNaN(lat) && !isNaN(lng)) {
+            const dLng = lng - 120.965016;
+            const dLat = lat - 15.359042;
+            const angle = Math.atan2(dLng, dLat) * 180 / Math.PI;
+            if (angle >= 45 && angle <= 135) {
+                return 6;
+            }
+        }
+        return 12; // 12 km round-trip from garage to San Leonardo municipal boundary
+    }
+
+    // Helper: Calculate driver trip pay (custom flat rate if set, else base rate; plus rate/km outside boundary)
+    function computeDriverTripPay(km, name = '', lat = null, lng = null, customRate = null) {
+        if (typeof NominatimService !== 'undefined' && NominatimService.calculateTripPay) {
+            return NominatimService.calculateTripPay(km, name, lat, lng, customRate);
+        }
+        const rounded = Math.round(km);
+        const globalBase = (typeof window !== 'undefined' && window.BASE_TRIP_RATE) ? Number(window.BASE_TRIP_RATE) : 300.00;
+        const globalPerKm = (typeof window !== 'undefined' && window.RATE_PER_KM) ? Number(window.RATE_PER_KM) : 10.00;
+
+        let basePay = globalBase;
+        if (customRate != null && Number(customRate) > 0) {
+            basePay = Number(customRate);
+        } else if (typeof window !== 'undefined' && window.DESTINATION_DRIVER_RATES && name && window.DESTINATION_DRIVER_RATES[name] > 0) {
+            basePay = Number(window.DESTINATION_DRIVER_RATES[name]);
+        }
+
+        if (isSanLeonardo(name)) {
+            return {
+                pay: basePay,
+                outsideKm: 0,
+                boundaryKm: 0,
+                isWithin: true,
+                breakdown: `Within San Leonardo (Flat Rate: ₱${basePay.toFixed(2)})`
+            };
+        }
+        const boundaryKm = getSanLeonardoBoundaryKm(name, lat, lng);
+        const outsideKm = Math.max(0, rounded - boundaryKm);
+        const pay = basePay + (outsideKm * globalPerKm);
+        return {
+            pay: pay,
+            outsideKm: outsideKm,
+            boundaryKm: boundaryKm,
+            isWithin: false,
+            breakdown: outsideKm > 0
+                ? `₱${basePay.toFixed(2)} base + ${outsideKm} km outside × ₱${globalPerKm.toFixed(2)}/km`
+                : `₱${basePay.toFixed(2)} base (within boundary)`
+        };
+    }
+
     async function calculateAndSetDispatchPay(destName, optElem = null) {
         const payPreview = document.getElementById('dispatchPayPreview');
         const payAmountEl = document.getElementById('dispatchPayAmount');
@@ -1265,24 +1346,30 @@
         const hiddenPay = document.getElementById('dispatchDriverPay');
         if (!payPreview || !payAmountEl) return;
 
-        const applyBadge = (km, pay) => {
+        const optLat = optElem && optElem.dataset.lat ? parseFloat(optElem.dataset.lat) : null;
+        const optLng = optElem && optElem.dataset.lng ? parseFloat(optElem.dataset.lng) : null;
+        const optRate = optElem && optElem.dataset.rate ? parseFloat(optElem.dataset.rate) : null;
+
+        const applyBadge = (km, pay = 0) => {
             let rounded = Math.round(km);
             if (rounded < 2 && destName.trim().length > 0) rounded = 2;
-            const amount = pay > 0 ? pay : rounded * 10;
+            const calc = computeDriverTripPay(rounded, destName, optLat, optLng, optRate);
+            const amount = pay > 0 ? pay : calc.pay;
             if (hiddenDist) hiddenDist.value = rounded;
             if (hiddenPay) hiddenPay.value = amount;
             if (optElem) {
                 optElem.dataset.distance = rounded;
                 optElem.dataset.pay = amount;
             }
-            payAmountEl.innerHTML = `Map Distance: <span class="font-bold text-blue-600 dark:text-blue-400">${rounded} km</span> (round trip) &bull; Driver Trip Pay: <span class="font-bold text-green-600 dark:text-green-400">₱${amount.toFixed(2)}</span> (${rounded} km × ₱10/km)`;
+            payAmountEl.innerHTML = `Map Distance: <span class="font-bold text-blue-600 dark:text-blue-400">${rounded} km</span> (round trip) &bull; Driver Trip Pay: <span class="font-bold text-green-600 dark:text-green-400">₱${amount.toFixed(2)}</span> <span class="text-gray-500 dark:text-gray-400 font-normal">(${calc.breakdown})</span>`;
             payPreview.classList.remove('hidden');
             return rounded;
         };
 
         if (optElem && parseFloat(optElem.dataset.distance) > 0) {
             const preloadedKm = parseFloat(optElem.dataset.distance);
-            const preloadedPay = parseFloat(optElem.dataset.pay) || (Math.round(preloadedKm) * 10);
+            const calc = computeDriverTripPay(preloadedKm, destName, optLat, optLng);
+            const preloadedPay = parseFloat(optElem.dataset.pay) || calc.pay;
             applyBadge(preloadedKm, preloadedPay);
             return;
         }
@@ -1290,7 +1377,7 @@
         if (optElem && optElem.dataset.lat && optElem.dataset.lng && typeof NominatimService !== 'undefined') {
             const lat = parseFloat(optElem.dataset.lat);
             const lng = parseFloat(optElem.dataset.lng);
-            const direct = NominatimService.calculateMapDistance(lat, lng);
+            const direct = NominatimService.calculateMapDistance(lat, lng, undefined, undefined, destName);
             if (direct) {
                 applyBadge(direct.km, direct.payAmount);
                 return;
@@ -1305,10 +1392,10 @@
             if (res && res.km > 0) {
                 applyBadge(res.km, res.payAmount);
             } else {
-                applyBadge(2, 20);
+                applyBadge(2, 300);
             }
         } catch (err) {
-            applyBadge(2, 20);
+            applyBadge(2, 300);
         }
     }
 
@@ -1324,7 +1411,9 @@
 
     let osmRouteLine = null;
 
-    function formatOsmPopup(name, km, pay) {
+    function formatOsmPopup(name, km, pay, lat = null, lng = null) {
+        const calc = computeDriverTripPay(km, name, lat, lng);
+        const finalPay = pay > 0 ? pay : calc.pay;
         return `
             <div style="padding: 4px 6px; min-width: 190px; max-width: 270px;">
                 <div style="font-weight: 700; font-size: 13px; color: #111827; margin-bottom: 6px; word-break: break-word; line-height: 1.35;">${name}</div>
@@ -1334,9 +1423,9 @@
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 4px; color: #4b5563;">
                     <span>Driver Pay:</span>
-                    <strong style="color: #16a34a; font-weight: 700;">₱${pay.toFixed(2)}</strong>
+                    <strong style="color: #16a34a; font-weight: 700;">₱${finalPay.toFixed(2)}</strong>
                 </div>
-                <div style="font-size: 10px; color: #9ca3af; margin-top: 4px; font-style: italic;">(Back & forth: ${km} km × ₱10/km)</div>
+                <div style="font-size: 10px; color: #6b7280; margin-top: 4px; font-style: italic;">(${calc.breakdown})</div>
             </div>
         `;
     }
@@ -1407,22 +1496,25 @@
                         const roundTripKm = roadOneWayKm * 2;
                         let roundedKm = Math.round(roundTripKm);
                         if (roundedKm < 2 && straightKm > 0) roundedKm = 2;
-                        const driverPay = roundedKm * 10;
 
                         currentSelectedDistanceKm = roundedKm;
-                        currentSelectedPay = driverPay;
                         currentSelectedLocation = `Point (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+
+                        const calcInitial = computeDriverTripPay(roundedKm, currentSelectedLocation, lat, lng);
+                        currentSelectedPay = calcInitial.pay;
 
                         const textEl = document.getElementById('selectedOsmLocationText');
                         const btnEl = document.getElementById('useOsmLocationBtn');
                         if (btnEl) btnEl.disabled = false;
 
                         const updateStatusText = (name) => {
+                            const c = computeDriverTripPay(currentSelectedDistanceKm, name, lat, lng);
+                            currentSelectedPay = c.pay;
                             if (textEl) {
-                                textEl.innerHTML = `📍 <strong>${name}</strong> &bull; <span class="text-blue-600 dark:text-blue-400 font-bold">${currentSelectedDistanceKm} km</span> (round trip) &bull; <span class="text-green-600 dark:text-green-400 font-bold">₱${currentSelectedPay.toFixed(2)} driver pay</span>`;
+                                textEl.innerHTML = `📍 <strong>${name}</strong> &bull; <span class="text-blue-600 dark:text-blue-400 font-bold">${currentSelectedDistanceKm} km</span> (round trip) &bull; <span class="text-green-600 dark:text-green-400 font-bold">₱${currentSelectedPay.toFixed(2)} driver pay</span> <span class="text-gray-500 dark:text-gray-400 font-normal text-[11px]">(${c.breakdown})</span>`;
                             }
                             if (osmMarker) {
-                                osmMarker.bindPopup(formatOsmPopup(name, currentSelectedDistanceKm, currentSelectedPay)).openPopup();
+                                osmMarker.bindPopup(formatOsmPopup(name, currentSelectedDistanceKm, currentSelectedPay, lat, lng)).openPopup();
                             }
                         };
                         updateStatusText(currentSelectedLocation);
@@ -1484,20 +1576,21 @@
                     const roundTripKm = roadOneWayKm * 2;
                     let roundedKm = Math.round(roundTripKm);
                     if (roundedKm < 2 && straightKm > 0) roundedKm = 2;
-                    const driverPay = roundedKm * 10;
+                    const calc = computeDriverTripPay(roundedKm, res.shortName, res.lat, res.lng);
+                    const driverPay = calc.pay;
 
                     currentSelectedDistanceKm = roundedKm;
                     currentSelectedPay = driverPay;
 
                     const textEl = document.getElementById('selectedOsmLocationText');
                     const btnEl = document.getElementById('useOsmLocationBtn');
-                    if (textEl) textEl.innerHTML = `📍 <strong>${res.shortName}</strong> &bull; <span class="text-blue-600 dark:text-blue-400 font-bold">${currentSelectedDistanceKm} km</span> (round trip) &bull; <span class="text-green-600 dark:text-green-400 font-bold">₱${currentSelectedPay.toFixed(2)} driver pay</span>`;
+                    if (textEl) textEl.innerHTML = `📍 <strong>${res.shortName}</strong> &bull; <span class="text-blue-600 dark:text-blue-400 font-bold">${currentSelectedDistanceKm} km</span> (round trip) &bull; <span class="text-green-600 dark:text-green-400 font-bold">₱${currentSelectedPay.toFixed(2)} driver pay</span> <span class="text-gray-500 dark:text-gray-400 font-normal text-[11px]">(${calc.breakdown})</span>`;
                     if (btnEl) btnEl.disabled = false;
 
                     if (osmMiniMap) {
                         osmMiniMap.setView([res.lat, res.lng], 14);
                         if (osmMarker) osmMiniMap.removeLayer(osmMarker);
-                        osmMarker = L.marker([res.lat, res.lng]).addTo(osmMiniMap).bindPopup(formatOsmPopup(res.shortName, currentSelectedDistanceKm, currentSelectedPay)).openPopup();
+                        osmMarker = L.marker([res.lat, res.lng]).addTo(osmMiniMap).bindPopup(formatOsmPopup(res.shortName, currentSelectedDistanceKm, currentSelectedPay, res.lat, res.lng)).openPopup();
 
                         if (osmRouteLine) osmMiniMap.removeLayer(osmRouteLine);
                         osmRouteLine = L.polyline([
@@ -1549,7 +1642,7 @@
             }
             if (currentSelectedDistanceKm > 0) {
                 targetOpt.dataset.distance = currentSelectedDistanceKm;
-                targetOpt.dataset.pay = currentSelectedPay || (currentSelectedDistanceKm * 10);
+                targetOpt.dataset.pay = currentSelectedPay || computeDriverTripPay(currentSelectedDistanceKm, currentSelectedLocation, currentSelectedLat, currentSelectedLng).pay;
             }
 
             if (targetInputContext === 'dispatch') {
