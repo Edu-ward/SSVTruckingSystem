@@ -26,7 +26,7 @@ try {
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
     <title>SSV Trucking System — Sign In</title>
     <meta name="description" content="Sign in to the SSV Trucking System portal. Manage fleet operations, track deliveries, and monitor logistics.">
 
@@ -438,17 +438,17 @@ try {
         <!-- ════════════════════════════════════════════════════════ -->
         <!-- RIGHT PANEL — Login Form                                -->
         <!-- ════════════════════════════════════════════════════════ -->
-        <div class="flex-1 flex items-center justify-center px-6 sm:px-10 lg:px-16 py-10 bg-white dark:bg-gray-950 relative">
+        <div class="flex-1 flex items-center justify-center px-4 sm:px-10 lg:px-16 py-10 pt-24 sm:pt-10 bg-white dark:bg-gray-950 relative min-h-screen">
 
             <!-- Theme Toggle -->
             <button id="themeToggle" onclick="toggleTheme(event)"
-                class="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 group"
+                class="absolute top-5 sm:top-6 right-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 active:scale-95 group"
                 aria-label="Toggle dark mode">
                 <i id="themeIcon" class="fa-solid fa-moon text-sm group-hover:scale-110 transition-transform duration-200"></i>
             </button>
 
             <!-- Mobile branding (shown on small screens instead of left panel) -->
-            <div class="lg:hidden absolute top-6 left-6 flex items-center space-x-2.5">
+            <div class="lg:hidden absolute top-5 sm:top-6 left-5 sm:left-6 flex items-center space-x-2.5">
                 <div class="flex-shrink-0">
                     <img src="assets/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
                     <img src="assets/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
@@ -586,6 +586,28 @@ try {
         </div>
     </div>
 
+    <!-- Login Confirmation Modal -->
+    <div id="loginConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4 transition-opacity duration-200" onclick="if(event.target === this) closeLoginConfirmModal();">
+        <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl shadow-2xl w-full max-w-sm p-6 sm:p-7 transform scale-95 opacity-0 transition-all duration-200 text-center" id="loginConfirmModalBox">
+            <div class="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner border border-blue-200/60 dark:border-blue-800/40">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Confirm Sign In</h3>
+            <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">
+                You are about to sign in with account <strong id="confirmUsernameDisplay" class="text-gray-900 dark:text-gray-100 font-semibold"></strong>. Do you wish to proceed?
+            </p>
+            <div class="flex items-center space-x-3 mt-6">
+                <button type="button" onclick="closeLoginConfirmModal()" class="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 font-semibold text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition active:scale-95">
+                    Cancel
+                </button>
+                <button type="button" onclick="proceedLoginSubmission()" id="confirmSubmitBtn" class="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-xs sm:text-sm shadow-md shadow-blue-500/25 transition active:scale-95 flex items-center justify-center space-x-1.5">
+                    <span>Yes, Sign In</span>
+                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ╔══════════════════════════════════════════════════════════╗ -->
     <!-- ║  SCRIPTS                                                 ║ -->
     <!-- ╚══════════════════════════════════════════════════════════╝ -->
@@ -664,18 +686,72 @@ try {
             btn.style.setProperty('--y', y + '%');
         }
 
-        // ── Form Submit Loading State ──
-        document.getElementById('loginForm').addEventListener('submit', function() {
+        let isLoginConfirmed = false;
+
+        function openLoginConfirmModal(username) {
+            const modal = document.getElementById('loginConfirmModal');
+            const box = document.getElementById('loginConfirmModalBox');
+            const display = document.getElementById('confirmUsernameDisplay');
+            if (display) display.textContent = username;
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                if (box) {
+                    box.classList.remove('scale-95', 'opacity-0');
+                    box.classList.add('scale-100', 'opacity-100');
+                }
+            });
+        }
+
+        function closeLoginConfirmModal() {
+            const modal = document.getElementById('loginConfirmModal');
+            const box = document.getElementById('loginConfirmModalBox');
+            if (!modal) return;
+            if (box) {
+                box.classList.remove('scale-100', 'opacity-100');
+                box.classList.add('scale-95', 'opacity-0');
+            }
+            setTimeout(() => modal.classList.add('hidden'), 150);
+        }
+
+        function proceedLoginSubmission() {
+            isLoginConfirmed = true;
+            closeLoginConfirmModal();
+            const form = document.getElementById('loginForm');
             const btn = document.getElementById('loginBtn');
             const btnText = document.getElementById('btnText');
             const btnIcon = document.getElementById('btnIcon');
             const btnSpinner = document.getElementById('btnSpinner');
 
-            btn.disabled = true;
-            btn.classList.add('opacity-80', 'cursor-not-allowed');
-            btnText.textContent = 'Signing in...';
-            btnIcon.classList.add('hidden');
-            btnSpinner.classList.remove('hidden');
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-80', 'cursor-not-allowed');
+            }
+            if (btnText) btnText.textContent = 'Signing in...';
+            if (btnIcon) btnIcon.classList.add('hidden');
+            if (btnSpinner) btnSpinner.classList.remove('hidden');
+
+            form.submit();
+        }
+
+        // ── Form Submit: Show Confirmation Dialog First ──
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            if (!isLoginConfirmed) {
+                e.preventDefault();
+                const usernameInput = document.getElementById('username');
+                const passwordInput = document.getElementById('password');
+
+                if (!usernameInput.value.trim()) {
+                    usernameInput.focus();
+                    return;
+                }
+                if (!passwordInput.value) {
+                    passwordInput.focus();
+                    return;
+                }
+
+                openLoginConfirmModal(usernameInput.value.trim());
+            }
         });
 
         // ── Animated Counter ──

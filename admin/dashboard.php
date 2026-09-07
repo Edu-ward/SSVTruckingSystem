@@ -1692,7 +1692,7 @@ try {
 
 include __DIR__ . '/../includes/header.php';
 ?>
-<div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 relative">
+<div class="max-w-[1600px] mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-8 relative">
     <?php include __DIR__ . '/views/home.php';
     include __DIR__ . '/views/tracking.php';
     include __DIR__ . '/views/dispatches.php';

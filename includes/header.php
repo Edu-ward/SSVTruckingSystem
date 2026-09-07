@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
     <!-- Dynamic Title -->
     <title><?= ($_SESSION['role'] === 'Admin') ? 'SSV Trucking - Admin Panel' : (($_SESSION['role'] === 'Checker') ? 'Checker Panel - SSV Trucking' : 'Driver Panel - SSV Trucking') ?></title>
 
@@ -258,9 +258,37 @@
             background: transparent !important;
         }
 
+        /* ── Safe Area & Dynamic Viewport Utilities ── */
+        :root {
+            --sat: env(safe-area-inset-top, 0px);
+            --sab: env(safe-area-inset-bottom, 0px);
+            --sal: env(safe-area-inset-left, 0px);
+            --sar: env(safe-area-inset-right, 0px);
+        }
+
+        html, body {
+            overflow-x: hidden;
+            max-width: 100vw;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .safe-top {
+            padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+        }
+
+        .safe-bottom,
+        .mobile-bottom-nav {
+            padding-bottom: max(0.75rem, calc(env(safe-area-inset-bottom, 0px) + 0.5rem)) !important;
+            box-shadow: 0 -4px 20px -2px rgba(0, 0, 0, 0.08), 0 -2px 6px -1px rgba(0, 0, 0, 0.04);
+        }
+
+        .dark .mobile-bottom-nav {
+            box-shadow: 0 -4px 20px -2px rgba(0, 0, 0, 0.4), 0 -2px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+
         /* ── Sidebar Styles ── */
         .sidebar-nav-item {
-            @apply flex items-center space-x-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer;
+            @apply flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer;
         }
         .sidebar-nav-item.active {
             @apply bg-blue-600 text-white shadow-md shadow-blue-500/20 font-semibold;
@@ -277,13 +305,22 @@
 
         /* ── Bottom Nav (Checker/Driver mobile) ── */
         .bottom-nav-item {
-            @apply flex flex-col items-center justify-center py-1.5 px-2 text-gray-400 dark:text-gray-500 transition-all duration-200 text-xs font-medium relative;
+            @apply flex flex-col items-center justify-center py-1.5 px-1 sm:px-2 text-gray-400 dark:text-gray-500 transition-all duration-200 text-[11px] font-medium relative flex-1 min-w-0;
         }
         .bottom-nav-item.active {
-            @apply text-blue-600 dark:text-blue-400 scale-105 font-semibold;
+            @apply text-blue-600 dark:text-blue-400 font-semibold;
         }
-        .bottom-nav-item:not(.active):hover {
-            @apply text-gray-600 dark:text-gray-300;
+        .bottom-nav-item:not(.active):hover,
+        .bottom-nav-item:not(.active):active {
+            @apply text-gray-700 dark:text-gray-200;
+        }
+
+        /* ── Sidebar Mobile Responsive Heights ── */
+        #admin-sidebar,
+        aside.sidebar-panel {
+            height: 100vh;
+            height: 100dvh;
+            max-height: 100dvh;
         }
 
         /* ── Sidebar backdrop ── */
@@ -317,7 +354,7 @@
         <div id="sidebar-overlay" class="sidebar-backdrop fixed inset-0 bg-black/50 z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
 
         <!-- Sidebar -->
-        <aside id="admin-sidebar" class="sidebar-panel sidebar-closed lg:translate-x-0 fixed top-0 left-0 h-screen w-72 z-50 lg:z-30 flex flex-col bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 shadow-xl lg:shadow-none no-scrollbar">
+        <aside id="admin-sidebar" class="sidebar-panel sidebar-closed lg:translate-x-0 fixed top-0 left-0 h-[100dvh] max-h-[100dvh] w-72 z-50 lg:z-30 flex flex-col bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 shadow-2xl lg:shadow-none no-scrollbar">
 
             <!-- Logo & Brand -->
             <div class="flex items-center space-x-3 px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
@@ -330,7 +367,7 @@
                     <p class="text-[11px] text-gray-400 dark:text-gray-500 font-medium">Admin Panel</p>
                 </div>
                 <!-- Mobile close button -->
-                <button onclick="toggleSidebar()" class="lg:hidden ml-auto w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400">
+                <button onclick="toggleSidebar()" class="lg:hidden ml-auto w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400" aria-label="Close Sidebar">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
@@ -344,7 +381,7 @@
             </div>
 
             <!-- Navigation -->
-            <nav class="flex-1 px-3 py-1 space-y-0.5 overflow-y-auto no-scrollbar">
+            <nav class="flex-1 px-3 py-1 space-y-0.5 overflow-y-auto overscroll-contain no-scrollbar">
                 <p class="px-3 text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-widest my-1">Main Menu</p>
                 <button onclick="switchTab('dashboard')" id="nav-dashboard" class="sidebar-nav-item active w-full">
                     <i class="fa-solid fa-border-all nav-icon"></i>
@@ -401,14 +438,14 @@
             </nav>
 
             <!-- Sidebar Footer -->
-            <div class="border-t border-gray-100 dark:border-gray-800 px-3 py-3 space-y-1 flex-shrink-0">
+            <div class="border-t border-gray-100 dark:border-gray-800 px-3 py-3 pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] space-y-1.5 flex-shrink-0">
                 <!-- Dark Mode Toggle -->
                 <button id="themeToggle" onclick="toggleTheme(event)" class="sidebar-nav-item w-full">
                     <i id="themeIcon" class="fa-solid fa-moon nav-icon"></i>
                     <span id="themeLabel">Dark Mode</span>
                 </button>
                 <!-- Logout -->
-                <a href="../logout.php" class="flex items-center space-x-3 px-3.5 py-2 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 w-full">
+                <a href="../logout.php" onclick="confirmLogout(event)" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 w-full">
                     <i class="fa-solid fa-right-from-bracket nav-icon"></i>
                     <span>Logout</span>
                 </a>
@@ -416,9 +453,9 @@
         </aside>
 
         <!-- Mobile Top Bar (Admin) -->
-        <div class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <button onclick="toggleSidebar()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-all">
+        <div class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2.5 sm:space-x-3">
+                <button onclick="toggleSidebar()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-all active:scale-95" aria-label="Toggle Navigation">
                     <i class="fa-solid fa-bars text-base" id="hamburger-icon"></i>
                 </button>
                 <div class="flex items-center space-x-2">
@@ -429,13 +466,19 @@
                     <span class="font-bold text-sm text-gray-800 dark:text-gray-200">SSV Trucking</span>
                 </div>
             </div>
-            <button onclick="toggleTheme(event)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all">
-                <i class="themeIconMobile fa-solid fa-moon text-sm"></i>
-            </button>
+            <div class="flex items-center space-x-2">
+                <button onclick="toggleTheme(event)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all active:scale-95" aria-label="Toggle theme">
+                    <i class="themeIconMobile fa-solid fa-moon text-sm"></i>
+                </button>
+                <!-- Quick Mobile Logout Button in Top Bar -->
+                <a href="../logout.php" onclick="confirmLogout(event)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 border border-red-200/60 dark:border-red-800/40 transition-all shadow-sm active:scale-95" title="Logout" aria-label="Logout">
+                    <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                </a>
+            </div>
         </div>
 
         <!-- Admin Main Content Wrapper -->
-        <div id="main-content" class="lg:ml-72 min-h-screen pt-16 lg:pt-0 transition-all duration-300">
+        <div id="main-content" class="lg:ml-72 min-h-screen pt-16 lg:pt-0 pb-12 lg:pb-0 transition-all duration-300">
 
         <?php elseif ($_SESSION['role'] === 'Checker'): ?>
             <!-- ╔══════════════════════════════════════════════════════════╗ -->
@@ -487,7 +530,7 @@
                         <i id="themeIcon" class="fa-solid fa-moon nav-icon"></i>
                         <span id="themeLabel">Dark Mode</span>
                     </button>
-                    <a href="../logout.php" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 w-full">
+                    <a href="../logout.php" onclick="confirmLogout(event)" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 w-full">
                         <i class="fa-solid fa-right-from-bracket w-5 text-center text-base"></i>
                         <span>Logout</span>
                     </a>
@@ -495,7 +538,7 @@
             </aside>
 
             <!-- Mobile Top Bar (Checker) -->
-            <div class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
+            <div class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between">
                 <div class="flex items-center space-x-2.5">
                     <div class="flex-shrink-0">
                         <img src="../assets/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
@@ -506,13 +549,19 @@
                         <span class="text-[10px] bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 px-1.5 py-0.5 rounded-full font-bold uppercase ml-1.5">Checker</span>
                     </div>
                 </div>
-                <button onclick="toggleTheme(event)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all">
-                    <i class="themeIconMobile fa-solid fa-moon text-sm"></i>
-                </button>
+                <div class="flex items-center space-x-2">
+                    <button onclick="toggleTheme(event)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all active:scale-95" aria-label="Toggle theme">
+                        <i class="themeIconMobile fa-solid fa-moon text-sm"></i>
+                    </button>
+                    <!-- Quick Logout Button in Top Bar -->
+                    <a href="../logout.php" onclick="confirmLogout(event)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 border border-red-200/60 dark:border-red-800/40 transition-all shadow-sm active:scale-95" title="Logout" aria-label="Logout">
+                        <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                    </a>
+                </div>
             </div>
 
             <!-- Mobile Bottom Nav (Checker) -->
-            <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-2 py-1.5 safe-bottom">
+            <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-2 pt-2 pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))] safe-bottom mobile-bottom-nav">
                 <a href="dashboard.php" class="bottom-nav-item active">
                     <i class="fa-solid fa-clipboard-check text-lg mb-0.5"></i>
                     <span>Dashboard</span>
@@ -525,14 +574,14 @@
                     <i class="fa-solid fa-key text-lg mb-0.5"></i>
                     <span>Reset Password</span>
                 </button>
-                <a href="../logout.php" class="bottom-nav-item text-red-400 dark:text-red-500">
+                <a href="../logout.php" onclick="confirmLogout(event)" class="bottom-nav-item text-red-500 dark:text-red-400 font-semibold">
                     <i class="fa-solid fa-right-from-bracket text-lg mb-0.5"></i>
                     <span>Logout</span>
                 </a>
             </div>
 
             <!-- Checker Main Content Wrapper -->
-            <div id="main-content" class="lg:ml-64 min-h-screen pt-16 lg:pt-0 pb-20 lg:pb-0 transition-all duration-300">
+            <div id="main-content" class="lg:ml-64 min-h-screen pt-16 lg:pt-0 pb-28 lg:pb-0 transition-all duration-300">
 
             <?php elseif ($_SESSION['role'] === 'Driver'): ?>
                 <!-- ╔══════════════════════════════════════════════════════════╗ -->
@@ -612,7 +661,7 @@
                             <i id="themeIcon" class="fa-solid fa-moon nav-icon"></i>
                             <span id="themeLabel">Dark Mode</span>
                         </button>
-                        <a href="../logout.php" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 w-full">
+                        <a href="../logout.php" onclick="confirmLogout(event)" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 w-full">
                             <i class="fa-solid fa-right-from-bracket w-5 text-center text-base"></i>
                             <span>Logout</span>
                         </a>
@@ -620,59 +669,65 @@
                 </aside>
 
                 <!-- Mobile Top Bar (Driver) -->
-                <div class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
-                    <div class="flex items-center space-x-2.5">
+                <div class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between">
+                    <div class="flex items-center space-x-2.5 min-w-0">
                         <div class="flex-shrink-0">
                             <img src="../assets/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
                             <img src="../assets/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
                         </div>
-                        <div>
-                            <span class="font-bold text-sm text-gray-800 dark:text-gray-200"><?= htmlspecialchars($_SESSION['username'] ?? 'Driver') ?></span>
-                            <span class="text-[10px] bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded-full font-bold uppercase ml-1.5">Driver</span>
+                        <div class="min-w-0">
+                            <span class="font-bold text-sm text-gray-800 dark:text-gray-200 truncate block max-w-[130px] sm:max-w-none"><?= htmlspecialchars($_SESSION['username'] ?? 'Driver') ?></span>
+                            <span class="text-[10px] bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded-full font-bold uppercase inline-block">Driver</span>
                         </div>
                     </div>
-                    <button onclick="toggleTheme(event)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all">
-                        <i class="themeIconMobile fa-solid fa-moon text-sm"></i>
-                    </button>
+                    <div class="flex items-center space-x-2 flex-shrink-0">
+                        <button onclick="toggleTheme(event)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all active:scale-95" aria-label="Toggle theme">
+                            <i class="themeIconMobile fa-solid fa-moon text-sm"></i>
+                        </button>
+                        <!-- Quick Logout Button in Top Bar -->
+                        <a href="../logout.php" onclick="confirmLogout(event)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 border border-red-200/60 dark:border-red-800/40 transition-all shadow-sm active:scale-95" title="Logout" aria-label="Logout">
+                            <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Mobile Bottom Nav (Driver) -->
-                <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-2 py-1.5">
+                <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-1.5 pt-2 pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))] safe-bottom mobile-bottom-nav">
                     <a href="dashboard.php" class="bottom-nav-item active">
-                        <i class="fa-solid fa-house text-lg mb-0.5"></i>
+                        <i class="fa-solid fa-house text-base sm:text-lg mb-0.5"></i>
                         <span>Home</span>
                     </a>
                     <button onclick="scrollToLiveTripRoute()" class="bottom-nav-item text-blue-500">
-                        <i class="fa-solid fa-map-location-dot text-lg mb-0.5"></i>
+                        <i class="fa-solid fa-map-location-dot text-base sm:text-lg mb-0.5"></i>
                         <span>Route</span>
                     </button>
                     <button onclick="typeof openCashAdvanceModal === 'function' && openCashAdvanceModal()" class="bottom-nav-item text-amber-500">
-                        <i class="fa-solid fa-hand-holding-dollar text-lg mb-0.5"></i>
+                        <i class="fa-solid fa-hand-holding-dollar text-base sm:text-lg mb-0.5"></i>
                         <span>Cash Adv.</span>
                     </button>
                     <?php if ($has_pending_cancellation ?? false): ?>
                         <button class="bottom-nav-item opacity-50 cursor-not-allowed" disabled>
-                            <i class="fa-solid fa-spinner fa-spin text-lg mb-0.5"></i>
-                            <span>Pending...</span>
+                            <i class="fa-solid fa-spinner fa-spin text-base sm:text-lg mb-0.5"></i>
+                            <span>Pending</span>
                         </button>
                     <?php else: ?>
                         <button onclick="openCancelTripModal()" class="bottom-nav-item text-orange-500">
-                            <i class="fa-solid fa-ban text-lg mb-0.5"></i>
-                            <span>Cancel Trip</span>
+                            <i class="fa-solid fa-ban text-base sm:text-lg mb-0.5"></i>
+                            <span>Cancel</span>
                         </button>
                     <?php endif; ?>
                     <button onclick="openResetPasswordModal()" class="bottom-nav-item">
-                        <i class="fa-solid fa-key text-lg mb-0.5"></i>
-                        <span>Reset Pwd</span>
+                        <i class="fa-solid fa-key text-base sm:text-lg mb-0.5"></i>
+                        <span>Reset</span>
                     </button>
-                    <a href="../logout.php" class="bottom-nav-item text-red-400 dark:text-red-500">
-                        <i class="fa-solid fa-right-from-bracket text-lg mb-0.5"></i>
+                    <a href="../logout.php" onclick="confirmLogout(event)" class="bottom-nav-item text-red-500 dark:text-red-400 font-semibold">
+                        <i class="fa-solid fa-right-from-bracket text-base sm:text-lg mb-0.5"></i>
                         <span>Logout</span>
                     </a>
                 </div>
 
                 <!-- Driver Main Content Wrapper -->
-                <div id="main-content" class="lg:ml-64 min-h-screen pt-16 lg:pt-0 pb-20 lg:pb-0 transition-all duration-300">
+                <div id="main-content" class="lg:ml-64 min-h-screen pt-16 lg:pt-0 pb-28 lg:pb-0 transition-all duration-300">
 
                 <?php endif; ?>
 
@@ -775,7 +830,58 @@
                             }
                         }
                     }
+
+                    // ── Global Logout Confirmation Dialog ──
+                    function confirmLogout(event) {
+                        if (event) event.preventDefault();
+                        const modal = document.getElementById('logoutConfirmModal');
+                        const box = document.getElementById('logoutConfirmModalBox');
+                        if (!modal) {
+                            window.location.href = '../logout.php';
+                            return;
+                        }
+                        modal.classList.remove('hidden');
+                        requestAnimationFrame(() => {
+                            if (box) {
+                                box.classList.remove('scale-95', 'opacity-0');
+                                box.classList.add('scale-100', 'opacity-100');
+                            }
+                        });
+                    }
+
+                    function closeLogoutModal() {
+                        const modal = document.getElementById('logoutConfirmModal');
+                        const box = document.getElementById('logoutConfirmModalBox');
+                        if (!modal) return;
+                        if (box) {
+                            box.classList.remove('scale-100', 'opacity-100');
+                            box.classList.add('scale-95', 'opacity-0');
+                        }
+                        setTimeout(() => modal.classList.add('hidden'), 150);
+                    }
                 </script>
+
+                <!-- Global Logout Confirmation Modal -->
+                <div id="logoutConfirmModal" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4 transition-opacity duration-200" onclick="if(event.target === this) closeLogoutModal();">
+                    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 transform scale-95 opacity-0 transition-all duration-200 text-center" id="logoutConfirmModalBox">
+                        <div class="w-14 h-14 bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Sign Out Confirmation</h3>
+                        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">
+                            Are you sure you want to end your current session and sign out?
+                        </p>
+                        <div class="flex items-center space-x-3 mt-6">
+                            <button type="button" onclick="closeLogoutModal()" class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 font-semibold text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition active:scale-95">
+                                Cancel
+                            </button>
+                            <a href="../logout.php" class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-xs sm:text-sm shadow-md shadow-red-500/25 transition active:scale-95 flex items-center justify-center space-x-1.5">
+                                <i class="fa-solid fa-check text-xs"></i>
+                                <span>Sign Out</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- ===== GLOBAL TOAST NOTIFICATION SYSTEM ===== -->
                 <style>
