@@ -74,7 +74,7 @@
                     <i class="fa-regular fa-circle-check"></i>
                 </div>
             </div>
-            <i class="fa-solid fa-box-check absolute -right-6 -bottom-6 text-8xl text-white/5 pointer-events-none group-hover:scale-110 transition-transform"></i>
+            <i class="fa-solid fa-circle-check absolute -right-6 -bottom-6 text-8xl text-white/5 pointer-events-none group-hover:scale-110 transition-transform"></i>
         </div>
     </div>
 

@@ -408,7 +408,7 @@
                     <span>Fleet</span>
                 </button>
                 <button onclick="switchTab('drivers')" id="nav-drivers" class="sidebar-nav-item w-full">
-                    <i class="fa-regular fa-user nav-icon"></i>
+                    <i class="fa-solid fa-users nav-icon"></i>
                     <span>Drivers</span>
                 </button>
                 <button onclick="switchTab('cash_advances')" id="nav-cash_advances" class="sidebar-nav-item w-full">
@@ -438,7 +438,7 @@
                     <?php endif; ?>
                 </button>
                 <button onclick="switchTab('settings')" id="nav-settings" class="sidebar-nav-item w-full">
-                    <i class="fa-solid fa-map-location-dot nav-icon"></i>
+                    <i class="fa-solid fa-sliders nav-icon"></i>
                     <span>Settings</span>
                 </button>
             </nav>

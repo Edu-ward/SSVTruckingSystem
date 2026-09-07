@@ -29,14 +29,19 @@
 
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div class="flex items-center space-x-2 text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-200">
-                <i class="fa-regular fa-file-lines text-blue-500"></i>
-                <span>Dispatch Tickets</span>
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-lg shadow-sm flex-shrink-0">
+                    <i class="fa-solid fa-file-lines"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">Dispatch Tickets</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Track real-time trips, billings, gravel cargo, and status</p>
+                </div>
             </div>
             <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                 <!-- Dispatch Live Search Bar -->
                 <div class="relative flex-1 sm:w-72">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
                     <input type="text" id="dispatchSearchInput" placeholder="Search tickets, trucks, drivers, clients, destinations..." oninput="filterDispatches()" class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                     <button type="button" id="dispatchSearchClear" onclick="clearDispatchSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs">
                         <i class="fa-solid fa-xmark"></i>

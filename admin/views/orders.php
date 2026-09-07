@@ -13,55 +13,98 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
 
     <!-- Header bar -->
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div class="flex items-center space-x-2 text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-200">
-            <i class="fa-solid fa-clipboard-list text-blue-600 dark:text-blue-400"></i>
-            <span>Orders Management</span>
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-lg shadow-sm flex-shrink-0">
+                <i class="fa-solid fa-clipboard-list"></i>
+            </div>
+            <div>
+                <h2 class="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">Orders Management</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Track and manage client orders, assignments, and dispatch status</p>
+            </div>
         </div>
         <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <!-- Order Live Search Bar -->
-            <div class="relative flex-1 sm:w-72">
-                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+            <div class="relative w-full sm:w-72">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
                 <input type="text" id="orderSearchInput" placeholder="Search order #, client, phone, destination, checker..." oninput="filterOrders()" class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                 <button type="button" id="orderSearchClear" onclick="clearOrderSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
-            <button onclick="toggleModal('addCheckerModal', true)" class="btn-secondary text-sm flex-1 sm:flex-none">
-                <i class="fa-solid fa-user-shield"></i><span>Add Checker</span>
-            </button>
-            <button onclick="toggleModal('addOrderModal', true)" class="btn-primary text-sm flex-1 sm:flex-none">
-                <i class="fa-solid fa-plus"></i><span>Place Order</span>
-            </button>
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <button onclick="toggleModal('addCheckerModal', true)" class="btn-secondary text-xs sm:text-sm flex-1 sm:flex-none">
+                    <i class="fa-solid fa-user-shield"></i><span>Add Checker</span>
+                </button>
+                <button onclick="toggleModal('addOrderModal', true)" class="btn-primary text-xs sm:text-sm flex-1 sm:flex-none">
+                    <i class="fa-solid fa-plus"></i><span>Place Order</span>
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Stats row -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <?php
         $totalOrders  = count($allOrders ?? []);
         $pendingOrders    = count(array_filter($allOrders ?? [], fn($o) => $o['status'] === 'Pending'));
         $inProgressOrders = count(array_filter($allOrders ?? [], fn($o) => $o['status'] === 'In Progress'));
         $fulfilledOrders  = count(array_filter($allOrders ?? [], fn($o) => $o['status'] === 'Fulfilled'));
         ?>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-5 flex flex-col items-center justify-center">
-            <i class="fa-solid fa-clipboard-list text-blue-500 text-2xl mb-2"></i>
-            <div class="text-2xl font-bold text-gray-800 dark:text-gray-200"><?= $totalOrders ?></div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total Orders</div>
+        <!-- Total Orders -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 border border-blue-200/70 dark:border-blue-900/40 shadow-sm relative overflow-hidden">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-[11px] sm:text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Total Orders</span>
+                    <div class="text-2xl font-black text-gray-900 dark:text-gray-100 mt-1"><?= $totalOrders ?></div>
+                    <span class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 inline-block">All orders</span>
+                </div>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-base sm:text-lg flex-shrink-0">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                </div>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-5 flex flex-col items-center justify-center">
-            <i class="fa-solid fa-hourglass-half text-yellow-500 text-2xl mb-2"></i>
-            <div class="text-2xl font-bold text-gray-800 dark:text-gray-200"><?= $pendingOrders ?></div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Pending</div>
+        <!-- Pending -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 border border-amber-200/70 dark:border-amber-900/40 shadow-sm relative overflow-hidden">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-[11px] sm:text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Pending</span>
+                    <div class="text-2xl font-black text-gray-900 dark:text-gray-100 mt-1"><?= $pendingOrders ?></div>
+                    <span class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 inline-block">Awaiting dispatch</span>
+                </div>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center text-base sm:text-lg flex-shrink-0">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                </div>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-5 flex flex-col items-center justify-center">
-            <i class="fa-solid fa-truck-fast text-blue-500 text-2xl mb-2"></i>
-            <div class="text-2xl font-bold text-gray-800 dark:text-gray-200"><?= $inProgressOrders ?></div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">In Progress</div>
+        <!-- In Progress -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 border border-indigo-200/70 dark:border-indigo-900/40 shadow-sm relative overflow-hidden">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-[11px] sm:text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">In Progress</span>
+                    <div class="text-2xl font-black text-gray-900 dark:text-gray-100 mt-1"><?= $inProgressOrders ?></div>
+                    <span class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 inline-block">On the road</span>
+                </div>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-base sm:text-lg flex-shrink-0">
+                    <i class="fa-solid fa-truck-fast"></i>
+                </div>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-400 to-purple-500"></div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-5 flex flex-col items-center justify-center">
-            <i class="fa-solid fa-circle-check text-green-500 text-2xl mb-2"></i>
-            <div class="text-2xl font-bold text-gray-800 dark:text-gray-200"><?= $fulfilledOrders ?></div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Fulfilled</div>
+        <!-- Fulfilled -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 border border-emerald-200/70 dark:border-emerald-900/40 shadow-sm relative overflow-hidden">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-[11px] sm:text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Fulfilled</span>
+                    <div class="text-2xl font-black text-gray-900 dark:text-gray-100 mt-1"><?= $fulfilledOrders ?></div>
+                    <span class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 inline-block">Delivered</span>
+                </div>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-base sm:text-lg flex-shrink-0">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
         </div>
     </div>
 

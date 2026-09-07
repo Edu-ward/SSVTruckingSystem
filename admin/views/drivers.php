@@ -13,7 +13,7 @@
         <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
             <!-- Driver Live Search Bar -->
             <div class="relative flex-1 sm:w-72">
-                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
                 <input type="text" id="driverSearchInput" placeholder="Search drivers, CDL, trucks, phone..." oninput="filterDriverCards()" class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                 <button type="button" id="driverSearchClear" onclick="clearDriverSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs">
                     <i class="fa-solid fa-xmark"></i>
@@ -26,21 +26,45 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 flex flex-col items-center justify-center">
-            <i class="fa-solid fa-users text-blue-500 text-2xl mb-2"></i>
-            <div class="text-2xl font-bold text-gray-800 dark:text-gray-200"><?= $driverStats['total_drivers'] ?? 0; ?></div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 uppercase font-semibold tracking-wider">Total Drivers</div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 border border-blue-200/70 dark:border-blue-900/40 shadow-sm relative overflow-hidden">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Total Drivers</span>
+                    <div class="text-2xl font-black text-gray-900 dark:text-gray-100 mt-1"><?= $driverStats['total_drivers'] ?? 0; ?></div>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 inline-block">Registered personnel</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-lg flex-shrink-0">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 flex flex-col items-center justify-center">
-            <i class="fa-solid fa-circle-check text-green-500 text-2xl mb-2"></i>
-            <div class="text-2xl font-bold text-gray-800 dark:text-gray-200"><?= $driverStats['on_duty'] ?? 0; ?></div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 uppercase font-semibold tracking-wider">On Duty</div>
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 border border-emerald-200/70 dark:border-emerald-900/40 shadow-sm relative overflow-hidden">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">On Duty</span>
+                    <div class="text-2xl font-black text-gray-900 dark:text-gray-100 mt-1"><?= $driverStats['on_duty'] ?? 0; ?></div>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 inline-block">Active & available</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg flex-shrink-0">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-6 flex flex-col items-center justify-center">
-            <i class="fa-solid fa-star text-yellow-500 text-2xl mb-2"></i>
-            <div class="text-2xl font-bold text-gray-800 dark:text-gray-200"><?= number_format($driverStats['avg_rating'] ?? 5.0, 1); ?></div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 uppercase font-semibold tracking-wider">Avg Rating</div>
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 border border-amber-200/70 dark:border-amber-900/40 shadow-sm relative overflow-hidden">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Avg Rating</span>
+                    <div class="text-2xl font-black text-gray-900 dark:text-gray-100 mt-1"><?= number_format($driverStats['avg_rating'] ?? 5.0, 1); ?></div>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 inline-block">Performance score</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center text-lg flex-shrink-0">
+                    <i class="fa-solid fa-star"></i>
+                </div>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-yellow-500"></div>
         </div>
     </div>
 

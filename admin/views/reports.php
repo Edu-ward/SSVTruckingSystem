@@ -53,7 +53,7 @@
                 </div>
 
                 <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center justify-center space-x-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto">
-                    <i class="fa-solid fa-file-export"></i>
+                    <i class="fa-solid fa-file-csv"></i>
                     <span>Export CSV</span>
                 </button>
             </form>
@@ -84,12 +84,17 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5 lg:gap-6 mb-6">
         <?php foreach ($reportKpis as $kpi): ?>
             <div class="<?= $kpi['color_class']; ?> rounded-2xl p-4 sm:p-5 lg:p-6 text-white relative overflow-hidden shadow-md transition-transform hover:-translate-y-0.5">
-                <div class="relative z-10 min-w-0">
-                    <div class="text-xs sm:text-sm text-white/80 font-medium mb-1 truncate"><?= htmlspecialchars($kpi['title']); ?></div>
-                    <div class="text-2xl sm:text-3xl lg:text-3xl xl:text-4xl font-black mb-1 tracking-tight truncate leading-tight"><?= htmlspecialchars($kpi['value']); ?></div>
-                    <div class="text-[11px] sm:text-xs text-white/90 font-medium truncate"><?= htmlspecialchars($kpi['subtext']); ?></div>
+                <div class="flex items-start justify-between relative z-10">
+                    <div class="min-w-0 pr-2">
+                        <div class="text-xs sm:text-sm text-white/80 font-medium mb-1 truncate"><?= htmlspecialchars($kpi['title']); ?></div>
+                        <div class="text-2xl sm:text-3xl lg:text-3xl xl:text-4xl font-black mb-1 tracking-tight truncate leading-tight"><?= htmlspecialchars($kpi['value']); ?></div>
+                        <div class="text-[11px] sm:text-xs text-white/90 font-medium truncate"><?= htmlspecialchars($kpi['subtext']); ?></div>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white text-lg flex-shrink-0 shadow-inner">
+                        <i class="fa-solid <?= $kpi['icon_class']; ?>"></i>
+                    </div>
                 </div>
-                <i class="fa-solid <?= $kpi['icon_class']; ?> absolute right-2.5 sm:right-4 -bottom-1 sm:bottom-2 text-5xl sm:text-6xl text-white opacity-20 pointer-events-none"></i>
+                <i class="fa-solid <?= $kpi['icon_class']; ?> absolute -right-2 -bottom-2 text-6xl text-white/10 pointer-events-none"></i>
             </div>
         <?php endforeach; ?>
     </div>
