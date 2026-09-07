@@ -69,23 +69,71 @@
                 <input type="file" name="profile_photo" id="profilePhotoInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden">
             </form>
 
-            <!-- Preview + Confirm bar (hidden by default) -->
-            <div id="photoUploadConfirmBar" class="hidden border-t border-gray-100 dark:border-gray-700 px-5 py-3 flex items-center gap-3 bg-blue-50 dark:bg-blue-950/30">
-                <img id="photoPreviewImg" src="" alt="Preview" class="w-10 h-10 rounded-xl object-cover border border-blue-200 dark:border-blue-800 shadow">
-                <div class="flex-1 min-w-0">
-                    <p id="photoPreviewName" class="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate"></p>
-                    <p class="text-[10px] text-gray-400 dark:text-gray-500">Ready to upload</p>
+            <!-- Photo Crop Modal -->
+            <div id="photoCropModal" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm hidden p-3 sm:p-4">
+                <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[85vh]">
+                    <!-- Modal Header -->
+                    <div class="px-5 py-3.5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between flex-shrink-0">
+                        <div class="flex items-center space-x-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm">
+                                <i class="fa-solid fa-crop-simple"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-sm sm:text-base font-bold text-gray-900 dark:text-white leading-tight">Crop Profile Photo</h3>
+                                <p class="text-[11px] text-gray-400 dark:text-gray-500">Position & frame your avatar (1:1 square)</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="closePhotoCropModal()" class="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center transition active:scale-95" aria-label="Close">
+                            <i class="fa-solid fa-xmark text-sm"></i>
+                        </button>
+                    </div>
+
+                    <!-- Cropper Viewport Container -->
+                    <div class="relative bg-gray-950 p-2 sm:p-3 flex items-center justify-center overflow-hidden h-[300px] sm:h-[350px]">
+                        <img id="photoCropImage" src="" alt="Crop image" class="max-w-full max-h-full block">
+                    </div>
+
+                    <!-- Cropper Control Tools -->
+                    <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between flex-shrink-0 text-xs">
+                        <div class="flex items-center space-x-1 sm:space-x-1.5">
+                            <button type="button" onclick="cropperZoom(0.1)" title="Zoom In" class="p-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition flex items-center gap-1 font-semibold active:scale-95">
+                                <i class="fa-solid fa-magnifying-glass-plus"></i>
+                                <span class="hidden sm:inline text-[11px]">Zoom In</span>
+                            </button>
+                            <button type="button" onclick="cropperZoom(-0.1)" title="Zoom Out" class="p-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition flex items-center gap-1 font-semibold active:scale-95">
+                                <i class="fa-solid fa-magnifying-glass-minus"></i>
+                                <span class="hidden sm:inline text-[11px]">Zoom Out</span>
+                            </button>
+                            <button type="button" onclick="cropperRotate(-90)" title="Rotate Left" class="p-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition flex items-center gap-1 font-semibold active:scale-95">
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </button>
+                            <button type="button" onclick="cropperRotate(90)" title="Rotate Right" class="p-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition flex items-center gap-1 font-semibold active:scale-95">
+                                <i class="fa-solid fa-rotate-right"></i>
+                            </button>
+                        </div>
+                        <button type="button" onclick="cropperReset()" class="px-2 py-1.5 rounded-lg text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition font-medium flex items-center gap-1 text-[11px]">
+                            <i class="fa-solid fa-arrow-rotate-left"></i>
+                            <span>Reset</span>
+                        </button>
+                    </div>
+
+                    <!-- Modal Actions -->
+                    <div class="px-5 py-3.5 border-t border-gray-100 dark:border-gray-800 flex items-center justify-end space-x-3 bg-white dark:bg-gray-900 flex-shrink-0">
+                        <button type="button" onclick="closePhotoCropModal()" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                            Cancel
+                        </button>
+                        <button type="button" id="btnSaveCroppedPhoto" onclick="saveCroppedPhoto()" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-500/30 transition active:scale-95 flex items-center space-x-2">
+                            <span id="btnSaveCroppedText">Save & Upload</span>
+                            <i id="btnSaveCroppedSpinner" class="fa-solid fa-spinner fa-spin hidden text-xs"></i>
+                        </button>
+                    </div>
                 </div>
-                <button type="button" onclick="submitPhotoUpload()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-sm">
-                    <i class="fa-solid fa-check mr-1"></i>Save
-                </button>
-                <button type="button" onclick="cancelPhotoUpload()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-all">
-                    <i class="fa-solid fa-xmark mr-1"></i>Cancel
-                </button>
             </div>
         </div>
 
         <script>
+        let cropperInstance = null;
+
         document.getElementById('profilePhotoInput').addEventListener('change', function () {
             const file = this.files[0];
             if (!file) return;
@@ -97,29 +145,139 @@
                 this.value = '';
                 return;
             }
-            if (file.size > 2 * 1024 * 1024) {
-                if (typeof showToast === 'function') showToast('File size must be under 2MB.', 'error');
-                else alert('File size must be under 2MB.');
+
+            if (file.size > 10 * 1024 * 1024) {
+                if (typeof showToast === 'function') showToast('Selected image must be under 10MB.', 'error');
+                else alert('Selected image must be under 10MB.');
                 this.value = '';
                 return;
             }
 
             const reader = new FileReader();
             reader.onload = function (e) {
-                document.getElementById('photoPreviewImg').src = e.target.result;
-                document.getElementById('photoPreviewName').textContent = file.name;
-                document.getElementById('photoUploadConfirmBar').classList.remove('hidden');
+                openPhotoCropModal(e.target.result);
             };
             reader.readAsDataURL(file);
         });
 
-        function submitPhotoUpload() {
-            document.getElementById('profilePhotoForm').submit();
+        function openPhotoCropModal(imageSrc) {
+            const modal = document.getElementById('photoCropModal');
+            const img = document.getElementById('photoCropImage');
+            if (!modal || !img) return;
+
+            img.src = imageSrc;
+            modal.classList.remove('hidden');
+
+            if (cropperInstance) {
+                cropperInstance.destroy();
+                cropperInstance = null;
+            }
+
+            // Small delay for DOM layout render
+            setTimeout(() => {
+                if (typeof Cropper !== 'undefined') {
+                    cropperInstance = new Cropper(img, {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        dragMode: 'move',
+                        autoCropArea: 0.9,
+                        responsive: true,
+                        restore: false,
+                        guides: true,
+                        center: true,
+                        highlight: false,
+                        cropBoxMovable: true,
+                        cropBoxResizable: true,
+                        toggleDragModeOnDblclick: false,
+                    });
+                }
+            }, 100);
         }
 
-        function cancelPhotoUpload() {
+        function closePhotoCropModal() {
+            const modal = document.getElementById('photoCropModal');
+            if (modal) modal.classList.add('hidden');
+            if (cropperInstance) {
+                cropperInstance.destroy();
+                cropperInstance = null;
+            }
             document.getElementById('profilePhotoInput').value = '';
-            document.getElementById('photoUploadConfirmBar').classList.add('hidden');
+        }
+
+        function cropperZoom(val) {
+            if (cropperInstance) cropperInstance.zoom(val);
+        }
+
+        function cropperRotate(deg) {
+            if (cropperInstance) cropperInstance.rotate(deg);
+        }
+
+        function cropperReset() {
+            if (cropperInstance) cropperInstance.reset();
+        }
+
+        function saveCroppedPhoto() {
+            const form = document.getElementById('profilePhotoForm');
+            if (!cropperInstance) {
+                form.submit();
+                return;
+            }
+
+            const btn = document.getElementById('btnSaveCroppedPhoto');
+            const btnText = document.getElementById('btnSaveCroppedText');
+            const btnSpinner = document.getElementById('btnSaveCroppedSpinner');
+
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-80', 'cursor-not-allowed');
+            }
+            if (btnText) btnText.textContent = 'Uploading...';
+            if (btnSpinner) btnSpinner.classList.remove('hidden');
+
+            const canvas = cropperInstance.getCroppedCanvas({
+                width: 500,
+                height: 500,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high'
+            });
+
+            if (!canvas) {
+                form.submit();
+                return;
+            }
+
+            canvas.toBlob(function (blob) {
+                if (!blob) {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-80', 'cursor-not-allowed');
+                    }
+                    if (btnText) btnText.textContent = 'Save & Upload';
+                    if (btnSpinner) btnSpinner.classList.add('hidden');
+                    return;
+                }
+
+                try {
+                    const croppedFile = new File([blob], 'profile_cropped.jpg', { type: 'image/jpeg' });
+                    const dt = new DataTransfer();
+                    dt.items.add(croppedFile);
+                    document.getElementById('profilePhotoInput').files = dt.files;
+                    form.submit();
+                } catch (err) {
+                    const formData = new FormData();
+                    formData.append('csrf_token', form.querySelector('[name="csrf_token"]').value);
+                    formData.append('profile_photo', blob, 'profile_cropped.jpg');
+
+                    fetch('upload_profile_photo.php', {
+                        method: 'POST',
+                        body: formData
+                    }).then(() => {
+                        window.location.reload();
+                    }).catch(() => {
+                        window.location.reload();
+                    });
+                }
+            }, 'image/jpeg', 0.92);
         }
         </script>
 

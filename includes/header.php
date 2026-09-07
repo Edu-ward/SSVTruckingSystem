@@ -45,6 +45,10 @@
     <?php if (($_SESSION['role'] ?? '') === 'Admin'): ?>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <?php endif; ?>
+    <?php if (($_SESSION['role'] ?? '') === 'Driver'): ?>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <?php endif; ?>
     <script src="../api/nominatim.js?v=<?= file_exists(__DIR__ . '/../api/nominatim.js') ? filemtime(__DIR__ . '/../api/nominatim.js') : time() ?>"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style type="text/tailwindcss">
@@ -357,18 +361,20 @@
         <aside id="admin-sidebar" class="sidebar-panel sidebar-closed lg:translate-x-0 fixed top-0 left-0 h-[100dvh] max-h-[100dvh] w-72 z-50 lg:z-30 flex flex-col bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 shadow-2xl lg:shadow-none no-scrollbar">
 
             <!-- Logo & Brand -->
-            <div class="flex items-center space-x-3 px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
-                <div class="flex-shrink-0">
-                    <img src="../assets/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
-                    <img src="../assets/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
+                <div class="flex items-center space-x-3 min-w-0">
+                    <div class="flex-shrink-0">
+                        <img src="../assets/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
+                        <img src="../assets/ssvLogoLight.png" alt="SSV Logo" class="h-7 hidden dark:block">
+                    </div>
+                    <div class="min-w-0">
+                        <h1 class="text-sm font-bold text-gray-900 dark:text-white truncate">SSV Trucking</h1>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 font-medium">Admin Panel</p>
+                    </div>
                 </div>
-                <div class="min-w-0">
-                    <h1 class="text-sm font-bold text-gray-900 dark:text-white truncate">SSV Trucking</h1>
-                    <p class="text-[11px] text-gray-400 dark:text-gray-500 font-medium">Admin Panel</p>
-                </div>
-                <!-- Mobile close button -->
-                <button onclick="toggleSidebar()" class="lg:hidden ml-auto w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400" aria-label="Close Sidebar">
-                    <i class="fa-solid fa-xmark"></i>
+                <!-- Mobile close button (Rightmost side) -->
+                <button onclick="toggleSidebar()" class="lg:hidden w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-all flex-shrink-0 active:scale-95 ml-3" aria-label="Close Sidebar">
+                    <i class="fa-solid fa-xmark text-sm"></i>
                 </button>
             </div>
 
@@ -467,9 +473,6 @@
                 </div>
             </div>
             <div class="flex items-center space-x-2">
-                <button onclick="toggleTheme(event)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all active:scale-95" aria-label="Toggle theme">
-                    <i class="themeIconMobile fa-solid fa-moon text-sm"></i>
-                </button>
                 <!-- Quick Mobile Logout Button in Top Bar -->
                 <a href="../logout.php" onclick="confirmLogout(event)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 border border-red-200/60 dark:border-red-800/40 transition-all shadow-sm active:scale-95" title="Logout" aria-label="Logout">
                     <i class="fa-solid fa-right-from-bracket text-sm"></i>

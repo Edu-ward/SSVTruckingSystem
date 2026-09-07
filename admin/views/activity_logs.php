@@ -82,7 +82,7 @@
     <!-- Logs Table -->
     <div class="bg-white dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-sm" id="activityLogsTable">
+            <table class="w-full min-w-[700px] text-sm" id="activityLogsTable">
                 <thead>
                     <tr class="bg-gray-50 dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-700/50">
                         <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Timestamp</th>

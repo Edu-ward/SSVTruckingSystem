@@ -28,7 +28,7 @@ if (!isset($_FILES['profile_photo']) || $_FILES['profile_photo']['error'] !== UP
 
 $file = $_FILES['profile_photo'];
 $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-$max_size = 2 * 1024 * 1024;
+$max_size = 5 * 1024 * 1024;
 
 $finfo = new finfo(FILEINFO_MIME_TYPE);
 $mime = $finfo->file($file['tmp_name']);

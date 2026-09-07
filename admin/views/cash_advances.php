@@ -270,7 +270,7 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
             </div>
         <?php else: ?>
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-xs">
+                <table class="w-full min-w-[700px] text-left border-collapse text-xs">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-gray-900/60 border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 uppercase font-semibold text-[10px] tracking-wider">
                             <th class="py-3.5 px-4">Ticket # / ID</th>

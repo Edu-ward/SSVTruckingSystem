@@ -78,7 +78,7 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
             </div>
         <?php else: ?>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="w-full min-w-[760px] text-sm">
                 <thead class="bg-gray-50 dark:bg-gray-700 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     <tr>
                         <th class="px-6 py-3 text-left whitespace-nowrap">Order #</th>

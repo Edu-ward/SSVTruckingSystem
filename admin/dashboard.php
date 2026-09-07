@@ -1444,8 +1444,8 @@ try {
         : '-';
 
     $reportKpis = [
-        ['title' => 'Driver Payroll', 'value' => $payrollKpiVal, 'subtext' => number_format($salariesChange, 1) . '% vs ' . date('M', $lastMonthTimestamp), 'color_class' => 'bg-blue-500', 'icon_class' => 'fa-wallet'],
-        ['title' => 'Volume Delivered', 'value' => number_format($currMonthCm, 2) . ' cu.m', 'subtext' => number_format($cmChange, 1) . '% vs ' . date('M', $lastMonthTimestamp), 'color_class' => 'bg-green-500', 'icon_class' => 'fa-cube'],
+        ['title' => 'Driver Payroll', 'value' => $payrollKpiVal, 'subtext' => ($salariesChange >= 0 ? '+' : '') . number_format($salariesChange, 1) . '% vs ' . date('M', $lastMonthTimestamp), 'color_class' => 'bg-blue-500', 'icon_class' => 'fa-wallet'],
+        ['title' => 'Volume Delivered', 'value' => number_format($currMonthCm, 2) . ' cu.m', 'subtext' => ($cmChange >= 0 ? '+' : '') . number_format($cmChange, 1) . '% vs ' . date('M', $lastMonthTimestamp), 'color_class' => 'bg-green-500', 'icon_class' => 'fa-cube'],
         ['title' => 'Deliveries', 'value' => number_format($currDeliveries), 'subtext' => $subtextPeriod, 'color_class' => 'bg-orange-500', 'icon_class' => 'fa-truck-fast'],
         ['title' => 'On-Time Rate', 'value' => $onTimeValueStr, 'subtext' => $onTimeSubtext, 'color_class' => 'bg-purple-500', 'icon_class' => 'fa-calendar']
     ];
