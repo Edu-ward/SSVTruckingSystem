@@ -229,9 +229,9 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
 
     <!-- ALL CASH ADVANCES / HISTORY SECTION -->
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-50/50 dark:bg-gray-900/30">
+        <div class="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-gray-50/50 dark:bg-gray-900/30">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400 text-lg">
+                <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400 text-lg flex-shrink-0">
                     <i class="fa-solid fa-list-check"></i>
                 </div>
                 <div>
@@ -241,18 +241,18 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
             </div>
 
             <!-- Filter Controls -->
-            <div class="flex flex-wrap items-center gap-2">
-                <div class="relative">
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <div class="relative w-full sm:w-auto">
                     <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
-                    <input type="text" id="caTableSearchInput" oninput="syncCaSearch(this.value, 'table')" placeholder="Filter table records..." class="pl-8 pr-3 py-1.5 rounded-xl text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-44 sm:w-52 text-gray-800 dark:text-gray-200">
+                    <input type="text" id="caTableSearchInput" oninput="syncCaSearch(this.value, 'table')" placeholder="Filter records..." class="pl-8 pr-3 py-2 sm:py-1.5 rounded-xl text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-52 text-gray-800 dark:text-gray-200">
                 </div>
-                <select id="caStatusFilter" onchange="filterCashAdvances()" class="px-3 py-1.5 rounded-xl text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-300">
+                <select id="caStatusFilter" onchange="filterCashAdvances()" class="px-3 py-2 sm:py-1.5 rounded-xl text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-300 flex-1 sm:flex-initial">
                     <option value="">All Statuses</option>
                     <option value="Pending">Pending</option>
                     <option value="Approved">Approved</option>
                     <option value="Rejected">Rejected</option>
                 </select>
-                <select id="caSettledFilter" onchange="filterCashAdvances()" class="px-3 py-1.5 rounded-xl text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-300">
+                <select id="caSettledFilter" onchange="filterCashAdvances()" class="px-3 py-2 sm:py-1.5 rounded-xl text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-300 flex-1 sm:flex-initial">
                     <option value="">All Deductions</option>
                     <option value="unsettled">Active / Unsettled</option>
                     <option value="settled">Settled in Payroll</option>
@@ -269,109 +269,96 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">There are no cash advance records in the database.</p>
             </div>
         <?php else: ?>
-            <div class="overflow-x-auto">
-                <table class="w-full min-w-[700px] text-left border-collapse text-xs">
-                    <thead>
-                        <tr class="bg-gray-50 dark:bg-gray-900/60 border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 uppercase font-semibold text-[10px] tracking-wider">
-                            <th class="py-3.5 px-4">Ticket # / ID</th>
-                            <th class="py-3.5 px-4">Driver</th>
-                            <th class="py-3.5 px-4">Amount</th>
-                            <th class="py-3.5 px-4">Reason</th>
-                            <th class="py-3.5 px-4">Requested</th>
-                            <th class="py-3.5 px-4">Status</th>
-                            <th class="py-3.5 px-4">Payroll Deduction</th>
-                            <th class="py-3.5 px-4 text-right">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60 text-gray-700 dark:text-gray-300">
-                        <?php foreach ($allCashAdvances as $ca):
-                            $ticketNum = 'CA-' . date('Y', strtotime($ca['requested_at'] ?? 'now')) . '-' . str_pad($ca['driver_id'], 3, '0', STR_PAD_LEFT) . '-' . str_pad($ca['id'], 4, '0', STR_PAD_LEFT);
-                            $isSettled = !empty($ca['is_settled']);
-                        ?>
-                            <tr class="ca-row hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors"
-                                data-driver="<?= htmlspecialchars(strtolower($ca['driver_name'] ?? '')) ?>"
-                                data-reason="<?= htmlspecialchars(strtolower($ca['reason'] ?? '')) ?>"
-                                data-status="<?= htmlspecialchars($ca['status'] ?? '') ?>"
-                                data-settled="<?= $isSettled ? 'settled' : 'unsettled' ?>"
-                                data-search="<?= htmlspecialchars(strtolower($ticketNum . ' ' . ($ca['ticket_number'] ?? '') . ' ' . ($ca['driver_name'] ?? '') . ' ' . ($ca['reason'] ?? '') . ' ' . ($ca['amount'] ?? '') . ' ' . ($ca['status'] ?? '') . ' ' . ($isSettled ? 'settled' : 'unsettled active'))) ?>">
-                                <td class="py-3.5 px-4 font-mono font-bold text-gray-900 dark:text-gray-100">
-                                    #<?= htmlspecialchars($ticketNum) ?>
-                                </td>
-                                <td class="py-3.5 px-4 font-medium text-gray-900 dark:text-gray-100">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 flex items-center justify-center text-[10px] font-bold">
-                                            <?= strtoupper(substr($ca['driver_name'] ?? 'D', 0, 1)) ?>
-                                        </div>
-                                        <span><?= htmlspecialchars($ca['driver_name']) ?></span>
-                                    </div>
-                                </td>
-                                <td class="py-3.5 px-4 font-bold text-amber-600 dark:text-amber-400">
-                                    ₱<?= number_format($ca['amount'], 2) ?>
-                                </td>
-                                <td class="py-3.5 px-4 max-w-xs truncate text-gray-600 dark:text-gray-300" title="<?= htmlspecialchars($ca['reason'] ?? '') ?>">
-                                    <?= !empty($ca['reason']) ? htmlspecialchars($ca['reason']) : '<span class="text-gray-400 italic">None</span>' ?>
-                                </td>
-                                <td class="py-3.5 px-4 text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                    <?= date('M d, Y h:i A', strtotime($ca['requested_at'])) ?>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <?php if ($ca['status'] === 'Pending'): ?>
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                                            <i class="fa-solid fa-hourglass-half text-[10px]"></i> Pending
-                                        </span>
-                                    <?php elseif ($ca['status'] === 'Approved'): ?>
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                                            <i class="fa-solid fa-check text-[10px]"></i> Approved
+            <div class="divide-y divide-gray-100 dark:divide-gray-700/80">
+                <?php foreach ($allCashAdvances as $ca):
+                    $ticketNum = 'CA-' . date('Y', strtotime($ca['requested_at'] ?? 'now')) . '-' . str_pad($ca['driver_id'], 3, '0', STR_PAD_LEFT) . '-' . str_pad($ca['id'], 4, '0', STR_PAD_LEFT);
+                    $isSettled = !empty($ca['is_settled']);
+
+                    $chipStyle = 'chip-amber';
+                    if ($ca['status'] === 'Approved') $chipStyle = 'chip-emerald';
+                    if ($ca['status'] === 'Rejected') $chipStyle = 'chip-rose';
+                ?>
+                    <div class="ca-row p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors"
+                        data-driver="<?= htmlspecialchars(strtolower($ca['driver_name'] ?? '')) ?>"
+                        data-reason="<?= htmlspecialchars(strtolower($ca['reason'] ?? '')) ?>"
+                        data-status="<?= htmlspecialchars($ca['status'] ?? '') ?>"
+                        data-settled="<?= $isSettled ? 'settled' : 'unsettled' ?>"
+                        data-search="<?= htmlspecialchars(strtolower($ticketNum . ' ' . ($ca['ticket_number'] ?? '') . ' ' . ($ca['driver_name'] ?? '') . ' ' . ($ca['reason'] ?? '') . ' ' . ($ca['amount'] ?? '') . ' ' . ($ca['status'] ?? '') . ' ' . ($isSettled ? 'settled' : 'unsettled active'))) ?>">
+                        
+                        <!-- Left: Icon + Ticket # & Amount + Driver & Reason -->
+                        <div class="flex items-center space-x-3.5 min-w-0">
+                            <div class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 flex-shrink-0">
+                                <i class="fa-solid fa-receipt text-sm"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                                    <span class="font-bold text-gray-900 dark:text-gray-100 text-sm truncate font-mono">
+                                        #<?= htmlspecialchars($ticketNum); ?>
+                                    </span>
+                                    <span class="font-black text-amber-600 dark:text-amber-400 text-sm">
+                                        ₱<?= number_format($ca['amount'], 2); ?>
+                                    </span>
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 font-medium truncate mt-0.5">
+                                    <span class="font-semibold text-gray-800 dark:text-gray-200"><?= htmlspecialchars($ca['driver_name']); ?></span>
+                                    <?php if (!empty($ca['reason'])): ?>
+                                        <span class="text-gray-400 dark:text-gray-500"> • <?= htmlspecialchars($ca['reason']); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="text-[11px] text-gray-400 dark:text-gray-500 font-medium mt-0.5 flex items-center gap-1">
+                                    <i class="fa-regular fa-clock text-[10px]"></i>
+                                    <span><?= date('M d, Y h:i A', strtotime($ca['requested_at'])); ?></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right: Status Badge + Deduction State + Action Buttons -->
+                        <div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-700/60">
+                            <div class="flex items-center gap-2">
+                                <span class="<?= $chipStyle; ?>">
+                                    <?= htmlspecialchars($ca['status']); ?>
+                                </span>
+                                <?php if ($ca['status'] === 'Approved'): ?>
+                                    <?php if ($isSettled): ?>
+                                        <span class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/60 dark:border-emerald-800/40">
+                                            <i class="fa-solid fa-circle-check text-[10px]"></i> Settled
                                         </span>
                                     <?php else: ?>
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                                            <i class="fa-solid fa-xmark text-[10px]"></i> Rejected
+                                        <span class="text-[11px] font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-md border border-blue-200/60 dark:border-blue-800/40">
+                                            <i class="fa-solid fa-clock text-[10px]"></i> Active
                                         </span>
                                     <?php endif; ?>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <?php if ($ca['status'] === 'Approved'): ?>
-                                        <?php if ($isSettled): ?>
-                                            <span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold" title="Deducted in settlement <?= htmlspecialchars($ca['settled_at'] ?? '') ?>">
-                                                <i class="fa-solid fa-circle-check"></i> Settled
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold">
-                                                <i class="fa-solid fa-clock"></i> Active (Pending Payroll)
-                                            </span>
-                                        <?php endif; ?>
-                                    <?php else: ?>
-                                        <span class="text-gray-400">&mdash;</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="py-3.5 px-4 text-right whitespace-nowrap">
-                                    <?php if ($ca['status'] === 'Approved'): ?>
-                                        <button onclick="window.open('print_cash_advance.php?id=<?= $ca['id']; ?>', '_blank')"
-                                                class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition inline-flex items-center gap-1 shadow-sm">
-                                            <i class="fa-solid fa-print"></i>
-                                            <span>Print</span>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="flex items-center gap-1.5">
+                                <?php if ($ca['status'] === 'Approved'): ?>
+                                    <button onclick="window.open('print_cash_advance.php?id=<?= $ca['id']; ?>', '_blank')"
+                                            class="px-2.5 py-1 rounded-lg text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition inline-flex items-center gap-1 shadow-sm active:scale-95"
+                                            title="Print Voucher">
+                                        <i class="fa-solid fa-print text-xs"></i>
+                                        <span>Print</span>
+                                    </button>
+                                <?php elseif ($ca['status'] === 'Pending'): ?>
+                                    <div class="inline-flex items-center gap-1.5">
+                                        <button type="button"
+                                            onclick="openCaConfirmModal('approve', <?= $ca['id']; ?>, '<?= htmlspecialchars(addslashes($ca['driver_name'])); ?>', '<?= number_format($ca['amount'], 2); ?>', '<?= $_SESSION['csrf_token'] ?? '' ?>')"
+                                            class="px-2.5 py-1 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition active:scale-95">
+                                            Approve
                                         </button>
-                                    <?php elseif ($ca['status'] === 'Pending'): ?>
-                                        <div class="inline-flex items-center gap-1">
-                                            <button type="button"
-                                                onclick="openCaConfirmModal('approve', <?= $ca['id']; ?>, '<?= htmlspecialchars(addslashes($ca['driver_name'])); ?>', '<?= number_format($ca['amount'], 2); ?>', '<?= $_SESSION['csrf_token'] ?? '' ?>')"
-                                                class="px-2 py-1 rounded-lg text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition">
-                                                Approve
-                                            </button>
-                                            <button type="button"
-                                                onclick="openCaConfirmModal('reject', <?= $ca['id']; ?>, '<?= htmlspecialchars(addslashes($ca['driver_name'])); ?>', '<?= number_format($ca['amount'], 2); ?>', '<?= $_SESSION['csrf_token'] ?? '' ?>')"
-                                                class="px-2 py-1 rounded-lg text-[11px] font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 transition">
-                                                Reject
-                                            </button>
-                                        </div>
-                                    <?php else: ?>
-                                        <span class="text-gray-400 text-[11px] italic">No action</span>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                                        <button type="button"
+                                            onclick="openCaConfirmModal('reject', <?= $ca['id']; ?>, '<?= htmlspecialchars(addslashes($ca['driver_name'])); ?>', '<?= number_format($ca['amount'], 2); ?>', '<?= $_SESSION['csrf_token'] ?? '' ?>')"
+                                            class="px-2.5 py-1 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition active:scale-95">
+                                            Reject
+                                        </button>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="text-xs text-gray-400 italic">No action</span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
             </div>
             <div id="caNoMatches" class="p-8 text-center text-xs text-gray-500 dark:text-gray-400 hidden">
                 No cash advance records match your filter criteria.

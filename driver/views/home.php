@@ -593,25 +593,42 @@
                                          ($ca['status'] === 'Rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
                                          'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400');
                     ?>
-                    <div class="px-5 py-3 flex items-center justify-between gap-3">
-                        <div>
-                            <span class="text-sm font-bold text-gray-800 dark:text-gray-200">₱<?= number_format($ca['amount'], 2); ?></span>
-                            <?php if (!empty($ca['reason'])): ?>
-                            <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">&mdash; <?= htmlspecialchars($ca['reason']); ?></span>
-                            <?php endif; ?>
-                            <div class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5"><i class="fa-regular fa-clock mr-1"></i><?= date('M d, Y', strtotime($ca['requested_at'])); ?></div>
+                    <div class="p-3.5 sm:px-5 flex items-center justify-between gap-3 hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors">
+                        <div class="flex items-center space-x-3 min-w-0">
+                            <div class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 flex-shrink-0">
+                                <i class="fa-solid fa-receipt text-xs"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-extrabold text-sm text-gray-900 dark:text-gray-100 truncate">
+                                    ₱<?= number_format($ca['amount'], 2); ?>
+                                </div>
+                                <?php if (!empty($ca['reason'])): ?>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 font-medium truncate"><?= htmlspecialchars($ca['reason']); ?></div>
+                                <?php endif; ?>
+                                <div class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-0.5 flex items-center gap-1">
+                                    <i class="fa-regular fa-clock text-[9px]"></i>
+                                    <span><?= date('M d, Y h:i A', strtotime($ca['requested_at'])); ?></span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-[11px] font-bold px-2.5 py-1 rounded-full <?= $caStatusColor; ?>"><?= $ca['status']; ?></span>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <?php 
+                                $chipStyle = 'chip-amber';
+                                if ($ca['status'] === 'Approved') $chipStyle = 'chip-emerald';
+                                if ($ca['status'] === 'Rejected') $chipStyle = 'chip-rose';
+                            ?>
+                            <span class="<?= $chipStyle; ?>">
+                                <?= htmlspecialchars($ca['status']); ?>
+                            </span>
                             <?php if ($ca['status'] === 'Approved'): ?>
                             <button onclick="window.open('../admin/print_cash_advance.php?id=<?= $ca['id']; ?>', '_blank')" 
-                                    class="px-2.5 py-1 rounded-lg text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition flex items-center gap-1 border border-blue-200 dark:border-blue-800"
-                                    title="View / Print Voucher">
-                                <i class="fa-solid fa-print"></i>
-                                <span class="hidden sm:inline">Ticket</span>
+                                    class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition border border-blue-200 dark:border-blue-800"
+                                    title="View / Print Voucher" aria-label="Print Voucher">
+                                <i class="fa-solid fa-print text-xs"></i>
                             </button>
                             <?php endif; ?>
                         </div>
+                    </div>
                     <?php endforeach; ?>
                 </div>
             </div>
