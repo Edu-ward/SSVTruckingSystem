@@ -1434,9 +1434,7 @@ try {
 
     $subtextPeriod = $isHistoricalReport ? "Month: $currMonthLabel" : "This month (Live Data)";
 
-    $payrollKpiVal = ($driverSalariesCurr >= 100000) 
-        ? ('₱' . number_format($driverSalariesCurr / 1000, 1) . 'K') 
-        : ('₱' . number_format($driverSalariesCurr, 2));
+    $payrollKpiVal = '₱' . number_format($driverSalariesCurr);
 
     $onTimeValueStr = ($onTimeRate !== null) ? (number_format($onTimeRate, 1) . '%') : '-';
     $onTimeSubtext = ($onTimeChange !== null) 
@@ -1453,7 +1451,7 @@ try {
     $performanceMetrics = [
         ['metric' => 'Total Deliveries', 'this_month' => number_format($currDeliveries), 'last_month' => number_format($lastDeliveries), 'change_str' => ($deliveriesChange >= 0 ? '+' : '') . number_format($deliveriesChange, 1) . '%', 'is_positive' => $deliveriesChange >= 0],
         ['metric' => 'Volume Delivered', 'this_month' => number_format($currMonthCm, 2) . ' cu.m', 'last_month' => number_format($lastMonthCm, 2) . ' cu.m', 'change_str' => ($cmChange >= 0 ? '+' : '') . number_format($cmChange, 1) . '%', 'is_positive' => $cmChange >= 0],
-        ['metric' => 'Driver Payroll (Salaries)', 'this_month' => '₱' . number_format($driverSalariesCurr, 2), 'last_month' => '₱' . number_format($driverSalariesLast, 2), 'change_str' => ($salariesChange >= 0 ? '+' : '') . number_format($salariesChange, 1) . '%', 'is_positive' => $salariesChange >= 0],
+        ['metric' => 'Driver Payroll (Salaries)', 'this_month' => '₱' . number_format($driverSalariesCurr), 'last_month' => '₱' . number_format($driverSalariesLast), 'change_str' => ($salariesChange >= 0 ? '+' : '') . number_format($salariesChange, 1) . '%', 'is_positive' => $salariesChange >= 0],
         [
             'metric' => 'On-Time Deliveries', 
             'this_month' => ($onTimeRate !== null ? number_format($onTimeRate, 1) . '%' : '-'), 

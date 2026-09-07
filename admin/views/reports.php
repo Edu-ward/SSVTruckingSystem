@@ -84,10 +84,10 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5 lg:gap-6 mb-6">
         <?php foreach ($reportKpis as $kpi): ?>
             <div class="<?= $kpi['color_class']; ?> rounded-2xl p-4 sm:p-5 lg:p-6 text-white relative overflow-hidden shadow-md transition-transform hover:-translate-y-0.5">
-                <div class="flex items-start justify-between relative z-10">
-                    <div class="min-w-0 pr-2">
+                <div class="flex items-start justify-between relative z-10 gap-2">
+                    <div class="min-w-0 flex-1">
                         <div class="text-xs sm:text-sm text-white/80 font-medium mb-1 truncate"><?= htmlspecialchars($kpi['title']); ?></div>
-                        <div class="text-2xl sm:text-3xl lg:text-3xl xl:text-4xl font-black mb-1 tracking-tight truncate leading-tight"><?= htmlspecialchars($kpi['value']); ?></div>
+                        <div class="text-2xl sm:text-2xl lg:text-xl xl:text-2xl 2xl:text-3xl font-black mb-1 tracking-tight leading-tight whitespace-nowrap"><?= htmlspecialchars($kpi['value']); ?></div>
                         <div class="text-[11px] sm:text-xs text-white/90 font-medium truncate"><?= htmlspecialchars($kpi['subtext']); ?></div>
                     </div>
                     <div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white text-lg flex-shrink-0 shadow-inner">
@@ -243,7 +243,7 @@
                             </div>
                             <div class="pt-1.5 border-t border-gray-200/50 dark:border-gray-800">
                                 <span class="text-[10px] text-gray-400 font-semibold block uppercase tracking-wider">Driver Payroll</span>
-                                <span class="font-bold text-emerald-600 dark:text-emerald-400 text-sm">₱<?= number_format($ma['payroll'], 2); ?></span>
+                                <span class="font-bold text-emerald-600 dark:text-emerald-400 text-sm">₱<?= number_format($ma['payroll']); ?></span>
                             </div>
                             <div class="pt-1.5 border-t border-gray-200/50 dark:border-gray-800">
                                 <span class="text-[10px] text-gray-400 font-semibold block uppercase tracking-wider">On-Time Rate</span>
@@ -316,7 +316,7 @@
                                 </td>
                                 <td class="px-6 py-4 font-semibold text-gray-800 dark:text-gray-200"><?= number_format($ma['deliveries']); ?></td>
                                 <td class="px-6 py-4"><?= number_format($ma['volume_cm'], 2); ?> cu.m</td>
-                                <td class="px-6 py-4 font-semibold text-emerald-600 dark:text-emerald-400">₱<?= number_format($ma['payroll'], 2); ?></td>
+                                <td class="px-6 py-4 font-semibold text-emerald-600 dark:text-emerald-400">₱<?= number_format($ma['payroll']); ?></td>
                                 <td class="px-6 py-4">
                                     <?php if (!empty($ma['deliveries']) && $ma['deliveries'] > 0 && isset($ma['on_time_pct']) && $ma['on_time_pct'] !== null): ?>
                                         <span class="inline-flex items-center gap-1 font-semibold <?= $ma['on_time_pct'] >= 90 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400' ?>">
