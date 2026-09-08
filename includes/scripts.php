@@ -434,10 +434,14 @@
 
         function toggleModal(modalID, show) {
             const modal = document.getElementById(modalID);
+            if (!modal) {
+                console.warn("Modal not found:", modalID);
+                return;
+            }
             if (show) {
                 modal.classList.remove('hidden');
-                if (modalID === 'dispatchModal') setTimeout(() => document.getElementById('rfidInput').focus(), 100);
-                if (modalID === 'addTruckModal') setTimeout(() => document.getElementById('newTruckRfidInput').focus(), 100);
+                if (modalID === 'dispatchModal') setTimeout(() => document.getElementById('rfidInput')?.focus(), 100);
+                if (modalID === 'addTruckModal') setTimeout(() => document.getElementById('newTruckRfidInput')?.focus(), 100);
             } else {
                 modal.classList.add('hidden');
                 if (modalID === 'dispatchModal' && typeof resetDispatchDriverInputs === 'function') {
@@ -1098,6 +1102,14 @@
 
         function openEditDriverModal(driver) {
             if (!driver) return;
+            if (typeof driver === 'string') {
+                try {
+                    driver = JSON.parse(driver);
+                } catch (e) {
+                    console.error("Invalid driver JSON:", e);
+                    return;
+                }
+            }
             const idEl = document.getElementById('edit_driver_id');
             if (idEl) idEl.value = driver.id || '';
             const headerEl = document.getElementById('edr_header_name');
@@ -1120,6 +1132,14 @@
 
         function openEditTruckModal(truck) {
             if (!truck) return;
+            if (typeof truck === 'string') {
+                try {
+                    truck = JSON.parse(truck);
+                } catch (e) {
+                    console.error("Invalid truck JSON:", e);
+                    return;
+                }
+            }
             const idEl = document.getElementById('edit_truck_id');
             if (idEl) idEl.value = truck.id || '';
             const headerEl = document.getElementById('et_header_code');
@@ -1191,6 +1211,14 @@
 
         function openEditOrderModal(order) {
             if (!order) return;
+            if (typeof order === 'string') {
+                try {
+                    order = JSON.parse(order);
+                } catch (e) {
+                    console.error("Invalid order JSON:", e);
+                    return;
+                }
+            }
             const idEl = document.getElementById('edit_order_id');
             if (idEl) idEl.value = order.id || '';
             const badgeEl = document.getElementById('edit_order_number_badge');
@@ -1231,6 +1259,14 @@
 
         function openEditDispatchModal(ticket) {
             if (!ticket) return;
+            if (typeof ticket === 'string') {
+                try {
+                    ticket = JSON.parse(ticket);
+                } catch (e) {
+                    console.error("Invalid ticket JSON:", e);
+                    return;
+                }
+            }
             const idEl = document.getElementById('edit_dispatch_id');
             if (idEl) idEl.value = ticket.id || '';
             const ticketEl = document.getElementById('ed_ticket_number');

@@ -99,7 +99,18 @@
                 $statusTitle = 'Resigned';
             }
 
-            $driverJson = htmlspecialchars(json_encode($driver), ENT_QUOTES, 'UTF-8');
+            $driverEditData = [
+                'id' => $driver['id'],
+                'name' => $driver['name'],
+                'first_name' => $driver['first_name'] ?? '',
+                'last_name' => $driver['last_name'] ?? '',
+                'cdl_number' => $driver['cdl_number'] ?? '',
+                'phone' => $driver['phone'] ?? '',
+                'username' => $driver['username'] ?? '',
+                'status' => $driver['status'] ?? 'Off Duty',
+                'truck_id' => $driver['truck_id'] ?? ''
+            ];
+            $driverEditJson = htmlspecialchars(json_encode($driverEditData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8');
 
             // Resolve profile photo URL
             // admin/views/ is 2 levels deep → dirname(__DIR__,2) = CAPSTONE root
@@ -130,11 +141,12 @@
                                 <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base truncate" title="<?= htmlspecialchars($driver['name']); ?>"><?= htmlspecialchars($driver['name']); ?></h3>
                                 <p class="text-xs text-gray-400 dark:text-gray-500 font-medium">CDL: <?= htmlspecialchars($driver['cdl_number'] ?? 'N/A'); ?></p>
                             </div>
+                        </div>
                         <div class="flex items-center space-x-1.5 flex-shrink-0">
                             <span class="<?= $badgeClass; ?> text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm flex-shrink-0" title="<?= htmlspecialchars($statusTitle); ?>">
                                 <?= htmlspecialchars($driver['status']); ?>
                             </span>
-                            <button onclick='openEditDriverModal(<?= $driverJson; ?>)' class="text-gray-400 hover:text-blue-600 transition p-1" title="Edit Driver Profile">
+                            <button type="button" onclick='openEditDriverModal(<?= $driverEditJson; ?>)' class="text-gray-400 hover:text-blue-600 transition p-1" title="Edit Driver Profile">
                                 <i class="fa-solid fa-pen-to-square text-xs"></i>
                             </button>
                         </div>
@@ -297,7 +309,7 @@
                                     title="Print Trip Ticket">
                                 <i class="fa-solid fa-print text-xs"></i>
                             </button>
-                            <button onclick='openEditDriverModal(<?= $driverJson; ?>)' 
+                            <button type="button" onclick='openEditDriverModal(<?= $driverEditJson; ?>)' 
                                     class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors" 
                                     title="Edit Driver Profile & Status">
                                 <i class="fa-solid fa-pen-to-square text-xs"></i>
