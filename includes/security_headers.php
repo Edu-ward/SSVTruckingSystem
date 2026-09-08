@@ -17,11 +17,15 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// ── HTTP Security Headers ──
+// ── HTTP Security & Anti-Cache Headers ──
 if (!headers_sent()) {
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
     header('X-XSS-Protection: 1; mode=block');
     header('Referrer-Policy: strict-origin-when-cross-origin');
     header('Permissions-Policy: camera=(self), microphone=(), geolocation=(self)');
+    // Prevent aggressive browser & proxy caching of dynamic dashboard pages on production
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+    header('Expires: 0');
 }

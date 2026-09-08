@@ -1,3 +1,4 @@
+<?php /* Driver Management View - v2.1 (Fresh Deployment Sync) */ ?>
 <div id="view-drivers" class="tab-content hidden">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-6 flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
         <div class="flex items-center space-x-3">

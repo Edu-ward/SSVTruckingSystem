@@ -1996,10 +1996,10 @@ include __DIR__ . '/../includes/header.php';
     include __DIR__ . '/views/activity_logs.php';
     include __DIR__ . '/views/pwd_requests.php';
     include __DIR__ . '/views/cash_advances.php';
-    include __DIR__ . '/views/settings.php';
-    include __DIR__ . '/views/modals.php'; ?>
+    include __DIR__ . '/views/settings.php'; ?>
 </div>
 </div><!-- close #main-content -->
+<?php include __DIR__ . '/views/modals.php'; ?>
 <?php if (isset($_SESSION['auto_print_id'])):
     $print_id = intval($_SESSION['auto_print_id']);
     unset($_SESSION['auto_print_id']);

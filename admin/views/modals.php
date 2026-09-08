@@ -1,4 +1,5 @@
 <?php
+// SSV Modals - v2.1 (Fresh Deployment Sync)
 ?>
 
 <div id="addTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
