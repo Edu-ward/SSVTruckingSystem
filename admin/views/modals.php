@@ -415,7 +415,9 @@
                         <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Site Return ETA</label>
                         <span id="dispatchEtaBadge" class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/40 px-2 py-0.5 rounded-md hidden"></span>
                     </div>
-                    <input type="datetime-local" name="estimated_arrival_time" id="dispatchEtaInput" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
+                    <div class="cursor-not-allowed">
+                        <input type="datetime-local" name="estimated_arrival_time" id="dispatchEtaInput" readonly tabindex="-1" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-sm pointer-events-none select-none" title="Automatically calculated from destination road distance and 20 min unloading allowance">
+                    </div>
                     <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Estimated truck return time to site (round trip + 20 min unloading allowance).</p>
                 </div>
             </div>
