@@ -66,13 +66,11 @@
             </div>
 
             <div>
-                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Status</label>
-                <select name="status" id="edit_truck_status" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors">
-                    <option value="Idle">Idle (Available at Garage)</option>
-                    <option value="Maintenance">Maintenance (Broken / Under Repair)</option>
-                    <option value="In Transit">In Transit</option>
-                    <option value="Decommissioned">Decommissioned</option>
-                </select>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Truck Status</label>
+                <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-700/60 rounded-xl border border-gray-200 dark:border-gray-600 text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center justify-between">
+                    <span id="edit_truck_status_display" class="font-bold text-blue-600 dark:text-blue-400">Idle</span>
+                    <span class="text-xs text-gray-400 font-normal">Auto-managed by dispatches & RFID scanning</span>
+                </div>
             </div>
 
             <div class="flex justify-end space-x-3 pt-2 border-t border-gray-100 dark:border-gray-700">
@@ -190,14 +188,11 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Status</label>
-                    <select name="status" id="edit_driver_status" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
-                        <option value="Active">Active</option>
-                        <option value="Off Duty">Off Duty</option>
-                        <option value="On Leave">On Leave</option>
-                        <option value="Suspended">Suspended</option>
-                        <option value="Resigned">Resigned</option>
-                    </select>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Duty Status</label>
+                    <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-700/60 rounded-xl border border-gray-200 dark:border-gray-600 text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center justify-between">
+                        <span id="edit_driver_status_display" class="font-bold text-blue-600 dark:text-blue-400">Off Duty</span>
+                        <span class="text-xs text-gray-400 font-normal">Auto-managed by daily duty cycle</span>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Assigned Truck</label>

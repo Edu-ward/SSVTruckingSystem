@@ -1125,6 +1125,8 @@
             if (userEl) userEl.value = driver.username || '';
             const statusEl = document.getElementById('edit_driver_status');
             if (statusEl) statusEl.value = driver.status || 'Off Duty';
+            const statusDisplay = document.getElementById('edit_driver_status_display');
+            if (statusDisplay) statusDisplay.innerText = driver.status || 'Off Duty';
             const truckEl = document.getElementById('edit_driver_truck_id');
             if (truckEl) truckEl.value = driver.truck_id || '';
 
@@ -1151,6 +1153,8 @@
             if (rfidEl) rfidEl.value = truck.rfid_tag || '';
             const statusEl = document.getElementById('edit_truck_status');
             if (statusEl) statusEl.value = truck.status || 'Idle';
+            const statusDisplay = document.getElementById('edit_truck_status_display');
+            if (statusDisplay) statusDisplay.innerText = truck.status || 'Idle';
 
             toggleModal('editTruckModal', true);
         }

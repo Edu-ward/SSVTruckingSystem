@@ -513,8 +513,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         try {
             $pdo->beginTransaction();
             $pdo->prepare("UPDATE users SET username = ? WHERE id = ?")->execute([$username, $driver_id]);
-            $pdo->prepare("UPDATE drivers SET first_name = ?, last_name = ?, cdl_number = ?, phone = ?, status = ?, truck_id = ? WHERE id = ?")
-                ->execute([$firstName, $lastName, $cdl, $phone, $status, $truck_id, $driver_id]);
+            $pdo->prepare("UPDATE drivers SET first_name = ?, last_name = ?, cdl_number = ?, phone = ?, truck_id = ? WHERE id = ?")
+                ->execute([$firstName, $lastName, $cdl, $phone, $truck_id, $driver_id]);
             $pdo->commit();
             $_SESSION['success'] = "Driver <strong>" . htmlspecialchars($name) . "</strong> updated successfully.";
             log_activity($pdo, 'Edited Driver', "Updated driver ID $driver_id ($name)");
@@ -836,13 +836,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         }
 
         try {
-            if ($status === 'Idle') {
-                $stmt = $pdo->prepare("UPDATE trucks SET truck_code = ?, rfid_tag = ?, status = ?, speed = 0, current_location = ?, latitude = ?, longitude = ? WHERE id = ?");
-                $stmt->execute([$truck_code, $rfid_tag ?: null, $status, $GARAGE_NAME, $GARAGE_LAT, $GARAGE_LNG, $truck_id]);
-            } else {
-                $stmt = $pdo->prepare("UPDATE trucks SET truck_code = ?, rfid_tag = ?, status = ? WHERE id = ?");
-                $stmt->execute([$truck_code, $rfid_tag ?: null, $status, $truck_id]);
-            }
+            $stmt = $pdo->prepare("UPDATE trucks SET truck_code = ?, rfid_tag = ? WHERE id = ?");
+            $stmt->execute([$truck_code, $rfid_tag ?: null, $truck_id]);
             $_SESSION['success'] = "Truck <strong>" . htmlspecialchars($truck_code) . "</strong> updated successfully.";
             log_activity($pdo, 'Edited Truck', "Updated truck ID $truck_id ($truck_code)");
         } catch (Exception $e) {

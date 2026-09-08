@@ -86,24 +86,24 @@
                 ])));
             ?>
                 <div class="dispatch-card border border-gray-100 dark:border-gray-700 rounded-xl p-6 shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition" data-search="<?= htmlspecialchars($searchMeta) ?>">
-                    <div class="flex justify-between items-center mb-4">
-                        <div class="flex items-center space-x-2 font-bold text-gray-800 dark:text-gray-200">
+                    <div class="flex justify-between items-center mb-4 gap-2">
+                        <div class="flex items-center space-x-2 font-bold text-gray-800 dark:text-gray-200 shrink-0">
                             <i class="fa-regular fa-file-lines text-blue-500"></i>
-                            <span><?= htmlspecialchars($ticket['ticket_number']); ?></span>
+                            <span class="whitespace-nowrap"><?= htmlspecialchars($ticket['ticket_number']); ?></span>
                         </div>
 
-                        <div class="flex items-center space-x-3">
+                        <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
                             <?php if ($ticket['status'] === 'Cancellation Requested'): ?>
-                                <span class="bg-orange-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase shadow-sm animate-pulse">
+                                <span class="bg-orange-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase shadow-sm animate-pulse whitespace-nowrap inline-flex items-center">
                                     cancellation requested
                                 </span>
                             <?php else: ?>
-                                <span class="<?= $statusClass; ?> text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase shadow-sm">
+                                <span class="<?= $statusClass; ?> text-white text-xs font-semibold px-2.5 py-1 rounded-full lowercase shadow-sm whitespace-nowrap inline-flex items-center">
                                     <?= htmlspecialchars($ticket['status']); ?>
                                 </span>
                             <?php endif; ?>
 
-                            <div class="flex items-center space-x-2 border-l border-gray-200 dark:border-gray-600 pl-3 ml-1">
+                            <div class="flex items-center space-x-2 border-l border-gray-200 dark:border-gray-600 pl-2.5 sm:pl-3 ml-0.5 sm:ml-1 shrink-0">
                                 <?php if ($ticket['status'] === 'Cancellation Requested'): ?>
                                     <!-- Approve Cancellation Button -->
                                     <button onclick="openApproveCancelModal(<?= $ticket['id']; ?>, '<?= htmlspecialchars($ticket['ticket_number']); ?>')" class="text-orange-500 hover:text-orange-600 transition focus:outline-none" title="Approve Cancellation Request">
