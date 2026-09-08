@@ -263,6 +263,9 @@
             <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 font-mono text-[11px] text-indigo-700 dark:text-indigo-300">
                 Pay = ₱<?= number_format($BASE_TRIP_RATE, 2); ?> + (Total RT km - 6 km) × ₱<?= number_format($RATE_PER_KM, 2); ?>
             </div>
+        </div>
+    </div>
+
     <!-- SAVED DESTINATIONS & PINNED LOCATIONS TABLE -->
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 sm:p-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-700">
