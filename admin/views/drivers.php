@@ -85,9 +85,19 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="driverCardsGrid">
         <?php foreach ($allDrivers as $driver):
             $badgeClass = 'bg-gray-500';
-            if ($driver['status'] == 'Active') $badgeClass = 'bg-emerald-500';
-            if ($driver['status'] == 'Dispatched' || $driver['status'] == 'In Transit') $badgeClass = 'bg-blue-600';
-            if ($driver['status'] == 'Resigned') $badgeClass = 'bg-amber-600';
+            $statusTitle = 'Off Duty — awaits first dispatch of the day';
+            if ($driver['status'] == 'Active') {
+                $badgeClass = 'bg-emerald-500';
+                $statusTitle = 'Active for today (dispatched today until 11:59 PM)';
+            }
+            if ($driver['status'] == 'Dispatched' || $driver['status'] == 'In Transit') {
+                $badgeClass = 'bg-blue-600';
+                $statusTitle = 'Currently In Transit';
+            }
+            if ($driver['status'] == 'Resigned') {
+                $badgeClass = 'bg-amber-600';
+                $statusTitle = 'Resigned';
+            }
 
             $driverJson = htmlspecialchars(json_encode($driver), ENT_QUOTES, 'UTF-8');
 
@@ -120,10 +130,14 @@
                                 <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base truncate" title="<?= htmlspecialchars($driver['name']); ?>"><?= htmlspecialchars($driver['name']); ?></h3>
                                 <p class="text-xs text-gray-400 dark:text-gray-500 font-medium">CDL: <?= htmlspecialchars($driver['cdl_number'] ?? 'N/A'); ?></p>
                             </div>
+                        <div class="flex items-center space-x-1.5 flex-shrink-0">
+                            <span class="<?= $badgeClass; ?> text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm flex-shrink-0" title="<?= htmlspecialchars($statusTitle); ?>">
+                                <?= htmlspecialchars($driver['status']); ?>
+                            </span>
+                            <button onclick='openEditDriverModal(<?= $driverJson; ?>)' class="text-gray-400 hover:text-blue-600 transition p-1" title="Edit Driver Profile">
+                                <i class="fa-solid fa-pen-to-square text-xs"></i>
+                            </button>
                         </div>
-                        <span class="<?= $badgeClass; ?> text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm flex-shrink-0">
-                            <?= htmlspecialchars($driver['status']); ?>
-                        </span>
                     </div>
 
                     <!-- Details -->
@@ -135,6 +149,17 @@
                             </span>
                             <span class="font-bold text-gray-900 dark:text-gray-100"><?= htmlspecialchars($driver['truck_code'] ?? 'Unassigned'); ?></span>
                         </div>
+                        <?php if (!empty($driver['co_driver_name'])): ?>
+                        <div class="flex items-center justify-between p-2.5 bg-blue-50/70 dark:bg-blue-900/20 rounded-xl border border-blue-100/60 dark:border-blue-800/40">
+                            <span class="flex items-center space-x-2 text-blue-600 dark:text-blue-400 font-medium">
+                                <i class="fa-solid fa-user-group text-blue-500 w-4 text-center"></i>
+                                <span>Alternate Driver</span>
+                            </span>
+                            <span class="font-bold text-blue-700 dark:text-blue-300 truncate max-w-[140px]" title="<?= htmlspecialchars($driver['co_driver_name']); ?>">
+                                <?= htmlspecialchars($driver['co_driver_name']); ?>
+                            </span>
+                        </div>
+                        <?php endif; ?>
                         <div class="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-900 rounded-xl">
                             <span class="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
                                 <i class="fa-solid fa-phone text-indigo-500 w-4 text-center"></i>
@@ -272,9 +297,9 @@
                                     title="Print Trip Ticket">
                                 <i class="fa-solid fa-print text-xs"></i>
                             </button>
-                            <button onclick="openUpdateDriverStatusModal(<?= $driver['id']; ?>, '<?= htmlspecialchars($driver['status']); ?>', '<?= addslashes($driver['name']); ?>')" 
+                            <button onclick='openEditDriverModal(<?= $driverJson; ?>)' 
                                     class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors" 
-                                    title="Edit Driver Status">
+                                    title="Edit Driver Profile & Status">
                                 <i class="fa-solid fa-pen-to-square text-xs"></i>
                             </button>
                             <button onclick="openSwitchTruckModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', '<?= htmlspecialchars($driver['truck_code'] ?? 'None'); ?>')" 

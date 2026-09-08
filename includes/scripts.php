@@ -440,6 +440,9 @@
                 if (modalID === 'addTruckModal') setTimeout(() => document.getElementById('newTruckRfidInput').focus(), 100);
             } else {
                 modal.classList.add('hidden');
+                if (modalID === 'dispatchModal' && typeof resetDispatchDriverInputs === 'function') {
+                    resetDispatchDriverInputs();
+                }
             }
         }
 
@@ -1087,6 +1090,50 @@
             toggleModal('updateDriverStatusModal', true);
         }
 
+        function editCurrentViewedDriver() {
+            if (!currentViewingDriver) return;
+            toggleModal('viewDriverModal', false);
+            openEditDriverModal(currentViewingDriver);
+        }
+
+        function openEditDriverModal(driver) {
+            if (!driver) return;
+            const idEl = document.getElementById('edit_driver_id');
+            if (idEl) idEl.value = driver.id || '';
+            const headerEl = document.getElementById('edr_header_name');
+            if (headerEl) headerEl.innerText = driver.name || ('#' + driver.id);
+            const nameEl = document.getElementById('edit_driver_name');
+            if (nameEl) nameEl.value = driver.name || ((driver.first_name || '') + ' ' + (driver.last_name || '')).trim();
+            const cdlEl = document.getElementById('edit_driver_cdl');
+            if (cdlEl) cdlEl.value = driver.cdl_number || '';
+            const phoneEl = document.getElementById('edit_driver_phone');
+            if (phoneEl) phoneEl.value = driver.phone || '';
+            const userEl = document.getElementById('edit_driver_username');
+            if (userEl) userEl.value = driver.username || '';
+            const statusEl = document.getElementById('edit_driver_status');
+            if (statusEl) statusEl.value = driver.status || 'Off Duty';
+            const truckEl = document.getElementById('edit_driver_truck_id');
+            if (truckEl) truckEl.value = driver.truck_id || '';
+
+            toggleModal('editDriverModal', true);
+        }
+
+        function openEditTruckModal(truck) {
+            if (!truck) return;
+            const idEl = document.getElementById('edit_truck_id');
+            if (idEl) idEl.value = truck.id || '';
+            const headerEl = document.getElementById('et_header_code');
+            if (headerEl) headerEl.innerText = truck.truck_code || ('#' + truck.id);
+            const codeEl = document.getElementById('edit_truck_code');
+            if (codeEl) codeEl.value = truck.truck_code || '';
+            const rfidEl = document.getElementById('edit_truck_rfid');
+            if (rfidEl) rfidEl.value = truck.rfid_tag || '';
+            const statusEl = document.getElementById('edit_truck_status');
+            if (statusEl) statusEl.value = truck.status || 'Idle';
+
+            toggleModal('editTruckModal', true);
+        }
+
         function openSwitchTruckModal(driverId, driverName, truckCode) {
             document.getElementById('st-driver-name').innerText = driverName;
             document.getElementById('st-truck-code').innerText = truckCode || 'None';
@@ -1140,6 +1187,133 @@
         }
         function openDeleteCheckerModal(checkerId, checkerName) {
             openResignCheckerModal(checkerId, checkerName);
+        }
+
+        function openEditOrderModal(order) {
+            if (!order) return;
+            const idEl = document.getElementById('edit_order_id');
+            if (idEl) idEl.value = order.id || '';
+            const badgeEl = document.getElementById('edit_order_number_badge');
+            if (badgeEl) badgeEl.innerText = '#' + (order.order_number || order.id || '');
+            const clientEl = document.getElementById('edit_order_client_name');
+            if (clientEl) clientEl.value = order.client_name || '';
+            const contactEl = document.getElementById('edit_order_contact_number');
+            if (contactEl) contactEl.value = order.contact_number || '';
+            const landmarkEl = document.getElementById('edit_order_landmark');
+            if (landmarkEl) landmarkEl.value = order.landmark || '';
+            const gravelEl = document.getElementById('edit_order_gravel_type');
+            if (gravelEl) gravelEl.value = order.gravel_type || 'Crushed Gravel (3/4)';
+            const cuEl = document.getElementById('edit_order_cubic_meters');
+            if (cuEl) cuEl.value = order.cubic_meters || '';
+            const checkerEl = document.getElementById('edit_order_checker_id');
+            if (checkerEl) checkerEl.value = order.checker_id || '';
+            const notesEl = document.getElementById('edit_order_notes');
+            if (notesEl) notesEl.value = order.notes || '';
+
+            const destSelect = document.getElementById('edit_order_destination');
+            if (destSelect && order.destination) {
+                let found = false;
+                for (let i = 0; i < destSelect.options.length; i++) {
+                    if (destSelect.options[i].value.trim().toLowerCase() === order.destination.trim().toLowerCase()) {
+                        destSelect.selectedIndex = i;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    const newOpt = new Option(order.destination, order.destination, true, true);
+                    destSelect.add(newOpt);
+                }
+            }
+
+            toggleModal('editOrderModal', true);
+        }
+
+        function openEditDispatchModal(ticket) {
+            if (!ticket) return;
+            const idEl = document.getElementById('edit_dispatch_id');
+            if (idEl) idEl.value = ticket.id || '';
+            const ticketEl = document.getElementById('ed_ticket_number');
+            if (ticketEl) ticketEl.innerText = ticket.ticket_number || ('#' + ticket.id);
+            const truckEl = document.getElementById('ed_truck_code');
+            if (truckEl) truckEl.innerText = (ticket.truck_code || 'N/A') + (ticket.plate_number ? ' (' + ticket.plate_number + ')' : '');
+            const driverEl = document.getElementById('ed_driver_name');
+            if (driverEl) driverEl.innerText = ticket.driver_name || 'N/A';
+            const clientEl = document.getElementById('edit_dispatch_client_name');
+            if (clientEl) clientEl.value = ticket.client_name || '';
+            const contactEl = document.getElementById('edit_dispatch_contact_number');
+            if (contactEl) contactEl.value = ticket.contact_number || '';
+            const landmarkEl = document.getElementById('edit_dispatch_landmark');
+            if (landmarkEl) landmarkEl.value = ticket.landmark || '';
+            const cuEl = document.getElementById('edit_dispatch_cubic_meters');
+            if (cuEl) cuEl.value = ticket.cubic_meters || '';
+
+            const destSelect = document.getElementById('edit_dispatch_destination');
+            if (destSelect && ticket.destination) {
+                let found = false;
+                for (let i = 0; i < destSelect.options.length; i++) {
+                    if (destSelect.options[i].value.trim().toLowerCase() === ticket.destination.trim().toLowerCase()) {
+                        destSelect.selectedIndex = i;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    const distText = (ticket.distance_km && parseFloat(ticket.distance_km) > 0) ? ` (${Math.round(ticket.distance_km)} km)` : '';
+                    const newOpt = new Option(ticket.destination + distText, ticket.destination, true, true);
+                    newOpt.dataset.distance = ticket.distance_km || 0;
+                    newOpt.dataset.pay = ticket.driver_trip_pay || ticket.pay_amount || 0;
+                    destSelect.add(newOpt);
+                }
+            }
+
+            handleEditDispatchDestinationChange();
+            toggleModal('editDispatchModal', true);
+        }
+
+        function handleEditDispatchDestinationChange() {
+            const destSelect = document.getElementById('edit_dispatch_destination');
+            if (!destSelect) return;
+            const destName = destSelect.value;
+            const opt = destSelect.options[destSelect.selectedIndex];
+            calculateAndSetEditDispatchPay(destName, opt);
+        }
+
+        function calculateAndSetEditDispatchPay(destName, optElem = null) {
+            const payAmountEl = document.getElementById('editDispatchPayAmount');
+            const hiddenDist = document.getElementById('edit_dispatch_distance_km');
+            const hiddenPay = document.getElementById('edit_dispatch_pay_amount');
+            if (!payAmountEl) return;
+
+            if (!destName) {
+                payAmountEl.innerHTML = '<span class="text-gray-400 italic">Select a destination or re-pin to calculate pay</span>';
+                if (hiddenDist) hiddenDist.value = '0';
+                if (hiddenPay) hiddenPay.value = '0';
+                return;
+            }
+
+            let dist = 0;
+            let rate = null;
+            let lat = null;
+            let lng = null;
+            if (optElem) {
+                if (optElem.dataset.distance) dist = parseFloat(optElem.dataset.distance);
+                if (optElem.dataset.rate) rate = parseFloat(optElem.dataset.rate);
+                if (optElem.dataset.lat) lat = parseFloat(optElem.dataset.lat);
+                if (optElem.dataset.lng) lng = parseFloat(optElem.dataset.lng);
+            }
+
+            if (typeof computeDriverTripPay === 'function') {
+                const calc = computeDriverTripPay(dist, destName, lat, lng, rate);
+                const pay = calc.pay;
+                if (hiddenDist) hiddenDist.value = Math.round(dist);
+                if (hiddenPay) hiddenPay.value = pay;
+                payAmountEl.innerHTML = `Map Distance: <span class="font-bold text-blue-600 dark:text-blue-400">${Math.round(dist)} km</span> (round trip) &bull; Driver Trip Pay: <span class="font-bold text-green-600 dark:text-green-400">₱${pay.toFixed(2)}</span> <span class="text-gray-500 dark:text-gray-400 font-normal">(${calc.breakdown})</span>`;
+            } else {
+                if (hiddenDist) hiddenDist.value = Math.round(dist);
+                if (hiddenPay) hiddenPay.value = (optElem && optElem.dataset.pay) ? parseFloat(optElem.dataset.pay) : 0;
+                payAmountEl.innerHTML = `Map Distance: <span class="font-bold text-blue-600 dark:text-blue-400">${Math.round(dist)} km</span>`;
+            }
         }
 
         try {
@@ -1455,6 +1629,33 @@
             });
         });
 
+        function resetDispatchDriverInputs() {
+            const singleContainer = document.getElementById('singleDriverContainer');
+            const multiContainer = document.getElementById('multiDriverContainer');
+            const hiddenDriverId = document.getElementById('hiddenDriverId');
+            const assignedDriverName = document.getElementById('assignedDriverName');
+            const assignedDriverSelect = document.getElementById('assignedDriverSelect');
+
+            if (singleContainer) singleContainer.classList.remove('hidden');
+            if (multiContainer) multiContainer.classList.add('hidden');
+
+            if (hiddenDriverId) {
+                hiddenDriverId.disabled = false;
+                hiddenDriverId.name = 'driver_id';
+                hiddenDriverId.required = true;
+                hiddenDriverId.value = '';
+            }
+            if (assignedDriverName) {
+                assignedDriverName.value = '';
+            }
+            if (assignedDriverSelect) {
+                assignedDriverSelect.disabled = true;
+                assignedDriverSelect.name = '';
+                assignedDriverSelect.required = false;
+                assignedDriverSelect.innerHTML = '<option value="">— Select Driver (2 Assigned) —</option>';
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
             const rfidInput = document.getElementById('rfidInput');
             const truckPlate = document.getElementById('truckPlate');
@@ -1480,6 +1681,7 @@
                                         truckPlate.value = '';
                                         hiddenTruckId.value = '';
                                         rfidInput.value = '';
+                                        resetDispatchDriverInputs();
                                         return;
                                     }
 
@@ -1488,14 +1690,18 @@
                                         truckPlate.value = '';
                                         hiddenTruckId.value = '';
                                         rfidInput.value = '';
+                                        resetDispatchDriverInputs();
                                         return;
                                     }
 
-                                    if (!data.driver_id) {
+                                    const driverCount = data.driver_count !== undefined ? data.driver_count : (data.driver_id ? 1 : 0);
+
+                                    if (driverCount === 0 || (!data.driver_id && (!data.drivers || data.drivers.length === 0))) {
                                         rfidFeedback.innerHTML = '<span class="text-red-500 font-bold"><i class="fa-solid fa-user-slash"></i> No driver assigned to this truck! Assign a driver before dispatching.</span>';
                                         truckPlate.value = '';
                                         hiddenTruckId.value = '';
                                         rfidInput.value = '';
+                                        resetDispatchDriverInputs();
                                         rfidInput.focus();
                                         return;
                                     }
@@ -1503,23 +1709,76 @@
                                     truckPlate.value = data.truck_code;
                                     hiddenTruckId.value = data.truck_id;
 
+                                    const singleContainer = document.getElementById('singleDriverContainer');
+                                    const multiContainer = document.getElementById('multiDriverContainer');
                                     const hiddenDriverId = document.getElementById('hiddenDriverId');
                                     const assignedDriverName = document.getElementById('assignedDriverName');
-                                    if (hiddenDriverId && assignedDriverName) {
-                                        hiddenDriverId.value = data.driver_id || '';
-                                        assignedDriverName.value = data.driver_name || 'No Driver Assigned';
-                                    }
+                                    const assignedDriverSelect = document.getElementById('assignedDriverSelect');
 
-                                    rfidFeedback.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-check"></i> Truck matched!</span>';
+                                    if (driverCount >= 2 && data.drivers && data.drivers.length >= 2) {
+                                        // 2 (or more) alternate drivers: switch to dropdown
+                                        if (singleContainer) singleContainer.classList.add('hidden');
+                                        if (multiContainer) multiContainer.classList.remove('hidden');
+
+                                        if (hiddenDriverId) {
+                                            hiddenDriverId.disabled = true;
+                                            hiddenDriverId.name = '';
+                                            hiddenDriverId.required = false;
+                                            hiddenDriverId.value = '';
+                                        }
+
+                                        if (assignedDriverSelect) {
+                                            assignedDriverSelect.disabled = false;
+                                            assignedDriverSelect.name = 'driver_id';
+                                            assignedDriverSelect.required = true;
+                                            assignedDriverSelect.innerHTML = '<option value="">— Select Which Driver is Driving —</option>';
+                                            data.drivers.forEach(d => {
+                                                const opt = document.createElement('option');
+                                                opt.value = d.id;
+                                                opt.textContent = `${d.name} (${d.status})`;
+                                                assignedDriverSelect.appendChild(opt);
+                                            });
+                                            assignedDriverSelect.focus();
+                                        }
+
+                                        rfidFeedback.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-check"></i> Truck matched! Select which alternate driver is operating.</span>';
+                                    } else {
+                                        // 1 driver: standard readonly input
+                                        if (singleContainer) singleContainer.classList.remove('hidden');
+                                        if (multiContainer) multiContainer.classList.add('hidden');
+
+                                        if (assignedDriverSelect) {
+                                            assignedDriverSelect.disabled = true;
+                                            assignedDriverSelect.name = '';
+                                            assignedDriverSelect.required = false;
+                                            assignedDriverSelect.innerHTML = '';
+                                        }
+
+                                        const driverObj = (data.drivers && data.drivers[0]) ? data.drivers[0] : { id: data.driver_id, name: data.driver_name };
+
+                                        if (hiddenDriverId) {
+                                            hiddenDriverId.disabled = false;
+                                            hiddenDriverId.name = 'driver_id';
+                                            hiddenDriverId.required = true;
+                                            hiddenDriverId.value = driverObj.id || '';
+                                        }
+                                        if (assignedDriverName) {
+                                            assignedDriverName.value = driverObj.name || 'No Driver Assigned';
+                                        }
+
+                                        rfidFeedback.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-check"></i> Truck matched! Driver auto-filled.</span>';
+                                    }
                                 } else {
                                     truckPlate.value = '';
                                     hiddenTruckId.value = '';
+                                    resetDispatchDriverInputs();
                                     rfidFeedback.innerHTML = '<span class="text-red-500"><i class="fa-solid fa-triangle-exclamation"></i> Unregistered RFID tag!</span>';
                                     rfidInput.value = '';
                                     rfidInput.focus();
                                 }
                             })
                             .catch(error => {
+                                resetDispatchDriverInputs();
                                 rfidFeedback.innerHTML = '<span class="text-red-500">Database connection error.</span>';
                             });
                     }

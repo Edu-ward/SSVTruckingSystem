@@ -11,6 +11,8 @@ try {
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
     // Ensure MySQL functions (NOW(), CURDATE(), TIMESTAMPDIFF) use Philippine Time (UTC+8)
     $pdo->exec("SET time_zone = '+08:00'");
+    require_once __DIR__ . '/includes/driver_duty_sync.php';
+    syncDailyDriverStatuses($pdo);
 } catch (PDOException $e) {
     error_log("SSV DB Connection Failed: " . $e->getMessage());
     die("A database error occurred. Please contact the system administrator.");

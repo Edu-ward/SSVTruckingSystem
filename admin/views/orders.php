@@ -181,6 +181,9 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                         <td class="px-6 py-4 text-center whitespace-nowrap">
                             <div class="flex items-center justify-center space-x-3">
                                 <?php if ($order['status'] !== 'Cancelled' && $order['status'] !== 'Fulfilled'): ?>
+                                <button onclick="openEditOrderModal(<?= htmlspecialchars(json_encode($order), ENT_QUOTES, 'UTF-8') ?>)" title="Edit Order & Pinned Location" class="text-gray-400 hover:text-indigo-600 transition">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
                                 <button onclick="openAssignCheckerModal(<?= $order['id'] ?>, '<?= addslashes($order['order_number']) ?>')" title="Assign Checker" class="text-blue-500 hover:text-blue-700 transition">
                                     <i class="fa-solid fa-user-shield"></i>
                                 </button>

@@ -115,6 +115,12 @@
                                         <i class="fa-solid fa-circle-check text-lg"></i>
                                     </button>
                                 <?php endif; ?>
+                                <?php if ($ticket['status'] === 'Pending' || $ticket['status'] === 'In Transit'): ?>
+                                    <!-- Edit Dispatch / Re-pin Location -->
+                                    <button onclick="openEditDispatchModal(<?= htmlspecialchars(json_encode($ticket), ENT_QUOTES, 'UTF-8') ?>)" class="text-gray-400 hover:text-indigo-600 transition focus:outline-none" title="Edit Dispatch / Re-pin Location">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                <?php endif; ?>
                                 <!-- Print Button -->
                                 <button onclick="window.open('print_ticket.php?id=<?= $ticket['id']; ?>', '_blank')" class="text-gray-400 hover:text-blue-500 transition focus:outline-none" title="Print Waybill Ticket">
                                     <i class="fa-solid fa-print"></i>

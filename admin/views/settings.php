@@ -263,6 +263,156 @@
             <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 font-mono text-[11px] text-indigo-700 dark:text-indigo-300">
                 Pay = ₱<?= number_format($BASE_TRIP_RATE, 2); ?> + (Total RT km - 6 km) × ₱<?= number_format($RATE_PER_KM, 2); ?>
             </div>
+    <!-- SAVED DESTINATIONS & PINNED LOCATIONS TABLE -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 sm:p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-700">
+            <div>
+                <h3 class="text-base font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <i class="fa-solid fa-map-pin text-blue-600 dark:text-blue-400"></i>
+                    Saved Destinations & Pinned Locations
+                </h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Manage pinned locations saved in the system. Mistaken or outdated pinned destinations can be edited or deleted so they don't clutter dropdown lists.
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="text" id="destSearchInput" oninput="filterDestinationsTable()" placeholder="Filter destinations..." class="border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500">
+            </div>
+        </div>
+
+        <div class="mt-4 overflow-x-auto">
+            <table class="w-full text-left text-sm" id="destinationsTable">
+                <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <tr>
+                        <th class="py-3 px-4">Destination</th>
+                        <th class="py-3 px-4">Round Trip Distance</th>
+                        <th class="py-3 px-4">Driver Rate</th>
+                        <th class="py-3 px-4">Status</th>
+                        <th class="py-3 px-4 text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+                    <?php if (empty($allDestinations)): ?>
+                        <tr>
+                            <td colspan="5" class="py-6 text-center text-gray-400 italic text-xs">No saved destinations found.</td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($allDestinations as $dest): ?>
+                            <?php
+                            $dDist = round(floatval($dest['distance_km']));
+                            $dRate = floatval($dest['driver_rate']);
+                            $dPay  = calculateTripPay($dDist, $dest['name'], $dRate);
+                            $dActive = !empty($dest['is_active']);
+                            ?>
+                            <tr class="hover:bg-gray-50/70 dark:hover:bg-gray-700/30 transition-colors dest-table-row" data-name="<?= htmlspecialchars(strtolower($dest['name'])) ?>">
+                                <td class="py-3 px-4">
+                                    <div class="font-semibold text-gray-800 dark:text-gray-200"><?= htmlspecialchars($dest['name']) ?></div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="font-medium text-gray-700 dark:text-gray-300"><?= $dDist > 0 ? $dDist . ' km' : '<span class="text-gray-400 italic">Auto/OSM</span>' ?></span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="text-xs">
+                                        <span class="font-bold text-emerald-600 dark:text-emerald-400">₱<?= number_format($dPay, 2) ?></span>
+                                        <?php if ($dRate > 0): ?>
+                                            <span class="text-[10px] text-gray-400 ml-1">(Fixed ₱<?= number_format($dRate, 2) ?>)</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full <?= $dActive ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400' ?>">
+                                        <?= $dActive ? 'Active' : 'Inactive' ?>
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-center">
+                                    <div class="flex items-center justify-center space-x-2">
+                                        <button type="button" onclick="openEditDestModal(<?= $dest['id'] ?>, '<?= htmlspecialchars(addslashes($dest['name'])) ?>', <?= $dDist ?>, <?= $dRate ?>, <?= $dActive ? 1 : 0 ?>)" class="text-gray-400 hover:text-blue-600 transition" title="Edit Destination">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <button type="button" onclick="openDeleteDestModal(<?= $dest['id'] ?>, '<?= htmlspecialchars(addslashes($dest['name'])) ?>')" class="text-gray-400 hover:text-red-600 transition" title="Delete Destination">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- EDIT DESTINATION MODAL -->
+    <div id="editDestModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative">
+            <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-base font-bold text-gray-900 dark:text-gray-100">Edit Pinned Destination</h3>
+                <button type="button" onclick="toggleModal('editDestModal', false)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form method="POST" action="dashboard.php?tab=settings" class="p-5 space-y-4">
+                <input type="hidden" name="action" value="edit_destination">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                <input type="hidden" name="dest_id" id="edit_dest_id">
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Destination Name</label>
+                    <input type="text" name="name" id="edit_dest_name" required class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Round Trip (km)</label>
+                        <input type="number" step="1" min="0" name="distance_km" id="edit_dest_distance" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Driver Rate (₱) <span class="text-gray-400 font-normal text-[10px]">0 = auto</span></label>
+                        <input type="number" step="0.01" min="0" name="driver_rate" id="edit_dest_rate" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                    <select name="is_active" id="edit_dest_active" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500">
+                        <option value="1">Active (Shown in dropdowns)</option>
+                        <option value="0">Inactive (Hidden from dropdowns)</option>
+                    </select>
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                    <button type="button" onclick="toggleModal('editDestModal', false)" class="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition">Cancel</button>
+                    <button type="submit" class="px-5 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DELETE DESTINATION MODAL -->
+    <div id="deleteDestModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden relative">
+            <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-base font-bold text-gray-900 dark:text-gray-100 text-red-600 flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Delete Destination
+                </h3>
+                <button type="button" onclick="toggleModal('deleteDestModal', false)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form method="POST" action="dashboard.php?tab=settings" class="p-5 space-y-4">
+                <input type="hidden" name="action" value="delete_destination">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                <input type="hidden" name="dest_id" id="del_dest_id">
+
+                <p class="text-sm text-gray-600 dark:text-gray-300">
+                    Are you sure you want to remove <strong id="del_dest_name" class="text-gray-900 dark:text-white"></strong>? It will no longer appear in dispatch and order destination selectors.
+                </p>
+
+                <div class="flex justify-end space-x-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                    <button type="button" onclick="toggleModal('deleteDestModal', false)" class="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition">Cancel</button>
+                    <button type="submit" class="px-5 py-2 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white rounded-xl transition">Yes, Delete</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -626,6 +776,30 @@
             document.getElementById('simClearBtn')?.classList.remove('hidden');
         }
         await runSimulatorSearch();
+    }
+
+    function filterDestinationsTable() {
+        const q = (document.getElementById('destSearchInput')?.value || '').toLowerCase().trim();
+        const rows = document.querySelectorAll('.dest-table-row');
+        rows.forEach(r => {
+            const name = r.dataset.name || '';
+            r.style.display = (!q || name.includes(q)) ? '' : 'none';
+        });
+    }
+
+    function openEditDestModal(id, name, distance, rate, isActive) {
+        document.getElementById('edit_dest_id').value = id;
+        document.getElementById('edit_dest_name').value = name;
+        document.getElementById('edit_dest_distance').value = distance || 0;
+        document.getElementById('edit_dest_rate').value = rate || 0;
+        document.getElementById('edit_dest_active').value = isActive ? '1' : '0';
+        toggleModal('editDestModal', true);
+    }
+
+    function openDeleteDestModal(id, name) {
+        document.getElementById('del_dest_id').value = id;
+        document.getElementById('del_dest_name').innerText = name;
+        toggleModal('deleteDestModal', true);
     }
 
     document.addEventListener('DOMContentLoaded', function() {

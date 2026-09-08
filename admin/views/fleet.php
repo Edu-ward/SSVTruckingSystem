@@ -55,7 +55,15 @@
                         </div>
                         <div class="min-w-0">
                             <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base sm:text-lg truncate"><?= htmlspecialchars($truck['truck_code']); ?></h3>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate"><?= htmlspecialchars($truck['driver_name'] ?? 'No Driver Assigned'); ?></p>
+                            <?php if (!empty($truck['driver_count']) && $truck['driver_count'] > 1): ?>
+                                <p class="text-xs text-blue-600 dark:text-blue-400 font-medium truncate flex items-center gap-1" title="<?= htmlspecialchars($truck['driver_name']); ?>">
+                                    <i class="fa-solid fa-users text-[11px]"></i>
+                                    <span class="truncate"><?= htmlspecialchars($truck['driver_name']); ?></span>
+                                    <span class="text-[10px] bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold px-1.5 py-0.5 rounded flex-shrink-0">Alternate</span>
+                                </p>
+                            <?php else: ?>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 truncate"><?= htmlspecialchars($truck['driver_name'] ?? 'No Driver Assigned'); ?></p>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="flex items-center space-x-1.5 flex-shrink-0 ml-auto">
@@ -63,7 +71,7 @@
                             <?= htmlspecialchars($truck['status']); ?>
                         </span>
 
-                        <button onclick="openUpdateStatusModal(<?= $truck['id']; ?>, '<?= htmlspecialchars($truck['status']); ?>', '<?= htmlspecialchars($truck['truck_code']); ?>')" class="text-gray-400 hover:text-blue-600 transition p-1" title="Change Truck Status">
+                        <button onclick='openEditTruckModal(<?= htmlspecialchars(json_encode($truck), ENT_QUOTES, 'UTF-8'); ?>)' class="text-gray-400 hover:text-blue-600 transition p-1" title="Edit Truck Details & Status">
                             <i class="fa-solid fa-pen-to-square"></i>
                         </button>
 

@@ -104,43 +104,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $pdo->prepare("UPDATE orders SET status = 'In Progress' WHERE id = ? AND status = 'Pending'")
                         ->execute([$order_id]);
 
-                    $driverStmt = $pdo->prepare("SELECT id FROM drivers WHERE truck_id = ?");
-                    $driverStmt->execute([$truck['id']]);
-                    $assignedDriver = $driverStmt->fetch();
+                    $activeDispatchStmt = $pdo->prepare("SELECT id, driver_id FROM dispatches WHERE truck_id = ? AND status IN ('In Transit', 'Loading', 'Unloading') ORDER BY id DESC LIMIT 1");
+                    $activeDispatchStmt->execute([$truck['id']]);
+                    $activeDispatch = $activeDispatchStmt->fetch();
 
-                    if ($assignedDriver) {
-                        $activeDispatchStmt = $pdo->prepare("SELECT id FROM dispatches WHERE driver_id = ? AND truck_id = ? AND status IN ('In Transit', 'Loading', 'Unloading') ORDER BY id DESC LIMIT 1");
-                        $activeDispatchStmt->execute([$assignedDriver['id'], $truck['id']]);
-                        $activeDispatch = $activeDispatchStmt->fetch();
+                    $dispatchedDriverId = $activeDispatch ? $activeDispatch['driver_id'] : null;
 
-                        if ($activeDispatch) {
-                            $nowTs = time();
-                            $isOnTime = 1;
-                            $dCheck = $pdo->prepare("SELECT transit_start_time, estimated_arrival_time, destination FROM dispatches WHERE id = ?");
-                            $dCheck->execute([$activeDispatch['id']]);
-                            $dRow = $dCheck->fetch();
-                            if ($dRow) {
-                                if (!empty($dRow['estimated_arrival_time'])) {
-                                    $isOnTime = ($nowTs <= strtotime($dRow['estimated_arrival_time'])) ? 1 : 0;
-                                } elseif (!empty($dRow['transit_start_time'])) {
-                                    $dstStmt = $pdo->prepare("SELECT distance_km FROM destinations WHERE name = ?");
-                                    $dstStmt->execute([$dRow['destination']]);
-                                    $distK = floatval($dstStmt->fetchColumn() ?? 20);
-                                    $roundTripK = max(2.0, min(180.0, $distK));
-                                    $etaM = max(30, round(($roundTripK / 35) * 60) + 20);
-                                    $isOnTime = ($nowTs <= (strtotime($dRow['transit_start_time']) + ($etaM * 60))) ? 1 : 0;
-                                }
+                    if (!$dispatchedDriverId) {
+                        $driverStmt = $pdo->prepare("SELECT id FROM drivers WHERE truck_id = ? AND status != 'Resigned' LIMIT 1");
+                        $driverStmt->execute([$truck['id']]);
+                        $dispatchedDriverId = $driverStmt->fetchColumn() ?: null;
+                    }
+
+                    if ($activeDispatch && $dispatchedDriverId) {
+                        $nowTs = time();
+                        $isOnTime = 1;
+                        $dCheck = $pdo->prepare("SELECT transit_start_time, estimated_arrival_time, destination FROM dispatches WHERE id = ?");
+                        $dCheck->execute([$activeDispatch['id']]);
+                        $dRow = $dCheck->fetch();
+                        if ($dRow) {
+                            if (!empty($dRow['estimated_arrival_time'])) {
+                                $isOnTime = ($nowTs <= strtotime($dRow['estimated_arrival_time'])) ? 1 : 0;
+                            } elseif (!empty($dRow['transit_start_time'])) {
+                                $dstStmt = $pdo->prepare("SELECT distance_km FROM destinations WHERE name = ?");
+                                $dstStmt->execute([$dRow['destination']]);
+                                $distK = floatval($dstStmt->fetchColumn() ?? 20);
+                                $roundTripK = max(2.0, min(180.0, $distK));
+                                $etaM = max(30, round(($roundTripK / 35) * 60) + 20);
+                                $isOnTime = ($nowTs <= (strtotime($dRow['transit_start_time']) + ($etaM * 60))) ? 1 : 0;
                             }
-
-                            $pdo->prepare("UPDATE dispatches SET status = 'Delivered', transit_end_time = NOW(), is_on_time = ? WHERE id = ?")->execute([$isOnTime, $activeDispatch['id']]);
-                            $pdo->prepare("UPDATE driver_trips SET status = 'Delivered', transit_end_time = NOW(), is_on_time = ? WHERE driver_id = ? AND status = 'In Transit' ORDER BY id DESC LIMIT 1")->execute([$isOnTime, $assignedDriver['id']]);
-                            $pdo->prepare("UPDATE trucks SET status = 'Idle', current_location = 'San Leonardo (Garage)' WHERE id = ?")->execute([$truck['id']]);
-                            $pdo->prepare("UPDATE drivers SET status = 'Active' WHERE id = ?")->execute([$assignedDriver['id']]);
-                        } else {
-                            $pdo->prepare(
-                                "INSERT INTO driver_trips (driver_id, destination, trip_date, status, order_id, transit_end_time, is_on_time) VALUES (?, ?, CURDATE(), 'Delivered', ?, NOW(), 1)"
-                            )->execute([$assignedDriver['id'], $order['destination'], $order_id]);
                         }
+
+                        $pdo->prepare("UPDATE dispatches SET status = 'Delivered', transit_end_time = NOW(), is_on_time = ? WHERE id = ?")->execute([$isOnTime, $activeDispatch['id']]);
+                        $pdo->prepare("UPDATE driver_trips SET status = 'Delivered', transit_end_time = NOW(), is_on_time = ? WHERE driver_id = ? AND status = 'In Transit' ORDER BY id DESC LIMIT 1")->execute([$isOnTime, $dispatchedDriverId]);
+                        $pdo->prepare("UPDATE trucks SET status = 'Idle', current_location = 'San Leonardo (Garage)' WHERE id = ?")->execute([$truck['id']]);
+                        $pdo->prepare("UPDATE drivers SET status = 'Active' WHERE id = ?")->execute([$dispatchedDriverId]);
+                    } elseif ($dispatchedDriverId) {
+                        $pdo->prepare(
+                            "INSERT INTO driver_trips (driver_id, destination, trip_date, status, order_id, transit_end_time, is_on_time) VALUES (?, ?, CURDATE(), 'Delivered', ?, NOW(), 1)"
+                        )->execute([$dispatchedDriverId, $order['destination'], $order_id]);
                     }
 
                     $check = $pdo->prepare("SELECT trucks_required, trucks_fulfilled, cubic_meters_required, cubic_meters_fulfilled FROM orders WHERE id = ?");

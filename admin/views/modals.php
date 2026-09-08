@@ -34,6 +34,54 @@
     </div>
 </div>
 
+<!-- ==================== EDIT TRUCK MODAL ==================== -->
+<div id="editTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative max-h-[90vh] flex flex-col">
+        <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
+            <div>
+                <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Edit Truck Details</h3>
+                <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Truck Code: <span id="et_header_code" class="font-bold text-blue-600 dark:text-blue-400"></span></p>
+            </div>
+            <button onclick="toggleModal('editTruckModal', false)" class="text-gray-400 hover:text-gray-700 dark:text-gray-200">
+                <i class="fa-solid fa-xmark fa-lg"></i>
+            </button>
+        </div>
+        <form method="POST" action="dashboard.php" class="p-5 sm:p-6 space-y-4 overflow-y-auto">
+            <input type="hidden" name="action" value="edit_truck">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+            <input type="hidden" name="truck_id" id="edit_truck_id" required>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Plate Number / Truck Code <span class="text-red-500">*</span></label>
+                <input type="text" name="truck_code" id="edit_truck_code" required placeholder="e.g. ABC 1234" autocomplete="off"
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors">
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">RFID Tag</label>
+                <input type="text" name="rfid_tag" id="edit_truck_rfid" placeholder="Scan or type RFID tag..." autocomplete="off" 
+                    class="w-full border border-blue-300 dark:border-blue-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50/50 dark:bg-blue-900/30 text-gray-900 dark:text-gray-100 transition-colors">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Scan or enter the RFID card/tag assigned to this truck.</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Status</label>
+                <select name="status" id="edit_truck_status" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors">
+                    <option value="Idle">Idle (Available at Garage)</option>
+                    <option value="Maintenance">Maintenance (Broken / Under Repair)</option>
+                    <option value="In Transit">In Transit</option>
+                    <option value="Decommissioned">Decommissioned</option>
+                </select>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+                <button type="button" onclick="toggleModal('editTruckModal', false)" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
+                <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div id="addDriverModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden relative max-h-[90vh] flex flex-col">
         <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
@@ -60,6 +108,7 @@
                         <input type="text" id="driverTruckCodeDisplay" readonly placeholder="---" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-2 py-2 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 focus:outline-none cursor-not-allowed text-center font-bold text-sm">
                     </div>
                 </div>
+                <p id="driverTruckFeedback" class="text-xs mt-1.5 min-h-[1rem]"></p>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -93,7 +142,81 @@
 
             <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button type="button" onclick="toggleModal('addDriverModal', false)" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 transition">Cancel</button>
-                <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Save Driver</button>
+                <button type="submit" id="submitAddDriverBtn" class="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Save Driver</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== EDIT DRIVER MODAL ==================== -->
+<div id="editDriverModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden relative max-h-[90vh] flex flex-col">
+        <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
+            <div>
+                <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Edit Driver Profile</h3>
+                <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Driver: <span id="edr_header_name" class="font-bold text-blue-600 dark:text-blue-400"></span></p>
+            </div>
+            <button onclick="toggleModal('editDriverModal', false)" class="text-gray-400 hover:text-gray-700 dark:text-gray-200">
+                <i class="fa-solid fa-xmark fa-lg"></i>
+            </button>
+        </div>
+        <form method="POST" action="dashboard.php" class="p-5 sm:p-6 space-y-4 overflow-y-auto">
+            <input type="hidden" name="action" value="edit_driver">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+            <input type="hidden" name="driver_id" id="edit_driver_id" required>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Full Name <span class="text-red-500">*</span></label>
+                    <input type="text" name="name" id="edit_driver_name" required placeholder="Juan Dela Cruz" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">License Number (CDL)</label>
+                    <input type="text" name="cdl_number" id="edit_driver_cdl" placeholder="N01-XX-XXXXXX" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Phone Number</label>
+                    <input type="text" name="phone" id="edit_driver_phone" placeholder="0912-345-6789" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Username <span class="text-red-500">*</span></label>
+                    <input type="text" name="username" id="edit_driver_username" required placeholder="username" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Status</label>
+                    <select name="status" id="edit_driver_status" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                        <option value="Active">Active</option>
+                        <option value="Off Duty">Off Duty</option>
+                        <option value="On Leave">On Leave</option>
+                        <option value="Suspended">Suspended</option>
+                        <option value="Resigned">Resigned</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Assigned Truck</label>
+                    <select name="truck_id" id="edit_driver_truck_id" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                        <option value="">— Unassigned —</option>
+                        <?php foreach ($allTrucksList ?? [] as $trk): ?>
+                            <option value="<?= $trk['id'] ?>"><?= htmlspecialchars($trk['truck_code']) ?> (<?= htmlspecialchars($trk['status']) ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+
+            <p class="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
+                <i class="fa-solid fa-circle-info text-blue-500 mr-1"></i>
+                To change the driver's login password, use the <strong>Reset Password</strong> button in the driver card quick actions.
+            </p>
+
+            <div class="flex justify-end space-x-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                <button type="button" onclick="toggleModal('editDriverModal', false)" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 transition">Cancel</button>
+                <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Save Changes</button>
             </div>
         </form>
     </div>
@@ -118,6 +241,8 @@
 
     const driverTruckRfidInput = document.getElementById('driverTruckRfidInput');
     const driverTruckCodeDisplay = document.getElementById('driverTruckCodeDisplay');
+    const driverTruckFeedback = document.getElementById('driverTruckFeedback');
+    const submitAddDriverBtn = document.getElementById('submitAddDriverBtn');
 
     if (driverTruckRfidInput) {
         let rfidTimeout;
@@ -126,21 +251,45 @@
             const rfid = this.value.trim();
             if (rfid.length < 3) {
                 driverTruckCodeDisplay.value = '';
+                if (driverTruckFeedback) driverTruckFeedback.innerHTML = '';
+                if (submitAddDriverBtn) submitAddDriverBtn.disabled = false;
                 return;
             }
 
             rfidTimeout = setTimeout(() => {
-                fetch(`get_truck_by_rfid.php?rfid=${rfid}`)
+                fetch(`get_truck_by_rfid.php?rfid=${encodeURIComponent(rfid)}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
                             driverTruckCodeDisplay.value = data.truck_code;
-                            driverTruckCodeDisplay.classList.remove('text-red-500');
-                            driverTruckCodeDisplay.classList.add('text-green-600');
+                            if (data.driver_count >= 2) {
+                                driverTruckCodeDisplay.classList.remove('text-green-600');
+                                driverTruckCodeDisplay.classList.add('text-red-500');
+                                const dNames = data.drivers.map(d => d.name).join(', ');
+                                if (driverTruckFeedback) {
+                                    driverTruckFeedback.innerHTML = `<span class="text-red-500 font-semibold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Full (2/2 drivers): ${dNames}. Maximum 2 drivers per truck.</span>`;
+                                }
+                                if (submitAddDriverBtn) submitAddDriverBtn.disabled = true;
+                            } else {
+                                driverTruckCodeDisplay.classList.remove('text-red-500');
+                                driverTruckCodeDisplay.classList.add('text-green-600');
+                                if (driverTruckFeedback) {
+                                    if (data.driver_count === 1) {
+                                        driverTruckFeedback.innerHTML = `<span class="text-blue-600 dark:text-blue-400 font-medium"><i class="fa-solid fa-users mr-1"></i> 1/2 drivers assigned (${data.drivers[0].name}). This driver will be the 2nd alternate driver.</span>`;
+                                    } else {
+                                        driverTruckFeedback.innerHTML = `<span class="text-green-600 dark:text-green-400 font-medium"><i class="fa-solid fa-circle-check mr-1"></i> Truck available (0/2 drivers assigned).</span>`;
+                                    }
+                                }
+                                if (submitAddDriverBtn) submitAddDriverBtn.disabled = false;
+                            }
                         } else {
                             driverTruckCodeDisplay.value = 'Invalid';
                             driverTruckCodeDisplay.classList.remove('text-green-600');
                             driverTruckCodeDisplay.classList.add('text-red-500');
+                            if (driverTruckFeedback) {
+                                driverTruckFeedback.innerHTML = `<span class="text-red-500 font-medium"><i class="fa-solid fa-circle-xmark mr-1"></i> Unregistered RFID tag!</span>`;
+                            }
+                            if (submitAddDriverBtn) submitAddDriverBtn.disabled = false;
                         }
                     })
                     .catch(error => console.error('Error:', error));
@@ -175,9 +324,22 @@
                     <input type="text" id="truckPlate" readonly placeholder="Auto-filled after scan" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 focus:outline-none cursor-not-allowed text-sm">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Assigned Driver</label>
-                    <input type="hidden" name="driver_id" id="hiddenDriverId" required>
-                    <input type="text" id="assignedDriverName" readonly placeholder="Auto-filled after scan" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 focus:outline-none cursor-not-allowed text-sm">
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5" id="assignedDriverLabel">Assigned Driver</label>
+                    <!-- Single Driver View (1 driver or default before scan) -->
+                    <div id="singleDriverContainer">
+                        <input type="hidden" name="driver_id" id="hiddenDriverId" required>
+                        <input type="text" id="assignedDriverName" readonly placeholder="Auto-filled after scan" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 focus:outline-none cursor-not-allowed text-sm">
+                    </div>
+                    <!-- Alternate Drivers View (when truck has 2 drivers) -->
+                    <div id="multiDriverContainer" class="hidden">
+                        <select id="assignedDriverSelect" class="w-full border border-blue-400 dark:border-blue-600 rounded-xl px-4 py-2.5 bg-blue-50/60 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            <option value="">— Select Driver (2 Assigned) —</option>
+                        </select>
+                        <p class="text-[11px] text-blue-600 dark:text-blue-400 mt-1 font-medium flex items-center gap-1">
+                            <i class="fa-solid fa-users text-xs"></i>
+                            <span>2 alternate drivers assigned to this truck. Select who is driving.</span>
+                        </p>
+                    </div>
                 </div>
             </div>
             <div>
@@ -427,7 +589,13 @@
                 <i class="fa-solid fa-print"></i>
                 <span>Print Trips Ticket</span>
             </button>
-            <button onclick="toggleModal('viewDriverModal', false)" class="px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition">Close</button>
+            <div class="flex items-center space-x-2">
+                <button type="button" onclick="editCurrentViewedDriver()" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    <span>Edit Driver</span>
+                </button>
+                <button onclick="toggleModal('viewDriverModal', false)" class="px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition">Close</button>
+            </div>
         </div>
     </div>
 </div>
@@ -829,9 +997,14 @@
             <div class="mb-5 sm:mb-6 text-left">
                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Select New Truck</label>
                 <select name="new_truck_id" required class="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900 font-medium text-gray-700 dark:text-gray-200 text-sm">
-                    <option value="">— Select Idle Truck —</option>
+                    <option value="">— Select Truck —</option>
                     <?php foreach ($availableTrucks ?? [] as $t): ?>
-                        <option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['truck_code']) ?></option>
+                        <?php 
+                            $slotInfo = (isset($t['driver_count']) && $t['driver_count'] == 1) 
+                                ? " (1/2 drivers — Co-driver: " . htmlspecialchars($t['driver_names'] ?? '') . ")" 
+                                : " (0/2 drivers — Available)";
+                        ?>
+                        <option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['truck_code']) ?><?= $slotInfo ?></option>
                     <?php endforeach; ?>
                 </select>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Active dispatches will automatically transfer to the new truck.</p>
@@ -1114,6 +1287,172 @@
             <div class="flex justify-end space-x-3 pt-2">
                 <button type="button" onclick="toggleModal('addOrderModal', false)" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 transition">Cancel</button>
                 <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-gray-900 hover:bg-black transition">Place Order</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== EDIT ORDER MODAL ==================== -->
+<div id="editOrderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden relative max-h-[90vh] flex flex-col">
+        <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
+            <div>
+                <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Edit Order & Pinned Location</h3>
+                <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Order <span id="edit_order_number_badge" class="font-bold text-blue-600 dark:text-blue-400"></span> &bull; Update order details or re-pin destination location.</p>
+            </div>
+            <button type="button" onclick="toggleModal('editOrderModal', false)" class="text-gray-400 hover:text-gray-700 dark:text-gray-200">
+                <i class="fa-solid fa-xmark fa-lg"></i>
+            </button>
+        </div>
+        <form method="POST" action="dashboard.php" class="p-5 sm:p-6 overflow-y-auto space-y-4" id="editOrderForm">
+            <input type="hidden" name="action" value="edit_order">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+            <input type="hidden" name="order_id" id="edit_order_id" required>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Client Name <span class="text-red-500">*</span></label>
+                    <input type="text" name="client_name" id="edit_order_client_name" required placeholder="e.g. Juan dela Cruz" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Contact Number</label>
+                    <input type="text" name="contact_number" id="edit_order_contact_number" placeholder="e.g. 0912 345 6789" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Destination <span class="text-red-500">*</span></label>
+                        <button type="button" onclick="openNominatimSearch('edit_order')" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-map-location-dot"></i> Search / Re-pin OSM Map
+                        </button>
+                    </div>
+                    <select name="destination" id="edit_order_destination" required class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                        <option value="">Select destination</option>
+                        <?php foreach ($destinations as $_dest): ?>
+                            <option value="<?= htmlspecialchars($_dest['name']); ?>"><?= htmlspecialchars($_dest['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Landmark</label>
+                    <input type="text" name="landmark" id="edit_order_landmark" placeholder="e.g. Near Brgy. Hall, White Gate" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Gravel Type <span class="text-red-500">*</span></label>
+                    <select name="gravel_type" id="edit_order_gravel_type" required class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                        <option value="">Select type</option>
+                        <?php foreach ($gravelTypes as $val => $lbl): ?>
+                            <option value="<?= $val ?>"><?= htmlspecialchars($lbl) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Cubic Meter (cu.m) <span class="text-red-500">*</span></label>
+                    <input type="number" step="0.01" min="0.1" name="cubic_meters_required" id="edit_order_cubic_meters" required placeholder="e.g. 50.00" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Assign Checker</label>
+                <select name="checker_id" id="edit_order_checker_id" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                    <option value="">— Unassigned —</option>
+                    <?php foreach ($allCheckers ?? [] as $chk): ?>
+                        <?php if (($chk['status'] ?? 'Active') === 'Resigned') continue; ?>
+                        <option value="<?= $chk['id'] ?>"><?= htmlspecialchars($chk['username']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Notes</label>
+                <textarea name="notes" id="edit_order_notes" rows="2" placeholder="Special instructions, remarks..." class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none text-sm"></textarea>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+                <button type="button" onclick="toggleModal('editOrderModal', false)" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 transition">Cancel</button>
+                <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== EDIT DISPATCH / PINNED LOCATION MODAL ==================== -->
+<div id="editDispatchModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden relative max-h-[90vh] flex flex-col">
+        <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
+            <div>
+                <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Edit Dispatch & Pinned Location</h3>
+                <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Ticket: <span id="ed_ticket_number" class="font-bold text-blue-600 dark:text-blue-400"></span> &bull; Truck: <span id="ed_truck_code" class="font-bold text-gray-700 dark:text-gray-300"></span> &bull; Driver: <span id="ed_driver_name" class="font-bold text-gray-700 dark:text-gray-300"></span></p>
+            </div>
+            <button type="button" onclick="toggleModal('editDispatchModal', false)" class="text-gray-400 hover:text-gray-700 dark:text-gray-200">
+                <i class="fa-solid fa-xmark fa-lg"></i>
+            </button>
+        </div>
+        <form method="POST" action="dashboard.php" class="p-5 sm:p-6 overflow-y-auto space-y-4" id="editDispatchForm">
+            <input type="hidden" name="action" value="edit_dispatch">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+            <input type="hidden" name="dispatch_id" id="edit_dispatch_id" required>
+            <input type="hidden" name="distance_km" id="edit_dispatch_distance_km" value="0">
+            <input type="hidden" name="pay_amount" id="edit_dispatch_pay_amount" value="0">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Client Name</label>
+                    <input type="text" name="client_name" id="edit_dispatch_client_name" placeholder="Client Name" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Contact Number</label>
+                    <input type="text" name="contact_number" id="edit_dispatch_contact_number" placeholder="09xx xxx xxxx" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Destination <span class="text-red-500">*</span></label>
+                    <button type="button" onclick="openNominatimSearch('edit_dispatch')" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-map-location-dot"></i> Re-pin / Search OSM Map
+                    </button>
+                </div>
+                <select name="destination" id="edit_dispatch_destination" onchange="handleEditDispatchDestinationChange()" required class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                    <option value="">Select Destination</option>
+                    <?php foreach ($destinations as $_dest): ?>
+                        <?php
+                        $_dist = round(floatval($_dest['distance_km']));
+                        $_rate = floatval($_dest['driver_rate']);
+                        $_pay = calculateTripPay($_dist, $_dest['name'], $_rate);
+                        ?>
+                        <option value="<?= htmlspecialchars($_dest['name']); ?>" data-distance="<?= $_dist; ?>" data-pay="<?= $_pay; ?>" data-rate="<?= $_rate; ?>"><?= htmlspecialchars($_dest['name']); ?><?php if ($_dist > 0): ?> (<?= $_dist; ?> km)<?php endif; ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <div id="editDispatchPayPreview" class="text-xs mt-2">
+                    <div class="p-2.5 rounded-xl bg-blue-50/80 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50 flex items-start gap-2">
+                        <i class="fa-solid fa-route text-blue-600 dark:text-blue-400 mt-0.5"></i>
+                        <div class="text-gray-700 dark:text-gray-200 leading-relaxed">
+                            <span id="editDispatchPayAmount" class="font-medium"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Landmark / Drop-off Note</label>
+                    <input type="text" name="landmark" id="edit_dispatch_landmark" placeholder="e.g. Near Brgy. Hall" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Cubic Meters (cu.m)</label>
+                    <input type="number" step="0.01" min="0.1" name="cubic_meters" id="edit_dispatch_cubic_meters" placeholder="e.g. 10.00" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                <button type="button" onclick="toggleModal('editDispatchModal', false)" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 transition">Cancel</button>
+                <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Save Changes</button>
             </div>
         </form>
     </div>
@@ -1524,7 +1863,10 @@
 
     function openNominatimSearch(context) {
         targetInputContext = context;
-        activeParentModalId = (context === 'dispatch') ? 'dispatchModal' : (context === 'order' ? 'addOrderModal' : null);
+        activeParentModalId = (context === 'dispatch') ? 'dispatchModal' : 
+                              (context === 'order' ? 'addOrderModal' : 
+                              (context === 'edit_order' ? 'editOrderModal' : 
+                              (context === 'edit_dispatch' ? 'editDispatchModal' : null)));
         currentSelectedDistanceKm = 0;
         currentSelectedPay = 0;
         currentSelectedLocation = null;
@@ -1714,6 +2056,10 @@
             destSelect = document.getElementById('destinationSelect');
         } else if (targetInputContext === 'order') {
             destSelect = document.querySelector('#addOrderModal select[name="destination"]');
+        } else if (targetInputContext === 'edit_order') {
+            destSelect = document.getElementById('edit_order_destination');
+        } else if (targetInputContext === 'edit_dispatch') {
+            destSelect = document.getElementById('edit_dispatch_destination');
         }
 
         if (destSelect) {
@@ -1745,6 +2091,10 @@
 
             if (targetInputContext === 'dispatch') {
                 calculateAndSetDispatchPay(currentSelectedLocation, targetOpt);
+            } else if (targetInputContext === 'edit_dispatch') {
+                if (typeof calculateAndSetEditDispatchPay === 'function') {
+                    calculateAndSetEditDispatchPay(currentSelectedLocation, targetOpt);
+                }
             }
         }
         closeNominatimSearchModal();
