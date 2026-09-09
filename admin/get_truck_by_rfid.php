@@ -4,7 +4,7 @@ require_once __DIR__ . '/../db.php';
 
 header('Content-Type: application/json');
 
-// Only logged-in Admins may query truck data
+
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
@@ -14,7 +14,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
 if (isset($_GET['rfid'])) {
     $rfid = trim($_GET['rfid']);
 
-    // Check if the RFID exists
+    
     $stmt = $pdo->prepare("SELECT id, truck_code, status FROM trucks WHERE rfid_tag = ? LIMIT 1");
     $stmt->execute([$rfid]);
     $truck = $stmt->fetch(PDO::FETCH_ASSOC);

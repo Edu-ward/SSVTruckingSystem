@@ -12,7 +12,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Driver') {
 
 $user_id = $_SESSION['user_id'];
 
-// Check for an approved request
+
 $check = $pdo->prepare("SELECT id FROM password_reset_requests WHERE user_id = ? AND status = 'Approved' ORDER BY id DESC LIMIT 1");
 $check->execute([$user_id]);
 $req = $check->fetch();
@@ -32,7 +32,7 @@ if (strlen($new_password) < 8 || !preg_match('/[A-Z]/', $new_password) || !preg_
 $hashed = password_hash($new_password, PASSWORD_DEFAULT);
 $update = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
 if ($update->execute([$hashed, $user_id])) {
-    // Mark the request as resolved
+    
     $pdo->prepare("UPDATE password_reset_requests SET status = 'Rejected', resolved_at = NOW() WHERE user_id = ? AND status = 'Approved'")->execute([$user_id]);
     log_activity($pdo, 'Changed Password', 'Driver reset their password via admin-approved request');
     echo json_encode(['success' => true, 'message' => 'Password updated successfully!']);

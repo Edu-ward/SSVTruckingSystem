@@ -78,7 +78,7 @@ function getSanLeonardoBoundaryDistance(string $destName): float {
     if (strpos($d, 'peñaranda') !== false || strpos($d, 'penaranda') !== false || strpos($d, 'general tinio') !== false || strpos($d, 'gen. tinio') !== false || strpos($d, 'papaya') !== false) {
         return 6.0;
     }
-    return 12.0; // 12 km round-trip from garage to San Leonardo municipal boundary
+    return 12.0; 
 }
 
 function calculateTripPay(float $dist_km, string $destName = '', float $customRate = 0.0, ?float $baseRate = null, ?float $perKmRate = null): float {
@@ -219,7 +219,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $_SESSION['dest_success'] = "Destination '" . htmlspecialchars($dRow['name'] ?? '') . "' deleted successfully.";
                 log_activity($pdo, 'Deleted Destination', "Deleted destination ID $did (" . ($dRow['name'] ?? '') . ")");
             } catch (Exception $e) {
-                // If referenced or constrained, soft deactivate
+                
                 $pdo->prepare("UPDATE destinations SET is_active = 0 WHERE id = ?")->execute([$did]);
                 $_SESSION['dest_success'] = "Destination deactivated successfully.";
             }
@@ -323,7 +323,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $roundTripKm = floatval($dist_km > 0 ? $dist_km : 10.0);
         $roundTripKm = min(180.0, max(2.0, $roundTripKm));
         $drivingMins = round(($roundTripKm / 35) * 60);
-        $allowanceMins = 20; // 20 mins for driver efficiency and unloading
+        $allowanceMins = 20; 
         $etaMinutes = max(30, $drivingMins + $allowanceMins);
 
         if (!empty($_POST['estimated_arrival_time'])) {
@@ -392,7 +392,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $stmt = $pdo->prepare("UPDATE dispatches SET destination = ?, landmark = ?, client_name = ?, contact_number = ?, cubic_meters = ?, pay_amount = ? WHERE id = ?");
                 $stmt->execute([$destination, $landmark, $client_name, $contact_number, $cubic_meters, $pay_amount, $dispatch_id]);
 
-                // Update corresponding driver trip
+                
                 $dispStmt = $pdo->prepare("SELECT driver_id, order_id FROM dispatches WHERE id = ?");
                 $dispStmt->execute([$dispatch_id]);
                 $dispRow = $dispStmt->fetch();
@@ -401,7 +401,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                         ->execute([$destination, $distance_km, $pay_amount, $dispRow['driver_id']]);
                 }
 
-                // If destination not in destinations table, save it
+                
                 $chkDest = $pdo->prepare("SELECT id FROM destinations WHERE name = ?");
                 $chkDest->execute([$destination]);
                 if (!$chkDest->fetch()) {
@@ -483,7 +483,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             exit;
         }
 
-        // Check username uniqueness
+        
         $chkUser = $pdo->prepare("SELECT id FROM users WHERE username = ? AND id != ? LIMIT 1");
         $chkUser->execute([$username, $driver_id]);
         if ($chkUser->fetch()) {
@@ -492,7 +492,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             exit;
         }
 
-        // Capacity check for truck
+        
         if ($truck_id) {
             $curTruckStmt = $pdo->prepare("SELECT truck_id FROM drivers WHERE id = ?");
             $curTruckStmt->execute([$driver_id]);
@@ -705,8 +705,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-
-
     if ($_POST['action'] == 'resign_driver' || $_POST['action'] == 'delete_driver') {
         $driver_id = $_POST['driver_id'];
         if (!$driver_id) {
@@ -815,7 +813,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             exit;
         }
 
-        // Check duplicate plate
+        
         $dupPlate = $pdo->prepare("SELECT id FROM trucks WHERE truck_code = ? AND id != ? LIMIT 1");
         $dupPlate->execute([$truck_code, $truck_id]);
         if ($dupPlate->fetch()) {
@@ -824,7 +822,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             exit;
         }
 
-        // Check duplicate RFID
+        
         if (!empty($rfid_tag)) {
             $dupRfid = $pdo->prepare("SELECT id FROM trucks WHERE rfid_tag = ? AND id != ? LIMIT 1");
             $dupRfid->execute([$rfid_tag, $truck_id]);
@@ -901,7 +899,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $stmt = $pdo->prepare("UPDATE orders SET client_name = ?, contact_number = ?, destination = ?, landmark = ?, gravel_type = ?, cubic_meters_required = ?, trucks_required = ?, checker_id = ?, notes = ? WHERE id = ?");
                 $stmt->execute([$client_name, $contact_number, $destination, $landmark, $gravel_type, $cubic_meters_required, $trucks_req, $checker_id, $notes, $order_id]);
 
-                // Sync pending dispatches that are linked to this order
+                
                 $pdo->prepare("UPDATE dispatches SET destination = ?, landmark = ?, client_name = ?, contact_number = ? WHERE order_id = ? AND status = 'Pending'")
                     ->execute([$destination, $landmark, $client_name, $contact_number, $order_id]);
 
@@ -996,7 +994,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $driver = $stmt->fetch();
             $old_truck_id = $driver['truck_id'] ?? null;
 
-            // Check if new truck already has 2 drivers assigned (excluding this driver)
+            
             $countStmt = $pdo->prepare("SELECT COUNT(*) FROM drivers WHERE truck_id = ? AND id != ? AND status != 'Resigned'");
             $countStmt->execute([$new_truck_id, $driver_id]);
             $assignedCount = (int)$countStmt->fetchColumn();
@@ -1005,7 +1003,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 throw new Exception("The selected truck already has two assigned drivers. A truck can only have up to two drivers.");
             }
 
-            // Assign driver to new truck without unassigning existing co-driver
+            
             $pdo->prepare("UPDATE drivers SET truck_id = ? WHERE id = ?")->execute([$new_truck_id, $driver_id]);
 
             $stmt = $pdo->prepare("SELECT id, status, destination, order_id FROM dispatches WHERE driver_id = ? AND status NOT IN ('Delivered', 'Cancelled', 'Completed')");
@@ -1231,7 +1229,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
 
     if ($_POST['action'] === 'adjust_driver_balance') {
         $driver_id = intval($_POST['driver_id']);
-        $adjustment_type = $_POST['adjustment_type'] ?? 'add'; // 'add' or 'set'
+        $adjustment_type = $_POST['adjustment_type'] ?? 'add'; 
         $amount = floatval($_POST['amount'] ?? 0);
         $notes = trim($_POST['notes'] ?? '');
 
@@ -1993,7 +1991,7 @@ include __DIR__ . '/../includes/header.php';
     include __DIR__ . '/views/cash_advances.php';
     include __DIR__ . '/views/settings.php'; ?>
 </div>
-</div><!-- close #main-content -->
+</div>
 <?php include __DIR__ . '/views/modals.php'; ?>
 <?php if (isset($_SESSION['auto_print_id'])):
     $print_id = intval($_SESSION['auto_print_id']);

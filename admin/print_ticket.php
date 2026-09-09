@@ -98,7 +98,7 @@ if (!$ticket) {
             font-family: 'Inter', sans-serif;
         }
 
-        /* Preview wrapper */
+        
         .preview-shell {
             display: flex;
             justify-content: center;
@@ -106,7 +106,7 @@ if (!$ticket) {
             padding-bottom: 30px;
         }
 
-        /* Simulates A5 paper */
+        
         .page-wrapper {
             background: #fff;
             width: 148mm;
@@ -118,7 +118,7 @@ if (!$ticket) {
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         }
 
-        /* Cut line between copies */
+        
         .cut-line {
             border: none;
             border-top: 1px dashed #aaa;
@@ -135,7 +135,7 @@ if (!$ticket) {
             color: #aaa;
         }
 
-        /* Each ticket copy */
+        
         .ticket-copy {
             flex: 1;
             padding: 2mm 2mm;
@@ -145,7 +145,7 @@ if (!$ticket) {
             overflow: hidden;
         }
 
-        /* Header */
+        
         .tc-header {
             display: flex;
             justify-content: space-between;
@@ -197,7 +197,7 @@ if (!$ticket) {
             font-family: monospace;
         }
 
-        /* Body grid */
+        
         .tc-body {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
@@ -280,7 +280,7 @@ if (!$ticket) {
             font-size: 7.5px;
         }
 
-        /* Routing */
+        
         .tc-routing {
             border: 1px solid #d1d5db;
             border-radius: 4px;
@@ -358,7 +358,7 @@ if (!$ticket) {
             margin-left: 8px;
         }
 
-        /* Signatures */
+        
         .tc-sigs {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -391,7 +391,7 @@ if (!$ticket) {
             margin-top: 1px;
         }
 
-        /* Copy label */
+        
         .copy-label {
             text-align: right;
             font-size: 6.5px;
@@ -400,7 +400,7 @@ if (!$ticket) {
             margin-top: 2px;
         }
 
-        /* Toolbar */
+        
         .toolbar {
             background: #111827;
             color: #fff;
@@ -484,7 +484,7 @@ if (!$ticket) {
 
                 <div class="ticket-copy">
 
-                    <!-- Header -->
+                    
                     <div class="tc-header">
                         <div class="brand">
                             <img src="../assets/ssvLogo.png" alt="SSV Logo">
@@ -500,7 +500,7 @@ if (!$ticket) {
                         </div>
                     </div>
 
-                    <!-- Carrier, Consignee & Dispatch Details -->
+                    
                     <div class="tc-body">
                         <div class="info-box">
                             <div class="box-label">Carrier Details</div>
@@ -539,7 +539,7 @@ if (!$ticket) {
                         </div>
                     </div>
 
-                    <!-- Routing -->
+                    
                     <div class="tc-routing">
                         <div class="routing-header">Routing Information</div>
                         <div class="routing-body">
@@ -566,7 +566,7 @@ if (!$ticket) {
                         </div>
                     </div>
 
-                    <!-- Signatures -->
+                    
                     <div class="tc-sigs">
                         <div class="sig-block">
                             <div class="sig-line"></div>

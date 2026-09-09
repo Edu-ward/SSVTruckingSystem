@@ -1,4 +1,4 @@
-<?php /* Driver Management View - v2.1 (Fresh Deployment Sync) */ ?>
+<?php  ?>
 <div id="view-drivers" class="tab-content hidden">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-6 flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
         <div class="flex items-center space-x-3">
@@ -12,7 +12,7 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-            <!-- Driver Live Search Bar -->
+            
             <div class="relative flex-1 sm:w-72">
                 <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
                 <input type="text" id="driverSearchInput" placeholder="Search drivers, CDL, trucks, phone..." oninput="filterDriverCards()" class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
@@ -113,9 +113,6 @@
             ];
             $driverEditJson = htmlspecialchars(json_encode($driverEditData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8');
 
-            // Resolve profile photo URL
-            // admin/views/ is 2 levels deep → dirname(__DIR__,2) = CAPSTONE root
-            // But the browser serves from admin/, so only one ../ is needed
             $dPhotoPath = $driver['profile_photo'] ?? null;
             $dPhotoFull = $dPhotoPath ? (dirname(__DIR__, 2) . '/' . $dPhotoPath) : null;
             $dPhotoUrl  = ($dPhotoFull && file_exists($dPhotoFull))
@@ -127,7 +124,7 @@
         ?>
             <div class="driver-card bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 flex flex-col justify-between hover:shadow-md transition-all duration-200 overflow-hidden" data-search="<?= $searchMeta; ?>">
                 <div>
-                    <!-- Card Top Header -->
+                    
                     <div class="flex justify-between items-start mb-4">
                         <div class="flex items-center space-x-3 min-w-0 pr-2">
                             <?php if ($dPhotoUrl): ?>
@@ -153,7 +150,7 @@
                         </div>
                     </div>
 
-                    <!-- Details -->
+                    
                     <div class="space-y-2 text-xs text-gray-600 dark:text-gray-300 mb-3">
                         <div class="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-900 rounded-xl">
                             <span class="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
@@ -180,7 +177,7 @@
                             </span>
                             <span class="font-semibold text-gray-900 dark:text-gray-100"><?= htmlspecialchars($driver['phone'] ?? 'N/A'); ?></span>
                         </div>
-                        <!-- Performance Button (Click to view full weekly analytics & dispatch stats) -->
+                        
                         <button type="button" 
                                 onclick='openDriverPerformanceModal(<?= $driverJson; ?>)'
                                 title="Click to view weekly kilometers, dispatches, and performance analytics"
@@ -194,7 +191,7 @@
                                 <i class="fa-solid fa-chevron-right text-[10px] text-amber-500/70 group-hover:translate-x-0.5 transition-transform"></i>
                             </span>
                         </button>
-                        <!-- Remaining Balance (Uniformly shown on all driver cards) -->
+                        
                         <div class="flex items-center justify-between p-2.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl">
                             <span class="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 font-medium">
                                 <i class="fa-solid fa-clock-rotate-left w-4 text-center"></i>
@@ -211,7 +208,7 @@
                             <span class="font-bold text-orange-700 dark:text-orange-400">-₱<?= number_format($driver['approved_cash_advances'] ?? 0, 2); ?></span>
                         </div>
                         <?php endif; ?>
-                        <!-- Net Payable (Uniformly shown on all driver cards) -->
+                        
                         <div class="flex items-center justify-between p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
                             <span class="flex items-center space-x-2 text-blue-600 dark:text-blue-400 font-semibold">
                                 <i class="fa-solid fa-wallet text-blue-500 w-4 text-center"></i>
@@ -220,7 +217,7 @@
                             <span class="font-extrabold text-blue-700 dark:text-blue-400">₱<?= number_format($driver['net_earnings'] ?? 0, 2); ?></span>
                         </div>
 
-                        <!-- Deliveries Count & Distance -->
+                        
                         <div class="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-gray-900 rounded-xl">
                             <span class="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
                                 <i class="fa-solid fa-route text-cyan-500 w-4 text-center"></i>
@@ -234,7 +231,7 @@
                             </span>
                         </div>
 
-                        <!-- Recent Delivery with Duration -->
+                        
                         <?php if (!empty($driver['recent_trips'])): 
                             $latestTrip = $driver['recent_trips'][0];
                         ?>
@@ -265,7 +262,7 @@
                         <?php endif; ?>
                     </div>
 
-                    <!-- Settle Payroll Primary Action Button -->
+                    
                     <div class="mb-3">
                         <?php if ($hasPayable): ?>
                             <button type="button" 
@@ -283,7 +280,7 @@
                         <?php endif; ?>
                     </div>
 
-                    <!-- Quick Action Bar -->
+                    
                     <div class="flex items-center justify-between pt-2.5 border-t border-gray-100 dark:border-gray-700/60 mb-3">
                         <span class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Quick Actions</span>
                         <div class="flex items-center space-x-1">
@@ -335,7 +332,7 @@
                     </div>
                 </div>
 
-                <!-- Footer Action Buttons -->
+                
                 <div class="grid grid-cols-2 gap-2.5 pt-2">
                     <button onclick='openViewDriverModal(<?= $driverJson; ?>)' class="w-full py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-semibold rounded-xl transition-all">View Details</button>
                     <button onclick='openContactDriverModal(<?= $driverJson; ?>)' class="w-full py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 text-xs font-semibold rounded-xl transition-all">Contact</button>
@@ -354,7 +351,7 @@
         </div>
     </div>
 
-    <!-- Cash Advances Quick Banner in Drivers Tab -->
+    
     <div class="mt-8 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent dark:from-amber-950/30 dark:to-transparent border border-amber-200/80 dark:border-amber-800/40 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div class="flex items-center space-x-3.5">
             <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg flex-shrink-0 shadow-sm">

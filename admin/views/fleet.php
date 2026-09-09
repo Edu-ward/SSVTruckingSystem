@@ -19,7 +19,7 @@
             </div>
         </div>
         <div class="flex flex-wrap items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
-            <!-- Fleet Live Search Bar -->
+            
             <div class="relative flex-1 sm:w-72">
                 <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
                 <input type="text" id="fleetSearchInput" placeholder="Search trucks, drivers, status, RFID..." oninput="filterFleetCards()" class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">

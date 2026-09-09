@@ -4,14 +4,14 @@ require_once __DIR__ . '/../db.php';
 
 header('Content-Type: application/json');
 
-// Only authenticated Admins may poll tracking data
+
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
 }
 
-// Return only trucks that are actively In Transit with valid coordinates
+
 $stmt = $pdo->query("
     SELECT 
         t.id,
@@ -38,7 +38,7 @@ $stmt = $pdo->query("
 
 $trucks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Ensure estimated_arrival_time has explicit Asia/Manila (+08:00) offset for browser parsing
+
 foreach ($trucks as &$tr) {
     if (!empty($tr['estimated_arrival_time'])) {
         $ts = strtotime($tr['estimated_arrival_time']);

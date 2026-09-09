@@ -41,7 +41,7 @@ if ($settlement_id > 0) {
     $trips_count       = intval($settlement['trips_count']);
     $settled_date      = date('F d, Y - h:i A', strtotime($settlement['settled_at']));
 
-    // Fetch settled trips
+    
     $stStmt = $pdo->prepare("
         SELECT 
             d.id, d.ticket_number, d.destination, d.dispatch_date, d.created_at, d.transit_end_time,
@@ -116,7 +116,7 @@ if ($settlement_id > 0) {
     die("No settlement or driver specified.");
 }
 
-// Fetch pending / in-transit trips for the driver
+
 $ptStmt = $pdo->prepare("
     SELECT 
         d.id, d.ticket_number, d.destination, d.status, d.created_at,
@@ -186,7 +186,7 @@ $payroll = $stmt2->fetch(PDO::FETCH_ASSOC) ?: ['total_amount' => 0, 'amount_clai
     </div>
 
     <div class="waybill-container mt-16 relative">
-        <!-- Header -->
+        
         <div class="flex justify-between items-start border-b-2 border-gray-900 pb-5 mb-5">
             <div>
                 <div class="flex items-center mb-1">
@@ -213,7 +213,7 @@ $payroll = $stmt2->fetch(PDO::FETCH_ASSOC) ?: ['total_amount' => 0, 'amount_clai
             </div>
         </div>
 
-        <!-- Payout Overview Box -->
+        
         <div class="bg-emerald-50 border border-emerald-200 p-5 rounded-xl mb-5">
             <div class="flex justify-between items-center mb-3 border-b border-emerald-200/80 pb-3">
                 <div>
@@ -256,7 +256,7 @@ $payroll = $stmt2->fetch(PDO::FETCH_ASSOC) ?: ['total_amount' => 0, 'amount_clai
             </div>
         </div>
 
-        <!-- Driver and Ticket Info -->
+        
         <div class="grid grid-cols-2 gap-5 mb-5 text-xs">
             <div class="bg-gray-50 p-3.5 border border-gray-200 rounded-lg">
                 <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1.5">Driver Information</p>
@@ -288,7 +288,7 @@ $payroll = $stmt2->fetch(PDO::FETCH_ASSOC) ?: ['total_amount' => 0, 'amount_clai
             </div>
         </div>
 
-        <!-- ====== SETTLED TRIPS BREAKDOWN ====== -->
+        
         <div class="mb-5">
             <div class="flex justify-between items-center mb-2">
                 <h4 class="text-xs font-bold uppercase tracking-wider text-gray-800">
@@ -344,7 +344,7 @@ $payroll = $stmt2->fetch(PDO::FETCH_ASSOC) ?: ['total_amount' => 0, 'amount_clai
             <?php endif; ?>
         </div>
 
-        <!-- ====== PENDING / IN-TRANSIT TRIPS ====== -->
+        
         <?php if (!empty($pendingTrips)): ?>
         <div class="mb-5">
             <div class="flex justify-between items-center mb-2">
@@ -382,12 +382,12 @@ $payroll = $stmt2->fetch(PDO::FETCH_ASSOC) ?: ['total_amount' => 0, 'amount_clai
         </div>
         <?php endif; ?>
 
-        <!-- Notice -->
+        
         <div class="bg-gray-100 p-3 border border-gray-300 text-[11px] text-gray-700 italic mb-8 rounded-lg">
             <strong>Disbursement Policy:</strong> This voucher confirms authorization and disbursement of driver payroll for the itemized deliveries listed above. Unclaimed gross earnings have been cleared. <?php if ($remaining_balance > 0): ?>A remaining balance of <strong>₱<?= number_format($remaining_balance, 2); ?></strong> is credited to the driver's account for the next cycle.<?php endif; ?>
         </div>
 
-        <!-- Signatures -->
+        
         <div class="grid grid-cols-2 gap-12 mt-12 pt-6 border-t border-gray-300">
             <div class="text-center">
                 <div class="border-b border-gray-900 w-full h-8 mb-1.5"></div>

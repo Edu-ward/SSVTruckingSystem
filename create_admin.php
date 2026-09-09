@@ -1,15 +1,8 @@
 <?php
-// ============================================================
-// SSV Trucking System — Admin Account Setup Tool
-// Usage:
-// 1. Web: Open in your browser (e.g., http://localhost/CAPSTONE/create_admin.php or http://ssvtrucking.rf.gd/create_admin.php)
-// 2. CLI: Run `php create_admin.php` in terminal
-// IMPORTANT: Delete or rename this file after creating your admin account for security!
-// ============================================================
 
 $isCli = (php_sapi_name() === 'cli');
 
-// Database connection
+
 $dbError = null;
 try {
     require_once __DIR__ . '/db.php';
@@ -20,7 +13,7 @@ try {
 $message = null;
 $messageType = null;
 
-// Handle CLI execution
+
 if ($isCli) {
     if ($dbError || !isset($pdo)) {
         echo "[ERROR] Database connection failed: " . ($dbError ?: 'PDO not initialized') . PHP_EOL;
@@ -49,12 +42,12 @@ if ($isCli) {
     exit(0);
 }
 
-// Handle Web POST request
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($pdo)) {
     $action = $_POST['action'] ?? 'create';
 
     if ($action === 'delete_self') {
-        // Self-destruct for security
+        
         @unlink(__FILE__);
         header("Location: index.php?msg=setup_complete");
         exit;
@@ -99,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($pdo)) {
     }
 }
 
-// Check existing admins
+
 $existingAdmins = [];
 if (isset($pdo)) {
     try {
@@ -131,7 +124,7 @@ if (isset($pdo)) {
 
     <div class="w-full max-w-md bg-gray-800/90 backdrop-blur-xl border border-gray-700/80 rounded-3xl shadow-2xl overflow-hidden">
 
-        <!-- Top Branding Header -->
+        
         <div class="p-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center space-x-4">
             <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-2xl border border-white/20 shadow-inner">
                 <i class="fa-solid fa-user-shield text-amber-300"></i>
@@ -144,7 +137,7 @@ if (isset($pdo)) {
 
         <div class="p-6 sm:p-8 space-y-6">
 
-            <!-- Database Status Indicator -->
+            
             <?php if ($dbError || !isset($pdo)): ?>
                 <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start space-x-3">
                     <i class="fa-solid fa-triangle-exclamation text-rose-400 text-base mt-0.5"></i>
@@ -164,7 +157,7 @@ if (isset($pdo)) {
                 </div>
             <?php endif; ?>
 
-            <!-- Feedback Alert -->
+            
             <?php if ($message): ?>
                 <div class="p-4 rounded-2xl <?= $messageType === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300' ?> border text-xs flex items-start space-x-3">
                     <i class="fa-solid <?= $messageType === 'success' ? 'fa-circle-check text-emerald-400' : 'fa-circle-xmark text-rose-400' ?> text-base mt-0.5"></i>
@@ -189,7 +182,7 @@ if (isset($pdo)) {
                 </div>
             <?php endif; ?>
 
-            <!-- Existing Admins List -->
+            
             <?php if (!empty($existingAdmins)): ?>
                 <div class="p-4 rounded-2xl bg-gray-700/40 border border-gray-700/60">
                     <div class="flex items-center justify-between text-xs text-gray-400 mb-2 font-medium">
@@ -211,7 +204,7 @@ if (isset($pdo)) {
                 </div>
             <?php endif; ?>
 
-            <!-- Account Form -->
+            
             <form method="POST" class="space-y-4">
                 <input type="hidden" name="action" value="create">
 
@@ -256,7 +249,7 @@ if (isset($pdo)) {
                 </div>
             </form>
 
-            <!-- Quick Info / Security Advice -->
+            
             <div class="text-[11px] text-gray-400 border-t border-gray-700/60 pt-4 space-y-1.5">
                 <div class="flex items-center gap-1.5 text-amber-400/90 font-medium">
                     <i class="fa-solid fa-shield-cat"></i>

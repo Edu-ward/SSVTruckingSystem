@@ -1,5 +1,5 @@
 <?php
-// SSV Modals - v2.1 (Fresh Deployment Sync)
+
 ?>
 
 <div id="addTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
@@ -35,7 +35,7 @@
     </div>
 </div>
 
-<!-- ==================== EDIT TRUCK MODAL ==================== -->
+
 <div id="editTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative max-h-[90vh] flex flex-col">
         <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
@@ -147,7 +147,7 @@
     </div>
 </div>
 
-<!-- ==================== EDIT DRIVER MODAL ==================== -->
+
 <div id="editDriverModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden relative max-h-[90vh] flex flex-col">
         <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
@@ -289,7 +289,7 @@
                         }
                     })
                     .catch(error => console.error('Error:', error));
-            }, 300); // 300ms debounce
+            }, 300); 
         });
     }
 </script>
@@ -321,12 +321,12 @@
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5" id="assignedDriverLabel">Assigned Driver</label>
-                    <!-- Single Driver View (1 driver or default before scan) -->
+                    
                     <div id="singleDriverContainer">
                         <input type="hidden" name="driver_id" id="hiddenDriverId" required>
                         <input type="text" id="assignedDriverName" readonly placeholder="Auto-filled after scan" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 focus:outline-none cursor-not-allowed text-sm">
                     </div>
-                    <!-- Alternate Drivers View (when truck has 2 drivers) -->
+                    
                     <div id="multiDriverContainer" class="hidden">
                         <select id="assignedDriverSelect" class="w-full border border-blue-400 dark:border-blue-600 rounded-xl px-4 py-2.5 bg-blue-50/60 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                             <option value="">— Select Driver (2 Assigned) —</option>
@@ -517,10 +517,10 @@
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative max-h-[90vh] flex flex-col">
         <button onclick="toggleModal('viewDriverModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200 z-10"><i class="fa-solid fa-xmark fa-lg"></i></button>
         <div class="bg-blue-600 p-5 sm:p-6 text-center flex-shrink-0">
-            <!-- Photo avatar (shown when driver has photo) -->
+            
             <img id="vd-photo" src="" alt=""
                 class="w-20 h-20 rounded-full object-cover border-4 border-white/80 shadow-xl mx-auto mb-2 sm:mb-3 hidden">
-            <!-- Initials avatar (fallback) -->
+            
             <div class="w-16 h-16 sm:w-20 sm:h-20 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold text-blue-600 mx-auto mb-2 sm:mb-3 shadow-lg" id="vd-initials">--</div>
             <h3 class="text-lg sm:text-xl font-bold text-white" id="vd-name">Driver Name</h3>
             <p class="text-blue-100 text-xs sm:text-sm mt-0.5" id="vd-cdl">Licence #</p>
@@ -545,7 +545,7 @@
                 </div>
             </div>
 
-            <!-- Payroll Summary & Settle Action -->
+            
             <div class="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl border border-emerald-100 dark:border-emerald-900/40 flex items-center justify-between gap-3" id="vd-payroll-bar">
                 <div>
                     <div class="text-[10px] font-bold uppercase text-emerald-800 dark:text-emerald-400 tracking-wider">Unclaimed Payroll</div>
@@ -598,10 +598,10 @@
     </div>
 </div>
 
-<!-- ====== SETTLE DRIVER PAYROLL CONFIRMATION MODAL ====== -->
+
 <div id="settlePayrollModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-60 hidden p-3 sm:p-4 backdrop-blur-xs">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative border border-gray-100 dark:border-gray-700">
-        <!-- Header -->
+        
         <div class="bg-gradient-to-r from-emerald-600 to-teal-700 p-5 text-white flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-lg">
@@ -645,7 +645,7 @@
                 </div>
             </div>
 
-            <!-- Partial Claim / Disbursement Input -->
+            
             <div>
                 <div class="flex items-center justify-between mb-1">
                     <label class="block text-xs font-bold text-gray-700 dark:text-gray-300">
@@ -665,7 +665,7 @@
                     class="w-full text-base font-extrabold text-emerald-700 dark:text-emerald-300 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-emerald-500 focus:border-emerald-500 p-2.5">
             </div>
 
-            <!-- Remaining Balance Display -->
+            
             <div class="flex items-center justify-between p-2.5 bg-indigo-50/70 dark:bg-indigo-950/30 rounded-xl border border-indigo-100 dark:border-indigo-900/40 text-xs">
                 <span class="text-indigo-700 dark:text-indigo-400 font-semibold flex items-center gap-1.5">
                     <i class="fa-solid fa-clock-rotate-left"></i>
@@ -699,10 +699,10 @@
     </div>
 </div>
 
-<!-- ====== ADJUST DRIVER REMAINING BALANCE MODAL ====== -->
+
 <div id="adjustDriverBalanceModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-60 hidden p-3 sm:p-4 backdrop-blur-xs">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative border border-gray-100 dark:border-gray-700">
-        <!-- Header -->
+        
         <div class="bg-gradient-to-r from-indigo-600 to-blue-700 p-5 text-white flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-lg">
@@ -771,10 +771,10 @@
     </div>
 </div>
 
-<!-- ====== ALL DRIVER DELIVERIES MODAL ====== -->
+
 <div id="allDriverDeliveriesModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden relative max-h-[90vh] flex flex-col">
-        <!-- Modal Header -->
+        
         <div class="bg-slate-900 text-white p-5 sm:p-6 flex items-center justify-between flex-shrink-0">
             <div class="flex items-center space-x-3.5">
                 <div class="w-11 h-11 bg-blue-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-md">
@@ -793,7 +793,7 @@
             </button>
         </div>
 
-        <!-- Summary KPI Strip -->
+        
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 sm:p-5 bg-gray-50 dark:bg-gray-900/60 border-b border-gray-200 dark:border-gray-700 text-xs flex-shrink-0">
             <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm text-center">
                 <span class="text-gray-400 font-semibold block uppercase text-[10px]">Total Trips</span>
@@ -809,7 +809,7 @@
             </div>
         </div>
 
-        <!-- Month Filter Toolbar in View All Deliveries Modal -->
+        
         <div class="px-4 sm:px-6 py-3 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 flex-shrink-0">
             <div class="flex items-center gap-2">
                 <i class="fa-regular fa-calendar-days text-blue-500 text-sm"></i>
@@ -820,7 +820,7 @@
             <div class="flex items-center gap-2 w-full sm:w-auto">
                 <select id="ad-month-select" onchange="filterAllDriverDeliveriesByMonth(this.value)" class="w-full sm:w-auto border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 text-xs font-semibold bg-gray-50 dark:bg-gray-750 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:outline-none transition cursor-pointer">
                     <option value="all">All Deliveries (All Time)</option>
-                    <!-- Populated dynamically via JS -->
+                    
                 </select>
                 <span id="ad-month-count-pill" class="text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800 flex-shrink-0">
                     0 trips
@@ -828,12 +828,12 @@
             </div>
         </div>
 
-        <!-- Scrollable Deliveries List -->
+        
         <div class="p-4 sm:p-6 overflow-y-auto space-y-2.5 flex-1 max-h-[50vh]" id="ad-all-trips-list">
-            <!-- Populated via JavaScript -->
+            
         </div>
 
-        <!-- Footer Actions -->
+        
         <div class="p-3.5 sm:p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-between gap-3 flex-shrink-0">
             <button type="button" onclick="openPrintDriverTripsModal()" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition flex items-center gap-1.5 shadow-sm">
                 <i class="fa-solid fa-print"></i>
@@ -852,7 +852,7 @@
     </div>
 </div>
 
-<!-- ==================== PRINT DRIVER TRIPS COVERAGE MODAL ==================== -->
+
 <div id="printDriverTripsModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative max-h-[90vh] flex flex-col">
         <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex-shrink-0">
@@ -1015,7 +1015,7 @@
     </div>
 </div>
 
-<!-- Approve Cancellation Modal -->
+
 <div id="approveCancelModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex justify-center items-center z-50 p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
         <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-orange-50 dark:bg-gray-700">
@@ -1133,8 +1133,6 @@
     </div>
 </div>
 
-
-<!-- ==================== MARK AS FIXED MODAL ==================== -->
 <div id="markFixedModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-60 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden relative transform transition-all">
         <div class="bg-green-600 p-6 text-center">
@@ -1208,7 +1206,7 @@
     </div>
 </div>
 
-<!-- ==================== ADD ORDER MODAL ==================== -->
+
 <div id="addOrderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden relative max-h-[90vh] flex flex-col">
         <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
@@ -1290,7 +1288,7 @@
     </div>
 </div>
 
-<!-- ==================== EDIT ORDER MODAL ==================== -->
+
 <div id="editOrderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden relative max-h-[90vh] flex flex-col">
         <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
@@ -1379,7 +1377,7 @@
     </div>
 </div>
 
-<!-- ==================== EDIT DISPATCH / PINNED LOCATION MODAL ==================== -->
+
 <div id="editDispatchModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden relative max-h-[90vh] flex flex-col">
         <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
@@ -1456,7 +1454,7 @@
     </div>
 </div>
 
-<!-- ==================== ADD CHECKER MODAL ==================== -->
+
 <div id="addCheckerModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative max-h-[90vh] flex flex-col">
         <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
@@ -1568,7 +1566,7 @@
     </div>
 </div>
 
-<!-- ==================== CANCEL ORDER MODAL ==================== -->
+
 <div id="cancelOrderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden relative p-5 sm:p-6 text-center max-h-[90vh] overflow-y-auto">
         <button onclick="toggleModal('cancelOrderModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200"><i class="fa-solid fa-xmark fa-lg"></i></button>
@@ -1587,7 +1585,7 @@
     </div>
 </div>
 
-<!-- ==================== NOMINATIM OSM SEARCH MODAL ==================== -->
+
 <div id="nominatimSearchModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-gray-900 bg-opacity-60 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
         <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-blue-600 text-white flex-shrink-0">
@@ -1696,7 +1694,7 @@
                 return 6;
             }
         }
-        return 12; // 12 km round-trip from garage to San Leonardo municipal boundary
+        return 12; 
     }
 
     function computeDriverTripPay(km, name = '', lat = null, lng = null, customRate = null) {
@@ -1764,7 +1762,7 @@
 
             const roundTripKm = Math.min(180, Math.max(2, rounded));
             const drivingMins = Math.round((roundTripKm / 35) * 60);
-            const allowanceMins = 20; // 20 min unloading & driver efficiency allowance
+            const allowanceMins = 20; 
             const transitMins = Math.max(30, drivingMins + allowanceMins);
             const now = new Date();
             const etaDate = new Date(now.getTime() + (transitMins * 60000));
@@ -2099,19 +2097,16 @@
     }
 </script>
 
-<!-- ============================================================ -->
-<!-- DRIVER PERFORMANCE & WEEKLY ANALYTICS MODAL                   -->
-<!-- ============================================================ -->
 <div id="driverPerformanceModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden relative max-h-[92vh] flex flex-col border border-gray-100 dark:border-gray-700">
-        <!-- Close Button -->
+        
         <button type="button" onclick="toggleModal('driverPerformanceModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 z-10 w-8 h-8 rounded-full bg-white/20 dark:bg-gray-700/50 flex items-center justify-center transition">
             <i class="fa-solid fa-xmark fa-lg"></i>
         </button>
 
-        <!-- Modal Header -->
+        
         <div class="bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 p-5 sm:p-6 text-white flex items-center gap-4 flex-shrink-0">
-            <!-- Driver Avatar -->
+            
             <img id="dp-driver-photo" src="" alt="Driver Photo" class="w-16 h-16 rounded-2xl object-cover border-2 border-white/80 shadow-md hidden flex-shrink-0">
             <div id="dp-driver-initials" class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white font-extrabold text-2xl shadow-inner flex-shrink-0">
                 DR
@@ -2132,10 +2127,10 @@
             </div>
         </div>
 
-        <!-- Modal Body (Scrollable with hidden scrollbars) -->
+        
         <div class="p-5 sm:p-6 overflow-y-auto space-y-5" style="scrollbar-width: none; -ms-overflow-style: none;">
 
-            <!-- Section Title -->
+            
             <div class="flex items-center justify-between">
                 <div>
                     <h4 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Weekly Performance Overview</h4>
@@ -2146,30 +2141,30 @@
                 </span>
             </div>
 
-            <!-- Top 4-KPI Grid -->
+            
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <!-- This Week's KM -->
+                
                 <div class="bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 rounded-2xl p-3.5 text-center">
                     <div class="text-[11px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 mb-1">This Week (KM)</div>
                     <div class="text-xl sm:text-2xl font-extrabold text-amber-700 dark:text-amber-300" id="dp-this-week-km">0.0 km</div>
                     <div class="text-[10px] text-amber-600/80 dark:text-amber-400/70 mt-0.5">Current cycle distance</div>
                 </div>
 
-                <!-- This Week's Dispatches -->
+                
                 <div class="bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 rounded-2xl p-3.5 text-center">
                     <div class="text-[11px] font-bold uppercase tracking-wider text-blue-800 dark:text-blue-400 mb-1">This Week Trips</div>
                     <div class="text-xl sm:text-2xl font-extrabold text-blue-700 dark:text-blue-300" id="dp-this-week-trips">0 Delivered</div>
                     <div class="text-[10px] text-blue-600/80 dark:text-blue-400/70 mt-0.5">Delivered this week</div>
                 </div>
 
-                <!-- Average KM per Week -->
+                
                 <div class="bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 rounded-2xl p-3.5 text-center">
                     <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 mb-1">Avg KM / Week</div>
                     <div class="text-xl sm:text-2xl font-extrabold text-emerald-700 dark:text-emerald-300" id="dp-avg-km">0.0 km</div>
                     <div class="text-[10px] text-emerald-600/80 dark:text-emerald-400/70 mt-0.5">Weekly average</div>
                 </div>
 
-                <!-- Average Dispatches per Week -->
+                
                 <div class="bg-indigo-50/70 dark:bg-indigo-950/20 border border-indigo-200/60 dark:border-indigo-900/40 rounded-2xl p-3.5 text-center">
                     <div class="text-[11px] font-bold uppercase tracking-wider text-indigo-800 dark:text-indigo-400 mb-1">Avg Trips / Week</div>
                     <div class="text-xl sm:text-2xl font-extrabold text-indigo-700 dark:text-indigo-300" id="dp-avg-trips">0.0</div>
@@ -2177,7 +2172,7 @@
                 </div>
             </div>
 
-            <!-- Secondary Metrics Bar -->
+            
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 bg-gray-50 dark:bg-gray-900/70 rounded-2xl border border-gray-100 dark:border-gray-800 text-xs">
                 <div>
                     <span class="text-gray-400 dark:text-gray-500 block text-[10px] uppercase font-bold">On-Time Delivery</span>
@@ -2197,7 +2192,7 @@
                 </div>
             </div>
 
-            <!-- Weekly History Breakdown Table -->
+            
             <div>
                 <div class="flex items-center justify-between mb-2.5">
                     <h5 class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
@@ -2219,7 +2214,7 @@
                                 </tr>
                             </thead>
                             <tbody id="dp-weekly-table-body" class="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-800">
-                                <!-- Populated dynamically by openDriverPerformanceModal -->
+                                
                             </tbody>
                         </table>
                     </div>
@@ -2231,7 +2226,7 @@
             </div>
         </div>
 
-        <!-- Modal Footer -->
+        
         <div class="border-t border-gray-100 dark:border-gray-700 p-4 sm:p-5 bg-gray-50 dark:bg-gray-900/40 flex items-center justify-between gap-3 flex-shrink-0">
             <button type="button" id="dp-print-trips-btn" onclick="printCurrentDriverTrips()" class="px-4 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition flex items-center gap-1.5 shadow-sm">
                 <i class="fa-solid fa-print text-blue-500"></i>

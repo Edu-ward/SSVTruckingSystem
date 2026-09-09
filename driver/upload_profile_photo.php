@@ -56,7 +56,7 @@ $upload_dir = __DIR__ . '/../assets/uploads/driver_photos/';
 $filename   = 'driver_' . $driver_id . '_' . time() . '.' . $ext;
 $dest       = $upload_dir . $filename;
 
-// Remove any older photos for this driver
+
 foreach (glob($upload_dir . 'driver_' . $driver_id . '*.*') as $old_file) {
     if (is_file($old_file)) {
         @unlink($old_file);

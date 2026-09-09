@@ -11,7 +11,7 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
 ?>
 <div id="view-orders" class="tab-content hidden">
 
-    <!-- Header bar -->
+    
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-lg shadow-sm flex-shrink-0">
@@ -23,7 +23,7 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
             </div>
         </div>
         <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            <!-- Order Live Search Bar -->
+            
             <div class="relative w-full sm:w-72">
                 <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
                 <input type="text" id="orderSearchInput" placeholder="Search order #, client, phone, destination, checker..." oninput="filterOrders()" class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
@@ -42,7 +42,7 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
         </div>
     </div>
 
-    <!-- Stats row -->
+    
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <?php
         $totalOrders  = count($allOrders ?? []);
@@ -50,7 +50,7 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
         $inProgressOrders = count(array_filter($allOrders ?? [], fn($o) => $o['status'] === 'In Progress'));
         $fulfilledOrders  = count(array_filter($allOrders ?? [], fn($o) => $o['status'] === 'Fulfilled'));
         ?>
-        <!-- Total Orders -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 border border-blue-200/70 dark:border-blue-900/40 shadow-sm relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
@@ -64,7 +64,7 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
             </div>
             <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
         </div>
-        <!-- Pending -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 border border-amber-200/70 dark:border-amber-900/40 shadow-sm relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
@@ -78,7 +78,7 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
             </div>
             <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
         </div>
-        <!-- In Progress -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 border border-indigo-200/70 dark:border-indigo-900/40 shadow-sm relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
@@ -92,7 +92,7 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
             </div>
             <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-400 to-purple-500"></div>
         </div>
-        <!-- Fulfilled -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 border border-emerald-200/70 dark:border-emerald-900/40 shadow-sm relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
@@ -108,7 +108,7 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
         </div>
     </div>
 
-    <!-- Orders table -->
+    
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div class="p-6 border-b border-gray-100 dark:border-gray-700">
             <h3 class="font-semibold text-gray-800 dark:text-gray-200">All Orders</h3>
@@ -215,7 +215,7 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
         <?php endif; ?>
     </div>
 
-    <!-- Checkers list -->
+    
     <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div class="p-6 border-b border-gray-100 dark:border-gray-700">
             <h3 class="font-semibold text-gray-800 dark:text-gray-200">Checker Accounts</h3>

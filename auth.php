@@ -4,22 +4,22 @@ require 'db.php';
 require_once __DIR__ . '/includes/activity_log.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // ── CSRF Validation (timing-safe) ──
+    
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
         http_response_code(403);
         die("CSRF token validation failed.");
     }
 
-    // ── Brute-Force Protection ──
+    
     $maxAttempts = 5;
-    $lockoutSeconds = 900; // 15 minutes
+    $lockoutSeconds = 900; 
 
     if (!isset($_SESSION['login_attempts'])) {
         $_SESSION['login_attempts'] = 0;
         $_SESSION['last_failed_login'] = 0;
     }
 
-    // Check if currently locked out
+    
     if ($_SESSION['login_attempts'] >= $maxAttempts) {
         $elapsed = time() - $_SESSION['last_failed_login'];
         if ($elapsed < $lockoutSeconds) {
@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: index.php?error=locked&minutes=" . $remaining);
             exit;
         }
-        // Lockout expired — reset
+        
         $_SESSION['login_attempts'] = 0;
     }
 
@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password'])) {
-        // Block resigned drivers and checkers from logging into their portals
+        
         if ($user['role'] == 'Driver') {
             $chkStatus = $pdo->prepare("SELECT status FROM drivers WHERE id = ?");
             $chkStatus->execute([$user['id']]);
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // ── Successful login — reset counters & regenerate session ──
+        
         $_SESSION['login_attempts'] = 0;
         session_regenerate_id(true);
         $_SESSION['user_id'] = $user['id'];
@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
     } else {
-        // ── Failed login — increment counter ──
+        
         $_SESSION['login_attempts'] = ($_SESSION['login_attempts'] ?? 0) + 1;
         $_SESSION['last_failed_login'] = time();
         log_activity($pdo, 'Failed Login', 'Failed login attempt for username: ' . $username);

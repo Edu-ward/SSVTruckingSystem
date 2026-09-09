@@ -1,6 +1,6 @@
 <div id="view-activity_logs" class="tab-content hidden">
 
-    <!-- Header -->
+    
     <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div>
             <h2 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center space-x-2">
@@ -10,14 +10,14 @@
             <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Audit trail of all system actions across all users.</p>
         </div>
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-            <!-- Role Filter -->
+            
             <select id="activityLogRoleFilter" onchange="filterActivityLogs()" class="input-field !w-full sm:!w-auto text-sm">
                 <option value="">All Roles</option>
                 <option value="Admin">Admin</option>
                 <option value="Driver">Driver</option>
                 <option value="Checker">Checker</option>
             </select>
-            <!-- Search -->
+            
             <div class="relative w-full sm:w-56">
                 <input type="text" id="activityLogSearch" onkeyup="filterActivityLogs()" placeholder="Search logs..." class="input-field !w-full pl-9 text-sm">
                 <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
@@ -25,7 +25,7 @@
         </div>
     </div>
 
-    <!-- Stats Cards -->
+    
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <?php
         $totalLogs = count($activityLogs);
@@ -79,7 +79,7 @@
         </div>
     </div>
 
-    <!-- Logs Table -->
+    
     <div class="bg-white dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full min-w-[700px] text-sm" id="activityLogsTable">
@@ -165,7 +165,7 @@
             </table>
         </div>
 
-        <!-- Footer -->
+        
         <div class="px-5 py-3 bg-gray-50 dark:bg-gray-800/60 border-t border-gray-200 dark:border-gray-700/50 flex items-center justify-between">
             <p class="text-xs text-gray-400 dark:text-gray-500">Showing latest <strong><?= count($activityLogs) ?></strong> entries</p>
             <p class="text-xs text-gray-400 dark:text-gray-500" id="activityLogVisibleCount"></p>

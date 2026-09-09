@@ -1,5 +1,5 @@
 <?php
-// view-cash_advances — Driver Cash Advance Requests Management
+
 $totalPendingAmount = array_sum(array_column($pendingCashAdvances ?? [], 'amount'));
 $approvedAdvancesList = array_filter($allCashAdvances ?? [], fn($ca) => $ca['status'] === 'Approved');
 $totalApprovedAmount = array_sum(array_column($approvedAdvancesList, 'amount'));
@@ -10,7 +10,7 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
 ?>
 <div id="view-cash_advances" class="tab-content hidden">
 
-    <!-- Page Header -->
+    
     <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
             <div class="flex items-center gap-3">
@@ -24,7 +24,7 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
             </div>
         </div>
         <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            <!-- Cash Advance Live Search Bar -->
+            
             <div class="relative flex-1 md:w-72">
                 <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
                 <input type="text" id="caSearchInput" placeholder="Search driver, reason, amount, ticket #..." oninput="syncCaSearch(this.value, 'top')" class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
@@ -45,9 +45,9 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
         </div>
     </div>
 
-    <!-- KPI Summary Cards -->
+    
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <!-- Pending Card -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-amber-200/70 dark:border-amber-900/40 shadow-sm relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
@@ -66,7 +66,7 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
             <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
         </div>
 
-        <!-- Total Approved Card -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-emerald-200/70 dark:border-emerald-900/40 shadow-sm relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
@@ -85,7 +85,7 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
             <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
         </div>
 
-        <!-- Unsettled in Payroll Card -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-blue-200/70 dark:border-blue-900/40 shadow-sm relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
@@ -104,7 +104,7 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
             <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
         </div>
 
-        <!-- Settled Payroll Card -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
@@ -124,7 +124,7 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
         </div>
     </div>
 
-    <!-- PENDING CASH ADVANCE REQUESTS SECTION -->
+    
     <div class="mb-8">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-amber-200 dark:border-amber-900/50 overflow-hidden">
             <div class="p-5 sm:p-6 border-b border-amber-100 dark:border-amber-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-50/60 dark:bg-amber-950/20">
@@ -227,7 +227,7 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
         </div>
     </div>
 
-    <!-- ALL CASH ADVANCES / HISTORY SECTION -->
+    
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-gray-50/50 dark:bg-gray-900/30">
             <div class="flex items-center space-x-3">
@@ -240,7 +240,7 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
                 </div>
             </div>
 
-            <!-- Filter Controls -->
+            
             <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
                 <div class="relative w-full sm:w-auto">
                     <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
@@ -285,7 +285,7 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
                         data-settled="<?= $isSettled ? 'settled' : 'unsettled' ?>"
                         data-search="<?= htmlspecialchars(strtolower($ticketNum . ' ' . ($ca['ticket_number'] ?? '') . ' ' . ($ca['driver_name'] ?? '') . ' ' . ($ca['reason'] ?? '') . ' ' . ($ca['amount'] ?? '') . ' ' . ($ca['status'] ?? '') . ' ' . ($isSettled ? 'settled' : 'unsettled active'))) ?>">
                         
-                        <!-- Left: Icon + Ticket # & Amount + Driver & Reason -->
+                        
                         <div class="flex items-center space-x-3.5 min-w-0">
                             <div class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 flex-shrink-0">
                                 <i class="fa-solid fa-receipt text-sm"></i>
@@ -312,7 +312,7 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
                             </div>
                         </div>
 
-                        <!-- Right: Status Badge + Deduction State + Action Buttons -->
+                        
                         <div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-700/60">
                             <div class="flex items-center gap-2">
                                 <span class="<?= $chipStyle; ?>">
@@ -368,10 +368,10 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
 
 </div>
 
-<!-- ==================== CASH ADVANCE CONFIRM MODAL ==================== -->
+
 <div id="caConfirmModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-gray-900 bg-opacity-60 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden relative flex flex-col">
-        <!-- Header -->
+        
         <div id="caConfirmModalHeader" class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div id="caConfirmIconWrap" class="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0">
@@ -386,7 +386,7 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
                 <i class="fa-solid fa-xmark fa-lg"></i>
             </button>
         </div>
-        <!-- Body -->
+        
         <div class="p-5 sm:p-6 space-y-3">
             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 flex flex-col gap-1.5">
                 <div class="flex items-center gap-2 text-sm">
@@ -402,7 +402,7 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
             </div>
             <p id="caConfirmMessage" class="text-sm text-gray-600 dark:text-gray-300"></p>
         </div>
-        <!-- Footer -->
+        
         <div class="px-5 sm:px-6 pb-5 sm:pb-6 flex justify-end gap-3">
             <button type="button" onclick="closeCaConfirmModal()"
                 class="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
@@ -415,7 +415,7 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
         </div>
     </div>
 </div>
-<!-- Hidden form submitted by the modal -->
+
 <form id="caActionForm" method="POST" action="dashboard.php" class="hidden">
     <input type="hidden" name="action" id="caActionInput">
     <input type="hidden" name="csrf_token" id="caCsrfInput">
@@ -429,7 +429,7 @@ function openCaConfirmModal(type, caId, driverName, amount, csrfToken) {
     _caConfirmType = type;
     const isApprove = type === 'approve';
 
-    // Populate text
+    
     document.getElementById('caConfirmDriver').textContent = driverName;
     document.getElementById('caConfirmAmount').textContent = '\u20B1' + amount;
     document.getElementById('caConfirmTitle').textContent = isApprove ? 'Approve & Print Ticket' : 'Reject Cash Advance';
@@ -437,7 +437,7 @@ function openCaConfirmModal(type, caId, driverName, amount, csrfToken) {
         ? 'Are you sure you want to approve this cash advance request? A ticket will be printed automatically.'
         : 'Are you sure you want to reject this cash advance request?';
 
-    // Icon & colour
+    
     const iconWrap = document.getElementById('caConfirmIconWrap');
     const icon     = document.getElementById('caConfirmIcon');
     const btn      = document.getElementById('caConfirmBtn');
@@ -453,7 +453,7 @@ function openCaConfirmModal(type, caId, driverName, amount, csrfToken) {
         btn.textContent    = 'Reject';
     }
 
-    // Populate hidden form
+    
     document.getElementById('caActionInput').value = isApprove ? 'approve_cash_advance' : 'reject_cash_advance';
     document.getElementById('caCsrfInput').value   = csrfToken;
     document.getElementById('caCaIdInput').value   = caId;
@@ -472,7 +472,7 @@ function submitCaAction() {
     document.getElementById('caActionForm').submit();
 }
 
-// Close on backdrop click
+
 document.getElementById('caConfirmModal').addEventListener('click', function(e) {
     if (e.target === this) closeCaConfirmModal();
 });
@@ -506,7 +506,7 @@ function filterCashAdvances() {
         clearBtn.classList.toggle('hidden', search.length === 0);
     }
 
-    // Filter pending cards
+    
     const pendingCards = document.querySelectorAll('.pending-ca-card');
     let pendingMatches = 0;
     pendingCards.forEach(card => {
@@ -523,7 +523,7 @@ function filterCashAdvances() {
         pendingNoMatch.classList.toggle('hidden', !(pendingCards.length > 0 && pendingMatches === 0 && search.length > 0));
     }
 
-    // Filter history table rows
+    
     const rows = document.querySelectorAll('.ca-row');
     let visibleCount = 0;
 

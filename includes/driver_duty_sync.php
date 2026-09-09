@@ -1,14 +1,4 @@
 <?php
-// includes/driver_duty_sync.php
-// ==============================================================================
-// Daily Driver Duty Status Synchronization
-// Lifecycle Rule:
-// - A driver's status is 'Off Duty' by default at the start of every day (after 11:59 PM).
-// - When the admin creates the first dispatch ticket for the day, the driver becomes
-//   'In Transit' while delivering, and 'Active' upon completion/delivery until 11:59 PM.
-// - Once the day ends (midnight), any driver without a new dispatch created on that
-//   day automatically resets to 'Off Duty'.
-// ==============================================================================
 
 if (!function_exists('syncDailyDriverStatuses')) {
     function syncDailyDriverStatuses(PDO $pdo): void {
@@ -17,8 +7,8 @@ if (!function_exists('syncDailyDriverStatuses')) {
         $syncedInCurrentRequest = true;
 
         try {
-            // 1. Reset drivers to 'Off Duty' if they have NO dispatch ticket created today
-            //    and have no currently active / in-transit trip.
+            
+            
             $pdo->exec("
                 UPDATE drivers
                 SET status = 'Off Duty'
@@ -36,7 +26,7 @@ if (!function_exists('syncDailyDriverStatuses')) {
                   )
             ");
 
-            // 2. Ensure drivers who completed/delivered a dispatch today and have no ongoing trip remain 'Active'
+            
             $pdo->exec("
                 UPDATE drivers
                 SET status = 'Active'
@@ -54,7 +44,7 @@ if (!function_exists('syncDailyDriverStatuses')) {
                   )
             ");
 
-            // 3. Ensure drivers currently assigned to an ongoing active trip are 'In Transit'
+            
             $pdo->exec("
                 UPDATE drivers
                 SET status = 'In Transit'

@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Driver') {
     exit;
 }
 
-// Ensure table exists
+
 $pdo->exec("CREATE TABLE IF NOT EXISTS password_reset_requests (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -25,7 +25,7 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS password_reset_requests (
 $user_id = $_SESSION['user_id'];
 $username = $_SESSION['username'] ?? 'Driver';
 
-// Check if there's already a pending request
+
 $check = $pdo->prepare("SELECT id, status FROM password_reset_requests WHERE user_id = ? AND status IN ('Pending','Approved') ORDER BY id DESC LIMIT 1");
 $check->execute([$user_id]);
 $existing = $check->fetch();

@@ -14,14 +14,14 @@
         }
         ?>
 
-        <!-- ====== DRIVER PROFILE CARD ====== -->
+        
         <div class="mb-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 overflow-hidden">
             <div class="bg-gradient-to-r from-blue-600 to-indigo-700 h-20 relative">
                 <div class="absolute inset-0 opacity-10" style="background-image: repeating-linear-gradient(45deg,transparent,transparent 8px,rgba(255,255,255,.1) 8px,rgba(255,255,255,.1) 16px)"></div>
             </div>
             <div class="px-5 pb-5">
                 <div class="flex items-end justify-between -mt-10 mb-4">
-                    <!-- Avatar / Photo -->
+                    
                     <div class="relative group">
                         <?php if ($driverPhotoUrl): ?>
                             <img src="<?= $driverPhotoUrl ?>" alt="Profile Photo"
@@ -33,7 +33,7 @@
                                 <?= htmlspecialchars($initials) ?>
                             </div>
                         <?php endif; ?>
-                        <!-- Camera overlay trigger -->
+                        
                         <button type="button" onclick="document.getElementById('profilePhotoInput').click()"
                                 title="Change profile photo"
                                 class="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-gray-800 transition-colors">
@@ -41,7 +41,7 @@
                         </button>
                     </div>
 
-                    <!-- Upload button -->
+                    
                     <div>
                         <button type="button" onclick="document.getElementById('profilePhotoInput').click()"
                                 class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 transition-all">
@@ -51,7 +51,7 @@
                     </div>
                 </div>
 
-                <!-- Driver Name & Username -->
+                
                 <div>
                     <h2 class="font-extrabold text-gray-900 dark:text-gray-100 text-lg leading-tight">
                         <?= htmlspecialchars($driverFullName ?: $driverUsername) ?>
@@ -63,16 +63,16 @@
                 </div>
             </div>
 
-            <!-- Hidden upload form -->
+            
             <form id="profilePhotoForm" method="POST" action="upload_profile_photo.php" enctype="multipart/form-data" class="hidden">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                 <input type="file" name="profile_photo" id="profilePhotoInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden">
             </form>
 
-            <!-- Photo Crop Modal -->
+            
             <div id="photoCropModal" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm hidden p-3 sm:p-4">
                 <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[85vh]">
-                    <!-- Modal Header -->
+                    
                     <div class="px-5 py-3.5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between flex-shrink-0">
                         <div class="flex items-center space-x-2.5">
                             <div class="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm">
@@ -88,12 +88,12 @@
                         </button>
                     </div>
 
-                    <!-- Cropper Viewport Container -->
+                    
                     <div class="relative bg-gray-950 p-2 sm:p-3 flex items-center justify-center overflow-hidden h-[300px] sm:h-[350px]">
                         <img id="photoCropImage" src="" alt="Crop image" class="max-w-full max-h-full block">
                     </div>
 
-                    <!-- Cropper Control Tools -->
+                    
                     <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between flex-shrink-0 text-xs">
                         <div class="flex items-center space-x-1 sm:space-x-1.5">
                             <button type="button" onclick="cropperZoom(0.1)" title="Zoom In" class="p-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition flex items-center gap-1 font-semibold active:scale-95">
@@ -117,7 +117,7 @@
                         </button>
                     </div>
 
-                    <!-- Modal Actions -->
+                    
                     <div class="px-5 py-3.5 border-t border-gray-100 dark:border-gray-800 flex items-center justify-end space-x-3 bg-white dark:bg-gray-900 flex-shrink-0">
                         <button type="button" onclick="closePhotoCropModal()" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
                             Cancel
@@ -173,7 +173,7 @@
                 cropperInstance = null;
             }
 
-            // Small delay for DOM layout render
+            
             setTimeout(() => {
                 if (typeof Cropper !== 'undefined') {
                     cropperInstance = new Cropper(img, {
@@ -281,7 +281,7 @@
         }
         </script>
 
-        <!-- ACTIVE TRIP SECTION -->
+        
         <div class="mb-8">
             <?php if ($active_dispatch): ?>
                 <?php 
@@ -389,7 +389,7 @@
                     </div>
                 </div>
             <?php else: ?>
-                <!-- IDLE STATUS CARD -->
+                
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div class="flex items-center space-x-4 text-center sm:text-left">
                         <div class="w-14 h-14 bg-green-50 dark:bg-green-900/20 text-green-500 rounded-full flex items-center justify-center text-2xl mx-auto sm:mx-0 shadow-inner">
@@ -413,7 +413,7 @@
         </div>
 
         <?php if ($active_dispatch && ($active_dispatch['status'] ?? '') === 'In Transit'): ?>
-            <!-- ==================== DRIVER ROUTE & NAVIGATION MAP (IN TRANSIT ONLY) ==================== -->
+            
             <div id="liveTripRouteSection" class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden mb-8 transition-all relative z-0">
                 <div class="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 p-5 sm:p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div class="flex items-center space-x-3.5">
@@ -433,7 +433,7 @@
                         </div>
                     </div>
 
-                    <!-- External GPS Navigation Launchers -->
+                    
                     <div class="flex flex-wrap items-center gap-2">
                         <button type="button" onclick="launchGoogleMapsNav()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-gray-800 hover:bg-gray-100 active:scale-95 shadow transition">
                             <i class="fa-brands fa-google text-blue-600"></i> Google Maps
@@ -444,7 +444,7 @@
                     </div>
                 </div>
 
-                <!-- Route Quick Stats Strip -->
+                
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 sm:p-5 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700 text-xs sm:text-sm">
                     <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200/80 dark:border-gray-700/80">
                         <div class="text-gray-400 dark:text-gray-500 text-[11px] font-semibold uppercase flex items-center gap-1">
@@ -483,12 +483,12 @@
                     </div>
                 </div>
 
-                <!-- Map View Container -->
+                
                 <div class="p-3 sm:p-5 relative z-0">
                     <div class="relative w-full h-[360px] sm:h-[480px] rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-inner z-0">
                         <div id="driverRouteMap" class="w-full h-full relative z-0"></div>
 
-                        <!-- Floating Action Buttons -->
+                        
                         <div class="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
                             <button type="button" onclick="fitDriverRouteBounds()" title="Fit full route in view"
                                 class="w-10 h-10 sm:w-11 sm:h-11 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl shadow-lg hover:bg-blue-50 dark:hover:bg-gray-700 flex items-center justify-center transition active:scale-90">
@@ -500,7 +500,7 @@
                             </button>
                         </div>
 
-                        <!-- Live route status pill overlay -->
+                        
                         <div class="absolute top-4 left-4 z-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 shadow-md flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200">
                             <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                             <span id="driverMapStatusText">Live GPS Route Loaded</span>
@@ -510,7 +510,7 @@
             </div>
         <?php endif; ?>
 
-        <!-- TRIP METRICS STATS GRID -->
+        
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
 
             <div class="bg-gradient-to-br from-blue-500 to-blue-650 rounded-2xl p-6 text-white relative overflow-hidden shadow-md transition transform hover:-translate-y-0.5">
@@ -548,7 +548,7 @@
 
         </div>
 
-        <!-- ==================== PAYROLL & CASH ADVANCE SECTION ==================== -->
+        
         <div class="mb-8 bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
             <div class="bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-4 text-white flex items-center justify-between">
                 <div class="flex items-center space-x-3">
@@ -649,7 +649,7 @@
             <?php endif; ?>
         </div>
 
-        <!-- TRIP HISTORY SECTION -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 p-5 sm:p-6">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-lg font-bold text-gray-850 dark:text-gray-200">Past Trip History</h2>
@@ -658,7 +658,7 @@
                 </span>
             </div>
 
-            <!-- Mobile View: Stacked Cards list (shown on small screens) -->
+            
             <div class="block sm:hidden space-y-3">
                 <?php if (count($trips) > 0): ?>
                     <?php foreach ($trips as $trip): ?>
@@ -737,7 +737,7 @@
                 <?php endif; ?>
             </div>
 
-            <!-- Desktop View: Grid/Table (shown on md/lg screens) -->
+            
             <div class="hidden sm:block overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
@@ -1190,7 +1190,7 @@
     }
 
     function calculateDirectDistanceKm(lat1, lon1, lat2, lon2) {
-        const R = 6371; // Earth radius in km
+        const R = 6371; 
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLon = (lon2 - lon1) * Math.PI / 180;
         const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +

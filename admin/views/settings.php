@@ -1,6 +1,6 @@
-<?php /* Trip Rate & Distance Settings View */ ?>
+<?php  ?>
 <div id="view-settings" class="tab-content hidden space-y-6">
-    <!-- TOP HEADER -->
+    
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div class="flex items-center space-x-3">
             <div class="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
@@ -36,7 +36,7 @@
         </div>
     <?php endif; ?>
 
-    <!-- GENERAL FLAT & DISTANCE RATES CONFIG CARD -->
+    
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 sm:p-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-700">
             <div>
@@ -80,7 +80,7 @@
         </form>
     </div>
 
-    <!-- INTERACTIVE NOMINATIM LIVE DISTANCE & DRIVER PAY SIMULATOR -->
+    
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 sm:p-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100 dark:border-gray-700">
             <div>
@@ -99,7 +99,7 @@
             </div>
         </div>
 
-        <!-- Search Bar & Quick Destination Chips -->
+        
         <div class="mt-4 space-y-3">
             <div class="flex flex-col sm:flex-row gap-2">
                 <div class="relative flex-1">
@@ -118,7 +118,7 @@
                 </button>
             </div>
 
-            <!-- Quick Preset Chips -->
+            
             <div class="flex flex-wrap items-center gap-1.5 text-xs">
                 <span class="text-gray-400 font-medium mr-1">Quick test:</span>
                 <button type="button" onclick="testPresetDest('Gapan City, Nueva Ecija')" class="sim-chip px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/60 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium transition">Gapan (22 km RT)</button>
@@ -132,9 +132,9 @@
             </div>
         </div>
 
-        <!-- Simulation Grid: Map + Results Panel -->
+        
         <div class="mt-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-            <!-- Map Container -->
+            
             <div class="lg:col-span-7 flex flex-col">
                 <div id="settingsSimulatorMap" class="w-full h-80 sm:h-[400px] rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-inner relative z-0"></div>
                 <div class="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400 dark:text-gray-500 px-1">
@@ -144,10 +144,10 @@
                 </div>
             </div>
 
-            <!-- Calculation Output Cards -->
+            
             <div class="lg:col-span-5 flex flex-col justify-between space-y-4">
                 <div class="bg-gray-50/90 dark:bg-gray-700/40 rounded-2xl p-4 sm:p-5 border border-gray-100 dark:border-gray-700/70 space-y-4">
-                    <!-- Destination Header -->
+                    
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0 flex-1">
                             <span class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Target Destination</span>
@@ -159,7 +159,7 @@
                         </span>
                     </div>
 
-                    <!-- Metric Tiles -->
+                    
                     <div class="grid grid-cols-2 gap-3">
                         <div class="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/60 shadow-xs">
                             <span class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 block">Total Round-Trip</span>
@@ -183,7 +183,7 @@
                         </div>
                     </div>
 
-                    <!-- Highlighted Total Pay Card -->
+                    
                     <div class="p-4 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/30 border border-emerald-200/80 dark:border-emerald-700/60 shadow-xs">
                         <div class="flex items-center justify-between gap-2">
                             <span class="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">Driver Trip Pay</span>
@@ -206,9 +206,9 @@
         </div>
     </div>
 
-    <!-- CALCULATION RULES & BOUNDARY DEDUCTION REFERENCE CARDS -->
+    
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <!-- Card 1: Within San Leonardo -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 flex flex-col justify-between">
             <div>
                 <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm mb-2">
@@ -227,7 +227,7 @@
             </div>
         </div>
 
-        <!-- Card 2: South, North & West Corridors -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 flex flex-col justify-between">
             <div>
                 <div class="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold text-sm mb-2">
@@ -246,7 +246,7 @@
             </div>
         </div>
 
-        <!-- Card 3: East Border Corridor -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 flex flex-col justify-between">
             <div>
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm mb-2">
@@ -266,7 +266,7 @@
         </div>
     </div>
 
-    <!-- SAVED DESTINATIONS & PINNED LOCATIONS TABLE -->
+    
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 sm:p-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-700">
             <div>
@@ -345,7 +345,7 @@
         </div>
     </div>
 
-    <!-- EDIT DESTINATION MODAL -->
+    
     <div id="editDestModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative">
             <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
@@ -391,7 +391,7 @@
         </div>
     </div>
 
-    <!-- DELETE DESTINATION MODAL -->
+    
     <div id="deleteDestModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden relative">
             <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">

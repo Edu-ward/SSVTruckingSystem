@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
-    <!-- Dynamic Title -->
+    
     <title><?= ($_SESSION['role'] === 'Admin') ? 'SSV Trucking - Admin Panel' : (($_SESSION['role'] === 'Checker') ? 'Checker Panel - SSV Trucking' : 'Driver Panel - SSV Trucking') ?></title>
 
     <script>
@@ -21,23 +21,23 @@
         unset($_SESSION['login_redirect']);
     }
     ?>
-    <!-- Tab-Session & Auto-Logout System -->
+    
     <script>
         (function() {
             var isLoginRedirect = <?= $isLoginRedirect ? 'true' : 'false' ?>;
 
             if (isLoginRedirect) {
-                // Fresh login from index.php: establish tab session
+                
                 sessionStorage.setItem('ssv_tab_session_active', '1');
                 return;
             }
 
             if (sessionStorage.getItem('ssv_tab_session_active') === '1') {
-                // Active tab session verified (e.g. reload, internal navigation)
+                
                 return;
             }
 
-            // Tab session missing in this tab. Temporarily hide content to avoid flash.
+            
             document.documentElement.style.visibility = 'hidden';
 
             var sessionConfirmed = false;
@@ -61,7 +61,7 @@
                     }
                 };
 
-                // Query sibling open tabs
+                
                 channel.postMessage({ type: 'CHECK_ACTIVE_SESSION' });
 
                 setTimeout(function() {
@@ -74,7 +74,7 @@
             }
         })();
 
-        // Sibling tab responder
+        
         (function() {
             if (typeof BroadcastChannel !== 'undefined') {
                 var responder = new BroadcastChannel('ssv_auth_sync');
@@ -132,7 +132,7 @@
             font-family: 'Inter', sans-serif;
         }
 
-        /* ── Unified Table & List Row Hover ── */
+        
         tbody tr:not(.no-hover):hover,
         .table-row-hover:hover {
             background-color: rgba(243, 244, 246, 0.8) !important;
@@ -175,7 +175,7 @@
             }
         }
 
-        /* ── Pulse Radar Ring Animation ── */
+        
         @keyframes pulse-ring {
             0% { transform: scale(0.95); opacity: 0.8; }
             50% { transform: scale(1.4); opacity: 0.3; }
@@ -185,7 +185,7 @@
             animation: pulse-ring 2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
         }
 
-        /* ── Skeleton Shimmer Loading ── */
+        
         @keyframes shimmer {
             0% { background-position: -200% 0; }
             100% { background-position: 200% 0; }
@@ -200,7 +200,7 @@
             background-size: 200% 100%;
         }
 
-        /* ── Custom Leaflet Popups ── */
+        
         .leaflet-popup-content-wrapper {
             @apply rounded-2xl p-0 overflow-hidden shadow-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-gray-800 dark:text-gray-200 !important;
         }
@@ -317,7 +317,7 @@
 
         <?php endif; ?>
 
-        /* ── Remove All Scrollbars Globally While Keeping Elements Scrollable ── */
+        
         html,
         body,
         *,
@@ -336,7 +336,7 @@
             background: transparent !important;
         }
 
-        /* ── Safe Area & Dynamic Viewport Utilities ── */
+        
         :root {
             --sat: env(safe-area-inset-top, 0px);
             --sab: env(safe-area-inset-bottom, 0px);
@@ -364,7 +364,7 @@
             box-shadow: 0 -4px 20px -2px rgba(0, 0, 0, 0.4), 0 -2px 6px -1px rgba(0, 0, 0, 0.2);
         }
 
-        /* ── Sidebar Styles ── */
+        
         .sidebar-nav-item {
             @apply flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer;
         }
@@ -381,7 +381,7 @@
             @apply text-white;
         }
 
-        /* ── Bottom Nav (Checker/Driver mobile) ── */
+        
         .bottom-nav-item {
             @apply flex flex-col items-center justify-center py-1.5 px-1 sm:px-2 text-gray-400 dark:text-gray-500 transition-all duration-200 text-[11px] font-medium relative flex-1 min-w-0;
         }
@@ -393,7 +393,7 @@
             @apply text-gray-700 dark:text-gray-200;
         }
 
-        /* ── Sidebar Mobile Responsive Heights ── */
+        
         #admin-sidebar,
         aside.sidebar-panel {
             height: 100vh;
@@ -401,12 +401,12 @@
             max-height: 100dvh;
         }
 
-        /* ── Sidebar backdrop ── */
+        
         .sidebar-backdrop {
             transition: opacity 0.3s ease;
         }
 
-        /* ── Sidebar slide ── */
+        
         .sidebar-panel {
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -420,21 +420,17 @@
 
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-200">
 
-    <!-- Global Toast Container -->
+    
     <div id="toast-container" class="fixed top-5 right-5 z-[9999] flex flex-col space-y-3 pointer-events-none"></div>
 
     <?php if ($_SESSION['role'] === 'Admin'): ?>
-        <!-- ╔══════════════════════════════════════════════════════════╗ -->
-        <!-- ║  ADMIN SIDEBAR                                          ║ -->
-        <!-- ╚══════════════════════════════════════════════════════════╝ -->
 
-        <!-- Mobile Backdrop Overlay -->
         <div id="sidebar-overlay" class="sidebar-backdrop fixed inset-0 bg-black/50 z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
 
-        <!-- Sidebar -->
+        
         <aside id="admin-sidebar" class="sidebar-panel sidebar-closed lg:translate-x-0 fixed top-0 left-0 h-[100dvh] max-h-[100dvh] w-72 z-50 lg:z-30 flex flex-col bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 shadow-2xl lg:shadow-none no-scrollbar">
 
-            <!-- Logo & Brand -->
+            
             <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
                 <div class="flex items-center space-x-3 min-w-0">
                     <div class="flex-shrink-0">
@@ -446,13 +442,13 @@
                         <p class="text-[11px] text-gray-400 dark:text-gray-500 font-medium">Admin Panel</p>
                     </div>
                 </div>
-                <!-- Mobile close button (Rightmost side) -->
+                
                 <button onclick="toggleSidebar()" class="lg:hidden w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-all flex-shrink-0 active:scale-95 ml-3" aria-label="Close Sidebar">
                     <i class="fa-solid fa-xmark text-sm"></i>
                 </button>
             </div>
 
-            <!-- System Status -->
+            
             <div class="px-4 py-2 flex-shrink-0">
                 <div class="flex items-center space-x-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg px-3 py-1.5 border border-emerald-100 dark:border-emerald-800/30">
                     <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse flex-shrink-0"></span>
@@ -460,7 +456,7 @@
                 </div>
             </div>
 
-            <!-- Navigation -->
+            
             <nav class="flex-1 px-3 py-1 space-y-0.5 overflow-y-auto overscroll-contain no-scrollbar">
                 <p class="px-3 text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-widest my-1">Main Menu</p>
                 <button onclick="switchTab('dashboard')" id="nav-dashboard" class="sidebar-nav-item active w-full">
@@ -517,14 +513,14 @@
                 </button>
             </nav>
 
-            <!-- Sidebar Footer -->
+            
             <div class="border-t border-gray-100 dark:border-gray-800 px-3 py-3 pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] space-y-1.5 flex-shrink-0">
-                <!-- Dark Mode Toggle -->
+                
                 <button id="themeToggle" onclick="toggleTheme(event)" class="sidebar-nav-item w-full">
                     <i id="themeIcon" class="fa-solid fa-moon nav-icon"></i>
                     <span id="themeLabel">Dark Mode</span>
                 </button>
-                <!-- Logout -->
+                
                 <a href="../logout.php" onclick="confirmLogout(event)" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 w-full">
                     <i class="fa-solid fa-right-from-bracket nav-icon"></i>
                     <span>Logout</span>
@@ -532,7 +528,7 @@
             </div>
         </aside>
 
-        <!-- Mobile Top Bar (Admin) -->
+        
         <div class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between">
             <div class="flex items-center space-x-2.5 sm:space-x-3">
                 <button onclick="toggleSidebar()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-all active:scale-95" aria-label="Toggle Navigation">
@@ -547,24 +543,20 @@
                 </div>
             </div>
             <div class="flex items-center space-x-2">
-                <!-- Quick Mobile Logout Button in Top Bar -->
+                
                 <a href="../logout.php" onclick="confirmLogout(event)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 border border-red-200/60 dark:border-red-800/40 transition-all shadow-sm active:scale-95" title="Logout" aria-label="Logout">
                     <i class="fa-solid fa-right-from-bracket text-sm"></i>
                 </a>
             </div>
         </div>
 
-        <!-- Admin Main Content Wrapper -->
+        
         <div id="main-content" class="lg:ml-72 min-h-screen pt-16 lg:pt-0 pb-12 lg:pb-0 transition-all duration-300">
 
         <?php elseif ($_SESSION['role'] === 'Checker'): ?>
-            <!-- ╔══════════════════════════════════════════════════════════╗ -->
-            <!-- ║  CHECKER LAYOUT                                         ║ -->
-            <!-- ╚══════════════════════════════════════════════════════════╝ -->
 
-            <!-- Desktop Sidebar -->
             <aside class="hidden lg:flex fixed top-0 left-0 h-screen w-64 z-30 flex-col bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800">
-                <!-- Logo -->
+                
                 <div class="flex items-center space-x-3 px-5 py-5 border-b border-gray-100 dark:border-gray-800">
                     <div class="flex-shrink-0">
                         <img src="../assets/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
@@ -576,7 +568,7 @@
                     </div>
                 </div>
 
-                <!-- Profile Card -->
+                
                 <div class="px-4 py-4 border-b border-gray-100 dark:border-gray-800">
                     <div class="flex items-center space-x-3">
                         <div class="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-sm flex-shrink-0">
@@ -589,7 +581,7 @@
                     </div>
                 </div>
 
-                <!-- Actions -->
+                
                 <nav class="flex-1 px-3 py-4 space-y-1">
                     <a href="dashboard.php" class="sidebar-nav-item active w-full">
                         <i class="fa-solid fa-clipboard-check nav-icon"></i>
@@ -601,7 +593,7 @@
                     </button>
                 </nav>
 
-                <!-- Footer -->
+                
                 <div class="border-t border-gray-100 dark:border-gray-800 px-3 py-4 space-y-1">
                     <button id="themeToggle" onclick="toggleTheme(event)" class="sidebar-nav-item w-full">
                         <i id="themeIcon" class="fa-solid fa-moon nav-icon"></i>
@@ -614,7 +606,7 @@
                 </div>
             </aside>
 
-            <!-- Mobile Top Bar (Checker) -->
+            
             <div class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between">
                 <div class="flex items-center space-x-2.5">
                     <div class="flex-shrink-0">
@@ -630,14 +622,14 @@
                     <button onclick="toggleTheme(event)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all active:scale-95" aria-label="Toggle theme">
                         <i class="themeIconMobile fa-solid fa-moon text-sm"></i>
                     </button>
-                    <!-- Quick Logout Button in Top Bar -->
+                    
                     <a href="../logout.php" onclick="confirmLogout(event)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 border border-red-200/60 dark:border-red-800/40 transition-all shadow-sm active:scale-95" title="Logout" aria-label="Logout">
                         <i class="fa-solid fa-right-from-bracket text-sm"></i>
                     </a>
                 </div>
             </div>
 
-            <!-- Mobile Bottom Nav (Checker) -->
+            
             <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-2 pt-2 pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))] safe-bottom mobile-bottom-nav">
                 <a href="dashboard.php" class="bottom-nav-item active">
                     <i class="fa-solid fa-clipboard-check text-lg mb-0.5"></i>
@@ -657,17 +649,13 @@
                 </a>
             </div>
 
-            <!-- Checker Main Content Wrapper -->
+            
             <div id="main-content" class="lg:ml-64 min-h-screen pt-16 lg:pt-0 pb-28 lg:pb-0 transition-all duration-300">
 
             <?php elseif ($_SESSION['role'] === 'Driver'): ?>
-                <!-- ╔══════════════════════════════════════════════════════════╗ -->
-                <!-- ║  DRIVER LAYOUT                                          ║ -->
-                <!-- ╚══════════════════════════════════════════════════════════╝ -->
 
-                <!-- Desktop Sidebar -->
                 <aside class="hidden lg:flex fixed top-0 left-0 h-screen w-64 z-30 flex-col bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800">
-                    <!-- Logo -->
+                    
                     <div class="flex items-center space-x-3 px-5 py-5 border-b border-gray-100 dark:border-gray-800">
                         <div class="flex-shrink-0">
                             <img src="../assets/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
@@ -679,7 +667,7 @@
                         </div>
                     </div>
 
-                    <!-- Profile Card -->
+                    
                     <div class="px-4 py-4 border-b border-gray-100 dark:border-gray-800">
                         <div class="flex items-center space-x-3">
                             <?php
@@ -701,7 +689,7 @@
                         </div>
                     </div>
 
-                    <!-- Actions -->
+                    
                     <nav class="flex-1 px-3 py-4 space-y-1">
                         <a href="dashboard.php" class="sidebar-nav-item active w-full">
                             <i class="fa-solid fa-house nav-icon"></i>
@@ -732,7 +720,7 @@
                         </button>
                     </nav>
 
-                    <!-- Footer -->
+                    
                     <div class="border-t border-gray-100 dark:border-gray-800 px-3 py-4 space-y-1">
                         <button id="themeToggle" onclick="toggleTheme(event)" class="sidebar-nav-item w-full">
                             <i id="themeIcon" class="fa-solid fa-moon nav-icon"></i>
@@ -745,7 +733,7 @@
                     </div>
                 </aside>
 
-                <!-- Mobile Top Bar (Driver) -->
+                
                 <div class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between">
                     <div class="flex items-center space-x-2.5 min-w-0">
                         <div class="flex-shrink-0">
@@ -761,14 +749,14 @@
                         <button onclick="toggleTheme(event)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all active:scale-95" aria-label="Toggle theme">
                             <i class="themeIconMobile fa-solid fa-moon text-sm"></i>
                         </button>
-                        <!-- Quick Logout Button in Top Bar -->
+                        
                         <a href="../logout.php" onclick="confirmLogout(event)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 border border-red-200/60 dark:border-red-800/40 transition-all shadow-sm active:scale-95" title="Logout" aria-label="Logout">
                             <i class="fa-solid fa-right-from-bracket text-sm"></i>
                         </a>
                     </div>
                 </div>
 
-                <!-- Mobile Bottom Nav (Driver) -->
+                
                 <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-1.5 pt-2 pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))] safe-bottom mobile-bottom-nav">
                     <a href="dashboard.php" class="bottom-nav-item active">
                         <i class="fa-solid fa-house text-base sm:text-lg mb-0.5"></i>
@@ -803,16 +791,13 @@
                     </a>
                 </div>
 
-                <!-- Driver Main Content Wrapper -->
+                
                 <div id="main-content" class="lg:ml-64 min-h-screen pt-16 lg:pt-0 pb-28 lg:pb-0 transition-all duration-300">
 
                 <?php endif; ?>
 
-                <!-- ╔══════════════════════════════════════════════════════════╗ -->
-                <!-- ║  SHARED SCRIPTS (Theme Toggle + Sidebar)                ║ -->
-                <!-- ╚══════════════════════════════════════════════════════════╝ -->
                 <script>
-                    // ── Theme Toggle ──
+                    
                     document.addEventListener("DOMContentLoaded", function() {
                         const icons = document.querySelectorAll('#themeIcon, .themeIconMobile');
                         if (document.documentElement.classList.contains('dark')) {
@@ -867,7 +852,7 @@
                         document.cookie = "theme=" + (isNowDark ? "dark" : "light") + "; path=/; max-age=" + (60 * 60 * 24 * 365);
                     }
 
-                    // ── Admin Sidebar Toggle (Mobile) ──
+                    
                     function toggleSidebar() {
                         const sidebar = document.getElementById('admin-sidebar');
                         const overlay = document.getElementById('sidebar-overlay');
@@ -884,7 +869,7 @@
                         }
                     }
 
-                    // ── Close sidebar on nav click (mobile) ──
+                    
                     function switchTabAndCloseMobile(tab) {
                         switchTab(tab);
                         const sidebar = document.getElementById('admin-sidebar');
@@ -893,7 +878,7 @@
                         }
                     }
 
-                    // ── Driver: Scroll to Live Trip Route & Navigation ──
+                    
                     function scrollToLiveTripRoute() {
                         const section = document.getElementById('liveTripRouteSection');
                         if (section) {
@@ -908,7 +893,7 @@
                         }
                     }
 
-                    // ── Global Logout Confirmation Dialog ──
+                    
                     function confirmLogout(event) {
                         if (event) event.preventDefault();
                         const modal = document.getElementById('logoutConfirmModal');
@@ -938,7 +923,7 @@
                     }
                 </script>
 
-                <!-- Global Logout Confirmation Modal -->
+                
                 <div id="logoutConfirmModal" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4 transition-opacity duration-200" onclick="if(event.target === this) closeLogoutModal();">
                     <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 transform scale-95 opacity-0 transition-all duration-200 text-center" id="logoutConfirmModalBox">
                         <div class="w-14 h-14 bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
@@ -960,7 +945,7 @@
                     </div>
                 </div>
 
-                <!-- ===== GLOBAL TOAST NOTIFICATION SYSTEM ===== -->
+                
                 <style>
                     #toast-container {
                         position: fixed;
@@ -1157,7 +1142,7 @@
                 </button>`;
                         toast.querySelector('.toast-item::after');
                         toast.style.cssText += `--dur:${duration}ms`;
-                        // Apply progress bar duration via inline style on ::after pseudo-element via a workaround
+                        
                         const style = document.createElement('style');
                         const id = 'toast-' + Date.now() + Math.random().toString(36).slice(2);
                         toast.id = id;
@@ -1183,7 +1168,7 @@
                         });
                     }
 
-                    // Fire PHP session flash messages as toasts
+                    
                     document.addEventListener('DOMContentLoaded', function() {
                         <?php
                         $toasts = [];

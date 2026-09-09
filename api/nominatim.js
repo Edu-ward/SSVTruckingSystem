@@ -34,7 +34,7 @@ const NominatimService = (function () {
                 return 6;
             }
         }
-        return 12; // 12 km round-trip from garage to San Leonardo municipal boundary
+        return 12; 
     }
 
     function calculateTripPay(km, name = '', destLat = null, destLng = null, customRate = null) {
@@ -77,7 +77,7 @@ const NominatimService = (function () {
     function calculateMapDistance(destLat, destLng, origLat = GARAGE_COORDS.lat, origLng = GARAGE_COORDS.lng, destName = '') {
         if (destLat == null || destLng == null || isNaN(destLat) || isNaN(destLng)) return null;
 
-        const R = 6371; // Earth radius in km
+        const R = 6371; 
         const dLat = (destLat - origLat) * Math.PI / 180;
         const dLon = (destLng - origLng) * Math.PI / 180;
         const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -356,7 +356,7 @@ const NominatimService = (function () {
         getSanLeonardoBoundaryDistance: getSanLeonardoBoundaryDistance,
         calculateTripPay: calculateTripPay,
         calculateMapDistance: calculateMapDistance,
-        calculateDirectRoadDistance: calculateMapDistance, // alias
+        calculateDirectRoadDistance: calculateMapDistance, 
         calculateDrivingDistance: calculateDrivingDistance,
         reverseGeocode: reverseGeocode,
         searchAddress: searchAddress,

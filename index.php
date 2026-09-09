@@ -9,12 +9,12 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// ── Fetch live stats for the branding panel ──
+
 try {
     $statFleet      = (int) $pdo->query("SELECT COUNT(*) FROM trucks")->fetchColumn();
     $statDeliveries = (int) $pdo->query("SELECT COUNT(*) FROM dispatches WHERE status = 'Delivered'")->fetchColumn();
 
-    // On-time rate: percentage of completed dispatches that were on time
+    
     $totalCompleted = (int) $pdo->query("SELECT COUNT(*) FROM dispatches WHERE status = 'Delivered'")->fetchColumn();
     $onTimeCount    = (int) $pdo->query("SELECT COUNT(*) FROM dispatches WHERE status = 'Delivered' AND is_on_time = 1")->fetchColumn();
     $statOnTime     = $totalCompleted > 0 ? round(($onTimeCount / $totalCompleted) * 100) : 100;
@@ -33,7 +33,7 @@ try {
     <title>SSV Trucking System — Sign In</title>
     <meta name="description" content="Sign in to the SSV Trucking System portal. Manage fleet operations, track deliveries, and monitor logistics.">
 
-    <!-- Prevent FOUC: apply dark class before paint -->
+    
     <script>
         if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
@@ -42,7 +42,7 @@ try {
         }
     </script>
 
-    <!-- Tab-Session & Auto-Logout Guard for Login Page -->
+    
     <script>
         (function() {
             var hasUserSession = <?= !empty($loggedInUserId) ? 'true' : 'false' ?>;
@@ -50,7 +50,7 @@ try {
             var isTabActive = sessionStorage.getItem('ssv_tab_session_active') === '1';
 
             if (hasUserSession && isTabActive) {
-                // User is actively authenticated in this tab — redirect to their portal
+                
                 if (userRole === 'Admin') {
                     window.location.replace('admin/dashboard.php');
                 } else if (userRole === 'Driver') {
@@ -59,10 +59,10 @@ try {
                     window.location.replace('checker/dashboard.php');
                 }
             } else if (hasUserSession && !isTabActive) {
-                // Tab was closed, but server session cookie still exists — destroy stale session
+                
                 window.location.replace('logout.php?tab_closed=1');
             } else {
-                // Not authenticated — clean tab session key
+                
                 sessionStorage.removeItem('ssv_tab_session_active');
             }
         })();
@@ -148,7 +148,7 @@ try {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        /* ── Remove All Scrollbars Globally While Keeping Elements Scrollable ── */
+        
         html,
         body,
         *,
@@ -168,7 +168,7 @@ try {
             background: transparent !important;
         }
 
-        /* ── Glassmorphism Panel ── */
+        
         .glass-panel {
             background: rgba(255, 255, 255, 0.06);
             backdrop-filter: blur(12px);
@@ -176,7 +176,7 @@ try {
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* ── Gradient border effect ── */
+        
         .gradient-border {
             position: relative;
         }
@@ -194,7 +194,7 @@ try {
             pointer-events: none;
         }
 
-        /* ── Input focus glow ── */
+        
         .input-glow:focus {
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), 0 1px 2px 0 rgba(0, 0, 0, 0.05);
         }
@@ -203,7 +203,7 @@ try {
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
         }
 
-        /* ── Animated background mesh ── */
+        
         .mesh-gradient {
             background:
                 radial-gradient(ellipse at 20% 50%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
@@ -212,7 +212,7 @@ try {
                 linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
         }
 
-        /* ── Road animation ── */
+        
         .road-line {
             animation: roadScroll 1.5s linear infinite;
         }
@@ -227,7 +227,7 @@ try {
             }
         }
 
-        /* ── Particle dots ── */
+        
         .particle {
             position: absolute;
             border-radius: 50%;
@@ -259,7 +259,7 @@ try {
             }
         }
 
-        /* ── Stagger children ── */
+        
         .stagger-children>* {
             opacity: 0;
             animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -305,7 +305,7 @@ try {
             }
         }
 
-        /* ── Button ripple ── */
+        
         .btn-ripple {
             position: relative;
             overflow: hidden;
@@ -324,7 +324,7 @@ try {
             opacity: 1;
         }
 
-        /* ── Password toggle ── */
+        
         .password-wrapper .toggle-password {
             opacity: 0;
             transition: opacity 0.2s;
@@ -335,7 +335,7 @@ try {
             opacity: 1;
         }
 
-        /* ── Stats counter ── */
+        
         .stat-card {
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
@@ -348,17 +348,11 @@ try {
 
 <body class="bg-gray-50 dark:bg-gray-950 font-sans antialiased transition-colors duration-300">
 
-    <!-- ╔══════════════════════════════════════════════════════════╗ -->
-    <!-- ║  SPLIT-SCREEN CONTAINER                                  ║ -->
-    <!-- ╚══════════════════════════════════════════════════════════╝ -->
     <div class="min-h-screen flex flex-col lg:flex-row">
 
-        <!-- ════════════════════════════════════════════════════════ -->
-        <!-- LEFT PANEL — Branding & Visuals                        -->
-        <!-- ════════════════════════════════════════════════════════ -->
         <div class="hidden lg:flex lg:w-[55%] xl:w-[58%] relative mesh-gradient overflow-hidden flex-col justify-between p-10 xl:p-14">
 
-            <!-- Floating particles -->
+            
             <div class="particle w-3 h-3" style="top:15%; left:20%; animation-delay:0s;"></div>
             <div class="particle w-2 h-2" style="top:35%; left:70%; animation-delay:2s;"></div>
             <div class="particle w-4 h-4" style="top:60%; left:40%; animation-delay:4s;"></div>
@@ -366,7 +360,7 @@ try {
             <div class="particle w-3 h-3" style="top:25%; left:55%; animation-delay:3s;"></div>
             <div class="particle w-2 h-2" style="top:70%; left:15%; animation-delay:5s;"></div>
 
-            <!-- Top bar: Logo + Badge -->
+            
             <div class="relative z-10 flex items-center justify-between">
                 <div class="flex items-center space-x-3">
                     <img src="assets/ssvLogoLight.png" alt="SSV Logo" class="h-9">
@@ -381,16 +375,16 @@ try {
                 </div>
             </div>
 
-            <!-- Center: Hero Content -->
+            
             <div class="relative z-10 flex-1 flex flex-col justify-center max-w-lg mx-auto w-full -mt-8">
-                <!-- Animated Truck Illustration -->
+                
                 <div class="mb-10 animate-fade-in">
                     <div class="relative">
-                        <!-- Decorative circles -->
+                        
                         <div class="absolute -top-6 -left-6 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl animate-pulse-slow"></div>
                         <div class="absolute -bottom-4 -right-4 w-20 h-20 bg-indigo-500/10 rounded-full blur-xl animate-pulse-slow" style="animation-delay: 1.5s;"></div>
 
-                        <!-- Central icon with glass background -->
+                        
                         <div class="relative glass-panel rounded-3xl p-8 xl:p-10 text-center animate-float">
                             <div class="w-20 h-20 mx-auto mb-5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25 rotate-3">
                                 <i class="fa-solid fa-truck-fast text-3xl text-white -rotate-3"></i>
@@ -406,7 +400,7 @@ try {
                     </div>
                 </div>
 
-                <!-- Stats Row -->
+                
                 <div class="grid grid-cols-3 gap-3 animate-fade-in" style="animation-delay: 0.4s;">
                     <div class="stat-card glass-panel rounded-2xl p-4 text-center cursor-default">
                         <div class="text-2xl font-bold text-white mb-0.5" id="statFleet">0</div>
@@ -423,9 +417,9 @@ try {
                 </div>
             </div>
 
-            <!-- Bottom: Road animation + footer -->
+            
             <div class="relative z-10">
-                <!-- Animated road -->
+                
                 <div class="relative h-1.5 bg-slate-700/40 rounded-full overflow-hidden mb-6">
                     <div class="road-line absolute inset-y-0 flex items-center" style="width: 200%;">
                         <div class="flex space-x-6" style="width: 50%;">
@@ -464,19 +458,16 @@ try {
             </div>
         </div>
 
-        <!-- ════════════════════════════════════════════════════════ -->
-        <!-- RIGHT PANEL — Login Form                                -->
-        <!-- ════════════════════════════════════════════════════════ -->
         <div class="flex-1 flex items-center justify-center px-4 sm:px-10 lg:px-16 py-10 pt-24 sm:pt-10 bg-white dark:bg-gray-950 relative min-h-screen">
 
-            <!-- Theme Toggle -->
+            
             <button id="themeToggle" onclick="toggleTheme(event)"
                 class="absolute top-5 sm:top-6 right-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 active:scale-95 group"
                 aria-label="Toggle dark mode">
                 <i id="themeIcon" class="fa-solid fa-moon text-sm group-hover:scale-110 transition-transform duration-200"></i>
             </button>
 
-            <!-- Mobile branding (shown on small screens instead of left panel) -->
+            
             <div class="lg:hidden absolute top-5 sm:top-6 left-5 sm:left-6 flex items-center space-x-2.5">
                 <div class="flex-shrink-0">
                     <img src="assets/ssvLogo.png" alt="SSV Logo" class="h-7 block dark:hidden">
@@ -485,10 +476,10 @@ try {
                 <span class="font-bold text-gray-800 dark:text-gray-200 text-sm">SSV Trucking</span>
             </div>
 
-            <!-- Form Container -->
+            
             <div class="w-full max-w-sm stagger-children">
 
-                <!-- Welcome Header -->
+                
                 <div class="mb-8">
                     <div class="inline-flex items-center space-x-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-4 border border-blue-100 dark:border-blue-800/30">
                         <i class="fa-solid fa-lock text-[10px]"></i>
@@ -502,7 +493,7 @@ try {
                     </p>
                 </div>
 
-                <!-- Error Alert -->
+                
                 <?php if (isset($_GET['error']) && htmlspecialchars($_GET['error']) == 'invalid'): ?>
                     <div id="errorAlert" class="flex items-start space-x-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 p-4 rounded-xl mb-6 text-sm border border-red-100 dark:border-red-900/40 animate-slide-up">
                         <div class="w-5 h-5 bg-red-100 dark:bg-red-900/40 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -535,11 +526,11 @@ try {
                     </div>
                 <?php endif; ?>
 
-                <!-- Login Form -->
+                
                 <form action="auth.php" method="POST" class="space-y-5" id="loginForm" autocomplete="off">
                     <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
 
-                    <!-- Username Field -->
+                    
                     <div>
                         <label for="username" class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wider">
                             Username
@@ -554,7 +545,7 @@ try {
                         </div>
                     </div>
 
-                    <!-- Password Field -->
+                    
                     <div>
                         <label for="password" class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wider">
                             Password
@@ -574,7 +565,7 @@ try {
                         </div>
                     </div>
 
-                    <!-- Submit Button -->
+                    
                     <div class="pt-1">
                         <button type="submit" id="loginBtn"
                             class="btn-ripple w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3.5 rounded-xl transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-950 active:scale-[0.98] flex items-center justify-center space-x-2 text-sm"
@@ -591,7 +582,7 @@ try {
                     </div>
                 </form>
 
-                <!-- Divider -->
+                
                 <div class="relative my-7">
                     <div class="absolute inset-0 flex items-center">
                         <div class="w-full border-t border-gray-200 dark:border-gray-800"></div>
@@ -601,7 +592,7 @@ try {
                     </div>
                 </div>
 
-                <!-- Role Badges -->
+                
                 <div class="flex items-center justify-center space-x-3">
                     <div class="flex items-center space-x-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-lg px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
                         <i class="fa-solid fa-user-shield text-blue-500/70 text-[10px]"></i>
@@ -617,7 +608,7 @@ try {
                     </div>
                 </div>
 
-                <!-- Footer for mobile -->
+                
                 <p class="lg:hidden text-center text-xs text-gray-400 dark:text-gray-600 mt-8">
                     &copy; <?= date('Y') ?> SSV Trucking. All rights reserved.
                 </p>
@@ -625,18 +616,14 @@ try {
         </div>
     </div>
 
-
-    <!-- ╔══════════════════════════════════════════════════════════╗ -->
-    <!-- ║  SCRIPTS                                                 ║ -->
-    <!-- ╚══════════════════════════════════════════════════════════╝ -->
     <script>
-        // ── Theme Toggle ──
+        
         document.addEventListener("DOMContentLoaded", function() {
             if (document.documentElement.classList.contains('dark')) {
                 document.getElementById('themeIcon').classList.replace('fa-moon', 'fa-sun');
             }
 
-            // Animate stat counters with live data
+            
             animateCounter('statFleet', <?= $statFleet ?>, 1500);
             animateCounter('statDeliveries', <?= $statDeliveries ?>, 2000);
             animateCounter('statUptime', <?= $statOnTime ?>, 1800);
@@ -646,7 +633,7 @@ try {
             const htmlTag = document.documentElement;
             const themeIcon = document.getElementById('themeIcon');
 
-            // Ripple effect from button
+            
             if (event) {
                 const x = event.clientX;
                 const y = event.clientY;
@@ -682,7 +669,7 @@ try {
             document.cookie = "theme=" + (isNowDark ? "dark" : "light") + "; path=/; max-age=" + (60 * 60 * 24 * 365);
         }
 
-        // ── Password Visibility Toggle ──
+        
         function togglePassword() {
             const passwordInput = document.getElementById('password');
             const icon = document.getElementById('passwordIcon');
@@ -695,7 +682,7 @@ try {
             }
         }
 
-        // ── Button Ripple Effect ──
+        
         function updateRipple(e, btn) {
             const rect = btn.getBoundingClientRect();
             const x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -704,7 +691,7 @@ try {
             btn.style.setProperty('--y', y + '%');
         }
 
-        // ── Form Submit: Direct Submit with Button State & Tab Session Setup ──
+        
         document.getElementById('loginForm').addEventListener('submit', function() {
             sessionStorage.setItem('ssv_tab_session_active', '1');
 
@@ -722,7 +709,7 @@ try {
             if (btnSpinner) btnSpinner.classList.remove('hidden');
         });
 
-        // ── Animated Counter ──
+        
         function animateCounter(id, target, duration) {
             const el = document.getElementById(id);
             if (!el) return;
@@ -734,7 +721,7 @@ try {
             function update(currentTime) {
                 const elapsed = currentTime - startTime;
                 const progress = Math.min(elapsed / duration, 1);
-                // Ease out cubic
+                
                 const eased = 1 - Math.pow(1 - progress, 3);
                 const current = Math.round(start + (target - start) * eased);
 
@@ -751,7 +738,7 @@ try {
             requestAnimationFrame(update);
         }
 
-        // ── Auto-dismiss error after 6s ──
+        
         const errorAlert = document.getElementById('errorAlert');
         if (errorAlert) {
             setTimeout(() => {
@@ -762,7 +749,7 @@ try {
             }, 6000);
         }
 
-        // ── Enter key visual feedback ──
+        
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 const btn = document.getElementById('loginBtn');

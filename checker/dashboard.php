@@ -8,7 +8,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Checker') {
     exit;
 }
 
-// ── CSRF Token Generation ──
+
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -219,8 +219,6 @@ foreach ($_gravel_rows as $_g) {
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Scan truck RFID tags to confirm gravel deliveries against active orders.</p>
     </div>
 
-
-
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-5 flex flex-col items-center justify-center">
             <i class="fa-solid fa-clipboard-list text-indigo-500 text-2xl mb-2"></i>
@@ -248,7 +246,7 @@ foreach ($_gravel_rows as $_g) {
         <?php include 'views/modals.php'; ?>
         <div class="lg:col-span-1 order-2 lg:order-1">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden sticky top-6">
-                <!-- Panel Header -->
+                
                 <div class="bg-indigo-600 p-5 text-white">
                     <div class="flex items-center space-x-2 mb-1">
                         <i class="fa-solid fa-truck-ramp-box text-indigo-200 text-xl"></i>
@@ -257,7 +255,7 @@ foreach ($_gravel_rows as $_g) {
                     <p class="text-indigo-200 text-xs">Select an active order, then scan RFID or choose a truck manually.</p>
                 </div>
 
-                <!-- Mode Toggle Tabs -->
+                
                 <div class="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                     <button id="tabRfid" onclick="switchMode('rfid')"
                         class="flex-1 py-3 text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-2 border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 transition">
@@ -269,13 +267,13 @@ foreach ($_gravel_rows as $_g) {
                     </button>
                 </div>
 
-                <!-- Shared Form -->
+                
                 <form method="POST" action="dashboard.php" class="p-5 space-y-4" id="scanForm">
                     <input type="hidden" name="action" value="scan_truck">
                     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                     <input type="hidden" name="truck_id" id="hiddenTruckId">
 
-                    <!-- Order Selector (shared) -->
+                    
                     <div>
                         <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
                             Select Order <span class="text-red-500">*</span>
@@ -297,7 +295,7 @@ foreach ($_gravel_rows as $_g) {
                         </select>
                     </div>
 
-                    <!-- Progress Bar -->
+                    
                     <div id="scanProgress" class="hidden">
                         <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
                             <span>Fulfillment Progress</span>
@@ -308,13 +306,13 @@ foreach ($_gravel_rows as $_g) {
                         </div>
                     </div>
 
-                    <!-- ── RFID MODE ── -->
+                    
                     <div id="rfidMode">
                         <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
                             RFID Tag <span class="text-red-500">*</span>
                         </label>
 
-                        <!-- Scanner input -->
+                        
                         <div class="relative">
                             <span class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                                 <i class="fa-solid fa-wifi text-indigo-400"></i>
@@ -323,10 +321,10 @@ foreach ($_gravel_rows as $_g) {
                                 class="w-full pl-9 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
                         </div>
 
-                        <!-- Scan status feedback -->
+                        
                         <div id="rfidStatus" class="hidden mt-2 rounded-lg px-3 py-2 text-sm flex items-center gap-2"></div>
 
-                        <!-- Scanning indicator -->
+                        
                         <div id="rfidScanning" class="hidden mt-2 flex items-center gap-2 text-indigo-500 text-sm">
                             <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -335,7 +333,7 @@ foreach ($_gravel_rows as $_g) {
                             <span>Looking up truck…</span>
                         </div>
 
-                        <!-- Resolved truck card -->
+                        
                         <div id="rfidTruckCard" class="hidden mt-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg px-4 py-3 flex items-center justify-between">
                             <div class="flex items-center gap-3">
                                 <i class="fa-solid fa-truck text-indigo-500 text-lg"></i>
@@ -357,7 +355,7 @@ foreach ($_gravel_rows as $_g) {
                         </p>
                     </div>
 
-                    <!-- ── MANUAL MODE ── -->
+                    
                     <div id="manualMode" class="hidden">
                         <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
                             Select Dispatched Truck <span class="text-red-500">*</span>
@@ -497,7 +495,7 @@ foreach ($_gravel_rows as $_g) {
 </div>
 
 <script>
-    // ── Mode switching ──────────────────────────────────────────────
+    
     let currentMode = 'rfid';
 
     function switchMode(mode) {
@@ -514,7 +512,7 @@ foreach ($_gravel_rows as $_g) {
             tabRfid.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
             tabManu.classList.remove('border-indigo-600', 'text-indigo-600', 'dark:text-indigo-400');
             tabManu.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
-            // Clear hidden truck id when switching
+            
             document.getElementById('hiddenTruckId').value = '';
             updateConfirmBtn();
             document.getElementById('rfidInput').focus();
@@ -529,7 +527,7 @@ foreach ($_gravel_rows as $_g) {
         }
     }
 
-    // ── Order progress bar ──────────────────────────────────────────
+    
     const scanOrderSelect = document.getElementById('scanOrderSelect');
     const scanProgress = document.getElementById('scanProgress');
     const scanProgressBar = document.getElementById('scanProgressBar');
@@ -551,7 +549,7 @@ foreach ($_gravel_rows as $_g) {
         });
     }
 
-    // ── Confirm button state ────────────────────────────────────────
+    
     function updateConfirmBtn() {
         const btn = document.getElementById('confirmBtn');
         if (currentMode === 'rfid') {
@@ -561,7 +559,7 @@ foreach ($_gravel_rows as $_g) {
         }
     }
 
-    // ── RFID scanning logic ─────────────────────────────────────────
+    
     let rfidDebounce = null;
 
     document.getElementById('rfidInput').addEventListener('input', function() {
@@ -571,11 +569,11 @@ foreach ($_gravel_rows as $_g) {
             clearRfid();
             return;
         }
-        // Debounce: RFID readers typically dump all chars quickly
+        
         rfidDebounce = setTimeout(() => lookupRfid(val), 350);
     });
 
-    // Also allow pressing Enter to trigger lookup immediately
+    
     document.getElementById('rfidInput').addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -636,7 +634,7 @@ foreach ($_gravel_rows as $_g) {
         document.getElementById('rfidInput').focus();
     }
 
-    // ── Form submission: populate hidden truck_id ───────────────────
+    
     document.getElementById('scanForm').addEventListener('submit', function(e) {
         if (currentMode === 'manual') {
             const sel = document.getElementById('truckSelect');
@@ -655,20 +653,20 @@ foreach ($_gravel_rows as $_g) {
         }
     });
 
-    // ── Manual select change ────────────────────────────────────────
+    
     document.getElementById('truckSelect').addEventListener('change', updateConfirmBtn);
 
-    // ── Theme icon ──────────────────────────────────────────────────
+    
     document.addEventListener("DOMContentLoaded", function() {
         if (document.documentElement.classList.contains('dark')) {
             const icon = document.getElementById('themeIcon');
             if (icon) icon.classList.replace('fa-moon', 'fa-sun');
         }
-        // Start in RFID mode
+        
         switchMode('rfid');
         updateConfirmBtn();
     });
 </script>
 
-</div><!-- close #main-content -->
+</div>
 <?php include __DIR__ . '/../includes/scripts.php'; ?>

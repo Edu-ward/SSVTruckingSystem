@@ -77,7 +77,7 @@ $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type']
     </div>
 
     <div class="ticket-container mt-20">
-        <!-- Header -->
+        
         <div class="flex justify-between items-start border-b-2 border-gray-900 pb-6 mb-6">
             <div>
                 <div class="flex items-center mb-1">
@@ -94,7 +94,7 @@ $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type']
             </div>
         </div>
 
-        <!-- Client + Order info grid -->
+        
         <div class="grid grid-cols-2 gap-8 mb-8">
             <div class="bg-gray-50 p-4 border border-gray-200 rounded-lg">
                 <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-2">Client Details</p>
@@ -132,7 +132,7 @@ $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type']
             </div>
         </div>
 
-        <!-- Notes -->
+        
         <?php if (!empty($order['notes'])): ?>
             <div class="border border-gray-300 rounded p-4 mb-8 bg-yellow-50">
                 <p class="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">Notes / Special Instructions</p>
@@ -140,7 +140,7 @@ $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type']
             </div>
         <?php endif; ?>
 
-        <!-- Truck scan log -->
+        
         <div class="border border-gray-300 rounded overflow-hidden mb-12">
             <div class="bg-gray-100 px-4 py-2 border-b border-gray-300 flex justify-between items-center">
                 <h3 class="text-sm font-bold uppercase tracking-wider text-gray-700">Truck Delivery Log</h3>
@@ -174,7 +174,7 @@ $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type']
                             </tr>
                     <?php endforeach;
                     endif; ?>
-                    <!-- Blank rows for remaining trucks -->
+                    
                     <?php for ($r = count($scanRows); $r < $order['trucks_required']; $r++): ?>
                         <tr class="border-t border-dashed border-gray-200">
                             <td class="px-4 py-3 text-gray-300"><?= $r + 1 ?></td>
@@ -193,7 +193,7 @@ $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type']
             </table>
         </div>
 
-        <!-- Signature blocks -->
+        
         <div class="grid grid-cols-3 gap-10 mt-16 pt-8 border-t border-gray-300">
             <div class="text-center">
                 <div class="border-b border-gray-900 w-full h-10 mb-2"></div>

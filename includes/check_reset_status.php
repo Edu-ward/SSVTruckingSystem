@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['Driver', 'Che
 
 $user_id = $_SESSION['user_id'];
 
-// Ensure table exists before querying
+
 $pdo->exec("CREATE TABLE IF NOT EXISTS password_reset_requests (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,

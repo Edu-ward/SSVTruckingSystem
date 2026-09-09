@@ -1,10 +1,10 @@
-<?php // SSV Scripts - v2.1 (Fresh Deployment Sync) ?>
+<?php ?>
 <?php if (in_array($_SESSION['role'] ?? '', ['Admin', 'Driver'])): ?>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <?php endif; ?>
 
 <?php if ($_SESSION['role'] === 'Admin'): ?>
-    <!-- ================= ADMIN SCRIPTS ================= -->
+    
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const activeTab = urlParams.get('tab') || 'dashboard';
@@ -376,7 +376,7 @@
             map.invalidateSize();
 
             const bounds = L.latLngBounds();
-            bounds.extend([15.359042, 120.965016]); // Central Garage (Quarry)
+            bounds.extend([15.359042, 120.965016]); 
 
             let validTruckCount = 0;
             if (typeof trackingData !== 'undefined' && Array.isArray(trackingData)) {
@@ -1577,8 +1577,6 @@
             console.error("Dashboard Charts Error:", err);
         }
 
-
-
         document.addEventListener("DOMContentLoaded", function() {
             const plateInput = document.getElementById('newTruckPlateInput');
             const plateFeedback = document.getElementById('plateCheckFeedback');
@@ -1757,7 +1755,7 @@
                                     const assignedDriverSelect = document.getElementById('assignedDriverSelect');
 
                                     if (driverCount >= 2 && data.drivers && data.drivers.length >= 2) {
-                                        // 2 (or more) alternate drivers: switch to dropdown
+                                        
                                         if (singleContainer) singleContainer.classList.add('hidden');
                                         if (multiContainer) multiContainer.classList.remove('hidden');
 
@@ -1784,7 +1782,7 @@
 
                                         rfidFeedback.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-check"></i> Truck matched! Select which alternate driver is operating.</span>';
                                     } else {
-                                        // 1 driver: standard readonly input
+                                        
                                         if (singleContainer) singleContainer.classList.remove('hidden');
                                         if (multiContainer) multiContainer.classList.add('hidden');
 
@@ -1978,11 +1976,11 @@
     </script>
 
 <?php elseif ($_SESSION['role'] === 'Driver' || $_SESSION['role'] === 'Checker'): ?>
-    <!-- ================= DRIVER / CHECKER SCRIPTS ================= -->
+    
     <script>
         <?php if ($_SESSION['role'] === 'Driver' && !empty($active_dispatch)): ?>
                 (function() {
-                    const PUSH_INTERVAL_MS = 10000; // push every 10 seconds
+                    const PUSH_INTERVAL_MS = 10000; 
                     let lastPushTime = 0;
                     let watchId = null;
                     let simIntervalId = null;
@@ -2006,7 +2004,7 @@
                     }
 
                     async function pushLocation(lat, lng, speed) {
-                        if (!isTransit) return; // Only push updates when actively In Transit
+                        if (!isTransit) return; 
                         const now = Date.now();
                         if (now - lastPushTime < PUSH_INTERVAL_MS) return;
                         lastPushTime = now;
@@ -2112,7 +2110,7 @@
                                 pushLocation(curLat, curLng, curSpeed);
 
                                 if (progress < 1) {
-                                    progress += 0.05; // 5% per 10 seconds (~3.3 mins total)
+                                    progress += 0.05; 
                                     if (progress > 1) progress = 1;
                                     localStorage.setItem('sim_progress_' + activeDest, progress);
                                 } else {
@@ -2197,8 +2195,6 @@
                     });
                 })();
         <?php endif; ?>
-
-
 
         let prPollingInterval = null;
         const prRole = '<?= strtolower($_SESSION['role'] ?? 'driver') ?>';
@@ -2298,7 +2294,7 @@
                         showToast('Your password reset request was rejected by the Admin.', 'warning', 6000);
                     }
                 });
-            }, 5000); // poll every 5 seconds
+            }, 5000); 
         }
 
         function stopPrPolling() {

@@ -30,7 +30,7 @@ if ($period === 'weekly') {
     $params[] = $end_date;
 }
 
-// 1. Fetch Trips (Union of dispatches and driver_trips for maximum coverage)
+
 $sql = "SELECT 
             t_all.trip_date, 
             t_all.destination, 
@@ -54,8 +54,6 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-
-// Helper: calculate driver trip pay
 if (!function_exists('isWithinSanLeonardo')) {
     function isWithinSanLeonardo(string $destName): bool {
         $d = strtolower(trim($destName));
@@ -79,11 +77,11 @@ if (!function_exists('getSanLeonardoBoundaryDistance')) {
     function getSanLeonardoBoundaryDistance(string $destName): float {
         $d = strtolower(trim($destName));
         if ($d === '') return 12.0;
-        // East border (Peñaranda / Gen. Tinio) is ~3 km one-way = 6 km round-trip
+        
         if (strpos($d, 'peñaranda') !== false || strpos($d, 'penaranda') !== false || strpos($d, 'general tinio') !== false || strpos($d, 'gen. tinio') !== false || strpos($d, 'papaya') !== false) {
             return 6.0;
         }
-        // South (Gapan), North (Santa Rosa/Cabanatuan), West (Jaen/San Isidro) ~6 km one-way = 12 km round-trip
+        
         return 12.0;
     }
 }
@@ -115,7 +113,7 @@ if (!function_exists('calculateTripPay')) {
     }
 }
 
-// Rate mapping from DB (flat rate within San Leonardo; base + rate/km for distance outside San Leonardo boundary)
+
 $_dest_rows = $pdo->query("SELECT name, driver_rate, distance_km FROM destinations WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
 $rates = [];
 foreach ($_dest_rows as $_d) {
@@ -123,7 +121,7 @@ foreach ($_dest_rows as $_d) {
     $rates[$_d['name']] = calculateTripPay($km, $_d['name'], floatval($_d['driver_rate']));
 }
 
-// Gravel type reference prices from DB
+
 $_gravel_rows = $pdo->query("SELECT type_key, label FROM gravel_types WHERE is_active = 1 ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
 $gravelPrices = [
     "S1_regular" => 1500, "S1_crushed" => 1600, "3_4_regular" => 1400, "3_4_crushed" => 1500,
@@ -136,10 +134,10 @@ foreach ($_gravel_rows as $_g) {
     }
 }
 
-// 2. Prepare CSV
+
 $filename = "SSV_Trip_Report_" . ($period) . "_" . date('Ymd') . ".csv";
 
-// Clear any previous output to ensure a clean file
+
 if (ob_get_length()) ob_end_clean();
 
 header('Content-Type: text/csv; charset=utf-8');
@@ -147,12 +145,12 @@ header('Content-Disposition: attachment; filename=' . $filename);
 
 $output = fopen('php://output', 'w');
 
-// Headers
+
 fputcsv($output, ['Trip Date', 'Truck Code', 'Driver Name', 'Destination', 'Status', 'Revenue (₱)']);
 
-// Data
+
 foreach ($data as $row) {
-    // Calculate revenue: manual if exists, otherwise lookup by gravel type
+    
     if ($row['manual_revenue'] > 0) {
         $revenue = floatval($row['manual_revenue']);
     } else {

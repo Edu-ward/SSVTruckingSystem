@@ -1,5 +1,5 @@
 <?php
-// view-pwd_requests — Password Reset Requests Management
+
 ?>
 <div id="view-pwd_requests" class="tab-content hidden">
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -30,7 +30,7 @@
         <div class="space-y-3">
             <?php foreach ($pwdResetRequests as $req): ?>
                 <div class="bg-white dark:bg-gray-800 rounded-xl border border-amber-200 dark:border-amber-800/50 shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-4">
-                    <!-- Avatar + Info -->
+                    
                     <div class="flex items-center gap-3 flex-1 min-w-0">
                         <div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-white text-sm flex-shrink-0 <?= $req['role'] === 'Driver' ? 'bg-blue-500' : 'bg-indigo-500' ?>">
                             <?= strtoupper(substr($req['username'] ?? '?', 0, 1)) ?>
@@ -49,12 +49,12 @@
                         </div>
                     </div>
 
-                    <!-- Status badge -->
+                    
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700 flex-shrink-0">
                         <i class="fa-solid fa-hourglass-half"></i> Pending
                     </span>
 
-                    <!-- Actions -->
+                    
                     <div class="flex gap-2 flex-shrink-0">
                         <form method="POST" action="dashboard.php" onsubmit="return confirm('Approve this password reset request for <?= htmlspecialchars(addslashes($req['username'])) ?>?')">
                             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">

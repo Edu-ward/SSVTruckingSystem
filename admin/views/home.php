@@ -21,7 +21,7 @@
     </div>
     <?php endif; ?>
 
-    <!-- Top Stat Cards (Glassmorphism & Gradients) -->
+    
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
         <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white shadow-xl shadow-blue-500/20 hover:-translate-y-1 transition-all duration-300 group border border-white/10">
             <div class="flex justify-between items-start">
@@ -78,7 +78,7 @@
         </div>
     </div>
 
-    <!-- Charts Row -->
+    
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-6 hover:shadow-md transition">
             <div class="flex items-center justify-between mb-4">
@@ -102,7 +102,7 @@
         </div>
     </div>
 
-    <!-- Efficiency & Quick Stats -->
+    
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-6 hover:shadow-md transition">
             <div class="flex items-center justify-between mb-4">
@@ -155,7 +155,7 @@
         </div>
     </div>
 
-    <!-- Recent Activity Table -->
+    
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 overflow-hidden">
         <div class="p-6 border-b border-gray-100 dark:border-gray-700/80 flex items-center justify-between">
             <h3 class="font-bold text-gray-800 dark:text-gray-200 text-base flex items-center gap-2">

@@ -12,7 +12,7 @@ if (!isset($_GET['driver_id'])) {
 
 $driver_id = intval($_GET['driver_id']);
 
-// Fetch Driver Info
+
 $stmtDriver = $pdo->prepare("
     SELECT d.*, CONCAT(d.first_name, ' ', d.last_name) AS full_name, t.truck_code, t.rfid_tag
     FROM drivers d
@@ -81,7 +81,7 @@ $stmtTrips = $pdo->prepare($sql);
 $stmtTrips->execute($params);
 $trips = $stmtTrips->fetchAll(PDO::FETCH_ASSOC);
 
-// Metrics calculation
+
 $totalTrips = count($trips);
 $deliveredCount = 0;
 $totalCubicMeters = 0;
@@ -149,7 +149,7 @@ $reportNo = 'DRV-REP-' . date('Ymd') . '-' . str_pad($driver_id, 3, '0', STR_PAD
 
 <body class="text-slate-800 antialiased py-6">
 
-    <!-- Floating Action Toolbar (Hidden during print) -->
+    
     <div class="no-print fixed top-5 right-5 z-50 flex items-center gap-3 bg-white/95 backdrop-blur shadow-xl border border-slate-200 px-4 py-2.5 rounded-2xl">
         <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 shadow transition active:scale-95">
             <i class="fa-solid fa-print"></i> Print Document
@@ -160,7 +160,7 @@ $reportNo = 'DRV-REP-' . date('Ymd') . '-' . str_pad($driver_id, 3, '0', STR_PAD
     </div>
 
     <div class="ticket-container">
-        <!-- Official Document Header -->
+        
         <div class="flex justify-between items-start border-b-2 border-slate-900 pb-5 mb-6">
             <div class="flex items-center space-x-4">
                 <div class="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center text-2xl font-black shadow-md">
@@ -181,7 +181,7 @@ $reportNo = 'DRV-REP-' . date('Ymd') . '-' . str_pad($driver_id, 3, '0', STR_PAD
             </div>
         </div>
 
-        <!-- Document Sub-Header / Driver Info Grid -->
+        
         <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
             <div>
                 <span class="text-slate-400 font-semibold block uppercase text-[10px]">Assigned Driver</span>
@@ -205,7 +205,7 @@ $reportNo = 'DRV-REP-' . date('Ymd') . '-' . str_pad($driver_id, 3, '0', STR_PAD
             </div>
         </div>
 
-        <!-- Summary KPI Strip -->
+        
         <div class="grid grid-cols-4 gap-3 mb-6 text-center">
             <div class="border border-slate-200 rounded-xl p-3 bg-white">
                 <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Dispatches</div>
@@ -225,7 +225,7 @@ $reportNo = 'DRV-REP-' . date('Ymd') . '-' . str_pad($driver_id, 3, '0', STR_PAD
             </div>
         </div>
 
-        <!-- Itemized Trip Log Table -->
+        
         <div class="mb-8">
             <div class="flex justify-between items-center mb-2">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">Itemized Trip Dispatches</h3>
@@ -307,7 +307,7 @@ $reportNo = 'DRV-REP-' . date('Ymd') . '-' . str_pad($driver_id, 3, '0', STR_PAD
             </table>
         </div>
 
-        <!-- Verification & Signatures Section -->
+        
         <div class="border-t-2 border-dashed border-slate-300 pt-6 mt-12 grid grid-cols-3 gap-8 text-center text-xs">
             <div>
                 <div class="border-b border-slate-900 pb-1 mb-1 font-bold text-slate-900">

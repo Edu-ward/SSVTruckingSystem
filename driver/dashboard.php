@@ -8,7 +8,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Driver') {
     exit;
 }
 
-// Ensure csrf_token exists
+
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         try {
             $pdo->prepare("INSERT INTO cash_advances (driver_id, amount, reason) VALUES (?, ?, ?)")
                 ->execute([$driver_id, $ca_amount, $ca_reason]);
-            // Ensure payroll record exists
+            
             $pdo->prepare("INSERT IGNORE INTO driver_payroll (driver_id, total_amount, amount_claimed) VALUES (?, 0, 0)")
                 ->execute([$driver_id]);
             $_SESSION['success'] = "Cash advance request of ₱" . number_format($ca_amount, 2) . " submitted. Awaiting Admin approval.";
@@ -164,13 +164,13 @@ $stmtActive = $pdo->prepare("
 $stmtActive->execute([$driver_id]);
 $active_dispatch = $stmtActive->fetch();
 
-// Load payroll and cash advance data for the driver
+
 $payStmt = $pdo->prepare("SELECT total_amount, amount_claimed, remaining_balance FROM driver_payroll WHERE driver_id = ?");
 $payStmt->execute([$driver_id]);
 $driverPayroll = $payStmt->fetch(PDO::FETCH_ASSOC);
 $driverRemainingBalance = floatval($driverPayroll['remaining_balance'] ?? 0);
 
-// Active gross earnings from delivered dispatches (resets to 0 once payroll is settled)
+
 $grossEarnStmt = $pdo->prepare("SELECT COALESCE(SUM(pay_amount), 0) FROM dispatches WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)");
 $grossEarnStmt->execute([$driver_id]);
 $driverGrossEarnings = floatval($grossEarnStmt->fetchColumn());
@@ -179,7 +179,7 @@ $cashAdvStmt = $pdo->prepare("SELECT id, amount, reason, status, is_settled, req
 $cashAdvStmt->execute([$driver_id]);
 $driverCashAdvances = $cashAdvStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Total active approved cash advances for this driver (strictly active / unsettled)
+
 $caSumStmt = $pdo->prepare("SELECT COALESCE(SUM(amount), 0) FROM cash_advances WHERE driver_id = ? AND status = 'Approved' AND (is_settled = 0 OR is_settled IS NULL)");
 $caSumStmt->execute([$driver_id]);
 $totalCashAdvancesClaimed = floatval($caSumStmt->fetchColumn());

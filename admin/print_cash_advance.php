@@ -28,7 +28,7 @@ if (!$advance) {
     die("Cash advance record not found.");
 }
 
-// Check authorization: Admin can view any ticket, Driver can only view their own
+
 $currentUserId = $_SESSION['user_id'] ?? ($_SESSION['driver_id'] ?? 0);
 if ($_SESSION['role'] !== 'Admin' && $currentUserId != $advance['driver_id']) {
     die("Unauthorized access to this cash advance ticket.");
@@ -84,7 +84,7 @@ $ticket_number = 'CA-' . date('Y', strtotime($advance['requested_at'] ?? 'now'))
 
 <body class="text-gray-900">
 
-    <!-- Top Action Bar (hidden on print) -->
+    
     <div class="no-print bg-gray-900 text-white p-4 flex justify-between items-center fixed top-0 w-full z-10 shadow-md">
         <div class="flex items-center space-x-3">
             <i class="fa-solid fa-hand-holding-dollar text-orange-400 text-lg"></i>
@@ -99,10 +99,10 @@ $ticket_number = 'CA-' . date('Y', strtotime($advance['requested_at'] ?? 'now'))
         </div>
     </div>
 
-    <!-- Printable Voucher Container -->
+    
     <div class="waybill-container mt-20 relative">
 
-        <!-- Header -->
+        
         <div class="flex justify-between items-start border-b-2 border-gray-900 pb-6 mb-6">
             <div>
                 <div class="flex items-center mb-1">
@@ -126,7 +126,7 @@ $ticket_number = 'CA-' . date('Y', strtotime($advance['requested_at'] ?? 'now'))
             </div>
         </div>
 
-        <!-- Main Amount Highlight Box -->
+        
         <div class="bg-orange-50 border-2 border-orange-300 p-6 rounded-2xl mb-8">
             <div class="flex justify-between items-center mb-4 border-b border-orange-200 pb-4">
                 <div>
@@ -153,9 +153,9 @@ $ticket_number = 'CA-' . date('Y', strtotime($advance['requested_at'] ?? 'now'))
             </div>
         </div>
 
-        <!-- Driver & Ticket Details Grid -->
+        
         <div class="grid grid-cols-2 gap-6 mb-8">
-            <!-- Driver Details -->
+            
             <div class="bg-gray-50 p-5 rounded-xl border border-gray-200">
                 <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-3 flex items-center gap-1.5">
                     <i class="fa-solid fa-id-card text-blue-500"></i> Driver Details
@@ -184,7 +184,7 @@ $ticket_number = 'CA-' . date('Y', strtotime($advance['requested_at'] ?? 'now'))
                 </div>
             </div>
 
-            <!-- Ticket Info -->
+            
             <div class="bg-gray-50 p-5 rounded-xl border border-gray-200">
                 <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-3 flex items-center gap-1.5">
                     <i class="fa-solid fa-file-invoice text-orange-500"></i> Ticket Metadata
@@ -214,12 +214,12 @@ $ticket_number = 'CA-' . date('Y', strtotime($advance['requested_at'] ?? 'now'))
             </div>
         </div>
 
-        <!-- Notice Box -->
+        
         <div class="bg-gray-100 p-4 border border-gray-300 text-xs text-gray-700 mb-12 rounded-xl leading-relaxed">
             <strong>Acknowledgment & Agreement:</strong> By signing below, the driver confirms receipt of the cash advance amount indicated on this ticket and authorizes SSV Trucking management to deduct the exact amount from their upcoming payroll payout. The admin/cashier confirms that the funds have been disbursed in accordance with company policy.
         </div>
 
-        <!-- Signatures Grid -->
+        
         <div class="grid grid-cols-2 gap-12 mt-16 pt-8 border-t-2 border-gray-200">
             <div class="text-center">
                 <div class="border-b-2 border-gray-900 w-full h-12 mb-2"></div>
@@ -235,7 +235,7 @@ $ticket_number = 'CA-' . date('Y', strtotime($advance['requested_at'] ?? 'now'))
             </div>
         </div>
 
-        <!-- Footer watermark -->
+        
         <div class="absolute bottom-4 left-0 w-full text-center opacity-40">
             <p class="text-[10px] font-mono uppercase tracking-widest border-t border-dashed border-gray-300 pt-3">
                 SSV TRUCKING SYSTEM &bull; INTERNAL ACCOUNTING DOCUMENT &bull; GENERATED ON <?= date('Y-m-d H:i:s'); ?>
@@ -244,7 +244,7 @@ $ticket_number = 'CA-' . date('Y', strtotime($advance['requested_at'] ?? 'now'))
 
     </div>
 
-    <!-- Auto Print Script -->
+    
     <script>
         window.onload = function() {
             setTimeout(function() {

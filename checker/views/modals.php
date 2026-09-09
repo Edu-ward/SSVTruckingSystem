@@ -1,6 +1,6 @@
 <div id="pwdResetOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden justify-center items-center z-50 p-4">
 
-    <!-- Step 1: Request -->
+    
     <div id="prStepRequest" class="hidden bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-[92%] max-w-sm p-6 text-center transform scale-95 opacity-0 transition-all duration-300">
         <div class="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
             <i class="fa-solid fa-key"></i>
@@ -14,7 +14,7 @@
         </div>
     </div>
 
-    <!-- Step 2: Waiting -->
+    
     <div id="prStepWaiting" class="hidden bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-[92%] max-w-sm p-6 text-center transform scale-95 opacity-0 transition-all duration-300">
         <div class="w-16 h-16 bg-amber-50 dark:bg-amber-900/30 text-amber-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4 animate-pulse">
             <i class="fa-solid fa-hourglass-half"></i>
@@ -32,7 +32,7 @@
         <button onclick="closePwdResetModal()" class="w-full px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition">Close & Wait</button>
     </div>
 
-    <!-- Step 3: Set new password -->
+    
     <div id="prStepSetPwd" class="hidden bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-[92%] max-w-sm p-6 transform scale-95 opacity-0 transition-all duration-300">
         <div class="w-16 h-16 bg-green-50 dark:bg-green-900/30 text-green-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
             <i class="fa-solid fa-unlock"></i>
@@ -67,14 +67,14 @@
         else modal.classList.add('hidden');
     }
 
-    function openChangePasswordModal() { openResetPasswordModal(); } // alias kept for safety
+    function openChangePasswordModal() { openResetPasswordModal(); } 
 
     function openChangePasswordModal() {
         openResetPasswordModal();
     }
 
     function openResetPasswordModal() {
-        // handled by global scripts
+        
     }
 
     function closeOtpModal() { closePwdResetModal(); }
