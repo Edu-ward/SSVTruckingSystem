@@ -5,7 +5,8 @@ require_once __DIR__ . '/includes/activity_log.php';
 
 // Log before destroying session
 if (isset($_SESSION['user_id'])) {
-    log_activity($pdo, 'Logout', 'Logged out');
+    $actionMsg = isset($_GET['tab_closed']) ? 'Auto-logged out (Tab closed)' : 'Logged out';
+    log_activity($pdo, 'Logout', $actionMsg);
 }
 
 // Destroy all session data
@@ -26,6 +27,12 @@ if (ini_get("session.use_cookies")) {
 }
 
 session_destroy();
-header("Location: index.php");
+
+$redirectUrl = "index.php";
+if (isset($_GET['tab_closed'])) {
+    $redirectUrl .= "?error=tab_closed";
+}
+
+header("Location: " . $redirectUrl);
 exit;
 ?>

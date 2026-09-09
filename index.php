@@ -2,6 +2,9 @@
 require_once __DIR__ . '/includes/security_headers.php';
 require_once 'db.php';
 
+$loggedInUserId = $_SESSION['user_id'] ?? null;
+$loggedInRole   = $_SESSION['role'] ?? null;
+
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -37,6 +40,32 @@ try {
         } else {
             document.documentElement.classList.remove('dark');
         }
+    </script>
+
+    <!-- Tab-Session & Auto-Logout Guard for Login Page -->
+    <script>
+        (function() {
+            var hasUserSession = <?= !empty($loggedInUserId) ? 'true' : 'false' ?>;
+            var userRole = '<?= htmlspecialchars($loggedInRole ?? '', ENT_QUOTES) ?>';
+            var isTabActive = sessionStorage.getItem('ssv_tab_session_active') === '1';
+
+            if (hasUserSession && isTabActive) {
+                // User is actively authenticated in this tab — redirect to their portal
+                if (userRole === 'Admin') {
+                    window.location.replace('admin/dashboard.php');
+                } else if (userRole === 'Driver') {
+                    window.location.replace('driver/dashboard.php');
+                } else if (userRole === 'Checker') {
+                    window.location.replace('checker/dashboard.php');
+                }
+            } else if (hasUserSession && !isTabActive) {
+                // Tab was closed, but server session cookie still exists — destroy stale session
+                window.location.replace('logout.php?tab_closed=1');
+            } else {
+                // Not authenticated — clean tab session key
+                sessionStorage.removeItem('ssv_tab_session_active');
+            }
+        })();
     </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -494,6 +523,16 @@ try {
                             <p class="text-amber-600/80 dark:text-amber-400/70 text-xs mt-0.5">This account has been marked as resigned. Please contact an administrator.</p>
                         </div>
                     </div>
+                <?php elseif (isset($_GET['error']) && htmlspecialchars($_GET['error']) == 'tab_closed'): ?>
+                    <div id="errorAlert" class="flex items-start space-x-3 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 p-4 rounded-xl mb-6 text-sm border border-blue-100 dark:border-blue-900/40 animate-slide-up">
+                        <div class="w-5 h-5 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fa-solid fa-clock-rotate-left text-xs"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold">Session Ended</p>
+                            <p class="text-blue-500/80 dark:text-blue-400/70 text-xs mt-0.5">You were signed out because the browser tab was closed. Please sign in to continue.</p>
+                        </div>
+                    </div>
                 <?php endif; ?>
 
                 <!-- Login Form -->
@@ -665,8 +704,10 @@ try {
             btn.style.setProperty('--y', y + '%');
         }
 
-        // ── Form Submit: Direct Submit with Button State ──
+        // ── Form Submit: Direct Submit with Button State & Tab Session Setup ──
         document.getElementById('loginForm').addEventListener('submit', function() {
+            sessionStorage.setItem('ssv_tab_session_active', '1');
+
             const btn = document.getElementById('loginBtn');
             const btnText = document.getElementById('btnText');
             const btnIcon = document.getElementById('btnIcon');

@@ -14,6 +14,80 @@
             document.documentElement.classList.remove('dark');
         }
     </script>
+
+    <?php
+    $isLoginRedirect = !empty($_SESSION['login_redirect']);
+    if ($isLoginRedirect) {
+        unset($_SESSION['login_redirect']);
+    }
+    ?>
+    <!-- Tab-Session & Auto-Logout System -->
+    <script>
+        (function() {
+            var isLoginRedirect = <?= $isLoginRedirect ? 'true' : 'false' ?>;
+
+            if (isLoginRedirect) {
+                // Fresh login from index.php: establish tab session
+                sessionStorage.setItem('ssv_tab_session_active', '1');
+                return;
+            }
+
+            if (sessionStorage.getItem('ssv_tab_session_active') === '1') {
+                // Active tab session verified (e.g. reload, internal navigation)
+                return;
+            }
+
+            // Tab session missing in this tab. Temporarily hide content to avoid flash.
+            document.documentElement.style.visibility = 'hidden';
+
+            var sessionConfirmed = false;
+            var channel = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('ssv_auth_sync') : null;
+
+            function triggerTabLogout() {
+                if (channel) {
+                    try { channel.close(); } catch(e) {}
+                }
+                sessionStorage.removeItem('ssv_tab_session_active');
+                window.location.replace('../logout.php?tab_closed=1');
+            }
+
+            if (channel) {
+                channel.onmessage = function(e) {
+                    if (e.data && e.data.type === 'SESSION_CONFIRMED') {
+                        sessionConfirmed = true;
+                        sessionStorage.setItem('ssv_tab_session_active', '1');
+                        document.documentElement.style.visibility = '';
+                        try { channel.close(); } catch(err) {}
+                    }
+                };
+
+                // Query sibling open tabs
+                channel.postMessage({ type: 'CHECK_ACTIVE_SESSION' });
+
+                setTimeout(function() {
+                    if (!sessionConfirmed) {
+                        triggerTabLogout();
+                    }
+                }, 120);
+            } else {
+                triggerTabLogout();
+            }
+        })();
+
+        // Sibling tab responder
+        (function() {
+            if (typeof BroadcastChannel !== 'undefined') {
+                var responder = new BroadcastChannel('ssv_auth_sync');
+                responder.onmessage = function(e) {
+                    if (e.data && e.data.type === 'CHECK_ACTIVE_SESSION') {
+                        if (sessionStorage.getItem('ssv_tab_session_active') === '1') {
+                            responder.postMessage({ type: 'SESSION_CONFIRMED' });
+                        }
+                    }
+                };
+            }
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -878,7 +952,7 @@
                             <button type="button" onclick="closeLogoutModal()" class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 font-semibold text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition active:scale-95">
                                 Cancel
                             </button>
-                            <a href="../logout.php" class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-xs sm:text-sm shadow-md shadow-red-500/25 transition active:scale-95 flex items-center justify-center space-x-1.5">
+                            <a href="../logout.php" onclick="sessionStorage.removeItem('ssv_tab_session_active');" class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-xs sm:text-sm shadow-md shadow-red-500/25 transition active:scale-95 flex items-center justify-center space-x-1.5">
                                 <i class="fa-solid fa-check text-xs"></i>
                                 <span>Sign Out</span>
                             </a>

@@ -66,6 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['role'] = $user['role'];
+        $_SESSION['login_redirect'] = true;
 
         log_activity($pdo, 'Login', 'Logged in successfully as ' . $user['role']);
 
