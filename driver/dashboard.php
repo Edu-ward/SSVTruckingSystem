@@ -15,7 +15,15 @@ if (empty($_SESSION['csrf_token'])) {
 
 $driver_id = $_SESSION['user_id'];
 
-$stmtDriver = $pdo->prepare("SELECT d.first_name, d.last_name, d.profile_photo, u.username FROM drivers d JOIN users u ON u.id = d.id WHERE d.id = ?");
+$stmtDriver = $pdo->prepare("
+    SELECT 
+        d.first_name, d.last_name, d.profile_photo, d.cdl_number, d.phone, d.status, d.truck_id, d.rating, 
+        u.username, t.truck_code, t.status AS truck_status 
+    FROM drivers d 
+    JOIN users u ON u.id = d.id 
+    LEFT JOIN trucks t ON t.id = d.truck_id 
+    WHERE d.id = ?
+");
 $stmtDriver->execute([$driver_id]);
 $driverProfile = $stmtDriver->fetch(PDO::FETCH_ASSOC);
 
@@ -42,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $_SESSION['error'] = "Failed to submit cash advance request.";
         }
     }
-    header("Location: dashboard.php");
+    header("Location: dashboard.php?tab=payroll");
     exit;
 }
 
@@ -184,6 +192,28 @@ $caSumStmt = $pdo->prepare("SELECT COALESCE(SUM(amount), 0) FROM cash_advances W
 $caSumStmt->execute([$driver_id]);
 $totalCashAdvancesClaimed = floatval($caSumStmt->fetchColumn());
 $netPay = max(0, $driverGrossEarnings + $driverRemainingBalance - $totalCashAdvancesClaimed);
+
+$stmtPayrollTrips = $pdo->prepare("
+    SELECT 
+        d.id,
+        d.ticket_number,
+        d.destination,
+        d.pay_amount,
+        d.cubic_meters,
+        d.transit_end_time,
+        d.created_at,
+        d.is_payroll_paid,
+        d.payroll_settled_at,
+        t.truck_code,
+        dest.distance_km
+    FROM dispatches d
+    LEFT JOIN trucks t ON t.id = d.truck_id
+    LEFT JOIN destinations dest ON dest.name = d.destination
+    WHERE d.driver_id = ? AND d.status = 'Delivered'
+    ORDER BY d.id DESC
+");
+$stmtPayrollTrips->execute([$driver_id]);
+$payrollTrips = $stmtPayrollTrips->fetchAll(PDO::FETCH_ASSOC);
 
 include __DIR__ . '/../includes/header.php';
 ?>

@@ -13,10 +13,13 @@
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.sidebar-nav-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.bottom-nav-item').forEach(el => el.classList.remove('active'));
             const viewEl = document.getElementById('view-' + tabName);
             if (viewEl) viewEl.classList.remove('hidden');
             const navBtn = document.getElementById('nav-' + tabName);
             if (navBtn) navBtn.classList.add('active');
+            const bottomNavBtn = document.getElementById('bottom-nav-' + tabName);
+            if (bottomNavBtn) bottomNavBtn.classList.add('active');
             if (tabName === 'tracking') {
                 setTimeout(() => {
                     if (!map) {
@@ -1127,10 +1130,77 @@
             if (statusEl) statusEl.value = driver.status || 'Off Duty';
             const statusDisplay = document.getElementById('edit_driver_status_display');
             if (statusDisplay) statusDisplay.innerText = driver.status || 'Off Duty';
+
             const truckEl = document.getElementById('edit_driver_truck_id');
-            if (truckEl) truckEl.value = driver.truck_id || '';
+            const driverIdStr = String(driver.id || '');
+            const currentTruckId = driver.truck_id ? String(driver.truck_id) : '';
+
+            if (truckEl) {
+                Array.from(truckEl.options).forEach(opt => {
+                    if (!opt.value) {
+                        opt.text = "— Unassigned (No Truck) —";
+                        opt.disabled = false;
+                        return;
+                    }
+                    const optVal = String(opt.value);
+                    const rawIds = (opt.getAttribute('data-driver-ids') || '').split(',').map(s => s.trim()).filter(Boolean);
+                    const count = parseInt(opt.getAttribute('data-count') || '0', 10);
+                    const driverNames = opt.getAttribute('data-driver-names') || '';
+                    const truckCode = opt.getAttribute('data-truck-code') || opt.text;
+
+                    const isCurrentlyAssigned = (optVal === currentTruckId) || rawIds.includes(driverIdStr);
+
+                    if (isCurrentlyAssigned) {
+                        opt.disabled = false;
+                        if (count > 1) {
+                            opt.text = `${truckCode} (Currently Assigned • 2/2 Co-driver: ${driverNames})`;
+                        } else {
+                            opt.text = `${truckCode} (Currently Assigned • Solo)`;
+                        }
+                    } else if (count >= 2) {
+                        opt.disabled = true;
+                        opt.text = `${truckCode} (Full — 2/2 drivers: ${driverNames})`;
+                    } else if (count === 1) {
+                        opt.disabled = false;
+                        opt.text = `${truckCode} (1/2 drivers — Co-driver: ${driverNames})`;
+                    } else {
+                        opt.disabled = false;
+                        opt.text = `${truckCode} (Available — 0/2 drivers)`;
+                    }
+                });
+
+                truckEl.value = currentTruckId;
+                handleEditDriverTruckChange();
+            }
 
             toggleModal('editDriverModal', true);
+        }
+
+        function handleEditDriverTruckChange() {
+            const truckEl = document.getElementById('edit_driver_truck_id');
+            const noteEl = document.getElementById('edit_driver_truck_note');
+            if (!truckEl || !noteEl) return;
+
+            const selectedOpt = truckEl.options[truckEl.selectedIndex];
+            if (!selectedOpt || !selectedOpt.value) {
+                noteEl.innerHTML = '<span class="text-amber-600 dark:text-amber-400"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Driver will be unassigned from any vehicle.</span>';
+                return;
+            }
+
+            const driverNames = selectedOpt.getAttribute('data-driver-names') || '';
+            const count = parseInt(selectedOpt.getAttribute('data-count') || '0', 10);
+            const driverIdEl = document.getElementById('edit_driver_id');
+            const driverIdStr = driverIdEl ? String(driverIdEl.value) : '';
+            const rawIds = (selectedOpt.getAttribute('data-driver-ids') || '').split(',').map(s => s.trim()).filter(Boolean);
+            const isAssigned = rawIds.includes(driverIdStr);
+
+            if (isAssigned) {
+                noteEl.innerHTML = '<span class="text-blue-600 dark:text-blue-400"><i class="fa-solid fa-circle-check mr-1"></i>Driver is already assigned to this vehicle.</span>';
+            } else if (count === 1) {
+                noteEl.innerHTML = `<span class="text-emerald-600 dark:text-emerald-400"><i class="fa-solid fa-users mr-1"></i>Will share this truck with co-driver: <strong>${driverNames}</strong> (Slot 2/2).</span>`;
+            } else {
+                noteEl.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400"><i class="fa-solid fa-check mr-1"></i>Truck is currently unoccupied (Slot 1/2).</span>';
+            }
         }
 
         function openEditTruckModal(truck) {
@@ -1156,7 +1226,77 @@
             const statusDisplay = document.getElementById('edit_truck_status_display');
             if (statusDisplay) statusDisplay.innerText = truck.status || 'Idle';
 
+            const driverIds = (truck.driver_ids ? String(truck.driver_ids).split(',') : [])
+                .map(s => s.trim())
+                .filter(Boolean);
+
+            const d1El = document.getElementById('edit_truck_driver_1');
+            const d2El = document.getElementById('edit_truck_driver_2');
+            const truckIdStr = String(truck.id || '');
+
+            [d1El, d2El].forEach(sel => {
+                if (!sel) return;
+                Array.from(sel.options).forEach(opt => {
+                    if (!opt.value) return;
+                    const name = opt.getAttribute('data-name') || opt.text;
+                    const optTruckId = String(opt.getAttribute('data-truck-id') || '');
+                    const optTruckCode = opt.getAttribute('data-truck-code') || '';
+
+                    if (optTruckId === truckIdStr) {
+                        opt.text = `${name} (Currently assigned to this truck)`;
+                    } else if (optTruckCode) {
+                        opt.text = `${name} (Currently on ${optTruckCode})`;
+                    } else {
+                        opt.text = `${name} (Unassigned)`;
+                    }
+                });
+            });
+
+            if (d1El) d1El.value = driverIds[0] || '';
+            if (d2El) d2El.value = driverIds[1] || '';
+
+            syncEditTruckDriverSelects();
+
             toggleModal('editTruckModal', true);
+        }
+
+        function syncEditTruckDriverSelects() {
+            const d1El = document.getElementById('edit_truck_driver_1');
+            const d2El = document.getElementById('edit_truck_driver_2');
+            const badge = document.getElementById('edit_truck_driver_count_badge');
+            if (!d1El || !d2El) return;
+
+            const val1 = d1El.value;
+            const val2 = d2El.value;
+
+            if (val1 && val2 && val1 === val2) {
+                d2El.value = '';
+            }
+
+            Array.from(d2El.options).forEach(opt => {
+                if (!opt.value) return;
+                opt.disabled = (val1 && opt.value === val1);
+            });
+
+            Array.from(d1El.options).forEach(opt => {
+                if (!opt.value) return;
+                opt.disabled = (val2 && opt.value === val2);
+            });
+
+            let count = 0;
+            if (d1El.value) count++;
+            if (d2El.value) count++;
+
+            if (badge) {
+                badge.innerText = `${count} / 2 Drivers`;
+                if (count === 2) {
+                    badge.className = "text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300";
+                } else if (count === 1) {
+                    badge.className = "text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300";
+                } else {
+                    badge.className = "text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
+                }
+            }
         }
 
         function openSwitchTruckModal(driverId, driverName, truckCode) {
@@ -1978,6 +2118,43 @@
 <?php elseif ($_SESSION['role'] === 'Driver' || $_SESSION['role'] === 'Checker'): ?>
     
     <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeTab = urlParams.get('tab') || 'dashboard';
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.sidebar-nav-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.bottom-nav-item').forEach(el => el.classList.remove('active'));
+
+            const viewEl = document.getElementById('view-' + tabName);
+            if (viewEl) viewEl.classList.remove('hidden');
+
+            const navBtn = document.getElementById('nav-' + tabName);
+            if (navBtn) navBtn.classList.add('active');
+
+            const bottomNavBtn = document.getElementById('bottom-nav-' + tabName);
+            if (bottomNavBtn) bottomNavBtn.classList.add('active');
+
+            if (tabName === 'route') {
+                setTimeout(() => {
+                    if (window.driverMap) {
+                        window.driverMap.invalidateSize();
+                        if (typeof fitDriverRouteBounds === 'function') {
+                            fitDriverRouteBounds();
+                        }
+                    } else if (typeof initDriverMap === 'function') {
+                        initDriverMap();
+                    }
+                }, 250);
+            }
+
+            window.history.pushState({}, '', '?tab=' + tabName);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            switchTab(activeTab);
+        });
+
         <?php if ($_SESSION['role'] === 'Driver' && !empty($active_dispatch)): ?>
                 (function() {
                     const PUSH_INTERVAL_MS = 10000; 

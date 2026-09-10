@@ -690,37 +690,47 @@
                     </div>
 
                     
+                    <!-- Driver Navigation Features -->
                     <nav class="flex-1 px-3 py-4 space-y-1">
-                        <a href="dashboard.php" class="sidebar-nav-item active w-full">
+                        <button type="button" onclick="switchTab('dashboard')" id="nav-dashboard" class="sidebar-nav-item active w-full text-left">
                             <i class="fa-solid fa-house nav-icon"></i>
                             <span>Dashboard</span>
-                        </a>
-                        <button onclick="scrollToLiveTripRoute()" class="sidebar-nav-item w-full">
-                            <i class="fa-solid fa-map-location-dot nav-icon"></i>
-                            <span>Live Trip Route</span>
                         </button>
-                        <button onclick="typeof openCashAdvanceModal === 'function' && openCashAdvanceModal()" class="sidebar-nav-item w-full">
-                            <i class="fa-solid fa-hand-holding-dollar nav-icon"></i>
-                            <span>Request Cash Advance</span>
+                        <button type="button" onclick="switchTab('route')" id="nav-route" class="sidebar-nav-item w-full text-left flex items-center justify-between">
+                            <span class="flex items-center space-x-3">
+                                <i class="fa-solid fa-map-location-dot nav-icon"></i>
+                                <span>Live Trip Route</span>
+                            </span>
+                            <?php if (!empty($active_dispatch) && in_array($active_dispatch['status'] ?? '', ['In Transit', 'Loading', 'Unloading'])): ?>
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Active Trip"></span>
+                            <?php endif; ?>
                         </button>
-                        <?php if ($has_pending_cancellation ?? false): ?>
-                            <button class="sidebar-nav-item w-full opacity-50 cursor-not-allowed" disabled>
-                                <i class="fa-solid fa-spinner fa-spin nav-icon"></i>
-                                <span>Cancellation Pending</span>
-                            </button>
-                        <?php else: ?>
-                            <button onclick="openCancelTripModal()" class="sidebar-nav-item w-full !text-orange-600 dark:!text-orange-400 hover:!bg-orange-50 dark:hover:!bg-orange-900/20">
-                                <i class="fa-solid fa-ban nav-icon"></i>
-                                <span>Request Cancellation</span>
-                            </button>
-                        <?php endif; ?>
-                        <button onclick="openResetPasswordModal()" class="sidebar-nav-item w-full">
-                            <i class="fa-solid fa-key nav-icon"></i>
-                            <span>Reset Password</span>
+                        <button type="button" onclick="switchTab('trips')" id="nav-trips" class="sidebar-nav-item w-full text-left flex items-center justify-between">
+                            <span class="flex items-center space-x-3">
+                                <i class="fa-solid fa-route nav-icon"></i>
+                                <span>Trip History</span>
+                            </span>
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                                <?= count($trips ?? []); ?>
+                            </span>
+                        </button>
+                        <button type="button" onclick="switchTab('payroll')" id="nav-payroll" class="sidebar-nav-item w-full text-left flex items-center justify-between">
+                            <span class="flex items-center space-x-3">
+                                <i class="fa-solid fa-wallet nav-icon"></i>
+                                <span>Payroll & Advances</span>
+                            </span>
+                            <?php if (($netPay ?? 0) > 0): ?>
+                                <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                                    ₱<?= number_format($netPay, 0); ?>
+                                </span>
+                            <?php endif; ?>
+                        </button>
+                        <button type="button" onclick="switchTab('profile')" id="nav-profile" class="sidebar-nav-item w-full text-left">
+                            <i class="fa-solid fa-id-card nav-icon"></i>
+                            <span>My Profile</span>
                         </button>
                     </nav>
 
-                    
                     <div class="border-t border-gray-100 dark:border-gray-800 px-3 py-4 space-y-1">
                         <button id="themeToggle" onclick="toggleTheme(event)" class="sidebar-nav-item w-full">
                             <i id="themeIcon" class="fa-solid fa-moon nav-icon"></i>
@@ -733,7 +743,6 @@
                     </div>
                 </aside>
 
-                
                 <div class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between">
                     <div class="flex items-center space-x-2.5 min-w-0">
                         <div class="flex-shrink-0">
@@ -749,46 +758,40 @@
                         <button onclick="toggleTheme(event)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all active:scale-95" aria-label="Toggle theme">
                             <i class="themeIconMobile fa-solid fa-moon text-sm"></i>
                         </button>
-                        
                         <a href="../logout.php" onclick="confirmLogout(event)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 border border-red-200/60 dark:border-red-800/40 transition-all shadow-sm active:scale-95" title="Logout" aria-label="Logout">
                             <i class="fa-solid fa-right-from-bracket text-sm"></i>
                         </a>
                     </div>
                 </div>
 
-                
-                <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-1.5 pt-2 pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))] safe-bottom mobile-bottom-nav">
-                    <a href="dashboard.php" class="bottom-nav-item active">
+                <!-- Driver Mobile Bottom Navigation Bar -->
+                <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-1 pt-1.5 pb-[max(0.65rem,calc(env(safe-area-inset-bottom,0px)+0.4rem))] safe-bottom mobile-bottom-nav">
+                    <button type="button" onclick="switchTab('dashboard')" id="bottom-nav-dashboard" class="bottom-nav-item active flex-1">
                         <i class="fa-solid fa-house text-base sm:text-lg mb-0.5"></i>
-                        <span>Home</span>
-                    </a>
-                    <button onclick="scrollToLiveTripRoute()" class="bottom-nav-item text-blue-500">
+                        <span class="text-[10px] font-semibold">Home</span>
+                    </button>
+                    <button type="button" onclick="switchTab('route')" id="bottom-nav-route" class="bottom-nav-item flex-1 relative">
                         <i class="fa-solid fa-map-location-dot text-base sm:text-lg mb-0.5"></i>
-                        <span>Route</span>
+                        <span class="text-[10px] font-semibold">Route</span>
+                        <?php if (!empty($active_dispatch) && in_array($active_dispatch['status'] ?? '', ['In Transit', 'Loading', 'Unloading'])): ?>
+                            <span class="absolute top-1 right-1/4 w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <?php endif; ?>
                     </button>
-                    <button onclick="typeof openCashAdvanceModal === 'function' && openCashAdvanceModal()" class="bottom-nav-item text-amber-500">
-                        <i class="fa-solid fa-hand-holding-dollar text-base sm:text-lg mb-0.5"></i>
-                        <span>Cash Adv.</span>
+                    <button type="button" onclick="switchTab('trips')" id="bottom-nav-trips" class="bottom-nav-item flex-1">
+                        <i class="fa-solid fa-route text-base sm:text-lg mb-0.5"></i>
+                        <span class="text-[10px] font-semibold">Trips</span>
                     </button>
-                    <?php if ($has_pending_cancellation ?? false): ?>
-                        <button class="bottom-nav-item opacity-50 cursor-not-allowed" disabled>
-                            <i class="fa-solid fa-spinner fa-spin text-base sm:text-lg mb-0.5"></i>
-                            <span>Pending</span>
-                        </button>
-                    <?php else: ?>
-                        <button onclick="openCancelTripModal()" class="bottom-nav-item text-orange-500">
-                            <i class="fa-solid fa-ban text-base sm:text-lg mb-0.5"></i>
-                            <span>Cancel</span>
-                        </button>
-                    <?php endif; ?>
-                    <button onclick="openResetPasswordModal()" class="bottom-nav-item">
-                        <i class="fa-solid fa-key text-base sm:text-lg mb-0.5"></i>
-                        <span>Reset</span>
+                    <button type="button" onclick="switchTab('payroll')" id="bottom-nav-payroll" class="bottom-nav-item flex-1 relative">
+                        <i class="fa-solid fa-wallet text-base sm:text-lg mb-0.5"></i>
+                        <span class="text-[10px] font-semibold">Payroll</span>
+                        <?php if (($netPay ?? 0) > 0): ?>
+                            <span class="absolute top-1 right-1/4 w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <?php endif; ?>
                     </button>
-                    <a href="../logout.php" onclick="confirmLogout(event)" class="bottom-nav-item text-red-500 dark:text-red-400 font-semibold">
-                        <i class="fa-solid fa-right-from-bracket text-base sm:text-lg mb-0.5"></i>
-                        <span>Logout</span>
-                    </a>
+                    <button type="button" onclick="switchTab('profile')" id="bottom-nav-profile" class="bottom-nav-item flex-1">
+                        <i class="fa-solid fa-id-card text-base sm:text-lg mb-0.5"></i>
+                        <span class="text-[10px] font-semibold">Profile</span>
+                    </button>
                 </div>
 
                 

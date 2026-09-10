@@ -112,6 +112,7 @@
                 'truck_id' => $driver['truck_id'] ?? ''
             ];
             $driverEditJson = htmlspecialchars(json_encode($driverEditData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8');
+            $driverJson = htmlspecialchars(json_encode($driver, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8');
 
             $dPhotoPath = $driver['profile_photo'] ?? null;
             $dPhotoFull = $dPhotoPath ? (dirname(__DIR__, 2) . '/' . $dPhotoPath) : null;

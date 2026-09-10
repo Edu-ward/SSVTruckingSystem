@@ -73,6 +73,54 @@
                 </div>
             </div>
 
+            <!-- Assigned Drivers (Maximum of 2) -->
+            <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 space-y-3">
+                <div class="flex items-center justify-between">
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                        <i class="fa-solid fa-users text-blue-500"></i>
+                        <span>Assigned Drivers</span>
+                    </label>
+                    <span id="edit_truck_driver_count_badge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                        0 / 2 Drivers
+                    </span>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Assign up to 2 drivers to this vehicle (Primary and Alternate / Co-driver).
+                </p>
+
+                <!-- Driver 1 -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Driver 1 (Primary)</label>
+                    <select name="driver_id_1" id="edit_truck_driver_1" onchange="syncEditTruckDriverSelects()" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors">
+                        <option value="">— No Primary Driver —</option>
+                        <?php foreach ($assignableDrivers ?? [] as $drv): ?>
+                            <option value="<?= $drv['id'] ?>"
+                                    data-name="<?= htmlspecialchars($drv['name']) ?>"
+                                    data-truck-id="<?= $drv['truck_id'] ?? '' ?>"
+                                    data-truck-code="<?= htmlspecialchars($drv['truck_code'] ?? '') ?>">
+                                <?= htmlspecialchars($drv['name']) ?><?= !empty($drv['truck_code']) ? ' (Currently on ' . htmlspecialchars($drv['truck_code']) . ')' : ' (Unassigned)' ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- Driver 2 -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Driver 2 (Alternate / Co-Driver)</label>
+                    <select name="driver_id_2" id="edit_truck_driver_2" onchange="syncEditTruckDriverSelects()" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors">
+                        <option value="">— No Alternate Driver —</option>
+                        <?php foreach ($assignableDrivers ?? [] as $drv): ?>
+                            <option value="<?= $drv['id'] ?>"
+                                    data-name="<?= htmlspecialchars($drv['name']) ?>"
+                                    data-truck-id="<?= $drv['truck_id'] ?? '' ?>"
+                                    data-truck-code="<?= htmlspecialchars($drv['truck_code'] ?? '') ?>">
+                                <?= htmlspecialchars($drv['name']) ?><?= !empty($drv['truck_code']) ? ' (Currently on ' . htmlspecialchars($drv['truck_code']) . ')' : ' (Unassigned)' ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+
             <div class="flex justify-end space-x-3 pt-2 border-t border-gray-100 dark:border-gray-700">
                 <button type="button" onclick="toggleModal('editTruckModal', false)" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
                 <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition">Save Changes</button>
@@ -196,12 +244,26 @@
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Assigned Truck</label>
-                    <select name="truck_id" id="edit_driver_truck_id" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
-                        <option value="">— Unassigned —</option>
-                        <?php foreach ($allTrucksList ?? [] as $trk): ?>
-                            <option value="<?= $trk['id'] ?>"><?= htmlspecialchars($trk['truck_code']) ?> (<?= htmlspecialchars($trk['status']) ?>)</option>
+                    <select name="truck_id" id="edit_driver_truck_id" onchange="handleEditDriverTruckChange()" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                        <option value="">— Unassigned (No Truck) —</option>
+                        <?php foreach ($allTrucksList ?? [] as $trk): 
+                            $cnt = intval($trk['driver_count'] ?? 0);
+                            $driverIds = !empty($trk['assigned_driver_ids']) ? $trk['assigned_driver_ids'] : '';
+                            $driverNames = $trk['driver_names'] ?? '';
+                        ?>
+                            <option value="<?= $trk['id'] ?>" 
+                                    data-count="<?= $cnt ?>" 
+                                    data-driver-ids="<?= htmlspecialchars($driverIds) ?>"
+                                    data-driver-names="<?= htmlspecialchars($driverNames) ?>"
+                                    data-truck-code="<?= htmlspecialchars($trk['truck_code']) ?>"
+                                    data-status="<?= htmlspecialchars($trk['status']) ?>">
+                                <?= htmlspecialchars($trk['truck_code']) ?> (<?= htmlspecialchars($trk['status']) ?>)
+                            </option>
                         <?php endforeach; ?>
                     </select>
+                    <p id="edit_driver_truck_note" class="text-xs text-gray-500 dark:text-gray-400 mt-1 min-h-[1rem]">
+                        Select an available vehicle (maximum of 2 drivers per truck).
+                    </p>
                 </div>
             </div>
 

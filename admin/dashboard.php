@@ -515,6 +515,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $pdo->prepare("UPDATE users SET username = ? WHERE id = ?")->execute([$username, $driver_id]);
             $pdo->prepare("UPDATE drivers SET first_name = ?, last_name = ?, cdl_number = ?, phone = ?, truck_id = ? WHERE id = ?")
                 ->execute([$firstName, $lastName, $cdl, $phone, $truck_id, $driver_id]);
+
+            if ($truck_id) {
+                $pdo->prepare("UPDATE dispatches SET truck_id = ? WHERE driver_id = ? AND status IN ('Pending', 'Loading', 'In Transit', 'Unloading')")
+                    ->execute([$truck_id, $driver_id]);
+            }
+
             $pdo->commit();
             $_SESSION['success'] = "Driver <strong>" . htmlspecialchars($name) . "</strong> updated successfully.";
             log_activity($pdo, 'Edited Driver', "Updated driver ID $driver_id ($name)");
@@ -807,13 +813,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $rfid_tag = trim($_POST['rfid_tag'] ?? '');
         $status = trim($_POST['status'] ?? 'Idle');
 
+        $driver_id_1 = !empty($_POST['driver_id_1']) ? intval($_POST['driver_id_1']) : null;
+        $driver_id_2 = !empty($_POST['driver_id_2']) ? intval($_POST['driver_id_2']) : null;
+
         if (!$truck_id || empty($truck_code)) {
             $_SESSION['error'] = "Please provide a valid plate number / truck code.";
             header("Location: dashboard.php?tab=fleet");
             exit;
         }
 
-        
         $dupPlate = $pdo->prepare("SELECT id FROM trucks WHERE truck_code = ? AND id != ? LIMIT 1");
         $dupPlate->execute([$truck_code, $truck_id]);
         if ($dupPlate->fetch()) {
@@ -822,7 +830,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             exit;
         }
 
-        
         if (!empty($rfid_tag)) {
             $dupRfid = $pdo->prepare("SELECT id FROM trucks WHERE rfid_tag = ? AND id != ? LIMIT 1");
             $dupRfid->execute([$rfid_tag, $truck_id]);
@@ -833,12 +840,47 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             }
         }
 
+        // Build list of unique assigned drivers (max 2)
+        $newDriverIds = [];
+        if ($driver_id_1) $newDriverIds[] = $driver_id_1;
+        if ($driver_id_2 && !in_array($driver_id_2, $newDriverIds)) $newDriverIds[] = $driver_id_2;
+
+        if (count($newDriverIds) > 2) {
+            $_SESSION['error'] = "A truck can only have a maximum of 2 assigned drivers.";
+            header("Location: dashboard.php?tab=fleet");
+            exit;
+        }
+
         try {
+            $pdo->beginTransaction();
+
             $stmt = $pdo->prepare("UPDATE trucks SET truck_code = ?, rfid_tag = ? WHERE id = ?");
             $stmt->execute([$truck_code, $rfid_tag ?: null, $truck_id]);
-            $_SESSION['success'] = "Truck <strong>" . htmlspecialchars($truck_code) . "</strong> updated successfully.";
-            log_activity($pdo, 'Edited Truck', "Updated truck ID $truck_id ($truck_code)");
+
+            // Unassign drivers previously on this truck who are not in the new selection
+            if (empty($newDriverIds)) {
+                $pdo->prepare("UPDATE drivers SET truck_id = NULL WHERE truck_id = ?")->execute([$truck_id]);
+            } else {
+                $placeholders = implode(',', array_fill(0, count($newDriverIds), '?'));
+                $unassignStmt = $pdo->prepare("UPDATE drivers SET truck_id = NULL WHERE truck_id = ? AND id NOT IN ($placeholders)");
+                $unassignParams = array_merge([$truck_id], $newDriverIds);
+                $unassignStmt->execute($unassignParams);
+            }
+
+            // Assign selected drivers to this truck
+            foreach ($newDriverIds as $dId) {
+                $pdo->prepare("UPDATE drivers SET truck_id = ? WHERE id = ? AND status != 'Resigned'")->execute([$truck_id, $dId]);
+
+                // Keep active dispatches for assigned driver synchronized
+                $pdo->prepare("UPDATE dispatches SET truck_id = ? WHERE driver_id = ? AND status IN ('Pending', 'Loading', 'In Transit', 'Unloading')")
+                    ->execute([$truck_id, $dId]);
+            }
+
+            $pdo->commit();
+            $_SESSION['success'] = "Truck <strong>" . htmlspecialchars($truck_code) . "</strong> and assigned driver(s) updated successfully.";
+            log_activity($pdo, 'Edited Truck', "Updated truck ID $truck_id ($truck_code) and assigned drivers");
         } catch (Exception $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
             $_SESSION['error'] = "Failed to update truck: " . $e->getMessage();
         }
         header("Location: dashboard.php?tab=fleet");
@@ -1351,6 +1393,7 @@ $fleetData = $pdo->query("
         t.current_location, 
         GROUP_CONCAT(DISTINCT CONCAT(d.first_name, ' ', d.last_name) SEPARATOR ' • ') AS driver_name, 
         COUNT(DISTINCT d.id) AS driver_count,
+        GROUP_CONCAT(DISTINCT d.id ORDER BY d.id ASC SEPARATOR ',') AS driver_ids,
         MAX(disp.ticket_number) AS ticket_number, 
         MAX(disp.destination) AS destination 
     FROM trucks t 
@@ -1360,7 +1403,20 @@ $fleetData = $pdo->query("
     ORDER BY t.truck_code ASC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-$allTrucksList = $pdo->query("SELECT id, truck_code, status FROM trucks WHERE status != 'Decommissioned' ORDER BY truck_code ASC")->fetchAll(PDO::FETCH_ASSOC);
+$allTrucksList = $pdo->query("
+    SELECT 
+        t.id, 
+        t.truck_code, 
+        t.status,
+        COUNT(DISTINCT d.id) AS driver_count,
+        GROUP_CONCAT(DISTINCT d.id ORDER BY d.id ASC SEPARATOR ',') AS assigned_driver_ids,
+        GROUP_CONCAT(DISTINCT CONCAT(d.first_name, ' ', d.last_name) SEPARATOR ', ') AS driver_names
+    FROM trucks t 
+    LEFT JOIN drivers d ON t.id = d.truck_id AND d.status != 'Resigned'
+    WHERE t.status != 'Decommissioned' 
+    GROUP BY t.id
+    ORDER BY t.truck_code ASC
+")->fetchAll(PDO::FETCH_ASSOC);
 
 $allDrivers = $pdo->query("
     SELECT 
@@ -1377,6 +1433,19 @@ $allDrivers = $pdo->query("
     LEFT JOIN users u ON u.id = d.id
     LEFT JOIN trucks t ON t.id = d.truck_id
     ORDER BY d.first_name ASC
+")->fetchAll(PDO::FETCH_ASSOC);
+
+$assignableDrivers = $pdo->query("
+    SELECT 
+        d.id, 
+        CONCAT(d.first_name, ' ', d.last_name) AS name, 
+        d.truck_id,
+        d.status,
+        t.truck_code
+    FROM drivers d
+    LEFT JOIN trucks t ON t.id = d.truck_id
+    WHERE d.status != 'Resigned'
+    ORDER BY d.first_name ASC, d.last_name ASC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 if (!function_exists('computeDriverPerformanceStats')) {
