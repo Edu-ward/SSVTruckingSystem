@@ -27,7 +27,7 @@ if (!empty($driverFullName)) {
         <div class="relative z-10">
             <div class="flex items-center gap-2 mb-1.5 flex-wrap">
                 <span class="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/15 text-blue-100 border border-white/20">
-                    <i class="fa-solid fa-id-badge mr-1 text-[10px]"></i> Driver Panel
+                    <i class="fa-solid fa-id-badge mr-1 text-[10px]"></i> Driver Portal
                 </span>
                 <?php if ($active_dispatch): ?>
                     <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1.5">
@@ -45,23 +45,28 @@ if (!empty($driverFullName)) {
             </h1>
             <p class="text-xs sm:text-sm text-blue-100 mt-1 max-w-xl">
                 <?php if ($active_dispatch): ?>
-                    You have an active dispatch heading to <strong><?= htmlspecialchars($active_dispatch['destination']); ?></strong>.
+                    Active dispatch ticket <strong><?= htmlspecialchars($active_dispatch['ticket_number']); ?></strong> en route to <strong><?= htmlspecialchars($active_dispatch['destination']); ?></strong>.
                 <?php else: ?>
-                    You are currently stationed at the Quarry Garage and ready for your next trip assignment.
+                    Stationed at SSV Quarry Garage. You are ready for your next trip assignment.
                 <?php endif; ?>
             </p>
         </div>
 
-        <div class="flex items-center gap-2.5 relative z-10 flex-wrap">
+        <div class="flex items-center gap-2 relative z-10 flex-wrap">
             <button type="button" onclick="switchTab('route')"
-                    class="px-4 py-2.5 rounded-xl text-xs font-bold bg-white text-blue-700 hover:bg-blue-50 active:scale-95 shadow-md transition flex items-center gap-2">
+                    class="px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-blue-700 hover:bg-blue-50 active:scale-95 shadow-md transition flex items-center gap-1.5">
                 <i class="fa-solid fa-map-location-dot text-blue-600"></i>
                 <span>Live Route</span>
             </button>
-            <button type="button" onclick="switchTab('payroll')"
-                    class="px-4 py-2.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 active:scale-95 transition flex items-center gap-2">
-                <i class="fa-solid fa-wallet text-emerald-300"></i>
-                <span>Payroll</span>
+            <button type="button" onclick="switchTab('trips')"
+                    class="px-3.5 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 active:scale-95 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-route text-cyan-300"></i>
+                <span>Trips</span>
+            </button>
+            <button type="button" onclick="switchTab('cash_advance')"
+                    class="px-3.5 py-2 rounded-xl text-xs font-bold bg-orange-500/80 hover:bg-orange-500 text-white border border-orange-400/40 active:scale-95 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-hand-holding-dollar"></i>
+                <span>Advance</span>
             </button>
         </div>
     </div>
@@ -237,50 +242,6 @@ if (!empty($driverFullName)) {
             <i class="fa-solid fa-route absolute -right-6 -bottom-6 text-9xl text-white opacity-15 transform -rotate-12 pointer-events-none"></i>
         </div>
     </div>
-
-    <!-- Quick Payroll Summary Card with Shortcut -->
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div class="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-700">
-            <div class="flex items-center space-x-3.5">
-                <div class="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl flex-shrink-0">
-                    <i class="fa-solid fa-wallet"></i>
-                </div>
-                <div>
-                    <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base sm:text-lg">Payroll & Advances Glance</h3>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Current available net pay & advance deductions</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                <button type="button" onclick="openCashAdvanceModal()"
-                        class="px-3.5 py-2 rounded-xl text-xs font-bold bg-orange-50 hover:bg-orange-100 text-orange-600 dark:bg-orange-950/30 dark:text-orange-400 border border-orange-200 dark:border-orange-800 transition active:scale-95 flex items-center gap-1.5">
-                    <i class="fa-solid fa-hand-holding-dollar"></i> Request Advance
-                </button>
-                <button type="button" onclick="switchTab('payroll')"
-                        class="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition active:scale-95 flex items-center gap-1.5">
-                    <span>Full Payroll Menu</span>
-                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
-                </button>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 dark:divide-gray-700">
-            <div class="p-4 sm:p-5 text-center bg-indigo-50/30 dark:bg-indigo-950/20">
-                <div class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold uppercase mb-1">Remaining Carried Balance</div>
-                <div class="text-xl sm:text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">₱<?= number_format($driverRemainingBalance ?? 0, 2); ?></div>
-                <div class="text-[11px] text-gray-400 mt-0.5">Carried from previous claim</div>
-            </div>
-            <div class="p-4 sm:p-5 text-center">
-                <div class="text-xs text-gray-400 dark:text-gray-500 font-semibold uppercase mb-1">Approved Cash Advances</div>
-                <div class="text-xl sm:text-2xl font-extrabold text-orange-600 dark:text-orange-400">-₱<?= number_format($totalCashAdvancesClaimed ?? 0, 2); ?></div>
-                <div class="text-[11px] text-gray-400 mt-0.5">Auto-deducted from payout</div>
-            </div>
-            <div class="p-4 sm:p-5 text-center bg-emerald-50/40 dark:bg-emerald-950/20">
-                <div class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold uppercase mb-1">Current Net Payable</div>
-                <div class="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">₱<?= number_format($netPay ?? 0, 2); ?></div>
-                <div class="text-[11px] text-emerald-600/70 dark:text-emerald-400/70 mt-0.5 font-medium">Ready for next disbursement</div>
-            </div>
-        </div>
-    </div>
 </div>
 
 
@@ -417,37 +378,135 @@ if (!empty($driverFullName)) {
 
 
 <!-- =========================================================
-     TAB 3: TRIP HISTORY
+     TAB 3: TRIPS (WEEKLY VIEW WITH MONDAY-SUNDAY SELECTOR)
      ========================================================= -->
 <div id="view-trips" class="tab-content hidden space-y-6">
 
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 p-5 sm:p-6">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        
+        <!-- Header & Week Selector -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-5 border-b border-gray-100 dark:border-gray-700">
             <div>
-                <h2 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                    <i class="fa-solid fa-clock-rotate-left text-blue-600"></i> My Trip History
+                <h2 class="text-lg sm:text-xl font-extrabold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <i class="fa-solid fa-route text-blue-600"></i> Trips
                 </h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Comprehensive record of all past dispatches and deliveries</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    Showing dispatches for selected weekly delivery cycle (Monday to Sunday)
+                </p>
             </div>
-            <div class="flex items-center gap-3">
-                <div class="relative w-full sm:w-64">
-                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 text-xs">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                    </span>
-                    <input type="text" id="tripSearchInput" onkeyup="filterDriverTrips()"
-                           placeholder="Filter destination, status..."
-                           class="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+            <!-- Selector Controls -->
+            <div class="flex flex-wrap items-center gap-2.5">
+                <!-- Dropdown selector -->
+                <div class="relative min-w-[240px] sm:min-w-[280px]">
+                    <select id="tripWeekSelector" onchange="onWeekSelectorChange(this.value)"
+                            class="w-full text-xs font-semibold py-2 px-3 pr-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+                        <?php foreach ($selectableWeeks as $sw): 
+                            $isSelected = ($sw['from'] === $selectedFrom && $sw['to'] === $selectedTo);
+                        ?>
+                            <option value="<?= $sw['from'] . '|' . $sw['to']; ?>" <?= $isSelected ? 'selected' : ''; ?>>
+                                <?= htmlspecialchars($sw['label']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                        <option value="ALL">Show All Past Trips</option>
+                        <option value="CUSTOM">Custom Date Range...</option>
+                    </select>
+                    <div class="absolute inset-y-0 right-0 flex items-center px-2.5 pointer-events-none text-gray-400 text-xs">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
                 </div>
-                <span class="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-full font-bold uppercase whitespace-nowrap">
-                    <?= count($trips); ?> Trips
+
+                <!-- Previous / Next Week Quick Buttons -->
+                <div class="flex items-center gap-1">
+                    <button type="button" onclick="shiftTripWeek(-1)" title="Previous Week (Mon–Sun)"
+                            class="w-8 h-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-xs active:scale-95 transition">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <button type="button" onclick="shiftTripWeek(0)" title="Current Week (This Week)"
+                            class="px-2.5 h-8 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 text-xs font-bold active:scale-95 transition">
+                        This Week
+                    </button>
+                    <button type="button" onclick="shiftTripWeek(1)" title="Next Week (Mon–Sun)"
+                            class="w-8 h-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-xs active:scale-95 transition">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Date Range Bar (Collapsible or visible) -->
+        <div id="customDateRangeBar" class="p-3.5 mb-5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-calendar-days text-blue-500"></i> Date Range:
                 </span>
+                <div class="flex items-center gap-1.5">
+                    <input type="date" id="tripDateFrom" value="<?= htmlspecialchars($selectedFrom); ?>"
+                           class="px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs">
+                    <span class="text-gray-400 font-bold">to</span>
+                    <input type="date" id="tripDateTo" value="<?= htmlspecialchars($selectedTo); ?>"
+                           class="px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs">
+                </div>
+                <button type="button" onclick="applyCustomDateRange()"
+                        class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition active:scale-95">
+                    Apply Filter
+                </button>
+            </div>
+
+            <!-- Live text filter within the selected period -->
+            <div class="relative w-full sm:w-56">
+                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 text-xs">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </span>
+                <input type="text" id="tripSearchInput" onkeyup="filterDriverTrips()"
+                       placeholder="Filter destination, status..."
+                       class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+        </div>
+
+        <!-- Weekly Summary KPI Banner -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <div class="bg-blue-50/70 dark:bg-blue-950/20 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 flex items-center justify-between">
+                <div>
+                    <span class="text-[11px] font-semibold uppercase text-blue-700 dark:text-blue-300">Trips In Selected Week</span>
+                    <div class="text-2xl font-extrabold text-blue-800 dark:text-blue-200 mt-0.5">
+                        <?= count($weeklyFilteredTrips); ?> <span class="text-xs font-medium text-blue-500">deliveries</span>
+                    </div>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+            </div>
+
+            <div class="bg-indigo-50/70 dark:bg-indigo-950/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/30 flex items-center justify-between">
+                <div>
+                    <span class="text-[11px] font-semibold uppercase text-indigo-700 dark:text-indigo-300">Total Distance Travelled</span>
+                    <div class="text-2xl font-extrabold text-indigo-800 dark:text-indigo-200 mt-0.5">
+                        <?= number_format($weeklyDistanceKm, 1); ?> <span class="text-xs font-medium text-indigo-500">km</span>
+                    </div>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-route"></i>
+                </div>
+            </div>
+
+            <div class="bg-emerald-50/70 dark:bg-emerald-950/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/30 flex items-center justify-between">
+                <div>
+                    <span class="text-[11px] font-semibold uppercase text-emerald-700 dark:text-emerald-300">Computed Trip Earnings</span>
+                    <div class="text-2xl font-extrabold text-emerald-800 dark:text-emerald-200 mt-0.5">
+                        ₱<?= number_format($weeklyPayAmount, 2); ?>
+                    </div>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-peso-sign"></i>
+                </div>
             </div>
         </div>
 
         <!-- Mobile View (Cards) -->
         <div class="block sm:hidden space-y-3" id="driverTripsMobileList">
-            <?php if (count($trips) > 0): ?>
-                <?php foreach ($trips as $trip): ?>
+            <?php if (count($weeklyFilteredTrips) > 0): ?>
+                <?php foreach ($weeklyFilteredTrips as $trip): ?>
                     <?php
                         $duration = 'N/A';
                         if (!empty($trip['transit_start_time']) && !empty($trip['transit_end_time'])) {
@@ -518,9 +577,10 @@ if (!empty($driverFullName)) {
                     </div>
                 <?php endforeach; ?>
             <?php else: ?>
-                <div class="py-10 text-center text-gray-400">
+                <div class="py-12 text-center text-gray-400">
                     <i class="fa-solid fa-road text-4xl mb-2 opacity-30"></i>
-                    <p class="text-sm">No trips recorded yet.</p>
+                    <p class="text-sm font-medium">No trips recorded for this selected period.</p>
+                    <p class="text-xs text-gray-400 mt-1">Try selecting another week or choosing "Show All Past Trips".</p>
                 </div>
             <?php endif; ?>
         </div>
@@ -540,8 +600,8 @@ if (!empty($driverFullName)) {
                     </tr>
                 </thead>
                 <tbody class="text-gray-700 dark:text-gray-200 divide-y divide-gray-100 dark:divide-gray-800 text-sm">
-                    <?php if (count($trips) > 0): ?>
-                        <?php foreach ($trips as $trip): ?>
+                    <?php if (count($weeklyFilteredTrips) > 0): ?>
+                        <?php foreach ($weeklyFilteredTrips as $trip): ?>
                             <?php
                                 $duration = 'N/A';
                                 if (!empty($trip['transit_start_time']) && !empty($trip['transit_end_time'])) {
@@ -594,9 +654,9 @@ if (!empty($driverFullName)) {
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="7" class="py-10 px-3 text-center text-gray-400">
+                            <td colspan="7" class="py-12 px-3 text-center text-gray-400">
                                 <i class="fa-solid fa-road text-4xl mb-3 text-gray-300 block"></i>
-                                No trips recorded yet.
+                                No trips found for this week period.
                             </td>
                         </tr>
                     <?php endif; ?>
@@ -609,97 +669,81 @@ if (!empty($driverFullName)) {
 
 
 <!-- =========================================================
-     TAB 4: PAYROLL & CASH ADVANCES MENU
+     TAB 4: CASH ADVANCE (DEDICATED MENU)
      ========================================================= -->
-<div id="view-payroll" class="tab-content hidden space-y-6">
+<div id="view-cash_advance" class="tab-content hidden space-y-6">
 
-    <!-- Payroll Header Banner with Prominent Action Button -->
-    <div class="bg-gradient-to-r from-emerald-700 via-teal-700 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <!-- Header Banner with Request Advance Button -->
+    <div class="bg-gradient-to-r from-amber-600 via-orange-600 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex items-center space-x-3.5">
-            <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-emerald-300 text-2xl flex-shrink-0 shadow-inner">
-                <i class="fa-solid fa-sack-dollar"></i>
+            <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-amber-200 text-2xl flex-shrink-0 shadow-inner">
+                <i class="fa-solid fa-hand-holding-dollar"></i>
             </div>
             <div>
-                <h2 class="font-bold text-lg sm:text-xl text-white">Driver Payroll & Cash Advances</h2>
-                <p class="text-xs sm:text-sm text-emerald-100 mt-0.5">
-                    Rate: ₱300 within San Leonardo / +₱10 per km outside. Cash advances are auto-deducted upon payout.
+                <h2 class="font-bold text-lg sm:text-xl text-white">Cash Advance Requests & History</h2>
+                <p class="text-xs sm:text-sm text-amber-100 mt-0.5">
+                    Submit advance requests anytime. Approved amounts are auto-deducted upon payroll release.
                 </p>
             </div>
         </div>
 
         <div>
             <button type="button" onclick="openCashAdvanceModal()"
-                    class="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold bg-white text-emerald-700 hover:bg-emerald-50 active:scale-95 shadow-lg transition flex items-center gap-2">
-                <i class="fa-solid fa-hand-holding-dollar text-orange-500 text-base"></i>
+                    class="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold bg-white text-orange-700 hover:bg-orange-50 active:scale-95 shadow-lg transition flex items-center gap-2">
+                <i class="fa-solid fa-plus-circle text-orange-600 text-base"></i>
                 <span>Request Cash Advance</span>
             </button>
         </div>
     </div>
 
-    <!-- 4 Financial Metric Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- 1. Gross Earnings -->
+    <!-- 3 Cash Advance Metric Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Gross Trip Earnings</span>
-                <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm">
+                <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Pending Requests</span>
+                <div class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-extrabold text-amber-600 dark:text-amber-400"><?= $caPendingCount; ?></div>
+            <p class="text-[11px] text-gray-400 mt-1">Awaiting admin review</p>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Approved (To Deduct)</span>
+                <div class="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center text-sm">
                     <i class="fa-solid fa-receipt"></i>
                 </div>
             </div>
-            <div class="text-2xl font-extrabold text-gray-900 dark:text-gray-100">₱<?= number_format($driverGrossEarnings ?? 0, 2); ?></div>
-            <p class="text-[11px] text-gray-400 mt-1">From unsettled delivered trips</p>
+            <div class="text-2xl font-extrabold text-orange-600 dark:text-orange-400">₱<?= number_format($totalCashAdvancesClaimed, 2); ?></div>
+            <p class="text-[11px] text-gray-400 mt-1">Deducted on next payroll</p>
         </div>
 
-        <!-- 2. Carried Balance -->
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Remaining Balance</span>
-                <div class="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-sm">
-                    <i class="fa-solid fa-clock-rotate-left"></i>
+                <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Settled Advances</span>
+                <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-check-double"></i>
                 </div>
             </div>
-            <div class="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">₱<?= number_format($driverRemainingBalance ?? 0, 2); ?></div>
-            <p class="text-[11px] text-gray-400 mt-1">Carried over from prior claim</p>
-        </div>
-
-        <!-- 3. Approved Cash Advances -->
-        <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Cash Advances</span>
-                <div class="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center text-sm">
-                    <i class="fa-solid fa-hand-holding-dollar"></i>
-                </div>
-            </div>
-            <div class="text-2xl font-extrabold text-orange-600 dark:text-orange-400">-₱<?= number_format($totalCashAdvancesClaimed ?? 0, 2); ?></div>
-            <p class="text-[11px] text-gray-400 mt-1">Active advances to be deducted</p>
-        </div>
-
-        <!-- 4. Net Payable -->
-        <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-md">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-semibold text-emerald-100 uppercase">Current Net Payable</span>
-                <div class="w-8 h-8 rounded-lg bg-white/20 text-white flex items-center justify-center text-sm">
-                    <i class="fa-solid fa-wallet"></i>
-                </div>
-            </div>
-            <div class="text-2xl font-extrabold text-white">₱<?= number_format($netPay ?? 0, 2); ?></div>
-            <p class="text-[11px] text-emerald-100 mt-1">Total estimated cash release</p>
+            <div class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">₱<?= number_format($totalCashAdvancesSettled, 2); ?></div>
+            <p class="text-[11px] text-gray-400 mt-1">Previously cleared claims</p>
         </div>
     </div>
 
-    <!-- Section 1: Cash Advance History & Print Voucher -->
+    <!-- Request History List & Print Vouchers -->
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between flex-wrap gap-2">
             <div>
                 <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base flex items-center gap-2">
-                    <i class="fa-solid fa-receipt text-orange-500"></i> Cash Advance Requests & History
+                    <i class="fa-solid fa-file-invoice-dollar text-orange-500"></i> My Advance History & Print Vouchers
                 </h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Status of your submitted advance requests with printable vouchers</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Click "Voucher" to print or download an approved advance slip</p>
             </div>
-            <button type="button" onclick="openCashAdvanceModal()"
-                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-orange-50 hover:bg-orange-100 text-orange-600 dark:bg-orange-950/30 dark:text-orange-400 border border-orange-200 dark:border-orange-800 transition">
-                + New Request
-            </button>
+            <span class="text-xs bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 px-3 py-1 rounded-full font-bold">
+                <?= count($driverCashAdvances); ?> Requests Total
+            </span>
         </div>
 
         <?php if (!empty($driverCashAdvances)): ?>
@@ -722,7 +766,7 @@ if (!empty($driverFullName)) {
                             <?php if (!empty($ca['reason'])): ?>
                                 <p class="text-xs text-gray-600 dark:text-gray-300 truncate mt-0.5"><?= htmlspecialchars($ca['reason']); ?></p>
                             <?php endif; ?>
-                            <div class="text-[11px] text-gray-400 font-medium mt-0.5 flex items-center gap-1.5">
+                            <div class="text-[11px] text-gray-400 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
                                 <i class="fa-regular fa-clock text-[10px]"></i>
                                 <span>Requested: <?= date('M d, Y h:i A', strtotime($ca['requested_at'])); ?></span>
                                 <?php if (!empty($ca['resolved_at'])): ?>
@@ -743,7 +787,7 @@ if (!empty($driverFullName)) {
                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 transition shadow-sm"
                                     title="View / Print Cash Advance Voucher">
                                 <i class="fa-solid fa-print"></i>
-                                <span class="hidden sm:inline">Voucher</span>
+                                <span class="hidden sm:inline">Print Voucher</span>
                             </button>
                         <?php endif; ?>
                     </div>
@@ -751,17 +795,99 @@ if (!empty($driverFullName)) {
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
-            <div class="p-8 text-center text-gray-400">
-                <i class="fa-solid fa-receipt text-3xl mb-2 opacity-30"></i>
+            <div class="p-10 text-center text-gray-400">
+                <i class="fa-solid fa-hand-holding-dollar text-4xl mb-2 opacity-30"></i>
                 <p class="text-sm font-medium">No cash advances requested yet.</p>
-                <button type="button" onclick="openCashAdvanceModal()" class="mt-3 text-xs text-orange-600 hover:underline font-bold">
-                    Submit your first request
+                <button type="button" onclick="openCashAdvanceModal()" class="mt-3 text-xs text-orange-600 hover:underline font-bold inline-block">
+                    Request Your First Cash Advance
                 </button>
             </div>
         <?php endif; ?>
     </div>
 
-    <!-- Section 2: Delivered Trips Contributing to Payroll -->
+</div>
+
+
+<!-- =========================================================
+     TAB 5: PAYROLL & COMPENSATION
+     ========================================================= -->
+<div id="view-payroll" class="tab-content hidden space-y-6">
+
+    <!-- Header Banner -->
+    <div class="bg-gradient-to-r from-emerald-700 via-teal-700 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center space-x-3.5">
+            <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-emerald-300 text-2xl flex-shrink-0 shadow-inner">
+                <i class="fa-solid fa-sack-dollar"></i>
+            </div>
+            <div>
+                <h2 class="font-bold text-lg sm:text-xl text-white">Driver Payroll & Earnings</h2>
+                <p class="text-xs sm:text-sm text-emerald-100 mt-0.5">
+                    Official haul rates: ₱300 within San Leonardo base / +₱10 per km outside.
+                </p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="switchTab('cash_advance')"
+                    class="px-4 py-2.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition active:scale-95 flex items-center gap-1.5">
+                <i class="fa-solid fa-hand-holding-dollar text-amber-300"></i>
+                <span>Cash Advances</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 4 Financial Metric Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 1. Gross Earnings -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Gross Trip Earnings</span>
+                <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-receipt"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-extrabold text-gray-900 dark:text-gray-100">₱<?= number_format($driverGrossEarnings ?? 0, 2); ?></div>
+            <p class="text-[11px] text-gray-400 mt-1">From delivered trips awaiting payout</p>
+        </div>
+
+        <!-- 2. Carried Balance -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Remaining Balance</span>
+                <div class="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">₱<?= number_format($driverRemainingBalance ?? 0, 2); ?></div>
+            <p class="text-[11px] text-gray-400 mt-1">Carried forward from prior settlement</p>
+        </div>
+
+        <!-- 3. Approved Cash Advances -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Advance Deductions</span>
+                <div class="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-extrabold text-orange-600 dark:text-orange-400">-₱<?= number_format($totalCashAdvancesClaimed ?? 0, 2); ?></div>
+            <p class="text-[11px] text-gray-400 mt-1">Auto-deducted from gross</p>
+        </div>
+
+        <!-- 4. Net Payable -->
+        <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-md">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-emerald-100 uppercase">Current Net Payable</span>
+                <div class="w-8 h-8 rounded-lg bg-white/20 text-white flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-extrabold text-white">₱<?= number_format($netPay ?? 0, 2); ?></div>
+            <p class="text-[11px] text-emerald-100 mt-1">Available for upcoming disbursement</p>
+        </div>
+    </div>
+
+    <!-- Section: Delivered Trips Contributing to Payroll -->
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
             <div>
@@ -785,7 +911,7 @@ if (!empty($driverFullName)) {
                         <th class="py-3 px-4 font-semibold">Distance</th>
                         <th class="py-3 px-4 font-semibold">Load (cu.m)</th>
                         <th class="py-3 px-4 font-semibold">Trip Pay</th>
-                        <th class="py-3 px-4 font-semibold">Settlement</th>
+                        <th class="py-3 px-4 font-semibold">Status</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800 text-gray-700 dark:text-gray-200">
@@ -831,11 +957,133 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
+    <!-- Past Settlement Claims History -->
+    <?php if (!empty($payrollSettlements)): ?>
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div class="p-5 border-b border-gray-100 dark:border-gray-700">
+            <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base flex items-center gap-2">
+                <i class="fa-solid fa-file-invoice-dollar text-indigo-600"></i> Past Payroll Settlement Releases
+            </h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Historical payout disbursement records for your account</p>
+        </div>
+
+        <div class="divide-y divide-gray-100 dark:divide-gray-700/60">
+            <?php foreach ($payrollSettlements as $ps): ?>
+            <div class="p-4 sm:px-6 flex items-center justify-between gap-4 hover:bg-gray-50/70 dark:hover:bg-gray-700/40 transition">
+                <div class="flex items-center space-x-3.5 min-w-0">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-base flex-shrink-0">
+                        <i class="fa-solid fa-money-bill-transfer"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="font-extrabold text-sm text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                            <span>Settlement #<?= htmlspecialchars($ps['settlement_ticket']); ?></span>
+                            <span class="text-xs text-emerald-600 font-bold">₱<?= number_format($ps['amount_claimed'], 2); ?> Claimed</span>
+                        </div>
+                        <div class="text-[11px] text-gray-400 font-medium mt-0.5 flex items-center gap-2 flex-wrap">
+                            <span>Settled on <?= date('M d, Y h:i A', strtotime($ps['settled_at'])); ?></span>
+                            <span>&bull;</span>
+                            <span><?= $ps['trips_count']; ?> Trips</span>
+                            <?php if ($ps['remaining_balance'] > 0): ?>
+                                <span>&bull;</span>
+                                <span class="text-indigo-500">Bal. Carried: ₱<?= number_format($ps['remaining_balance'], 2); ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">
+                    Disbursed
+                </span>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
 </div>
 
 
 <!-- =========================================================
-     TAB 5: PROFILE & ACCOUNT SETTINGS
+     TAB 6: NOTIFICATIONS (NEW FEATURE TAB)
+     ========================================================= -->
+<div id="view-notifications" class="tab-content hidden space-y-6">
+
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center space-x-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl flex-shrink-0">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                <div>
+                    <h2 class="font-extrabold text-lg sm:text-xl text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                        Driver Notifications & Alerts
+                        <?php if (($unreadNotificationCount ?? 0) > 0): ?>
+                            <span class="text-xs px-2 py-0.5 rounded-full bg-rose-500 text-white font-bold">
+                                <?= $unreadNotificationCount; ?> New
+                            </span>
+                        <?php endif; ?>
+                    </h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Real-time alerts regarding trip dispatches, advance approvals, and payroll</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="markAllNotificationsAsRead()"
+                        class="px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition active:scale-95 flex items-center gap-1.5">
+                    <i class="fa-solid fa-check-double text-blue-500"></i> Mark All as Read
+                </button>
+            </div>
+        </div>
+
+        <?php if (!empty($driverNotifications)): ?>
+            <div class="divide-y divide-gray-100 dark:divide-gray-800" id="driverNotificationList">
+                <?php foreach ($driverNotifications as $n): 
+                    $timeAgo = '';
+                    $diffSec = time() - $n['timestamp'];
+                    if ($diffSec < 60) $timeAgo = 'Just now';
+                    elseif ($diffSec < 3600) $timeAgo = floor($diffSec / 60) . ' mins ago';
+                    elseif ($diffSec < 86400) $timeAgo = floor($diffSec / 3600) . ' hours ago';
+                    else $timeAgo = date('M d, Y', $n['timestamp']);
+                ?>
+                <div class="driver-notif-item p-4 sm:px-6 flex items-start justify-between gap-4 hover:bg-gray-50/80 dark:hover:bg-gray-700/40 transition cursor-pointer"
+                     onclick="switchTab('<?= htmlspecialchars($n['tab']); ?>')">
+                    <div class="flex items-start space-x-3.5 min-w-0">
+                        <div class="w-10 h-10 rounded-xl <?= $n['color']; ?> flex items-center justify-center text-base flex-shrink-0 mt-0.5">
+                            <i class="fa-solid <?= $n['icon']; ?>"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-bold text-sm text-gray-900 dark:text-gray-100"><?= htmlspecialchars($n['title']); ?></span>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase">
+                                    <?= htmlspecialchars($n['badge'] ?? 'Notice'); ?>
+                                </span>
+                            </div>
+                            <p class="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-relaxed"><?= htmlspecialchars($n['message']); ?></p>
+                            <span class="text-[11px] text-gray-400 font-medium mt-1 inline-flex items-center gap-1">
+                                <i class="fa-regular fa-clock text-[9px]"></i> <?= $timeAgo; ?>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="flex-shrink-0 text-gray-400 hover:text-blue-600 transition pt-1">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div class="p-12 text-center text-gray-400">
+                <i class="fa-solid fa-bell-slash text-4xl mb-3 opacity-30"></i>
+                <p class="text-sm font-medium">No notifications yet.</p>
+                <p class="text-xs text-gray-400 mt-1">Dispatches and cash advance updates will be delivered here in real-time.</p>
+            </div>
+        <?php endif; ?>
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     TAB 7: PROFILE & ACCOUNT SETTINGS
      ========================================================= -->
 <div id="view-profile" class="tab-content hidden space-y-6">
 
@@ -1063,9 +1311,107 @@ if (!empty($driverFullName)) {
 
 
 <!-- =========================================================
-     JAVASCRIPT: MAP, GPS, PHOTO CROPPER, & SEARCH
+     JAVASCRIPT: WEEK SELECTOR, GPS, MAP, CROPPER & FILTER
      ========================================================= -->
 <script>
+    // -------------------------------------------------------------
+    // Trips Week Selector & Date Filtering
+    // -------------------------------------------------------------
+    let currentMonday = "<?= $thisMonday; ?>";
+    let currentSunday = "<?= $thisSunday; ?>";
+
+    function onWeekSelectorChange(val) {
+        if (!val) return;
+        if (val === 'ALL') {
+            window.location.href = 'dashboard.php?tab=trips&date_from=2020-01-01&date_to=2030-12-31';
+            return;
+        }
+        if (val === 'CUSTOM') {
+            const bar = document.getElementById('customDateRangeBar');
+            if (bar) bar.scrollIntoView({ behavior: 'smooth' });
+            return;
+        }
+
+        const parts = val.split('|');
+        if (parts.length === 2) {
+            window.location.href = `dashboard.php?tab=trips&date_from=${parts[0]}&date_to=${parts[1]}`;
+        }
+    }
+
+    function shiftTripWeek(deltaWeeks) {
+        const fromInput = document.getElementById('tripDateFrom');
+        const toInput = document.getElementById('tripDateTo');
+
+        let baseDate = new Date();
+        if (deltaWeeks !== 0 && fromInput && fromInput.value) {
+            baseDate = new Date(fromInput.value + 'T00:00:00');
+            baseDate.setDate(baseDate.getDate() + (deltaWeeks * 7));
+        }
+
+        const day = baseDate.getDay(); // 0 is Sun, 1 is Mon
+        const diffToMon = day === 0 ? -6 : 1 - day;
+        const mon = new Date(baseDate);
+        mon.setDate(baseDate.getDate() + diffToMon);
+
+        const sun = new Date(mon);
+        sun.setDate(mon.getDate() + 6);
+
+        const formatYmd = (d) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const da = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${da}`;
+        };
+
+        const fStr = formatYmd(mon);
+        const tStr = formatYmd(sun);
+
+        window.location.href = `dashboard.php?tab=trips&date_from=${fStr}&date_to=${tStr}`;
+    }
+
+    function applyCustomDateRange() {
+        const fromVal = document.getElementById('tripDateFrom')?.value;
+        const toVal = document.getElementById('tripDateTo')?.value;
+        if (!fromVal || !toVal) {
+            if (typeof showToast === 'function') showToast('Please select both from and to dates.', 'warning');
+            return;
+        }
+        window.location.href = `dashboard.php?tab=trips&date_from=${fromVal}&date_to=${toVal}`;
+    }
+
+    function filterDriverTrips() {
+        const input = document.getElementById('tripSearchInput');
+        const term = (input ? input.value : '').toLowerCase().trim();
+
+        document.querySelectorAll('.driver-trip-row').forEach(row => {
+            const meta = row.getAttribute('data-search') || '';
+            row.style.display = meta.includes(term) ? '' : 'none';
+        });
+
+        document.querySelectorAll('.driver-trip-card').forEach(card => {
+            const meta = card.getAttribute('data-search') || '';
+            card.style.display = meta.includes(term) ? '' : 'none';
+        });
+    }
+
+    // -------------------------------------------------------------
+    // Notifications Helpers
+    // -------------------------------------------------------------
+    function markAllNotificationsAsRead() {
+        document.querySelectorAll('.driver-notif-item').forEach(el => {
+            el.classList.add('opacity-70');
+        });
+        const badge1 = document.querySelector('#nav-notifications span.bg-rose-500');
+        if (badge1) badge1.classList.add('hidden');
+        const badge2 = document.querySelector('#bottom-nav-notifications span.bg-rose-500');
+        if (badge2) badge2.classList.add('hidden');
+        const badge3 = document.querySelector('button[title="Notifications"] span.bg-rose-500');
+        if (badge3) badge3.classList.add('hidden');
+        if (typeof showToast === 'function') {
+            showToast('All notifications marked as read', 'info');
+        }
+    }
+
     // -------------------------------------------------------------
     // Profile Photo Cropper
     // -------------------------------------------------------------
@@ -1218,24 +1564,6 @@ if (!empty($driverFullName)) {
                 });
             }
         }, 'image/jpeg', 0.92);
-    }
-
-    // -------------------------------------------------------------
-    // Trip Filter
-    // -------------------------------------------------------------
-    function filterDriverTrips() {
-        const input = document.getElementById('tripSearchInput');
-        const term = (input ? input.value : '').toLowerCase().trim();
-
-        document.querySelectorAll('.driver-trip-row').forEach(row => {
-            const meta = row.getAttribute('data-search') || '';
-            row.style.display = meta.includes(term) ? '' : 'none';
-        });
-
-        document.querySelectorAll('.driver-trip-card').forEach(card => {
-            const meta = card.getAttribute('data-search') || '';
-            card.style.display = meta.includes(term) ? '' : 'none';
-        });
     }
 
     // -------------------------------------------------------------

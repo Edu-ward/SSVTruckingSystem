@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $_SESSION['error'] = "Failed to submit cash advance request.";
         }
     }
-    header("Location: dashboard.php?tab=payroll");
+    header("Location: dashboard.php?tab=cash_advance");
     exit;
 }
 
@@ -136,8 +136,42 @@ $total_completed_trips = 0;
 $current_week = date('oW');
 $current_month = date('Y-m');
 
+// Bulletproof Monday to Sunday calculations
+$dayOfWeek = (int)date('N'); // 1 (Mon) to 7 (Sun)
+$thisMonday = date('Y-m-d', strtotime('-' . ($dayOfWeek - 1) . ' days'));
+$thisSunday = date('Y-m-d', strtotime('+' . (7 - $dayOfWeek) . ' days'));
+
+// Generate 8 selectable weekly cycles (Monday to Sunday)
+$selectableWeeks = [];
+for ($w = 0; $w < 8; $w++) {
+    $m = date('Y-m-d', strtotime("$thisMonday -$w weeks"));
+    $s = date('Y-m-d', strtotime("$thisSunday -$w weeks"));
+    $wPrefix = ($w === 0) ? "This Week: " : (($w === 1) ? "Last Week: " : "$w Weeks Ago: ");
+    $wLabel = $wPrefix . date('M d', strtotime($m)) . ' – ' . date('M d, Y', strtotime($s)) . ' (Mon–Sun)';
+    $selectableWeeks[] = [
+        'from'       => $m,
+        'to'         => $s,
+        'label'      => $wLabel,
+        'is_current' => ($w === 0)
+    ];
+}
+
+$selectedFrom = $_GET['date_from'] ?? $thisMonday;
+$selectedTo   = $_GET['date_to']   ?? $thisSunday;
+
+$weeklyFilteredTrips = [];
+$weeklyDistanceKm    = 0.0;
+$weeklyPayAmount     = 0.0;
+
 foreach ($raw_trips as $t) {
     $trips[] = $t;
+    $tDate = date('Y-m-d', strtotime($t['trip_date'] ?: $t['created_at']));
+
+    if ($tDate >= $selectedFrom && $tDate <= $selectedTo) {
+        $weeklyFilteredTrips[] = $t;
+        $weeklyDistanceKm += floatval($t['distance_km'] ?? 0);
+        $weeklyPayAmount += floatval($t['pay_amount'] ?? 0);
+    }
 
     if ($t['status'] === 'Delivered') {
         $total_completed_trips++;
@@ -157,7 +191,6 @@ $stmtCancel = $pdo->prepare("SELECT id FROM dispatches WHERE driver_id = ? AND s
 $stmtCancel->execute([$driver_id]);
 $has_pending_cancellation = $stmtCancel->fetch() ? true : false;
 
-
 $stmtActive = $pdo->prepare("
     SELECT 
         d.id, d.ticket_number, d.origin, d.destination, d.status, d.cubic_meters, d.created_at, d.transit_start_time, d.transit_end_time, t.truck_code,
@@ -172,27 +205,37 @@ $stmtActive = $pdo->prepare("
 $stmtActive->execute([$driver_id]);
 $active_dispatch = $stmtActive->fetch();
 
-
 $payStmt = $pdo->prepare("SELECT total_amount, amount_claimed, remaining_balance FROM driver_payroll WHERE driver_id = ?");
 $payStmt->execute([$driver_id]);
 $driverPayroll = $payStmt->fetch(PDO::FETCH_ASSOC);
 $driverRemainingBalance = floatval($driverPayroll['remaining_balance'] ?? 0);
 
-
 $grossEarnStmt = $pdo->prepare("SELECT COALESCE(SUM(pay_amount), 0) FROM dispatches WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)");
 $grossEarnStmt->execute([$driver_id]);
 $driverGrossEarnings = floatval($grossEarnStmt->fetchColumn());
 
-$cashAdvStmt = $pdo->prepare("SELECT id, amount, reason, status, is_settled, requested_at, resolved_at FROM cash_advances WHERE driver_id = ? ORDER BY requested_at DESC LIMIT 10");
+// All cash advances for driver
+$cashAdvStmt = $pdo->prepare("SELECT id, amount, reason, status, is_settled, requested_at, resolved_at FROM cash_advances WHERE driver_id = ? ORDER BY requested_at DESC");
 $cashAdvStmt->execute([$driver_id]);
 $driverCashAdvances = $cashAdvStmt->fetchAll(PDO::FETCH_ASSOC);
 
+$caPendingCount = 0;
+$totalCashAdvancesClaimed = 0.0;
+$totalCashAdvancesSettled = 0.0;
 
-$caSumStmt = $pdo->prepare("SELECT COALESCE(SUM(amount), 0) FROM cash_advances WHERE driver_id = ? AND status = 'Approved' AND (is_settled = 0 OR is_settled IS NULL)");
-$caSumStmt->execute([$driver_id]);
-$totalCashAdvancesClaimed = floatval($caSumStmt->fetchColumn());
+foreach ($driverCashAdvances as $ca) {
+    if ($ca['status'] === 'Pending') $caPendingCount++;
+    if ($ca['status'] === 'Approved' && empty($ca['is_settled'])) {
+        $totalCashAdvancesClaimed += floatval($ca['amount']);
+    }
+    if (!empty($ca['is_settled'])) {
+        $totalCashAdvancesSettled += floatval($ca['amount']);
+    }
+}
+
 $netPay = max(0, $driverGrossEarnings + $driverRemainingBalance - $totalCashAdvancesClaimed);
 
+// Delivered trips for payroll
 $stmtPayrollTrips = $pdo->prepare("
     SELECT 
         d.id,
@@ -214,6 +257,165 @@ $stmtPayrollTrips = $pdo->prepare("
 ");
 $stmtPayrollTrips->execute([$driver_id]);
 $payrollTrips = $stmtPayrollTrips->fetchAll(PDO::FETCH_ASSOC);
+
+// Payroll past settlement vouchers / claims
+$settleStmt = $pdo->prepare("SELECT settlement_ticket, gross_amount, previous_balance, cash_advance_deduction, net_pay, amount_claimed, remaining_balance, trips_count, settled_at, notes FROM driver_payroll_settlements WHERE driver_id = ? ORDER BY settled_at DESC LIMIT 10");
+$settleStmt->execute([$driver_id]);
+$payrollSettlements = $settleStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Driver Notifications aggregation
+$driverNotifications = [];
+
+// 1. Dispatch updates
+$notifDispStmt = $pdo->prepare("SELECT ticket_number, destination, status, created_at, transit_start_time, transit_end_time FROM dispatches WHERE driver_id = ? ORDER BY id DESC LIMIT 12");
+$notifDispStmt->execute([$driver_id]);
+foreach ($notifDispStmt->fetchAll(PDO::FETCH_ASSOC) as $nd) {
+    $timeStr = $nd['transit_end_time'] ?: ($nd['transit_start_time'] ?: $nd['created_at']);
+    $ts = strtotime($timeStr);
+    if ($nd['status'] === 'Delivered') {
+        $driverNotifications[] = [
+            'id' => 'disp_' . $nd['ticket_number'],
+            'title' => 'Trip Delivered Successfully',
+            'message' => 'Ticket #' . $nd['ticket_number'] . ' to ' . $nd['destination'] . ' has been marked Delivered. Earnings added to payroll.',
+            'type' => 'success',
+            'icon' => 'fa-circle-check',
+            'badge' => 'Delivered',
+            'color' => 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30',
+            'tab' => 'trips',
+            'timestamp' => $ts
+        ];
+    } elseif ($nd['status'] === 'In Transit') {
+        $driverNotifications[] = [
+            'id' => 'disp_' . $nd['ticket_number'],
+            'title' => 'Dispatch In Transit',
+            'message' => 'Your trip #' . $nd['ticket_number'] . ' to ' . $nd['destination'] . ' is on the road. Live GPS sharing active.',
+            'type' => 'info',
+            'icon' => 'fa-truck-fast',
+            'badge' => 'In Transit',
+            'color' => 'text-blue-500 bg-blue-50 dark:bg-blue-950/30',
+            'tab' => 'route',
+            'timestamp' => $ts
+        ];
+    } elseif ($nd['status'] === 'Loading' || $nd['status'] === 'Pending') {
+        $driverNotifications[] = [
+            'id' => 'disp_' . $nd['ticket_number'],
+            'title' => 'New Trip Assigned',
+            'message' => 'New dispatch ticket #' . $nd['ticket_number'] . ' assigned: ' . $nd['destination'] . '.',
+            'type' => 'info',
+            'icon' => 'fa-route',
+            'badge' => 'Assigned',
+            'color' => 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30',
+            'tab' => 'dashboard',
+            'timestamp' => $ts
+        ];
+    } elseif ($nd['status'] === 'Cancellation Requested') {
+        $driverNotifications[] = [
+            'id' => 'disp_' . $nd['ticket_number'],
+            'title' => 'Trip Cancellation Requested',
+            'message' => 'Cancellation for ticket #' . $nd['ticket_number'] . ' was submitted and is awaiting Admin review.',
+            'type' => 'warning',
+            'icon' => 'fa-triangle-exclamation',
+            'badge' => 'Pending Review',
+            'color' => 'text-amber-500 bg-amber-50 dark:bg-amber-950/30',
+            'tab' => 'dashboard',
+            'timestamp' => $ts
+        ];
+    }
+}
+
+// 2. Cash advance updates
+foreach ($driverCashAdvances as $ca) {
+    $caTs = strtotime($ca['resolved_at'] ?: $ca['requested_at']);
+    if ($ca['status'] === 'Approved') {
+        $driverNotifications[] = [
+            'id' => 'ca_' . $ca['id'],
+            'title' => 'Cash Advance Approved',
+            'message' => 'Your cash advance of ₱' . number_format($ca['amount'], 2) . ' was approved! You can now print the voucher in the Cash Advance tab.',
+            'type' => 'success',
+            'icon' => 'fa-hand-holding-dollar',
+            'badge' => 'Approved',
+            'color' => 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30',
+            'tab' => 'cash_advance',
+            'timestamp' => $caTs
+        ];
+    } elseif ($ca['status'] === 'Rejected') {
+        $driverNotifications[] = [
+            'id' => 'ca_' . $ca['id'],
+            'title' => 'Cash Advance Declined',
+            'message' => 'Your cash advance request of ₱' . number_format($ca['amount'], 2) . ' was declined by the Admin.',
+            'type' => 'error',
+            'icon' => 'fa-circle-xmark',
+            'badge' => 'Rejected',
+            'color' => 'text-rose-500 bg-rose-50 dark:bg-rose-950/30',
+            'tab' => 'cash_advance',
+            'timestamp' => $caTs
+        ];
+    } else {
+        $driverNotifications[] = [
+            'id' => 'ca_' . $ca['id'],
+            'title' => 'Cash Advance Submitted',
+            'message' => 'Your request of ₱' . number_format($ca['amount'], 2) . ' has been forwarded to Admin for approval.',
+            'type' => 'info',
+            'icon' => 'fa-clock',
+            'badge' => 'Pending',
+            'color' => 'text-amber-500 bg-amber-50 dark:bg-amber-950/30',
+            'tab' => 'cash_advance',
+            'timestamp' => $caTs
+        ];
+    }
+}
+
+// 3. Password reset updates
+$notifPrStmt = $pdo->prepare("SELECT id, status, requested_at, resolved_at FROM password_reset_requests WHERE user_id = ? ORDER BY id DESC LIMIT 3");
+$notifPrStmt->execute([$driver_id]);
+foreach ($notifPrStmt->fetchAll(PDO::FETCH_ASSOC) as $pr) {
+    $prTs = strtotime($pr['resolved_at'] ?: $pr['requested_at']);
+    if ($pr['status'] === 'Approved') {
+        $driverNotifications[] = [
+            'id' => 'pr_' . $pr['id'],
+            'title' => 'Password Reset Approved',
+            'message' => 'Admin has approved your password reset request. You can now set your new password.',
+            'type' => 'success',
+            'icon' => 'fa-key',
+            'badge' => 'Action Required',
+            'color' => 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30',
+            'tab' => 'profile',
+            'timestamp' => $prTs
+        ];
+    }
+}
+
+// 4. Payroll settlements
+foreach ($payrollSettlements as $ps) {
+    $driverNotifications[] = [
+        'id' => 'ps_' . $ps['settlement_ticket'],
+        'title' => 'Payroll Payout Processed',
+        'message' => 'Settlement #' . $ps['settlement_ticket'] . ' completed. Claimed amount: ₱' . number_format($ps['amount_claimed'], 2) . '.',
+        'type' => 'success',
+        'icon' => 'fa-money-bill-wave',
+        'badge' => 'Settled',
+        'color' => 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30',
+        'tab' => 'payroll',
+        'timestamp' => strtotime($ps['settled_at'])
+    ];
+}
+
+// Sort notifications newest first
+usort($driverNotifications, function($a, $b) {
+    return $b['timestamp'] - $a['timestamp'];
+});
+
+// Calculate unread badge count (items within last 72 hours)
+$unreadNotificationCount = 0;
+$recentThreshold = time() - (72 * 3600);
+foreach ($driverNotifications as $n) {
+    if ($n['timestamp'] > $recentThreshold) {
+        $unreadNotificationCount++;
+    }
+}
+if ($unreadNotificationCount === 0 && count($driverNotifications) > 0) {
+    $unreadNotificationCount = min(2, count($driverNotifications));
+}
 
 include __DIR__ . '/../includes/header.php';
 ?>

@@ -71,7 +71,7 @@
                             <?= htmlspecialchars($truck['status']); ?>
                         </span>
 
-                        <button onclick='openEditTruckModal(<?= htmlspecialchars(json_encode($truck), ENT_QUOTES, 'UTF-8'); ?>)' class="text-gray-400 hover:text-blue-600 transition p-1" title="Edit Truck Details & Status">
+                        <button type="button" data-truck="<?= htmlspecialchars(json_encode($truck), ENT_QUOTES, 'UTF-8'); ?>" onclick="openEditTruckModal(this.dataset.truck)" class="text-gray-400 hover:text-blue-600 transition p-1" title="Edit Truck Details & Status">
                             <i class="fa-solid fa-pen-to-square"></i>
                         </button>
 

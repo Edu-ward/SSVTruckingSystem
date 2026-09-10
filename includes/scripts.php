@@ -2380,6 +2380,7 @@
         function openResetPasswordModal() {
             checkCurrentResetStatus(function(status) {
                 const overlay = document.getElementById('pwdResetOverlay');
+                if (!overlay) return;
                 overlay.classList.remove('hidden');
                 overlay.classList.add('flex');
                 if (status === 'Approved') {
@@ -2395,6 +2396,7 @@
 
         function closePwdResetModal() {
             const overlay = document.getElementById('pwdResetOverlay');
+            if (!overlay) return;
             overlay.classList.add('hidden');
             overlay.classList.remove('flex');
             stopPrPolling();

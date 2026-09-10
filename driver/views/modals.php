@@ -128,19 +128,25 @@
         function openCancelTripModal() {
             const modal = document.getElementById('cancelTripModal');
             const content = document.getElementById('cancelTripModalContent');
+            if (!modal) return;
             modal.classList.remove('hidden');
             modal.classList.add('flex');
-            setTimeout(() => {
-                content.classList.remove('scale-95', 'opacity-0');
-                content.classList.add('scale-100', 'opacity-100');
-            }, 50);
+            if (content) {
+                setTimeout(() => {
+                    content.classList.remove('scale-95', 'opacity-0');
+                    content.classList.add('scale-100', 'opacity-100');
+                }, 50);
+            }
         }
 
         function closeCancelTripModal() {
             const modal = document.getElementById('cancelTripModal');
             const content = document.getElementById('cancelTripModalContent');
-            content.classList.remove('scale-100', 'opacity-100');
-            content.classList.add('scale-95', 'opacity-0');
+            if (!modal) return;
+            if (content) {
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-95', 'opacity-0');
+            }
             setTimeout(() => {
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
@@ -150,19 +156,25 @@
         function openCashAdvanceModal() {
             const modal = document.getElementById('cashAdvanceModal');
             const content = document.getElementById('cashAdvanceModalContent');
+            if (!modal) return;
             modal.classList.remove('hidden');
             modal.classList.add('flex');
-            setTimeout(() => {
-                content.classList.remove('scale-95', 'opacity-0');
-                content.classList.add('scale-100', 'opacity-100');
-            }, 50);
+            if (content) {
+                setTimeout(() => {
+                    content.classList.remove('scale-95', 'opacity-0');
+                    content.classList.add('scale-100', 'opacity-100');
+                }, 50);
+            }
         }
 
         function closeCashAdvanceModal() {
             const modal = document.getElementById('cashAdvanceModal');
             const content = document.getElementById('cashAdvanceModalContent');
-            content.classList.remove('scale-100', 'opacity-100');
-            content.classList.add('scale-95', 'opacity-0');
+            if (!modal) return;
+            if (content) {
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-95', 'opacity-0');
+            }
             setTimeout(() => {
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');

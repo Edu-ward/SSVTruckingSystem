@@ -63,19 +63,20 @@
 <script>
     function toggleModal(id, show) {
         const modal = document.getElementById(id);
+        if (!modal) return;
         if (show) modal.classList.remove('hidden');
         else modal.classList.add('hidden');
     }
 
-    function openChangePasswordModal() { openResetPasswordModal(); } 
-
-    function openChangePasswordModal() {
-        openResetPasswordModal();
+    function openChangePasswordModal() { 
+        if (typeof openResetPasswordModal === 'function') {
+            openResetPasswordModal(); 
+        }
     }
 
-    function openResetPasswordModal() {
-        
+    function closeOtpModal() { 
+        if (typeof closePwdResetModal === 'function') {
+            closePwdResetModal(); 
+        }
     }
-
-    function closeOtpModal() { closePwdResetModal(); }
 </script>

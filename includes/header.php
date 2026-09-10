@@ -708,20 +708,42 @@
                         <button type="button" onclick="switchTab('trips')" id="nav-trips" class="sidebar-nav-item w-full text-left flex items-center justify-between">
                             <span class="flex items-center space-x-3">
                                 <i class="fa-solid fa-route nav-icon"></i>
-                                <span>Trip History</span>
+                                <span>Trips</span>
                             </span>
                             <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-                                <?= count($trips ?? []); ?>
+                                <?= count($weeklyFilteredTrips ?? $trips ?? []); ?>
                             </span>
+                        </button>
+                        <button type="button" onclick="switchTab('cash_advance')" id="nav-cash_advance" class="sidebar-nav-item w-full text-left flex items-center justify-between">
+                            <span class="flex items-center space-x-3">
+                                <i class="fa-solid fa-hand-holding-dollar nav-icon"></i>
+                                <span>Cash Advance</span>
+                            </span>
+                            <?php if (($caPendingCount ?? 0) > 0): ?>
+                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
+                                    <?= $caPendingCount; ?> Pending
+                                </span>
+                            <?php endif; ?>
                         </button>
                         <button type="button" onclick="switchTab('payroll')" id="nav-payroll" class="sidebar-nav-item w-full text-left flex items-center justify-between">
                             <span class="flex items-center space-x-3">
                                 <i class="fa-solid fa-wallet nav-icon"></i>
-                                <span>Payroll & Advances</span>
+                                <span>Payroll</span>
                             </span>
                             <?php if (($netPay ?? 0) > 0): ?>
                                 <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
                                     ₱<?= number_format($netPay, 0); ?>
+                                </span>
+                            <?php endif; ?>
+                        </button>
+                        <button type="button" onclick="switchTab('notifications')" id="nav-notifications" class="sidebar-nav-item w-full text-left flex items-center justify-between">
+                            <span class="flex items-center space-x-3">
+                                <i class="fa-solid fa-bell nav-icon"></i>
+                                <span>Notifications</span>
+                            </span>
+                            <?php if (($unreadNotificationCount ?? 0) > 0): ?>
+                                <span class="text-[10px] font-extrabold min-w-[18px] h-4 px-1 rounded-full bg-rose-500 text-white flex items-center justify-center">
+                                    <?= $unreadNotificationCount; ?>
                                 </span>
                             <?php endif; ?>
                         </button>
@@ -755,6 +777,14 @@
                         </div>
                     </div>
                     <div class="flex items-center space-x-2 flex-shrink-0">
+                        <button type="button" onclick="switchTab('notifications')" class="relative w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all active:scale-95" aria-label="Notifications" title="Notifications">
+                            <i class="fa-solid fa-bell text-sm"></i>
+                            <?php if (($unreadNotificationCount ?? 0) > 0): ?>
+                                <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-extrabold flex items-center justify-center border-2 border-white dark:border-gray-900">
+                                    <?= min(9, $unreadNotificationCount); ?>
+                                </span>
+                            <?php endif; ?>
+                        </button>
                         <button onclick="toggleTheme(event)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all active:scale-95" aria-label="Toggle theme">
                             <i class="themeIconMobile fa-solid fa-moon text-sm"></i>
                         </button>
@@ -765,32 +795,46 @@
                 </div>
 
                 <!-- Driver Mobile Bottom Navigation Bar -->
-                <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-1 pt-1.5 pb-[max(0.65rem,calc(env(safe-area-inset-bottom,0px)+0.4rem))] safe-bottom mobile-bottom-nav">
+                <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-0.5 pt-1.5 pb-[max(0.6rem,calc(env(safe-area-inset-bottom,0px)+0.35rem))] safe-bottom mobile-bottom-nav">
                     <button type="button" onclick="switchTab('dashboard')" id="bottom-nav-dashboard" class="bottom-nav-item active flex-1">
-                        <i class="fa-solid fa-house text-base sm:text-lg mb-0.5"></i>
-                        <span class="text-[10px] font-semibold">Home</span>
+                        <i class="fa-solid fa-house text-base mb-0.5"></i>
+                        <span class="text-[9px] font-semibold">Home</span>
                     </button>
                     <button type="button" onclick="switchTab('route')" id="bottom-nav-route" class="bottom-nav-item flex-1 relative">
-                        <i class="fa-solid fa-map-location-dot text-base sm:text-lg mb-0.5"></i>
-                        <span class="text-[10px] font-semibold">Route</span>
+                        <i class="fa-solid fa-map-location-dot text-base mb-0.5"></i>
+                        <span class="text-[9px] font-semibold">Route</span>
                         <?php if (!empty($active_dispatch) && in_array($active_dispatch['status'] ?? '', ['In Transit', 'Loading', 'Unloading'])): ?>
                             <span class="absolute top-1 right-1/4 w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                         <?php endif; ?>
                     </button>
                     <button type="button" onclick="switchTab('trips')" id="bottom-nav-trips" class="bottom-nav-item flex-1">
-                        <i class="fa-solid fa-route text-base sm:text-lg mb-0.5"></i>
-                        <span class="text-[10px] font-semibold">Trips</span>
+                        <i class="fa-solid fa-route text-base mb-0.5"></i>
+                        <span class="text-[9px] font-semibold">Trips</span>
+                    </button>
+                    <button type="button" onclick="switchTab('cash_advance')" id="bottom-nav-cash_advance" class="bottom-nav-item flex-1 relative">
+                        <i class="fa-solid fa-hand-holding-dollar text-base mb-0.5"></i>
+                        <span class="text-[9px] font-semibold">Advance</span>
+                        <?php if (($caPendingCount ?? 0) > 0): ?>
+                            <span class="absolute top-1 right-1/4 w-2 h-2 rounded-full bg-amber-500"></span>
+                        <?php endif; ?>
                     </button>
                     <button type="button" onclick="switchTab('payroll')" id="bottom-nav-payroll" class="bottom-nav-item flex-1 relative">
-                        <i class="fa-solid fa-wallet text-base sm:text-lg mb-0.5"></i>
-                        <span class="text-[10px] font-semibold">Payroll</span>
+                        <i class="fa-solid fa-wallet text-base mb-0.5"></i>
+                        <span class="text-[9px] font-semibold">Payroll</span>
                         <?php if (($netPay ?? 0) > 0): ?>
                             <span class="absolute top-1 right-1/4 w-2 h-2 rounded-full bg-emerald-500"></span>
                         <?php endif; ?>
                     </button>
+                    <button type="button" onclick="switchTab('notifications')" id="bottom-nav-notifications" class="bottom-nav-item flex-1 relative">
+                        <i class="fa-solid fa-bell text-base mb-0.5"></i>
+                        <span class="text-[9px] font-semibold">Alerts</span>
+                        <?php if (($unreadNotificationCount ?? 0) > 0): ?>
+                            <span class="absolute top-1 right-1/4 w-2 h-2 rounded-full bg-rose-500"></span>
+                        <?php endif; ?>
+                    </button>
                     <button type="button" onclick="switchTab('profile')" id="bottom-nav-profile" class="bottom-nav-item flex-1">
-                        <i class="fa-solid fa-id-card text-base sm:text-lg mb-0.5"></i>
-                        <span class="text-[10px] font-semibold">Profile</span>
+                        <i class="fa-solid fa-id-card text-base mb-0.5"></i>
+                        <span class="text-[9px] font-semibold">Profile</span>
                     </button>
                 </div>
 
