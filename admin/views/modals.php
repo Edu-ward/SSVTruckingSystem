@@ -607,19 +607,6 @@
                 </div>
             </div>
 
-            
-            <div class="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl border border-emerald-100 dark:border-emerald-900/40 flex items-center justify-between gap-3" id="vd-payroll-bar">
-                <div>
-                    <div class="text-[10px] font-bold uppercase text-emerald-800 dark:text-emerald-400 tracking-wider">Unclaimed Payroll</div>
-                    <div class="text-base sm:text-lg font-extrabold text-emerald-700 dark:text-emerald-300" id="vd-payroll-net">₱0.00</div>
-                    <div class="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5" id="vd-payroll-breakdown">Gross: ₱0.00 • CA: ₱0.00</div>
-                </div>
-                <button type="button" id="vd-settle-btn" onclick="triggerSettleFromModal()" class="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition shadow-sm flex items-center gap-1.5 flex-shrink-0">
-                    <i class="fa-solid fa-money-bill-transfer"></i>
-                    <span>Settle</span>
-                </button>
-            </div>
-
             <div class="border-t border-gray-100 dark:border-gray-700 pt-3 space-y-2 text-sm">
                 <div class="flex items-center space-x-3">
                     <i class="fa-solid fa-phone text-gray-400 w-5 text-center"></i>

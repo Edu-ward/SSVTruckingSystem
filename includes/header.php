@@ -481,6 +481,10 @@
                     <i class="fa-solid fa-users nav-icon"></i>
                     <span>Drivers</span>
                 </button>
+                <button onclick="switchTab('payroll')" id="nav-payroll" class="sidebar-nav-item w-full">
+                    <i class="fa-solid fa-wallet nav-icon"></i>
+                    <span class="flex-1 text-left">Salaries & Payroll</span>
+                </button>
                 <button onclick="switchTab('cash_advances')" id="nav-cash_advances" class="sidebar-nav-item w-full">
                     <i class="fa-solid fa-hand-holding-dollar nav-icon"></i>
                     <span class="flex-1 text-left">Cash Advances</span>

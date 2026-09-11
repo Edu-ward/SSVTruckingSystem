@@ -1265,7 +1265,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $pdo->rollBack();
             $_SESSION['error'] = 'Failed to settle payroll: ' . $e->getMessage();
         }
-        header('Location: dashboard.php?tab=drivers');
+        header('Location: dashboard.php?tab=payroll');
         exit;
     }
 
@@ -1305,7 +1305,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $pdo->rollBack();
             $_SESSION['error'] = 'Failed to adjust balance: ' . $e->getMessage();
         }
-        header('Location: dashboard.php?tab=drivers');
+        header('Location: dashboard.php?tab=payroll');
         exit;
     }
 
@@ -1656,6 +1656,23 @@ $allCashAdvances = $pdo->query("
     LEFT JOIN users u ON ca.driver_id = u.id
     ORDER BY ca.requested_at DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
+
+try {
+    $payrollSettlements = $pdo->query("
+        SELECT s.*, 
+               COALESCE(NULLIF(TRIM(CONCAT(COALESCE(d.first_name, ''), ' ', COALESCE(d.last_name, ''))), ''), u.username, CONCAT('Driver #', s.driver_id)) AS driver_name,
+               d.cdl_number, d.phone, u.username,
+               t.truck_code
+        FROM driver_payroll_settlements s
+        LEFT JOIN drivers d ON s.driver_id = d.id
+        LEFT JOIN trucks t ON d.truck_id = t.id
+        LEFT JOIN users u ON s.driver_id = u.id
+        ORDER BY s.settled_at DESC, s.id DESC
+        LIMIT 50
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $payrollSettlements = [];
+}
 
 $availableTrucks = $pdo->query("
     SELECT 
@@ -2053,11 +2070,12 @@ include __DIR__ . '/../includes/header.php';
     include __DIR__ . '/views/dispatches.php';
     include __DIR__ . '/views/fleet.php';
     include __DIR__ . '/views/drivers.php';
+    include __DIR__ . '/views/payroll.php';
+    include __DIR__ . '/views/cash_advances.php';
     include __DIR__ . '/views/orders.php';
     include __DIR__ . '/views/reports.php';
     include __DIR__ . '/views/activity_logs.php';
     include __DIR__ . '/views/pwd_requests.php';
-    include __DIR__ . '/views/cash_advances.php';
     include __DIR__ . '/views/settings.php'; ?>
 </div>
 </div>

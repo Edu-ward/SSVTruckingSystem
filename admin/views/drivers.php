@@ -7,7 +7,7 @@
             </div>
             <div>
                 <h2 class="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">Driver Management</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Manage drivers, lifetime deliveries, payroll, and assignments</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Manage driver profiles, licenses, truck assignments, and performance records</p>
             </div>
         </div>
 
@@ -193,32 +193,6 @@
                             </span>
                         </button>
                         
-                        <div class="flex items-center justify-between p-2.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl">
-                            <span class="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 font-medium">
-                                <i class="fa-solid fa-clock-rotate-left w-4 text-center"></i>
-                                <span>Remaining Balance</span>
-                            </span>
-                            <span class="font-bold text-indigo-700 dark:text-indigo-400">₱<?= number_format($driver['remaining_balance'] ?? 0, 2); ?></span>
-                        </div>
-                        <?php if (($driver['approved_cash_advances'] ?? 0) > 0): ?>
-                        <div class="flex items-center justify-between p-2.5 bg-orange-50 dark:bg-orange-900/20 rounded-xl">
-                            <span class="flex items-center space-x-2 text-orange-600 dark:text-orange-400">
-                                <i class="fa-solid fa-hand-holding-dollar w-4 text-center"></i>
-                                <span>Cash Advances</span>
-                            </span>
-                            <span class="font-bold text-orange-700 dark:text-orange-400">-₱<?= number_format($driver['approved_cash_advances'] ?? 0, 2); ?></span>
-                        </div>
-                        <?php endif; ?>
-                        
-                        <div class="flex items-center justify-between p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                            <span class="flex items-center space-x-2 text-blue-600 dark:text-blue-400 font-semibold">
-                                <i class="fa-solid fa-wallet text-blue-500 w-4 text-center"></i>
-                                <span>Net Payable</span>
-                            </span>
-                            <span class="font-extrabold text-blue-700 dark:text-blue-400">₱<?= number_format($driver['net_earnings'] ?? 0, 2); ?></span>
-                        </div>
-
-                        
                         <div class="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-gray-900 rounded-xl">
                             <span class="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
                                 <i class="fa-solid fa-route text-cyan-500 w-4 text-center"></i>
@@ -264,45 +238,9 @@
                     </div>
 
                     
-                    <div class="mb-3">
-                        <?php if ($hasPayable): ?>
-                            <button type="button" 
-                                    onclick="openSettlePayrollModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['gross_earnings'] ?? 0; ?>, <?= $driver['approved_cash_advances'] ?? 0; ?>, <?= $driver['net_earnings'] ?? 0; ?>, <?= $driver['remaining_balance'] ?? 0; ?>)" 
-                                    class="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white text-xs font-bold rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-between">
-                                <span class="flex items-center gap-1.5"><i class="fa-solid fa-money-bill-transfer"></i> Settle Payroll</span>
-                                <span class="px-1.5 py-0.5 rounded bg-emerald-700/70 text-[11px] font-extrabold">₱<?= number_format($driver['net_earnings'] ?? 0, 2); ?></span>
-                            </button>
-                        <?php else: ?>
-                            <button type="button" disabled 
-                                    class="w-full py-2 px-3 bg-gray-100 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500 text-xs font-semibold rounded-xl cursor-default flex items-center justify-center gap-1.5">
-                                <i class="fa-solid fa-circle-check text-emerald-500"></i>
-                                <span>Payroll Settled (₱0.00)</span>
-                            </button>
-                        <?php endif; ?>
-                    </div>
-
-                    
                     <div class="flex items-center justify-between pt-2.5 border-t border-gray-100 dark:border-gray-700/60 mb-3">
                         <span class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Quick Actions</span>
                         <div class="flex items-center space-x-1">
-                            <?php if ($hasPayable): ?>
-                                <button onclick="openSettlePayrollModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['gross_earnings'] ?? 0; ?>, <?= $driver['approved_cash_advances'] ?? 0; ?>, <?= $driver['net_earnings'] ?? 0; ?>, <?= $driver['remaining_balance'] ?? 0; ?>)" 
-                                        class="w-8 h-8 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-gray-700 transition-colors cursor-pointer" 
-                                        title="Settle Driver Payroll">
-                                    <i class="fa-solid fa-money-bill-transfer text-xs"></i>
-                                </button>
-                            <?php else: ?>
-                                <button disabled
-                                        class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50" 
-                                        title="Payroll Already Settled">
-                                    <i class="fa-solid fa-money-bill-transfer text-xs"></i>
-                                </button>
-                            <?php endif; ?>
-                            <button onclick="openAdjustBalanceModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['remaining_balance'] ?? 0; ?>)" 
-                                    class="w-8 h-8 rounded-lg flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-gray-700 transition-colors" 
-                                    title="Adjust Remaining Balance">
-                                <i class="fa-solid fa-coins text-xs"></i>
-                            </button>
                             <button onclick="openPrintDriverTripsModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>')" 
                                     class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors" 
                                     title="Print Trip Ticket">
@@ -353,27 +291,7 @@
     </div>
 
     
-    <div class="mt-8 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent dark:from-amber-950/30 dark:to-transparent border border-amber-200/80 dark:border-amber-800/40 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div class="flex items-center space-x-3.5">
-            <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg flex-shrink-0 shadow-sm">
-                <i class="fa-solid fa-hand-holding-dollar"></i>
-            </div>
-            <div>
-                <h4 class="font-bold text-gray-900 dark:text-gray-100 text-sm">Driver Cash Advance Management</h4>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    <?php if (($pendingCashAdvanceCount ?? 0) > 0): ?>
-                        <span class="text-amber-600 dark:text-amber-400 font-semibold"><?= $pendingCashAdvanceCount ?> pending request<?= $pendingCashAdvanceCount > 1 ? 's' : '' ?> awaiting approval.</span>
-                    <?php else: ?>
-                        All driver cash advance requests, approvals, and tickets are managed in the dedicated Cash Advances section.
-                    <?php endif; ?>
-                </p>
-            </div>
-        </div>
-        <button onclick="switchTab('cash_advances')" class="px-4 py-2 rounded-xl text-xs font-bold text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-900/50 hover:bg-amber-200 dark:hover:bg-amber-800/60 border border-amber-200 dark:border-amber-700 transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
-            <span>Open Cash Advances Section</span>
-            <i class="fa-solid fa-arrow-right text-[10px]"></i>
-        </button>
-    </div>
+
 
 <script>
 function filterDriverCards() {
