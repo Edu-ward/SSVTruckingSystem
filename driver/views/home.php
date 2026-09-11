@@ -382,287 +382,323 @@ if (!empty($driverFullName)) {
      ========================================================= -->
 <div id="view-trips" class="tab-content hidden space-y-6">
 
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 p-5 sm:p-6">
-        
-        <!-- Header & Week Selector -->
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-5 border-b border-gray-100 dark:border-gray-700">
+    <!-- Page Header -->
+    <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center space-x-3.5">
+            <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-lg font-bold shadow-sm">
+                <i class="fa-solid fa-route"></i>
+            </div>
             <div>
-                <h2 class="text-lg sm:text-xl font-extrabold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                    <i class="fa-solid fa-route text-blue-600"></i> Trips
-                </h2>
+                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">Trips History</h2>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    Showing dispatches for selected weekly delivery cycle (Monday to Sunday)
+                    Track weekly delivery dispatches, route distances, and computed trip earnings.
                 </p>
             </div>
+        </div>
 
-            <!-- Selector Controls -->
+        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <!-- Search Destination / Status -->
+            <div class="relative flex-1 md:w-72">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input type="text" id="driverTripSearchInput" placeholder="Search destination, status..." oninput="filterDriverTrips()" class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                <button type="button" id="driverTripSearchClear" onclick="clearDriverTripSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Week Period Selector Bar (Identical style to Payroll Management) -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-5 mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="flex items-center space-x-3.5">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-base flex-shrink-0">
+                    <i class="fa-solid fa-calendar-week"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Week Period:</span>
+                        <span id="activeTripPeriodBadge" class="text-xs font-extrabold px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                            <?= htmlspecialchars($activeTripPeriodCleanDates ?? $defaultTripPeriod['clean_dates']); ?>
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        Select a weekly delivery cycle (Monday to Sunday) to evaluate trip performance and pay.
+                    </p>
+                </div>
+            </div>
+
             <div class="flex flex-wrap items-center gap-2.5">
-                <!-- Dropdown selector -->
-                <div class="relative min-w-[240px] sm:min-w-[280px]">
-                    <select id="tripWeekSelector" onchange="onWeekSelectorChange(this.value)"
-                            class="w-full text-xs font-semibold py-2 px-3 pr-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
-                        <?php foreach ($selectableWeeks as $sw): 
-                            $isSelected = ($sw['from'] === $selectedFrom && $sw['to'] === $selectedTo);
+                <!-- Dropdown selector with dates -->
+                <div class="relative min-w-[270px] sm:min-w-[320px]">
+                    <select id="driverTripPeriodSelector" onchange="onDriverTripPeriodChange(this.value)"
+                            class="w-full text-xs font-semibold py-2.5 px-3.5 pr-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none shadow-xs">
+                        <?php foreach ($driverTripPayPeriods as $p): 
+                            $isSelected = ($p['from'] === $selectedFrom && $p['to'] === $selectedTo);
                         ?>
-                            <option value="<?= $sw['from'] . '|' . $sw['to']; ?>" <?= $isSelected ? 'selected' : ''; ?>>
-                                <?= htmlspecialchars($sw['label']); ?>
+                            <option value="<?= $p['from'] . '|' . $p['to']; ?>" data-label="<?= htmlspecialchars($p['clean_dates']); ?>" <?= $isSelected ? 'selected' : ''; ?>>
+                                <?= htmlspecialchars($p['label']); ?>
                             </option>
                         <?php endforeach; ?>
-                        <option value="ALL">Show All Past Trips</option>
-                        <option value="CUSTOM">Custom Date Range...</option>
+                        <option value="ALL" data-label="All Delivery Cycles (All Time)">Show All Past Trips</option>
+                        <option value="CUSTOM" data-label="Custom Date Range">Custom Date Range...</option>
                     </select>
-                    <div class="absolute inset-y-0 right-0 flex items-center px-2.5 pointer-events-none text-gray-400 text-xs">
+                    <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400 text-xs">
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
                 </div>
 
-                <!-- Previous / Next Week Quick Buttons -->
+                <!-- Previous / Next Week Quick Shift Buttons -->
                 <div class="flex items-center gap-1">
-                    <button type="button" onclick="shiftTripWeek(-1)" title="Previous Week (Mon–Sun)"
-                            class="w-8 h-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-xs active:scale-95 transition">
+                    <button type="button" onclick="shiftDriverTripWeek(1)" title="Previous Week"
+                            class="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-xs active:scale-95 transition cursor-pointer">
                         <i class="fa-solid fa-chevron-left"></i>
                     </button>
-                    <button type="button" onclick="shiftTripWeek(0)" title="Current Week (This Week)"
-                            class="px-2.5 h-8 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 text-xs font-bold active:scale-95 transition">
+                    <button type="button" onclick="shiftDriverTripWeek(0)" title="Current Week (This Week)"
+                            class="px-3 h-9 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 text-xs font-bold active:scale-95 transition cursor-pointer">
                         This Week
                     </button>
-                    <button type="button" onclick="shiftTripWeek(1)" title="Next Week (Mon–Sun)"
-                            class="w-8 h-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-xs active:scale-95 transition">
+                    <button type="button" onclick="shiftDriverTripWeek(-1)" title="Next Week"
+                            class="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-xs active:scale-95 transition cursor-pointer">
                         <i class="fa-solid fa-chevron-right"></i>
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Custom Date Range Bar (Collapsible or visible) -->
-        <div id="customDateRangeBar" class="p-3.5 mb-5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <!-- Custom Date Range Bar (Shown when CUSTOM is selected) -->
+        <div id="driverTripCustomDateBar" class="hidden mt-4 pt-4 border-t border-gray-100 dark:border-gray-700/80 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div class="flex items-center gap-2 flex-wrap">
                 <span class="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                    <i class="fa-solid fa-calendar-days text-blue-500"></i> Date Range:
+                    <i class="fa-solid fa-calendar-days text-blue-500"></i> Custom Date Range:
                 </span>
                 <div class="flex items-center gap-1.5">
-                    <input type="date" id="tripDateFrom" value="<?= htmlspecialchars($selectedFrom); ?>"
+                    <input type="date" id="driverTripCustomDateFrom" value="<?= htmlspecialchars($selectedFrom); ?>"
                            class="px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs">
                     <span class="text-gray-400 font-bold">to</span>
-                    <input type="date" id="tripDateTo" value="<?= htmlspecialchars($selectedTo); ?>"
+                    <input type="date" id="driverTripCustomDateTo" value="<?= htmlspecialchars($selectedTo); ?>"
                            class="px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs">
                 </div>
-                <button type="button" onclick="applyCustomDateRange()"
-                        class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition active:scale-95">
+                <button type="button" onclick="applyDriverTripCustomDateRange()"
+                        class="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition active:scale-95 cursor-pointer">
                     Apply Filter
                 </button>
             </div>
+        </div>
+    </div>
 
-            <!-- Live text filter within the selected period -->
-            <div class="relative w-full sm:w-56">
-                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 text-xs">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                </span>
-                <input type="text" id="tripSearchInput" onkeyup="filterDriverTrips()"
-                       placeholder="Filter destination, status..."
-                       class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+    <!-- Weekly Summary KPI Banner -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+        <div class="bg-blue-50/70 dark:bg-blue-950/20 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-semibold uppercase text-blue-700 dark:text-blue-300">Trips In Selected Week</span>
+                <div class="text-2xl font-extrabold text-blue-800 dark:text-blue-200 mt-0.5">
+                    <span id="kpiTripCount"><?= count($weeklyFilteredTrips); ?></span> <span class="text-xs font-medium text-blue-500">deliveries</span>
+                </div>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-calendar-check"></i>
             </div>
         </div>
 
-        <!-- Weekly Summary KPI Banner -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-            <div class="bg-blue-50/70 dark:bg-blue-950/20 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 flex items-center justify-between">
-                <div>
-                    <span class="text-[11px] font-semibold uppercase text-blue-700 dark:text-blue-300">Trips In Selected Week</span>
-                    <div class="text-2xl font-extrabold text-blue-800 dark:text-blue-200 mt-0.5">
-                        <?= count($weeklyFilteredTrips); ?> <span class="text-xs font-medium text-blue-500">deliveries</span>
-                    </div>
-                </div>
-                <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 flex items-center justify-center text-lg">
-                    <i class="fa-solid fa-calendar-check"></i>
+        <div class="bg-indigo-50/70 dark:bg-indigo-950/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/30 flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-semibold uppercase text-indigo-700 dark:text-indigo-300">Total Distance Travelled</span>
+                <div class="text-2xl font-extrabold text-indigo-800 dark:text-indigo-200 mt-0.5">
+                    <span id="kpiTripDistance"><?= number_format($weeklyDistanceKm, 1); ?></span> <span class="text-xs font-medium text-indigo-500">km</span>
                 </div>
             </div>
-
-            <div class="bg-indigo-50/70 dark:bg-indigo-950/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/30 flex items-center justify-between">
-                <div>
-                    <span class="text-[11px] font-semibold uppercase text-indigo-700 dark:text-indigo-300">Total Distance Travelled</span>
-                    <div class="text-2xl font-extrabold text-indigo-800 dark:text-indigo-200 mt-0.5">
-                        <?= number_format($weeklyDistanceKm, 1); ?> <span class="text-xs font-medium text-indigo-500">km</span>
-                    </div>
-                </div>
-                <div class="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 flex items-center justify-center text-lg">
-                    <i class="fa-solid fa-route"></i>
-                </div>
-            </div>
-
-            <div class="bg-emerald-50/70 dark:bg-emerald-950/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/30 flex items-center justify-between">
-                <div>
-                    <span class="text-[11px] font-semibold uppercase text-emerald-700 dark:text-emerald-300">Computed Trip Earnings</span>
-                    <div class="text-2xl font-extrabold text-emerald-800 dark:text-emerald-200 mt-0.5">
-                        ₱<?= number_format($weeklyPayAmount, 2); ?>
-                    </div>
-                </div>
-                <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 flex items-center justify-center text-lg">
-                    <i class="fa-solid fa-peso-sign"></i>
-                </div>
+            <div class="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-route"></i>
             </div>
         </div>
 
-        <!-- Mobile View (Cards) -->
-        <div class="block sm:hidden space-y-3" id="driverTripsMobileList">
-            <?php if (count($weeklyFilteredTrips) > 0): ?>
-                <?php foreach ($weeklyFilteredTrips as $trip): ?>
-                    <?php
-                        $duration = 'N/A';
-                        if (!empty($trip['transit_start_time']) && !empty($trip['transit_end_time'])) {
-                            $start = new DateTime($trip['transit_start_time']);
-                            $end = new DateTime($trip['transit_end_time']);
-                            $diff = $start->diff($end);
-                            $duration = '';
-                            if ($diff->h > 0) $duration .= $diff->h . 'h ';
-                            $duration .= $diff->i . 'm';
-                        }
-                        $dispTimeStr = !empty($trip['transit_start_time']) ? date('M d, Y h:i A', strtotime($trip['transit_start_time'])) : (!empty($trip['created_at']) ? date('M d, Y h:i A', strtotime($trip['created_at'])) : date('M d, Y', strtotime($trip['trip_date'])));
-                        $arrTimeStr = !empty($trip['transit_end_time']) ? date('M d, Y h:i A', strtotime($trip['transit_end_time'])) : ($trip['status'] === 'Delivered' ? 'Delivered' : 'N/A');
-                        $searchMeta = strtolower(($trip['destination'] ?? '') . ' ' . ($trip['status'] ?? ''));
-                    ?>
-                    <div class="driver-trip-card bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-200/80 dark:border-gray-800 shadow-sm space-y-2.5"
-                         data-search="<?= htmlspecialchars($searchMeta); ?>">
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="text-gray-400 dark:text-gray-500 font-mono">Dispatch: <?= $dispTimeStr; ?></span>
-                            <span class="text-gray-400 dark:text-gray-500 font-mono">Duration: <?= $duration; ?></span>
+        <div class="bg-emerald-50/70 dark:bg-emerald-950/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/30 flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-semibold uppercase text-emerald-700 dark:text-emerald-300">Computed Trip Earnings</span>
+                <div class="text-2xl font-extrabold text-emerald-800 dark:text-emerald-200 mt-0.5">
+                    ₱<span id="kpiTripPay"><?= number_format($weeklyPayAmount, 2); ?></span>
+                </div>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-peso-sign"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile View (Cards) -->
+    <div class="block sm:hidden space-y-3" id="driverTripsMobileList">
+        <?php if (!empty($trips)): ?>
+            <?php foreach ($trips as $trip): ?>
+                <?php
+                    $duration = 'N/A';
+                    if (!empty($trip['transit_start_time']) && !empty($trip['transit_end_time'])) {
+                        $start = new DateTime($trip['transit_start_time']);
+                        $end = new DateTime($trip['transit_end_time']);
+                        $diff = $start->diff($end);
+                        $duration = '';
+                        if ($diff->h > 0) $duration .= $diff->h . 'h ';
+                        $duration .= $diff->i . 'm';
+                    }
+                    $tDate = date('Y-m-d', strtotime($trip['trip_date'] ?: $trip['created_at']));
+                    $dispTimeStr = !empty($trip['transit_start_time']) ? date('M d, Y h:i A', strtotime($trip['transit_start_time'])) : (!empty($trip['created_at']) ? date('M d, Y h:i A', strtotime($trip['created_at'])) : date('M d, Y', strtotime($trip['trip_date'])));
+                    $arrTimeStr = !empty($trip['transit_end_time']) ? date('M d, Y h:i A', strtotime($trip['transit_end_time'])) : ($trip['status'] === 'Delivered' ? 'Delivered' : 'N/A');
+                    $searchMeta = strtolower(($trip['destination'] ?? '') . ' ' . ($trip['status'] ?? ''));
+                    $isInInitial = ($tDate >= $selectedFrom && $tDate <= $selectedTo);
+                ?>
+                <div class="driver-trip-card bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-200/80 dark:border-gray-800 shadow-sm space-y-2.5"
+                     data-date="<?= $tDate; ?>"
+                     data-distance="<?= (float)($trip['distance_km'] ?? 0); ?>"
+                     data-pay="<?= (float)($trip['pay_amount'] ?? 0); ?>"
+                     data-search="<?= htmlspecialchars($searchMeta); ?>"
+                     style="<?= $isInInitial ? '' : 'display: none;'; ?>">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-gray-400 dark:text-gray-500 font-mono">Dispatch: <?= $dispTimeStr; ?></span>
+                        <span class="text-gray-400 dark:text-gray-500 font-mono">Duration: <?= $duration; ?></span>
+                    </div>
+                    <div class="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                        Arrival: <?= $arrTimeStr; ?>
+                    </div>
+                    <div class="flex justify-between items-end pt-1">
+                        <div>
+                            <span class="text-[11px] text-gray-400 dark:text-gray-500 block uppercase font-semibold">Destination</span>
+                            <span class="font-bold text-gray-800 dark:text-gray-200 text-sm"><?= htmlspecialchars($trip['destination']); ?></span>
                         </div>
-                        <div class="text-xs text-gray-400 dark:text-gray-500 font-mono">
-                            Arrival: <?= $arrTimeStr; ?>
+                        <div class="text-right">
+                            <?php 
+                            $s = isset($trip['status']) ? trim($trip['status']) : '';
+                            if (empty($s) || strtolower($s) === 'delivered' || strtolower($s) === 'completed'): 
+                            ?>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-150 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                                    <i class="fa-solid fa-check mr-1 text-[8px]"></i> Delivered
+                                </span>
+                            <?php elseif ($s === 'Cancellation Requested'): ?>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-850 dark:bg-orange-950/20 dark:text-orange-400 animate-pulse">
+                                    <i class="fa-solid fa-clock mr-1 text-[8px]"></i> Pending Cancel
+                                </span>
+                            <?php elseif ($s === 'Cancelled'): ?>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 dark:bg-red-950/20 dark:text-red-400">
+                                    <i class="fa-solid fa-ban mr-1 text-[8px]"></i> Cancelled
+                                </span>
+                            <?php else: ?>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/20 dark:text-blue-400">
+                                    <i class="fa-solid fa-truck-fast mr-1 text-[8px]"></i> <?= htmlspecialchars($s); ?>
+                                </span>
+                            <?php endif; ?>
                         </div>
-                        <div class="flex justify-between items-end pt-1">
-                            <div>
-                                <span class="text-[11px] text-gray-400 dark:text-gray-500 block uppercase font-semibold">Destination</span>
-                                <span class="font-bold text-gray-800 dark:text-gray-200 text-sm"><?= htmlspecialchars($trip['destination']); ?></span>
-                            </div>
-                            <div class="text-right">
+                    </div>
+                    <div class="flex justify-between items-center text-xs pt-2 border-t border-gray-200/60 dark:border-gray-800">
+                        <span class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                            <i class="fa-solid fa-route text-blue-500"></i> Distance:
+                        </span>
+                        <span class="font-bold text-blue-600 dark:text-blue-400">
+                            <?= number_format($trip['distance_km'] ?? 0, 1); ?> km
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                            <i class="fa-solid fa-peso-sign text-emerald-500"></i> Trip Pay:
+                        </span>
+                        <span class="font-extrabold text-emerald-600 dark:text-emerald-400">
+                            ₱<?= number_format($trip['pay_amount'] ?? 0, 2); ?>
+                        </span>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+
+        <!-- Empty State Mobile -->
+        <div id="driverTripsMobileEmpty" class="py-12 text-center text-gray-400" style="<?= count($weeklyFilteredTrips) === 0 ? '' : 'display: none;'; ?>">
+            <i class="fa-solid fa-road text-4xl mb-2 opacity-30"></i>
+            <p class="text-sm font-medium">No trips recorded for this selected period.</p>
+            <p class="text-xs text-gray-400 mt-1">Try selecting another week or choosing "Show All Past Trips".</p>
+        </div>
+    </div>
+
+    <!-- Desktop View (Table) -->
+    <div class="hidden sm:block overflow-x-auto">
+        <table class="w-full text-left border-collapse" id="driverTripsTable">
+            <thead>
+                <tr class="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
+                    <th class="py-3 px-3 font-semibold">Dispatch Date & Time</th>
+                    <th class="py-3 px-3 font-semibold">Arrival Date & Time</th>
+                    <th class="py-3 px-3 font-semibold">Destination</th>
+                    <th class="py-3 px-3 font-semibold">Distance</th>
+                    <th class="py-3 px-3 font-semibold">Trip Pay</th>
+                    <th class="py-3 px-3 font-semibold">Duration</th>
+                    <th class="py-3 px-3 font-semibold">Status</th>
+                </tr>
+            </thead>
+            <tbody id="driverTripsTableBody" class="text-gray-700 dark:text-gray-200 divide-y divide-gray-100 dark:divide-gray-800 text-sm">
+                <?php if (!empty($trips)): ?>
+                    <?php foreach ($trips as $trip): ?>
+                        <?php
+                            $duration = 'N/A';
+                            if (!empty($trip['transit_start_time']) && !empty($trip['transit_end_time'])) {
+                                $start = new DateTime($trip['transit_start_time']);
+                                $end = new DateTime($trip['transit_end_time']);
+                                $diff = $start->diff($end);
+                                $duration = '';
+                                if ($diff->h > 0) $duration .= $diff->h . 'h ';
+                                $duration .= $diff->i . 'm';
+                            }
+                            $tDate = date('Y-m-d', strtotime($trip['trip_date'] ?: $trip['created_at']));
+                            $dispTimeStr = !empty($trip['transit_start_time']) ? date('M d, Y h:i A', strtotime($trip['transit_start_time'])) : (!empty($trip['created_at']) ? date('M d, Y h:i A', strtotime($trip['created_at'])) : date('M d, Y', strtotime($trip['trip_date'])));
+                            $arrTimeStr = !empty($trip['transit_end_time']) ? date('M d, Y h:i A', strtotime($trip['transit_end_time'])) : ($trip['status'] === 'Delivered' ? 'Delivered' : '—');
+                            $searchMeta = strtolower(($trip['destination'] ?? '') . ' ' . ($trip['status'] ?? ''));
+                            $isInInitial = ($tDate >= $selectedFrom && $tDate <= $selectedTo);
+                        ?>
+                        <tr class="driver-trip-row hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors"
+                            data-date="<?= $tDate; ?>"
+                            data-distance="<?= (float)($trip['distance_km'] ?? 0); ?>"
+                            data-pay="<?= (float)($trip['pay_amount'] ?? 0); ?>"
+                            data-search="<?= htmlspecialchars($searchMeta); ?>"
+                            style="<?= $isInInitial ? '' : 'display: none;'; ?>">
+                            <td class="py-3.5 px-3 font-medium text-gray-800 dark:text-gray-200 text-xs"><?= $dispTimeStr; ?></td>
+                            <td class="py-3.5 px-3 font-medium text-gray-600 dark:text-gray-400 text-xs"><?= $arrTimeStr; ?></td>
+                            <td class="py-3.5 px-3 font-bold text-gray-900 dark:text-gray-100"><?= htmlspecialchars($trip['destination']); ?></td>
+                            <td class="py-3.5 px-3 font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                                <i class="fa-solid fa-route mr-1 text-xs"></i><?= number_format($trip['distance_km'] ?? 0, 1); ?> km
+                            </td>
+                            <td class="py-3.5 px-3 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                                ₱<?= number_format($trip['pay_amount'] ?? 0, 2); ?>
+                            </td>
+                            <td class="py-3.5 px-3 text-gray-500 dark:text-gray-400 font-mono text-xs"><?= $duration; ?></td>
+                            <td class="py-3.5 px-3">
                                 <?php 
                                 $s = isset($trip['status']) ? trim($trip['status']) : '';
                                 if (empty($s) || strtolower($s) === 'delivered' || strtolower($s) === 'completed'): 
                                 ?>
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-150 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                                        <i class="fa-solid fa-check mr-1 text-[8px]"></i> Delivered
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                                        <i class="fa-solid fa-check mr-1 text-[10px]"></i> Delivered
                                     </span>
                                 <?php elseif ($s === 'Cancellation Requested'): ?>
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-850 dark:bg-orange-950/20 dark:text-orange-400 animate-pulse">
-                                        <i class="fa-solid fa-clock mr-1 text-[8px]"></i> Pending Cancel
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-850 dark:bg-orange-950/20 dark:text-orange-400 animate-pulse">
+                                        <i class="fa-solid fa-clock mr-1 text-[10px]"></i> Pending Cancel
                                     </span>
                                 <?php elseif ($s === 'Cancelled'): ?>
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 dark:bg-red-950/20 dark:text-red-400">
-                                        <i class="fa-solid fa-ban mr-1 text-[8px]"></i> Cancelled
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-950/20 dark:text-red-400">
+                                        <i class="fa-solid fa-ban mr-1 text-[10px]"></i> Cancelled
                                     </span>
                                 <?php else: ?>
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/20 dark:text-blue-400">
-                                        <i class="fa-solid fa-truck-fast mr-1 text-[8px]"></i> <?= htmlspecialchars($s); ?>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950/20 dark:text-blue-400">
+                                        <i class="fa-solid fa-truck-fast mr-1 text-[10px]"></i> <?= htmlspecialchars($s); ?>
                                     </span>
                                 <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="flex justify-between items-center text-xs pt-2 border-t border-gray-200/60 dark:border-gray-800">
-                            <span class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <i class="fa-solid fa-route text-blue-500"></i> Distance:
-                            </span>
-                            <span class="font-bold text-blue-600 dark:text-blue-400">
-                                <?= number_format($trip['distance_km'] ?? 0, 1); ?> km
-                            </span>
-                        </div>
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <i class="fa-solid fa-peso-sign text-emerald-500"></i> Trip Pay:
-                            </span>
-                            <span class="font-extrabold text-emerald-600 dark:text-emerald-400">
-                                ₱<?= number_format($trip['pay_amount'] ?? 0, 2); ?>
-                            </span>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <div class="py-12 text-center text-gray-400">
-                    <i class="fa-solid fa-road text-4xl mb-2 opacity-30"></i>
-                    <p class="text-sm font-medium">No trips recorded for this selected period.</p>
-                    <p class="text-xs text-gray-400 mt-1">Try selecting another week or choosing "Show All Past Trips".</p>
-                </div>
-            <?php endif; ?>
-        </div>
-
-        <!-- Desktop View (Table) -->
-        <div class="hidden sm:block overflow-x-auto">
-            <table class="w-full text-left border-collapse" id="driverTripsTable">
-                <thead>
-                    <tr class="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
-                        <th class="py-3 px-3 font-semibold">Dispatch Date & Time</th>
-                        <th class="py-3 px-3 font-semibold">Arrival Date & Time</th>
-                        <th class="py-3 px-3 font-semibold">Destination</th>
-                        <th class="py-3 px-3 font-semibold">Distance</th>
-                        <th class="py-3 px-3 font-semibold">Trip Pay</th>
-                        <th class="py-3 px-3 font-semibold">Duration</th>
-                        <th class="py-3 px-3 font-semibold">Status</th>
-                    </tr>
-                </thead>
-                <tbody class="text-gray-700 dark:text-gray-200 divide-y divide-gray-100 dark:divide-gray-800 text-sm">
-                    <?php if (count($weeklyFilteredTrips) > 0): ?>
-                        <?php foreach ($weeklyFilteredTrips as $trip): ?>
-                            <?php
-                                $duration = 'N/A';
-                                if (!empty($trip['transit_start_time']) && !empty($trip['transit_end_time'])) {
-                                    $start = new DateTime($trip['transit_start_time']);
-                                    $end = new DateTime($trip['transit_end_time']);
-                                    $diff = $start->diff($end);
-                                    $duration = '';
-                                    if ($diff->h > 0) $duration .= $diff->h . 'h ';
-                                    $duration .= $diff->i . 'm';
-                                }
-                                $dispTimeStr = !empty($trip['transit_start_time']) ? date('M d, Y h:i A', strtotime($trip['transit_start_time'])) : (!empty($trip['created_at']) ? date('M d, Y h:i A', strtotime($trip['created_at'])) : date('M d, Y', strtotime($trip['trip_date'])));
-                                $arrTimeStr = !empty($trip['transit_end_time']) ? date('M d, Y h:i A', strtotime($trip['transit_end_time'])) : ($trip['status'] === 'Delivered' ? 'Delivered' : '—');
-                                $searchMeta = strtolower(($trip['destination'] ?? '') . ' ' . ($trip['status'] ?? ''));
-                            ?>
-                            <tr class="driver-trip-row hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors"
-                                data-search="<?= htmlspecialchars($searchMeta); ?>">
-                                <td class="py-3.5 px-3 font-medium text-gray-800 dark:text-gray-200 text-xs"><?= $dispTimeStr; ?></td>
-                                <td class="py-3.5 px-3 font-medium text-gray-600 dark:text-gray-400 text-xs"><?= $arrTimeStr; ?></td>
-                                <td class="py-3.5 px-3 font-bold text-gray-900 dark:text-gray-100"><?= htmlspecialchars($trip['destination']); ?></td>
-                                <td class="py-3.5 px-3 font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">
-                                    <i class="fa-solid fa-route mr-1 text-xs"></i><?= number_format($trip['distance_km'] ?? 0, 1); ?> km
-                                </td>
-                                <td class="py-3.5 px-3 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                                    ₱<?= number_format($trip['pay_amount'] ?? 0, 2); ?>
-                                </td>
-                                <td class="py-3.5 px-3 text-gray-500 dark:text-gray-400 font-mono text-xs"><?= $duration; ?></td>
-                                <td class="py-3.5 px-3">
-                                    <?php 
-                                    $s = isset($trip['status']) ? trim($trip['status']) : '';
-                                    if (empty($s) || strtolower($s) === 'delivered' || strtolower($s) === 'completed'): 
-                                    ?>
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                                            <i class="fa-solid fa-check mr-1 text-[10px]"></i> Delivered
-                                        </span>
-                                    <?php elseif ($s === 'Cancellation Requested'): ?>
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-850 dark:bg-orange-950/20 dark:text-orange-400 animate-pulse">
-                                            <i class="fa-solid fa-clock mr-1 text-[10px]"></i> Pending Cancel
-                                        </span>
-                                    <?php elseif ($s === 'Cancelled'): ?>
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-950/20 dark:text-red-400">
-                                            <i class="fa-solid fa-ban mr-1 text-[10px]"></i> Cancelled
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950/20 dark:text-blue-400">
-                                            <i class="fa-solid fa-truck-fast mr-1 text-[10px]"></i> <?= htmlspecialchars($s); ?>
-                                        </span>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="7" class="py-12 px-3 text-center text-gray-400">
-                                <i class="fa-solid fa-road text-4xl mb-3 text-gray-300 block"></i>
-                                No trips found for this week period.
                             </td>
                         </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+
+                <!-- Empty State Desktop -->
+                <tr id="driverTripsDesktopEmpty" style="<?= count($weeklyFilteredTrips) === 0 ? '' : 'display: none;'; ?>">
+                    <td colspan="7" class="py-12 px-3 text-center text-gray-400">
+                        <i class="fa-solid fa-road text-4xl mb-3 text-gray-300 block"></i>
+                        No trips found for this week period.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
 </div>
@@ -1315,84 +1351,196 @@ if (!empty($driverFullName)) {
      ========================================================= -->
 <script>
     // -------------------------------------------------------------
-    // Trips Week Selector & Date Filtering
+    // Trips Week Period Selector & Real-Time Filtering
     // -------------------------------------------------------------
-    let currentMonday = "<?= $thisMonday; ?>";
-    let currentSunday = "<?= $thisSunday; ?>";
+    let currentDriverTripFrom = "<?= $selectedFrom; ?>";
+    let currentDriverTripTo   = "<?= $selectedTo; ?>";
+    let isDriverTripAllCycles = false;
 
-    function onWeekSelectorChange(val) {
-        if (!val) return;
-        if (val === 'ALL') {
-            window.location.href = 'dashboard.php?tab=trips&date_from=2020-01-01&date_to=2030-12-31';
-            return;
-        }
+    function onDriverTripPeriodChange(val) {
+        const selector = document.getElementById('driverTripPeriodSelector');
+        const customBar = document.getElementById('driverTripCustomDateBar');
+        const badge = document.getElementById('activeTripPeriodBadge');
+
         if (val === 'CUSTOM') {
-            const bar = document.getElementById('customDateRangeBar');
-            if (bar) bar.scrollIntoView({ behavior: 'smooth' });
+            if (customBar) customBar.classList.remove('hidden');
+            if (badge) badge.textContent = 'Custom Date Range';
             return;
         }
 
+        if (customBar) customBar.classList.add('hidden');
+
+        if (val === 'ALL') {
+            isDriverTripAllCycles = true;
+            currentDriverTripFrom = null;
+            currentDriverTripTo   = null;
+            if (badge) badge.textContent = 'All Delivery Cycles (All Time)';
+            filterAndRecalculateDriverTrips();
+            return;
+        }
+
+        isDriverTripAllCycles = false;
         const parts = val.split('|');
         if (parts.length === 2) {
-            window.location.href = `dashboard.php?tab=trips&date_from=${parts[0]}&date_to=${parts[1]}`;
+            currentDriverTripFrom = parts[0];
+            currentDriverTripTo   = parts[1];
+
+            const selectedOpt = selector.options[selector.selectedIndex];
+            const label = selectedOpt ? (selectedOpt.getAttribute('data-label') || selectedOpt.text) : `${parts[0]} – ${parts[1]}`;
+            if (badge) badge.textContent = label;
+
+            filterAndRecalculateDriverTrips();
         }
     }
 
-    function shiftTripWeek(deltaWeeks) {
-        const fromInput = document.getElementById('tripDateFrom');
-        const toInput = document.getElementById('tripDateTo');
+    function shiftDriverTripWeek(direction) {
+        const selector = document.getElementById('driverTripPeriodSelector');
+        if (!selector) return;
 
-        let baseDate = new Date();
-        if (deltaWeeks !== 0 && fromInput && fromInput.value) {
-            baseDate = new Date(fromInput.value + 'T00:00:00');
-            baseDate.setDate(baseDate.getDate() + (deltaWeeks * 7));
-        }
-
-        const day = baseDate.getDay(); // 0 is Sun, 1 is Mon
-        const diffToMon = day === 0 ? -6 : 1 - day;
-        const mon = new Date(baseDate);
-        mon.setDate(baseDate.getDate() + diffToMon);
-
-        const sun = new Date(mon);
-        sun.setDate(mon.getDate() + 6);
-
-        const formatYmd = (d) => {
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const da = String(d.getDate()).padStart(2, '0');
-            return `${y}-${m}-${da}`;
-        };
-
-        const fStr = formatYmd(mon);
-        const tStr = formatYmd(sun);
-
-        window.location.href = `dashboard.php?tab=trips&date_from=${fStr}&date_to=${tStr}`;
-    }
-
-    function applyCustomDateRange() {
-        const fromVal = document.getElementById('tripDateFrom')?.value;
-        const toVal = document.getElementById('tripDateTo')?.value;
-        if (!fromVal || !toVal) {
-            if (typeof showToast === 'function') showToast('Please select both from and to dates.', 'warning');
+        if (direction === 0) {
+            // Reset to "This Week" (index 0)
+            selector.selectedIndex = 0;
+            onDriverTripPeriodChange(selector.value);
             return;
         }
-        window.location.href = `dashboard.php?tab=trips&date_from=${fromVal}&date_to=${toVal}`;
+
+        // Move index (direction 1 = older week, -1 = newer week)
+        let newIndex = selector.selectedIndex + direction;
+        // Keep within the generated weekly period options (exclude ALL and CUSTOM)
+        const maxWeeksIndex = selector.options.length - 3;
+        if (newIndex >= 0 && newIndex <= maxWeeksIndex) {
+            selector.selectedIndex = newIndex;
+            onDriverTripPeriodChange(selector.value);
+        }
+    }
+
+    function applyDriverTripCustomDateRange() {
+        const fromInput = document.getElementById('driverTripCustomDateFrom');
+        const toInput   = document.getElementById('driverTripCustomDateTo');
+        const badge     = document.getElementById('activeTripPeriodBadge');
+
+        if (!fromInput || !toInput) return;
+        const from = fromInput.value;
+        const to   = toInput.value;
+
+        if (!from || !to) {
+            if (typeof showToast === 'function') showToast('Please select both from and to dates.', 'warning');
+            else alert('Please select both from and to dates.');
+            return;
+        }
+        if (from > to) {
+            if (typeof showToast === 'function') showToast('The "from" date must be earlier than or equal to the "to" date.', 'warning');
+            else alert('The "from" date must be earlier than or equal to the "to" date.');
+            return;
+        }
+
+        isDriverTripAllCycles = false;
+        currentDriverTripFrom = from;
+        currentDriverTripTo   = to;
+
+        if (badge) {
+            badge.textContent = `${from} – ${to}`;
+        }
+
+        filterAndRecalculateDriverTrips();
+    }
+
+    function filterAndRecalculateDriverTrips() {
+        const searchInput = document.getElementById('driverTripSearchInput');
+        const term = (searchInput ? searchInput.value : '').toLowerCase().trim();
+
+        const clearBtn = document.getElementById('driverTripSearchClear');
+        if (clearBtn) {
+            if (term) clearBtn.classList.remove('hidden');
+            else clearBtn.classList.add('hidden');
+        }
+
+        let matchedCount = 0;
+        let totalDist = 0.0;
+        let totalPay = 0.0;
+
+        // Filter desktop rows
+        const rows = document.querySelectorAll('#driverTripsTableBody .driver-trip-row');
+        rows.forEach(row => {
+            const rowDate = row.getAttribute('data-date') || '';
+            const searchMeta = row.getAttribute('data-search') || '';
+
+            let inPeriod = false;
+            if (isDriverTripAllCycles) {
+                inPeriod = true;
+            } else if (currentDriverTripFrom && currentDriverTripTo) {
+                inPeriod = (rowDate >= currentDriverTripFrom && rowDate <= currentDriverTripTo);
+            }
+
+            const matchesSearch = !term || searchMeta.includes(term);
+
+            if (inPeriod && matchesSearch) {
+                row.style.display = '';
+                matchedCount++;
+                totalDist += parseFloat(row.getAttribute('data-distance') || 0);
+                totalPay  += parseFloat(row.getAttribute('data-pay') || 0);
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Filter mobile cards
+        const cards = document.querySelectorAll('#driverTripsMobileList .driver-trip-card');
+        cards.forEach(card => {
+            const cardDate = card.getAttribute('data-date') || '';
+            const searchMeta = card.getAttribute('data-search') || '';
+
+            let inPeriod = false;
+            if (isDriverTripAllCycles) {
+                inPeriod = true;
+            } else if (currentDriverTripFrom && currentDriverTripTo) {
+                inPeriod = (cardDate >= currentDriverTripFrom && cardDate <= currentDriverTripTo);
+            }
+
+            const matchesSearch = !term || searchMeta.includes(term);
+
+            if (inPeriod && matchesSearch) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        // Update KPI summary cards
+        const kpiCountEl = document.getElementById('kpiTripCount');
+        const kpiDistEl  = document.getElementById('kpiTripDistance');
+        const kpiPayEl   = document.getElementById('kpiTripPay');
+
+        if (kpiCountEl) kpiCountEl.textContent = matchedCount;
+        if (kpiDistEl)  kpiDistEl.textContent = totalDist.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+        if (kpiPayEl)   kpiPayEl.textContent = totalPay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // Toggle empty states
+        const desktopEmpty = document.getElementById('driverTripsDesktopEmpty');
+        const mobileEmpty  = document.getElementById('driverTripsMobileEmpty');
+
+        if (desktopEmpty) desktopEmpty.style.display = (matchedCount === 0) ? '' : 'none';
+        if (mobileEmpty)  mobileEmpty.style.display  = (matchedCount === 0) ? '' : 'none';
     }
 
     function filterDriverTrips() {
-        const input = document.getElementById('tripSearchInput');
-        const term = (input ? input.value : '').toLowerCase().trim();
-
-        document.querySelectorAll('.driver-trip-row').forEach(row => {
-            const meta = row.getAttribute('data-search') || '';
-            row.style.display = meta.includes(term) ? '' : 'none';
-        });
-
-        document.querySelectorAll('.driver-trip-card').forEach(card => {
-            const meta = card.getAttribute('data-search') || '';
-            card.style.display = meta.includes(term) ? '' : 'none';
-        });
+        filterAndRecalculateDriverTrips();
     }
+
+    function clearDriverTripSearch() {
+        const input = document.getElementById('driverTripSearchInput');
+        const clearBtn = document.getElementById('driverTripSearchClear');
+        if (input) {
+            input.value = '';
+            if (clearBtn) clearBtn.classList.add('hidden');
+            filterAndRecalculateDriverTrips();
+        }
+    }
+
+    // Backwards compatibility aliases
+    function onWeekSelectorChange(val) { onDriverTripPeriodChange(val); }
+    function shiftTripWeek(delta) { shiftDriverTripWeek(delta); }
+    function applyCustomDateRange() { applyDriverTripCustomDateRange(); }
 
     // -------------------------------------------------------------
     // Notifications Helpers

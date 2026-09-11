@@ -139,25 +139,57 @@ $current_month = date('Y-m');
 // Bulletproof Monday to Sunday calculations
 $dayOfWeek = (int)date('N'); // 1 (Mon) to 7 (Sun)
 $thisMonday = date('Y-m-d', strtotime('-' . ($dayOfWeek - 1) . ' days'));
+$thisSaturday = date('Y-m-d', strtotime('+' . (6 - $dayOfWeek) . ' days'));
 $thisSunday = date('Y-m-d', strtotime('+' . (7 - $dayOfWeek) . ' days'));
 
-// Generate 8 selectable weekly cycles (Monday to Sunday)
-$selectableWeeks = [];
-for ($w = 0; $w < 8; $w++) {
-    $m = date('Y-m-d', strtotime("$thisMonday -$w weeks"));
-    $s = date('Y-m-d', strtotime("$thisSunday -$w weeks"));
+// Generate 12 past weekly pay periods (Monday to Sunday, matching payroll format)
+$driverTripPayPeriods = [];
+for ($w = 0; $w < 12; $w++) {
+    $mon = date('Y-m-d', strtotime("$thisMonday -$w weeks"));
+    $sat = date('Y-m-d', strtotime("$thisSaturday -$w weeks"));
+    $sun = date('Y-m-d', strtotime("$thisSunday -$w weeks"));
+
+    $sameMonth = (date('M', strtotime($mon)) === date('M', strtotime($sun)));
+    if ($sameMonth) {
+        $datesFormatted = date('F j', strtotime($mon)) . ' – ' . date('j, Y', strtotime($sun));
+    } else {
+        $datesFormatted = date('F j', strtotime($mon)) . ' – ' . date('F j, Y', strtotime($sun));
+    }
+
     $wPrefix = ($w === 0) ? "This Week: " : (($w === 1) ? "Last Week: " : "$w Weeks Ago: ");
-    $wLabel = $wPrefix . date('M d', strtotime($m)) . ' – ' . date('M d, Y', strtotime($s)) . ' (Mon–Sun)';
-    $selectableWeeks[] = [
-        'from'       => $m,
-        'to'         => $s,
-        'label'      => $wLabel,
-        'is_current' => ($w === 0)
+    $label = $wPrefix . $datesFormatted;
+
+    $driverTripPayPeriods[] = [
+        'from'        => $mon,
+        'to'          => $sun,
+        'sat'         => $sat,
+        'label'       => $label,
+        'clean_dates' => $datesFormatted,
+        'is_current'  => ($w === 0)
     ];
 }
 
+$selectableWeeks = $driverTripPayPeriods; // Backwards-compatibility alias
+
 $selectedFrom = $_GET['date_from'] ?? $thisMonday;
 $selectedTo   = $_GET['date_to']   ?? $thisSunday;
+
+$defaultTripPeriod = $driverTripPayPeriods[0] ?? [
+    'from' => $thisMonday,
+    'to' => $thisSunday,
+    'clean_dates' => date('F j', strtotime($thisMonday)) . ' – ' . date('F j, Y', strtotime($thisSunday))
+];
+
+$activeTripPeriodCleanDates = $defaultTripPeriod['clean_dates'];
+foreach ($driverTripPayPeriods as $p) {
+    if ($p['from'] === $selectedFrom && $p['to'] === $selectedTo) {
+        $activeTripPeriodCleanDates = $p['clean_dates'];
+        break;
+    }
+}
+if ($selectedFrom !== $defaultTripPeriod['from'] || $selectedTo !== $defaultTripPeriod['to']) {
+    $activeTripPeriodCleanDates = date('M d, Y', strtotime($selectedFrom)) . ' – ' . date('M d, Y', strtotime($selectedTo));
+}
 
 $weeklyFilteredTrips = [];
 $weeklyDistanceKm    = 0.0;
