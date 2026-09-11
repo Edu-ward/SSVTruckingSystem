@@ -834,44 +834,25 @@
 
             if (claimedInput) {
                 claimedInput.value = netNum.toFixed(2);
-                claimedInput.max = netNum.toFixed(2);
             }
-            recalculateSettleRemaining();
 
             toggleModal('settlePayrollModal', true);
         }
 
         function recalculateSettleRemaining() {
+            // Full payout (100% disbursement) enforced
             const claimedInput = document.getElementById('sp-claimed-input');
-            const remEl = document.getElementById('sp-remaining-balance');
-            if (!claimedInput || !remEl) return;
-
-            let claimedVal = parseFloat(claimedInput.value) || 0;
-            if (claimedVal < 0) claimedVal = 0;
-            if (claimedVal > currentSettleTotalPayable) {
-                claimedVal = currentSettleTotalPayable;
+            if (claimedInput) {
                 claimedInput.value = currentSettleTotalPayable.toFixed(2);
             }
-
-            const remaining = Math.max(0, currentSettleTotalPayable - claimedVal);
-            remEl.textContent = `₱${remaining.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         }
 
         function setSettleClaimFull() {
-            const claimedInput = document.getElementById('sp-claimed-input');
-            if (claimedInput) {
-                claimedInput.value = currentSettleTotalPayable.toFixed(2);
-                recalculateSettleRemaining();
-            }
+            recalculateSettleRemaining();
         }
 
         function setSettleClaimPercent(pct) {
-            const claimedInput = document.getElementById('sp-claimed-input');
-            if (claimedInput) {
-                const val = (currentSettleTotalPayable * pct);
-                claimedInput.value = val.toFixed(2);
-                recalculateSettleRemaining();
-            }
+            recalculateSettleRemaining();
         }
 
         function openAdjustBalanceModal(driverId, driverName, currentBalance) {

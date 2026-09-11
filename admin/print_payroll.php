@@ -218,15 +218,9 @@ $payroll = $stmt2->fetch(PDO::FETCH_ASSOC) ?: ['total_amount' => 0, 'amount_clai
                 <p class="text-xs text-gray-500 font-mono tracking-widest mt-1">
                     <?= htmlspecialchars($ticket_number); ?>
                 </p>
-                <?php if ($remaining_balance > 0): ?>
-                    <span class="inline-block mt-1.5 px-2.5 py-0.5 rounded text-[11px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300">
-                        PARTIALLY CLAIMED
-                    </span>
-                <?php else: ?>
-                    <span class="inline-block mt-1.5 px-2.5 py-0.5 rounded text-[11px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                        FULLY DISBURSED
-                    </span>
-                <?php endif; ?>
+                <span class="inline-block mt-1.5 px-2.5 py-0.5 rounded text-[11px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> FULLY DISBURSED (100%)
+                </span>
             </div>
         </div>
 
@@ -234,14 +228,14 @@ $payroll = $stmt2->fetch(PDO::FETCH_ASSOC) ?: ['total_amount' => 0, 'amount_clai
         <div class="bg-emerald-50 border border-emerald-200 p-5 rounded-xl mb-5">
             <div class="flex justify-between items-center mb-3 border-b border-emerald-200/80 pb-3">
                 <div>
-                    <h3 class="text-xs font-bold text-emerald-800 uppercase tracking-wider">Amount Disbursed Now</h3>
-                    <p class="text-xs text-emerald-600 font-medium">Payment authorized for payout to driver</p>
+                    <h3 class="text-xs font-bold text-emerald-800 uppercase tracking-wider">Amount Disbursed (100% Full Payment)</h3>
+                    <p class="text-xs text-emerald-600 font-medium">Payment authorized and released in full to driver (₱0.00 balance)</p>
                 </div>
                 <span class="text-3xl font-black text-emerald-700">
                     ₱<?= number_format($amount_claimed, 2); ?>
                 </span>
             </div>
-            <div class="grid grid-cols-4 gap-3 text-xs">
+            <div class="grid grid-cols-3 gap-3 text-xs">
                 <div>
                     <span class="text-gray-500 block uppercase font-semibold mb-0.5">Gross Earnings:</span>
                     <strong class="text-gray-800 text-sm">
@@ -262,13 +256,6 @@ $payroll = $stmt2->fetch(PDO::FETCH_ASSOC) ?: ['total_amount' => 0, 'amount_clai
                     <strong class="text-orange-600 text-sm">
                         -₱<?= number_format($ca_deduction, 2); ?>
                     </strong>
-                </div>
-                <div class="bg-white/80 p-2 rounded-lg border border-emerald-200">
-                    <span class="text-indigo-700 block uppercase font-bold text-[10px] mb-0.5">Remaining Balance:</span>
-                    <strong class="text-indigo-700 text-sm font-black">
-                        ₱<?= number_format($remaining_balance, 2); ?>
-                    </strong>
-                    <span class="text-[10px] text-indigo-500 block">Carried to next cycle</span>
                 </div>
             </div>
         </div>

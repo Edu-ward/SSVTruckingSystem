@@ -1257,14 +1257,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 throw new Exception("No unclaimed earnings, prior carried balance, or advances to settle for this driver in the selected pay period.");
             }
 
-            if (isset($_POST['claimed_amount']) && is_numeric($_POST['claimed_amount'])) {
-                $rawClaimed = floatval($_POST['claimed_amount']);
-                $disbursedAmount = min($totalPayable, max(0, $rawClaimed));
-            } else {
-                $disbursedAmount = $totalPayable;
-            }
-
-            $newRemainingBalance = max(0, $totalPayable - $disbursedAmount);
+            // Enforce 100% full salary release - no balance on net payable
+            $disbursedAmount     = $totalPayable;
+            $newRemainingBalance = 0.00;
 
             $ticketNumber = 'PAY-' . date('Y') . '-' . str_pad($driver_id, 3, '0', STR_PAD_LEFT) . '-' . strtoupper(substr(uniqid(), -4));
 
@@ -1316,22 +1311,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
 
             $pdo->prepare("
                 INSERT INTO driver_payroll (driver_id, total_amount, amount_claimed, remaining_balance) 
-                VALUES (?, ?, ?, ?) 
+                VALUES (?, ?, ?, 0.00) 
                 ON DUPLICATE KEY UPDATE 
                     total_amount = total_amount + VALUES(total_amount),
                     amount_claimed = amount_claimed + VALUES(amount_claimed),
-                    remaining_balance = VALUES(remaining_balance)
-            ")->execute([$driver_id, $grossAmount, $disbursedAmount, $newRemainingBalance]);
+                    remaining_balance = 0.00
+            ")->execute([$driver_id, $grossAmount, $disbursedAmount]);
 
             $pdo->commit();
 
             $_SESSION['auto_print_payroll_settlement_id'] = $settlementId;
-            if ($newRemainingBalance > 0) {
-                $_SESSION['success'] = "Payroll partially settled for {$driverData['first_name']} {$driverData['last_name']}! Disbursed: ₱" . number_format($disbursedAmount, 2) . ". Remaining Balance: ₱" . number_format($newRemainingBalance, 2) . " carried forward.";
-            } else {
-                $_SESSION['success'] = "Payroll settled for {$driverData['first_name']} {$driverData['last_name']}! Gross earnings reset to ₱0.00.";
-            }
-            log_activity($pdo, 'Settled Driver Payroll', "Settled payroll ticket {$ticketNumber} for driver {$driverData['first_name']} {$driverData['last_name']} (Disbursed: ₱" . number_format($disbursedAmount, 2) . ", Rem. Balance: ₱" . number_format($newRemainingBalance, 2) . ")");
+            $_SESSION['success'] = "Payroll 100% settled for {$driverData['first_name']} {$driverData['last_name']}! Disbursed: ₱" . number_format($disbursedAmount, 2) . ". Net balance: ₱0.00.";
+            log_activity($pdo, 'Settled Driver Payroll', "Settled 100% payroll ticket {$ticketNumber} for driver {$driverData['first_name']} {$driverData['last_name']} (Disbursed: ₱" . number_format($disbursedAmount, 2) . ")");
         } catch (Exception $e) {
             $pdo->rollBack();
             $_SESSION['error'] = 'Failed to settle payroll: ' . $e->getMessage();

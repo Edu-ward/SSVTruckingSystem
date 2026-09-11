@@ -702,40 +702,21 @@
                 </div>
             </div>
 
-            
-            <div>
-                <div class="flex items-center justify-between mb-1">
-                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300">
-                        Amount to Disburse / Claim (₱):
-                    </label>
-                    <div class="flex items-center gap-1.5">
-                        <button type="button" onclick="setSettleClaimFull()" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 transition">
-                            100% Full
-                        </button>
-                        <button type="button" onclick="setSettleClaimPercent(0.5)" class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 transition">
-                            50%
-                        </button>
+            <!-- 100% Full Disbursement Banner -->
+            <input type="hidden" name="claimed_amount" id="sp-claimed-input" value="">
+            <div class="p-3.5 bg-emerald-50/80 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/80 dark:border-emerald-800/60 text-xs flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div>
+                        <span class="block font-bold text-emerald-900 dark:text-emerald-200 text-xs">Full Salary Release (100%)</span>
+                        <span class="text-[11px] text-emerald-700 dark:text-emerald-400">Zero remaining balance after settlement</span>
                     </div>
                 </div>
-                <input type="number" step="0.01" min="0" name="claimed_amount" id="sp-claimed-input"
-                    oninput="recalculateSettleRemaining()"
-                    class="w-full text-base font-extrabold text-emerald-700 dark:text-emerald-300 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-emerald-500 focus:border-emerald-500 p-2.5">
-            </div>
-
-            
-            <div class="flex items-center justify-between p-2.5 bg-indigo-50/70 dark:bg-indigo-950/30 rounded-xl border border-indigo-100 dark:border-indigo-900/40 text-xs">
-                <span class="text-indigo-700 dark:text-indigo-400 font-semibold flex items-center gap-1.5">
-                    <i class="fa-solid fa-clock-rotate-left"></i>
-                    <span>Remaining Balance Carried Forward:</span>
+                <span class="px-2 py-1 rounded-md text-[10px] font-extrabold uppercase bg-emerald-600 text-white tracking-wider">
+                    Full Payout
                 </span>
-                <span class="font-extrabold text-indigo-700 dark:text-indigo-300 text-sm" id="sp-remaining-balance">₱0.00</span>
-            </div>
-
-            <div class="p-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200/70 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 flex items-start gap-2">
-                <i class="fa-solid fa-circle-info text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0"></i>
-                <div class="leading-relaxed">
-                    Settling resets active gross earnings. Any unclaimed portion is saved as the driver's remaining balance for next payroll. The ticket will itemize all settled trips.
-                </div>
             </div>
 
             <div>
