@@ -437,12 +437,15 @@ if (!empty($driverFullName)) {
                         <?php foreach ($driverTripPayPeriods as $p): 
                             $isSelected = ($p['from'] === $selectedFrom && $p['to'] === $selectedTo);
                         ?>
-                            <option value="<?= $p['from'] . '|' . $p['to']; ?>" data-label="<?= htmlspecialchars($p['clean_dates']); ?>" <?= $isSelected ? 'selected' : ''; ?>>
+                            <option value="<?= $p['from'] . '|' . $p['to']; ?>" 
+                                    data-label="<?= htmlspecialchars($p['clean_dates']); ?>" 
+                                    data-short="<?= htmlspecialchars($p['short_label']); ?>"
+                                    <?= $isSelected ? 'selected' : ''; ?>>
                                 <?= htmlspecialchars($p['label']); ?>
                             </option>
                         <?php endforeach; ?>
-                        <option value="ALL" data-label="All Delivery Cycles (All Time)">Show All Past Trips</option>
-                        <option value="CUSTOM" data-label="Custom Date Range">Custom Date Range...</option>
+                        <option value="ALL" data-label="All Delivery Cycles (All Time)" data-short="All Weeks">Show All Past Trips</option>
+                        <option value="CUSTOM" data-label="Custom Date Range" data-short="Custom">Custom Date Range...</option>
                     </select>
                     <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400 text-xs">
                         <i class="fa-solid fa-chevron-down"></i>
@@ -455,9 +458,9 @@ if (!empty($driverFullName)) {
                             class="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-xs active:scale-95 transition cursor-pointer">
                         <i class="fa-solid fa-chevron-left"></i>
                     </button>
-                    <button type="button" onclick="shiftDriverTripWeek(0)" title="Current Week (This Week)"
-                            class="px-3 h-9 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 text-xs font-bold active:scale-95 transition cursor-pointer">
-                        This Week
+                    <button type="button" id="driverTripCurrentWeekBtn" onclick="shiftDriverTripWeek(0)" title="Current Week (This Week)"
+                            class="px-3 h-9 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/40 text-xs font-bold active:scale-95 transition cursor-pointer whitespace-nowrap">
+                        <span id="driverTripCurrentWeekBtnText"><?= htmlspecialchars($activeTripPeriodShortLabel ?? 'This Week'); ?></span>
                     </button>
                     <button type="button" onclick="shiftDriverTripWeek(-1)" title="Next Week"
                             class="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-xs active:scale-95 transition cursor-pointer">
@@ -1358,6 +1361,21 @@ if (!empty($driverFullName)) {
     let currentDriverTripTo   = "<?= $selectedTo; ?>";
     let isDriverTripAllCycles = false;
 
+    function updateDriverTripQuickBtn(shortText, isCurrent) {
+        const btn = document.getElementById('driverTripCurrentWeekBtn');
+        const btnText = document.getElementById('driverTripCurrentWeekBtnText');
+        if (btnText) btnText.textContent = shortText || 'This Week';
+        if (btn) {
+            if (isCurrent) {
+                btn.title = "Current Week (This Week)";
+                btn.className = "px-3 h-9 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/40 text-xs font-bold active:scale-95 transition cursor-pointer whitespace-nowrap";
+            } else {
+                btn.title = `${shortText} (Click to return to This Week)`;
+                btn.className = "px-3 h-9 rounded-xl border border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-800/40 text-xs font-bold active:scale-95 transition cursor-pointer whitespace-nowrap";
+            }
+        }
+    }
+
     function onDriverTripPeriodChange(val) {
         const selector = document.getElementById('driverTripPeriodSelector');
         const customBar = document.getElementById('driverTripCustomDateBar');
@@ -1366,6 +1384,7 @@ if (!empty($driverFullName)) {
         if (val === 'CUSTOM') {
             if (customBar) customBar.classList.remove('hidden');
             if (badge) badge.textContent = 'Custom Date Range';
+            updateDriverTripQuickBtn('Custom', false);
             return;
         }
 
@@ -1376,6 +1395,7 @@ if (!empty($driverFullName)) {
             currentDriverTripFrom = null;
             currentDriverTripTo   = null;
             if (badge) badge.textContent = 'All Delivery Cycles (All Time)';
+            updateDriverTripQuickBtn('All Weeks', false);
             filterAndRecalculateDriverTrips();
             return;
         }
@@ -1386,9 +1406,13 @@ if (!empty($driverFullName)) {
             currentDriverTripFrom = parts[0];
             currentDriverTripTo   = parts[1];
 
-            const selectedOpt = selector.options[selector.selectedIndex];
+            const selectedOpt = selector ? selector.options[selector.selectedIndex] : null;
             const label = selectedOpt ? (selectedOpt.getAttribute('data-label') || selectedOpt.text) : `${parts[0]} – ${parts[1]}`;
+            const shortLabel = selectedOpt ? (selectedOpt.getAttribute('data-short') || 'This Week') : 'This Week';
+            const isCurrent = selector ? (selector.selectedIndex === 0) : true;
+
             if (badge) badge.textContent = label;
+            updateDriverTripQuickBtn(shortLabel, isCurrent);
 
             filterAndRecalculateDriverTrips();
         }
@@ -1442,6 +1466,7 @@ if (!empty($driverFullName)) {
         if (badge) {
             badge.textContent = `${from} – ${to}`;
         }
+        updateDriverTripQuickBtn('Custom', false);
 
         filterAndRecalculateDriverTrips();
     }

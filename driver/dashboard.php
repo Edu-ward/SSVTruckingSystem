@@ -157,6 +157,7 @@ for ($w = 0; $w < 12; $w++) {
     }
 
     $wPrefix = ($w === 0) ? "This Week: " : (($w === 1) ? "Last Week: " : "$w Weeks Ago: ");
+    $shortLabel = ($w === 0) ? "This Week" : (($w === 1) ? "Last Week" : "$w Weeks Ago");
     $label = $wPrefix . $datesFormatted;
 
     $driverTripPayPeriods[] = [
@@ -164,6 +165,7 @@ for ($w = 0; $w < 12; $w++) {
         'to'          => $sun,
         'sat'         => $sat,
         'label'       => $label,
+        'short_label' => $shortLabel,
         'clean_dates' => $datesFormatted,
         'is_current'  => ($w === 0)
     ];
@@ -177,18 +179,24 @@ $selectedTo   = $_GET['date_to']   ?? $thisSunday;
 $defaultTripPeriod = $driverTripPayPeriods[0] ?? [
     'from' => $thisMonday,
     'to' => $thisSunday,
-    'clean_dates' => date('F j', strtotime($thisMonday)) . ' – ' . date('F j, Y', strtotime($thisSunday))
+    'clean_dates' => date('F j', strtotime($thisMonday)) . ' – ' . date('F j, Y', strtotime($thisSunday)),
+    'short_label' => 'This Week'
 ];
 
 $activeTripPeriodCleanDates = $defaultTripPeriod['clean_dates'];
+$activeTripPeriodShortLabel = 'This Week';
 foreach ($driverTripPayPeriods as $p) {
     if ($p['from'] === $selectedFrom && $p['to'] === $selectedTo) {
         $activeTripPeriodCleanDates = $p['clean_dates'];
+        $activeTripPeriodShortLabel = $p['short_label'];
         break;
     }
 }
 if ($selectedFrom !== $defaultTripPeriod['from'] || $selectedTo !== $defaultTripPeriod['to']) {
     $activeTripPeriodCleanDates = date('M d, Y', strtotime($selectedFrom)) . ' – ' . date('M d, Y', strtotime($selectedTo));
+    if ($activeTripPeriodShortLabel === 'This Week') {
+        $activeTripPeriodShortLabel = 'Custom';
+    }
 }
 
 $weeklyFilteredTrips = [];

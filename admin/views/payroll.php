@@ -20,6 +20,7 @@ for ($w = 0; $w < 12; $w++) {
     }
 
     $wPrefix = ($w === 0) ? "This Week: " : (($w === 1) ? "Last Week: " : "$w Weeks Ago: ");
+    $shortLabel = ($w === 0) ? "This Week" : (($w === 1) ? "Last Week" : "$w Weeks Ago");
     $label = $wPrefix . $datesFormatted;
 
     $payrollPayPeriods[] = [
@@ -27,6 +28,7 @@ for ($w = 0; $w < 12; $w++) {
         'to'          => $sun,
         'sat'         => $sat,
         'label'       => $label,
+        'short_label' => $shortLabel,
         'clean_dates' => $datesFormatted,
         'is_current'  => ($w === 0)
     ];
@@ -109,12 +111,15 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                     <select id="payPeriodSelector" onchange="onPayrollPeriodChange(this.value)"
                             class="w-full text-xs font-semibold py-2.5 px-3.5 pr-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none shadow-xs">
                         <?php foreach ($payrollPayPeriods as $p): ?>
-                            <option value="<?= $p['from'] . '|' . $p['to']; ?>" data-label="<?= htmlspecialchars($p['clean_dates']); ?>" <?= $p['is_current'] ? 'selected' : ''; ?>>
+                            <option value="<?= $p['from'] . '|' . $p['to']; ?>" 
+                                    data-label="<?= htmlspecialchars($p['clean_dates']); ?>" 
+                                    data-short="<?= htmlspecialchars($p['short_label']); ?>"
+                                    <?= $p['is_current'] ? 'selected' : ''; ?>>
                                 <?= htmlspecialchars($p['label']); ?>
                             </option>
                         <?php endforeach; ?>
-                        <option value="ALL" data-label="All Delivery Cycles (All Time)">Show All Past Unsettled Trips</option>
-                        <option value="CUSTOM" data-label="Custom Date Range">Custom Date Range...</option>
+                        <option value="ALL" data-label="All Delivery Cycles (All Time)" data-short="All Weeks">Show All Past Unsettled Trips</option>
+                        <option value="CUSTOM" data-label="Custom Date Range" data-short="Custom">Custom Date Range...</option>
                     </select>
                     <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400 text-xs">
                         <i class="fa-solid fa-chevron-down"></i>
@@ -127,9 +132,9 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                             class="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-xs active:scale-95 transition cursor-pointer">
                         <i class="fa-solid fa-chevron-left"></i>
                     </button>
-                    <button type="button" onclick="shiftPayrollWeek(0)" title="Current Week (This Week)"
-                            class="px-3 h-9 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-bold active:scale-95 transition cursor-pointer">
-                        This Week
+                    <button type="button" id="payrollCurrentWeekBtn" onclick="shiftPayrollWeek(0)" title="Current Week (This Week)"
+                            class="px-3 h-9 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-800/40 text-xs font-bold active:scale-95 transition cursor-pointer whitespace-nowrap">
+                        <span id="payrollCurrentWeekBtnText">This Week</span>
                     </button>
                     <button type="button" onclick="shiftPayrollWeek(-1)" title="Next Week"
                             class="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-xs active:scale-95 transition cursor-pointer">
@@ -510,6 +515,21 @@ let currentPayrollFrom = "<?= $defaultPeriod['from']; ?>";
 let currentPayrollTo   = "<?= $defaultPeriod['to']; ?>";
 let isPayrollAllCycles = false;
 
+function updatePayrollQuickBtn(shortText, isCurrent) {
+    const btn = document.getElementById('payrollCurrentWeekBtn');
+    const btnText = document.getElementById('payrollCurrentWeekBtnText');
+    if (btnText) btnText.textContent = shortText || 'This Week';
+    if (btn) {
+        if (isCurrent) {
+            btn.title = "Current Week (This Week)";
+            btn.className = "px-3 h-9 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-800/40 text-xs font-bold active:scale-95 transition cursor-pointer whitespace-nowrap";
+        } else {
+            btn.title = `${shortText} (Click to return to This Week)`;
+            btn.className = "px-3 h-9 rounded-xl border border-teal-300 dark:border-teal-700 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-800/40 text-xs font-bold active:scale-95 transition cursor-pointer whitespace-nowrap";
+        }
+    }
+}
+
 function onPayrollPeriodChange(val) {
     const selector = document.getElementById('payPeriodSelector');
     const customBar = document.getElementById('payrollCustomDateBar');
@@ -518,6 +538,7 @@ function onPayrollPeriodChange(val) {
     if (val === 'CUSTOM') {
         if (customBar) customBar.classList.remove('hidden');
         if (badge) badge.textContent = 'Custom Date Range';
+        updatePayrollQuickBtn('Custom', false);
         return;
     }
     
@@ -528,6 +549,7 @@ function onPayrollPeriodChange(val) {
         currentPayrollFrom = null;
         currentPayrollTo = null;
         if (badge) badge.textContent = 'All Unsettled Delivery Cycles';
+        updatePayrollQuickBtn('All Weeks', false);
         recalculatePayrollForPeriod();
         return;
     }
@@ -538,9 +560,13 @@ function onPayrollPeriodChange(val) {
         currentPayrollFrom = parts[0];
         currentPayrollTo = parts[1];
         
-        const selectedOpt = selector.options[selector.selectedIndex];
+        const selectedOpt = selector ? selector.options[selector.selectedIndex] : null;
         const label = selectedOpt ? (selectedOpt.getAttribute('data-label') || selectedOpt.text) : `${parts[0]} – ${parts[1]}`;
+        const shortLabel = selectedOpt ? (selectedOpt.getAttribute('data-short') || 'This Week') : 'This Week';
+        const isCurrent = selector ? (selector.selectedIndex === 0) : true;
+
         if (badge) badge.textContent = label;
+        updatePayrollQuickBtn(shortLabel, isCurrent);
 
         recalculatePayrollForPeriod();
     }
@@ -592,6 +618,7 @@ function applyPayrollCustomDateRange() {
     if (badge) {
         badge.textContent = `${from} – ${to}`;
     }
+    updatePayrollQuickBtn('Custom', false);
 
     recalculatePayrollForPeriod();
 }
