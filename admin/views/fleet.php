@@ -45,7 +45,19 @@
             if ($truck['status'] == 'Maintenance') $badgeClass = 'bg-red-600';
             if ($truck['status'] == 'Decommissioned') $badgeClass = 'bg-stone-500';
 
-            $searchMeta = htmlspecialchars(strtolower(($truck['truck_code'] ?? '') . ' ' . ($truck['driver_name'] ?? '') . ' ' . ($truck['status'] ?? '') . ' ' . ($truck['rfid_tag'] ?? '') . ' ' . ($truck['current_location'] ?? '') . ' ' . ($truck['destination'] ?? '')));
+            $isInTransit = ($truck['status'] === 'In Transit');
+
+            $rawLocation = trim($truck['current_location'] ?? '');
+            if ($rawLocation === '' || strcasecmp($rawLocation, 'Garage') === 0) {
+                $displayLocation = 'San Leonardo (Garage)';
+            } else {
+                $displayLocation = $rawLocation;
+            }
+
+            $hasDestination = $isInTransit && !empty(trim($truck['destination'] ?? ''));
+            $destinationDisplay = $hasDestination ? trim($truck['destination']) : 'Unavailable';
+
+            $searchMeta = htmlspecialchars(strtolower(($truck['truck_code'] ?? '') . ' ' . ($truck['driver_name'] ?? '') . ' ' . ($truck['status'] ?? '') . ' ' . ($truck['rfid_tag'] ?? '') . ' ' . $displayLocation . ' ' . $destinationDisplay));
         ?>
             <div class="fleet-card bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 sm:p-6 flex flex-col h-full relative hover:shadow-md transition" data-search="<?= $searchMeta; ?>">
                 <div class="flex justify-between items-start mb-5 gap-2">
@@ -95,23 +107,26 @@
                         </span>
                     </div>
                     <div class="flex items-center space-x-3">
-                        <i class="fa-solid fa-location-dot w-4 text-center text-gray-400"></i>
+                        <i class="fa-solid fa-route w-4 text-center <?= $hasDestination ? 'text-blue-500' : 'text-gray-400'; ?>"></i>
                         <span>Destination:
-                            <strong class="text-gray-900 dark:text-gray-100"><?= htmlspecialchars($truck['current_location'] ?? 'Garage'); ?></strong>
+                            <?php if ($hasDestination): ?>
+                                <strong class="text-gray-900 dark:text-gray-100"><?= htmlspecialchars($destinationDisplay); ?></strong>
+                            <?php else: ?>
+                                <strong class="text-gray-400 dark:text-gray-500 font-medium italic">Unavailable</strong>
+                            <?php endif; ?>
                         </span>
                     </div>
                     <div class="flex items-center space-x-3">
-                        <i class="fa-solid fa-tower-broadcast w-4 text-center text-purple-400"></i>
-                        <span>Coordinates:
-                            <strong class="text-gray-900 dark:text-gray-100"><?= htmlspecialchars($truck['latitude'] ?? '0.0000'); ?>,
-                                <?= htmlspecialchars($truck['longitude'] ?? '0.0000'); ?></strong>
+                        <i class="fa-solid fa-location-dot w-4 text-center text-rose-500"></i>
+                        <span>Location:
+                            <strong class="text-gray-900 dark:text-gray-100"><?= htmlspecialchars($displayLocation); ?></strong>
                         </span>
                     </div>
                 </div>
 
                 <div class="bg-blue-50/50 border border-blue-100 rounded-lg p-4 mb-6 mt-auto dark:bg-gray-700">
                     <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Active Dispatch</div>
-                    <?php if ($truck['ticket_number']): ?>
+                    <?php if ($truck['ticket_number'] && $hasDestination): ?>
                         <div class="font-bold text-gray-800 dark:text-gray-200 text-sm mb-1"><?= htmlspecialchars($truck['ticket_number']); ?></div>
                         <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-2">
                             <span>San Leonardo, Nueva Ecija</span>

@@ -32,7 +32,7 @@ try {
 } catch (Throwable $e) {
     $_settings_raw = [];
 }
-$GARAGE_NAME = $_settings_raw['garage_name'] ?? 'San Leonardo (Quarry Garage)';
+$GARAGE_NAME = $_settings_raw['garage_name'] ?? 'San Leonardo (Garage)';
 $GARAGE_LAT  = floatval($_settings_raw['garage_lat'] ?? 15.359042);
 $GARAGE_LNG  = floatval($_settings_raw['garage_lng'] ?? 120.965016);
 $OP_COST_PCT = floatval($_settings_raw['op_cost_pct'] ?? 0.40);
