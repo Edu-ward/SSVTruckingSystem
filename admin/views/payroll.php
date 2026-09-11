@@ -659,8 +659,12 @@ function recalculatePayrollForPeriod() {
         let periodTripsCount = 0;
 
         if (isPayrollAllCycles) {
-            periodGross = totalAllGross;
-            periodTripsCount = tripsData.filter(t => t.paid === 0).length;
+            tripsData.forEach(t => {
+                if (t.paid === 0) {
+                    periodGross += t.pay;
+                    periodTripsCount++;
+                }
+            });
         } else {
             tripsData.forEach(t => {
                 if (t.paid === 0 && t.date >= currentPayrollFrom && t.date <= currentPayrollTo) {

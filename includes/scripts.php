@@ -799,12 +799,29 @@
             const allEl    = document.getElementById('sp-is-all-cycles');
             const labelEl  = document.getElementById('sp-period-label');
             const badgeEl  = document.getElementById('sp-period-badge');
+            const tripIdsEl = document.getElementById('sp-trip-ids');
 
             if (fromEl) fromEl.value = pFrom;
             if (toEl) toEl.value = pTo;
             if (allEl) allEl.value = isAll;
             if (labelEl) labelEl.value = pLabel;
             if (badgeEl) badgeEl.textContent = pLabel;
+
+            if (tripIdsEl) {
+                let relevantTripIds = [];
+                const driverRow = document.querySelector(`.payroll-driver-row[data-driver-id="${driverId}"]`);
+                if (driverRow) {
+                    try {
+                        const rowTrips = JSON.parse(driverRow.getAttribute('data-trips') || '[]');
+                        rowTrips.forEach(t => {
+                            if (t.paid === 0 && (isAll || (!pFrom || !pTo || (t.date >= pFrom && t.date <= pTo)))) {
+                                relevantTripIds.push(t.id);
+                            }
+                        });
+                    } catch(e) {}
+                }
+                tripIdsEl.value = relevantTripIds.join(',');
+            }
 
             const grossNum = parseFloat(gross || 0);
             const advNum = parseFloat(advances || 0);

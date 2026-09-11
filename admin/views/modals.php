@@ -674,6 +674,7 @@
             <input type="hidden" name="pay_period_to" id="sp-period-to" value="">
             <input type="hidden" name="is_all_cycles" id="sp-is-all-cycles" value="0">
             <input type="hidden" name="pay_period_label" id="sp-period-label" value="">
+            <input type="hidden" name="trip_ids" id="sp-trip-ids" value="">
 
             <div class="bg-gray-50 dark:bg-gray-900/60 p-3.5 rounded-xl border border-gray-100 dark:border-gray-700/60 space-y-2">
                 <div class="flex justify-between items-center text-xs pb-2 border-b border-gray-100 dark:border-gray-700/60">

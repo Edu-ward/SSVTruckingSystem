@@ -1173,7 +1173,29 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $curBalStmt->execute([$driver_id]);
             $previousBalance = floatval($curBalStmt->fetchColumn() ?: 0);
 
-            // Fetch unclaimed delivered dispatches for the target driver strictly within the selected pay period
+            $submittedTripIds = array_filter(array_map('intval', explode(',', $_POST['trip_ids'] ?? '')));
+            $grossAmount = 0.00;
+            $dispatchIds = [];
+            $dtIds       = [];
+
+            if (!empty($submittedTripIds)) {
+                $inSubmitted = implode(',', array_fill(0, count($submittedTripIds), '?'));
+                $dtSubmittedStmt = $pdo->prepare("
+                    SELECT dt.id, 
+                           COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - 12) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount
+                    FROM driver_trips dt
+                    LEFT JOIN destinations dest ON dest.name = dt.destination
+                    WHERE dt.id IN ($inSubmitted) AND dt.driver_id = ? AND dt.status = 'Delivered' AND (dt.is_payroll_paid = 0 OR dt.is_payroll_paid IS NULL)
+                ");
+                $dtSubmittedStmt->execute(array_merge($submittedTripIds, [$driver_id]));
+                $unclaimedDt = $dtSubmittedStmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($unclaimedDt as $dtRow) {
+                    $grossAmount += floatval($dtRow['pay_amount']);
+                    $dtIds[] = $dtRow['id'];
+                }
+            }
+
+            // Also check dispatches for this period
             if ($isAllCycles || empty($payPeriodFrom) || empty($payPeriodTo)) {
                 $unclaimedStmt = $pdo->prepare("
                     SELECT id, pay_amount 
@@ -1191,44 +1213,51 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                     WHERE driver_id = ? 
                       AND status = 'Delivered' 
                       AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)
-                      AND COALESCE(DATE(transit_end_time), dispatch_date, DATE(created_at)) >= ?
-                      AND COALESCE(DATE(transit_end_time), dispatch_date, DATE(created_at)) <= ?
+                      AND COALESCE(DATE(transit_end_time), DATE(dispatch_date), DATE(created_at)) >= ?
+                      AND COALESCE(DATE(transit_end_time), DATE(dispatch_date), DATE(created_at)) <= ?
                     ORDER BY id ASC
                 ");
                 $unclaimedStmt->execute([$driver_id, $payPeriodFrom, $payPeriodTo]);
             }
             $unclaimedDispatches = $unclaimedStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            $grossAmount = 0.00;
-            $dispatchIds = [];
-            foreach ($unclaimedDispatches as $disp) {
-                $grossAmount += floatval($disp['pay_amount']);
-                $dispatchIds[] = $disp['id'];
+            if (empty($dtIds)) {
+                foreach ($unclaimedDispatches as $disp) {
+                    $grossAmount += floatval($disp['pay_amount']);
+                    $dispatchIds[] = $disp['id'];
+                }
+            } else {
+                foreach ($unclaimedDispatches as $disp) {
+                    $dispatchIds[] = $disp['id'];
+                }
             }
 
-            // If dispatches table had no rows for this driver, check driver_trips
-            $dtIds = [];
-            if (empty($unclaimedDispatches)) {
+            // If still no trips found, check driver_trips by date range
+            if (empty($dtIds) && empty($dispatchIds)) {
                 if ($isAllCycles || empty($payPeriodFrom) || empty($payPeriodTo)) {
                     $dtStmt = $pdo->prepare("
-                        SELECT id, pay_amount 
-                        FROM driver_trips 
-                        WHERE driver_id = ? 
-                          AND status = 'Delivered' 
-                          AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)
-                        ORDER BY id ASC
+                        SELECT dt.id, 
+                               COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - 12) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount
+                        FROM driver_trips dt
+                        LEFT JOIN destinations dest ON dest.name = dt.destination
+                        WHERE dt.driver_id = ? 
+                          AND dt.status = 'Delivered' 
+                          AND (dt.is_payroll_paid = 0 OR dt.is_payroll_paid IS NULL)
+                        ORDER BY dt.id ASC
                     ");
                     $dtStmt->execute([$driver_id]);
                 } else {
                     $dtStmt = $pdo->prepare("
-                        SELECT id, pay_amount 
-                        FROM driver_trips 
-                        WHERE driver_id = ? 
-                          AND status = 'Delivered' 
-                          AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)
-                          AND COALESCE(DATE(transit_end_time), trip_date, DATE(created_at)) >= ?
-                          AND COALESCE(DATE(transit_end_time), trip_date, DATE(created_at)) <= ?
-                        ORDER BY id ASC
+                        SELECT dt.id, 
+                               COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - 12) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount
+                        FROM driver_trips dt
+                        LEFT JOIN destinations dest ON dest.name = dt.destination
+                        WHERE dt.driver_id = ? 
+                          AND dt.status = 'Delivered' 
+                          AND (dt.is_payroll_paid = 0 OR dt.is_payroll_paid IS NULL)
+                          AND COALESCE(DATE(dt.transit_end_time), DATE(dt.trip_date), DATE(dt.created_at)) >= ?
+                          AND COALESCE(DATE(dt.transit_end_time), DATE(dt.trip_date), DATE(dt.created_at)) <= ?
+                        ORDER BY dt.id ASC
                     ");
                     $dtStmt->execute([$driver_id, $payPeriodFrom, $payPeriodTo]);
                 }
@@ -1251,7 +1280,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             }
 
             $totalPayable = max(0, $grossAmount + $previousBalance - $cashAdvanceDeduction);
-            $tripsCount = !empty($dispatchIds) ? count($dispatchIds) : count($dtIds);
+            $tripsCount = max(count($dispatchIds), count($dtIds));
 
             if ($grossAmount <= 0 && $previousBalance <= 0 && $cashAdvanceDeduction <= 0) {
                 throw new Exception("No unclaimed earnings, prior carried balance, or advances to settle for this driver in the selected pay period.");
@@ -1295,11 +1324,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $inDtQuery = implode(',', array_fill(0, count($dtIds), '?'));
                 $paidDtStmt = $pdo->prepare("UPDATE driver_trips SET is_payroll_paid = 1, payroll_settled_at = NOW(), payroll_id = ? WHERE id IN ($inDtQuery)");
                 $paidDtStmt->execute(array_merge([$settlementId], $dtIds));
-            } elseif ($isAllCycles || empty($payPeriodFrom) || empty($payPeriodTo)) {
+            }
+
+            // Unconditionally ensure any delivered driver_trips & dispatches in this pay period for this driver are marked paid
+            if ($isAllCycles || empty($payPeriodFrom) || empty($payPeriodTo)) {
                 $pdo->prepare("UPDATE driver_trips SET is_payroll_paid = 1, payroll_settled_at = NOW(), payroll_id = ? WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)")
                     ->execute([$settlementId, $driver_id]);
+                $pdo->prepare("UPDATE dispatches SET is_payroll_paid = 1, payroll_settled_at = NOW(), payroll_id = ? WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)")
+                    ->execute([$settlementId, $driver_id]);
             } else {
-                $pdo->prepare("UPDATE driver_trips SET is_payroll_paid = 1, payroll_settled_at = NOW(), payroll_id = ? WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL) AND COALESCE(DATE(transit_end_time), trip_date, DATE(created_at)) >= ? AND COALESCE(DATE(transit_end_time), trip_date, DATE(created_at)) <= ?")
+                $pdo->prepare("UPDATE driver_trips SET is_payroll_paid = 1, payroll_settled_at = NOW(), payroll_id = ? WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL) AND COALESCE(DATE(transit_end_time), DATE(trip_date), DATE(created_at)) >= ? AND COALESCE(DATE(transit_end_time), DATE(trip_date), DATE(created_at)) <= ?")
+                    ->execute([$settlementId, $driver_id, $payPeriodFrom, $payPeriodTo]);
+                $pdo->prepare("UPDATE dispatches SET is_payroll_paid = 1, payroll_settled_at = NOW(), payroll_id = ? WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL) AND COALESCE(DATE(transit_end_time), DATE(dispatch_date), DATE(created_at)) >= ? AND COALESCE(DATE(transit_end_time), DATE(dispatch_date), DATE(created_at)) <= ?")
                     ->execute([$settlementId, $driver_id, $payPeriodFrom, $payPeriodTo]);
             }
 
@@ -1321,6 +1357,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $pdo->commit();
 
             $_SESSION['auto_print_payroll_settlement_id'] = $settlementId;
+            $_SESSION['auto_print_payroll_ticket_num']     = $ticketNumber;
             $_SESSION['success'] = "Payroll 100% settled for {$driverData['first_name']} {$driverData['last_name']}! Disbursed: ₱" . number_format($disbursedAmount, 2) . ". Net balance: ₱0.00.";
             log_activity($pdo, 'Settled Driver Payroll', "Settled 100% payroll ticket {$ticketNumber} for driver {$driverData['first_name']} {$driverData['last_name']} (Disbursed: ₱" . number_format($disbursedAmount, 2) . ")");
         } catch (Exception $e) {
@@ -1603,6 +1640,11 @@ if (!function_exists('computeDriverPerformanceStats')) {
     }
 }
 
+try {
+    $pdo->query("UPDATE driver_trips SET is_payroll_paid = 1 WHERE payroll_id IS NOT NULL AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)");
+    $pdo->query("UPDATE dispatches SET is_payroll_paid = 1 WHERE payroll_id IS NOT NULL AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)");
+} catch (Exception $e) {}
+
 foreach ($allDrivers as &$dr) {
     $stmt = $pdo->prepare("
         SELECT 
@@ -1616,6 +1658,8 @@ foreach ($allDrivers as &$dr) {
             COALESCE(NULLIF(dt.distance_km, 0), dest.distance_km, 0.00) AS distance_km,
             COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - 12) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
             COALESCE(dt.is_on_time, 1) AS is_on_time,
+            IF(dt.payroll_id IS NOT NULL OR dt.is_payroll_paid = 1, 1, 0) AS is_payroll_paid,
+            dt.payroll_id,
             dt.created_at
         FROM driver_trips dt
         LEFT JOIN destinations dest ON dest.name = dt.destination
@@ -1668,9 +1712,15 @@ foreach ($allDrivers as &$dr) {
     $caSumStmt->execute([$dr['id']]);
     $dr['approved_cash_advances'] = floatval($caSumStmt->fetchColumn());
 
-    $earnStmt = $pdo->prepare("SELECT COALESCE(SUM(pay_amount), 0) AS gross FROM dispatches WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)");
+    $earnStmt = $pdo->prepare("SELECT COALESCE(SUM(pay_amount), 0) AS gross FROM dispatches WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL) AND payroll_id IS NULL");
     $earnStmt->execute([$dr['id']]);
-    $dr['gross_earnings'] = floatval($earnStmt->fetchColumn());
+    $dispGross = floatval($earnStmt->fetchColumn());
+
+    $dtGrossStmt = $pdo->prepare("SELECT COALESCE(SUM(COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - 12) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00)), 0) AS gross FROM driver_trips dt LEFT JOIN destinations dest ON dest.name = dt.destination WHERE dt.driver_id = ? AND dt.status = 'Delivered' AND (dt.is_payroll_paid = 0 OR dt.is_payroll_paid IS NULL) AND dt.payroll_id IS NULL");
+    $dtGrossStmt->execute([$dr['id']]);
+    $dtGross = floatval($dtGrossStmt->fetchColumn());
+
+    $dr['gross_earnings'] = max($dispGross, $dtGross);
     $dr['net_earnings']   = max(0, $dr['gross_earnings'] + $dr['remaining_balance'] - $dr['approved_cash_advances']);
 
     $caStmt = $pdo->prepare("SELECT id, amount, reason, status, is_settled, requested_at, resolved_at FROM cash_advances WHERE driver_id = ? ORDER BY requested_at DESC LIMIT 5");
@@ -2172,11 +2222,49 @@ include __DIR__ . '/../includes/header.php';
 <?php endif; ?>
 <?php if (isset($_SESSION['auto_print_payroll_settlement_id'])):
     $payroll_settle_id = intval($_SESSION['auto_print_payroll_settlement_id']);
+    $payroll_ticket_num = htmlspecialchars($_SESSION['auto_print_payroll_ticket_num'] ?? "PAY-$payroll_settle_id");
     unset($_SESSION['auto_print_payroll_settlement_id']);
+    unset($_SESSION['auto_print_payroll_ticket_num']);
 ?>
+    <!-- Settlement Success & Print Voucher Modal -->
+    <div id="payrollSettlementSuccessModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-xs p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 text-center border border-gray-100 dark:border-gray-700 animate-in fade-in zoom-in duration-200">
+            <div class="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
+                <i class="fa-solid fa-receipt"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1">Payroll Settled Successfully!</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                Settlement voucher <strong class="text-emerald-600 dark:text-emerald-400">#<?= $payroll_ticket_num; ?></strong> has been generated with 100% full disbursement.
+            </p>
+            <p class="text-[11px] text-gray-400 dark:text-gray-500 mb-5">
+                If your browser blocked the automatic print popup, click the button below to open and print your ticket voucher:
+            </p>
+            
+            <div class="flex flex-col sm:flex-row gap-2.5">
+                <a href="print_payroll.php?settlement_id=<?= $payroll_settle_id; ?>" target="_blank" onclick="closePayrollSuccessModal()" class="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Print Ticket Voucher</span>
+                </a>
+                <button type="button" onclick="closePayrollSuccessModal()" class="py-2.5 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-semibold transition">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
     <script>
+        function closePayrollSuccessModal() {
+            const modal = document.getElementById('payrollSettlementSuccessModal');
+            if (modal) modal.remove();
+        }
         document.addEventListener("DOMContentLoaded", function() {
-            window.open('print_payroll.php?settlement_id=<?= $payroll_settle_id; ?>', '_blank');
+            try {
+                const printWin = window.open('print_payroll.php?settlement_id=<?= $payroll_settle_id; ?>', '_blank');
+                if (printWin) {
+                    printWin.focus();
+                }
+            } catch(e) {
+                console.warn('Auto print popup was blocked by browser:', e);
+            }
         });
     </script>
 <?php endif; ?>
