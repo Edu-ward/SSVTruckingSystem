@@ -69,6 +69,23 @@ if ($settlement_id > 0) {
         $dtStmt->execute([$settlement_id]);
         $settledTrips = $dtStmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    // Extract Pay Period from settlement notes if tagged
+    $ticketPayPeriod = null;
+    $rawNotes = $settlement['notes'] ?? '';
+    if (!empty($rawNotes) && preg_match('/\[Pay Period:\s*([^\]]+)\]/', $rawNotes, $m)) {
+        $metaParts = explode('|', trim($m[1]));
+        $ticketPayPeriod = end($metaParts);
+    }
+    if (!$ticketPayPeriod && !empty($settledTrips)) {
+        $tripDates = array_filter(array_map(fn($t) => substr($t['dispatch_date'] ?? $t['transit_end_time'] ?? $t['created_at'] ?? '', 0, 10), $settledTrips));
+        if (!empty($tripDates)) {
+            sort($tripDates);
+            $earliest = min($tripDates);
+            $latest   = max($tripDates);
+            $ticketPayPeriod = date('F j', strtotime($earliest)) . ' – ' . date('F j, Y', strtotime($latest));
+        }
+    }
 } elseif ($driver_id > 0) {
     $stmt = $pdo->prepare("SELECT first_name, last_name, cdl_number FROM drivers WHERE id = ?");
     $stmt->execute([$driver_id]);
@@ -271,6 +288,12 @@ $payroll = $stmt2->fetch(PDO::FETCH_ASSOC) ?: ['total_amount' => 0, 'amount_clai
                 <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1.5">Voucher Details</p>
                 <table class="w-full text-xs">
                     <tbody>
+                        <?php if (!empty($ticketPayPeriod)): ?>
+                        <tr>
+                            <td class="text-gray-600 py-1 border-b border-gray-200">Pay Period:</td>
+                            <td class="text-right font-bold text-emerald-700 border-b border-gray-200"><?= htmlspecialchars($ticketPayPeriod); ?></td>
+                        </tr>
+                        <?php endif; ?>
                         <tr>
                             <td class="text-gray-600 py-1 border-b border-gray-200">Date Settled:</td>
                             <td class="text-right font-medium text-gray-900 border-b border-gray-200"><?= htmlspecialchars($settled_date); ?></td>

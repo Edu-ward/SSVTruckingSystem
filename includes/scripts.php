@@ -766,7 +766,7 @@
             );
         }
 
-        function openSettlePayrollModal(driverId, driverName, gross, advances, net, prevBalance) {
+        function openSettlePayrollModal(driverId, driverName, gross, advances, net, prevBalance, periodFrom, periodTo, isAllCycles, periodLabel) {
             const netNum = parseFloat(net || 0);
             if (netNum <= 0) {
                 return;
@@ -776,6 +776,35 @@
             const nameEl = document.getElementById('sp-driver-name');
             if (idEl) idEl.value = driverId;
             if (nameEl) nameEl.textContent = driverName;
+
+            // Resolve Pay Period parameters
+            const pFrom = (typeof periodFrom !== 'undefined' && periodFrom !== null && periodFrom !== '') 
+                ? periodFrom 
+                : (typeof currentPayrollFrom !== 'undefined' ? currentPayrollFrom : '');
+            const pTo = (typeof periodTo !== 'undefined' && periodTo !== null && periodTo !== '') 
+                ? periodTo 
+                : (typeof currentPayrollTo !== 'undefined' ? currentPayrollTo : '');
+            const isAll = (typeof isAllCycles !== 'undefined') 
+                ? (isAllCycles ? 1 : 0) 
+                : (typeof isPayrollAllCycles !== 'undefined' && isPayrollAllCycles ? 1 : 0);
+
+            let pLabel = periodLabel;
+            if (!pLabel) {
+                const badge = document.getElementById('activePayPeriodBadge');
+                pLabel = badge ? badge.textContent.trim() : (pFrom && pTo ? `${pFrom} – ${pTo}` : 'Current Week');
+            }
+
+            const fromEl   = document.getElementById('sp-period-from');
+            const toEl     = document.getElementById('sp-period-to');
+            const allEl    = document.getElementById('sp-is-all-cycles');
+            const labelEl  = document.getElementById('sp-period-label');
+            const badgeEl  = document.getElementById('sp-period-badge');
+
+            if (fromEl) fromEl.value = pFrom;
+            if (toEl) toEl.value = pTo;
+            if (allEl) allEl.value = isAll;
+            if (labelEl) labelEl.value = pLabel;
+            if (badgeEl) badgeEl.textContent = pLabel;
 
             const grossNum = parseFloat(gross || 0);
             const advNum = parseFloat(advances || 0);

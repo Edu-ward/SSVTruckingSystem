@@ -384,7 +384,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                     <div class="flex items-center justify-end space-x-2">
                                         <span class="driver-settle-btn-container">
                                             <?php if ($hasPayable): ?>
-                                                <button type="button" onclick="openSettlePayrollModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['gross_earnings'] ?? 0; ?>, <?= $driver['approved_cash_advances'] ?? 0; ?>, <?= $driver['net_earnings'] ?? 0; ?>, <?= $driver['remaining_balance'] ?? 0; ?>)"
+                                                <button type="button" onclick="openSettlePayrollModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['gross_earnings'] ?? 0; ?>, <?= $driver['approved_cash_advances'] ?? 0; ?>, <?= $driver['net_earnings'] ?? 0; ?>, <?= $driver['remaining_balance'] ?? 0; ?>, '<?= $defaultPeriod['from']; ?>', '<?= $defaultPeriod['to']; ?>', 0, '<?= addslashes($defaultPeriod['clean_dates']); ?>')"
                                                     class="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
                                                     <i class="fa-solid fa-money-bill-transfer"></i>
                                                     <span>Settle</span>
@@ -460,8 +460,20 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                         <tbody id="payrollHistoryTableBody" class="divide-y divide-gray-100 dark:divide-gray-700/60">
                             <?php foreach ($payrollSettlements as $st): 
                                 $settledDateOnly = substr($st['settled_at'], 0, 10);
+                                $stPeriodFrom = '';
+                                $stPeriodTo   = '';
+                                if (!empty($st['notes']) && preg_match('/\[Pay Period:\s*([^\]]+)\]/', $st['notes'], $m)) {
+                                    $pParts = explode('|', trim($m[1]));
+                                    if (count($pParts) >= 2) {
+                                        $stPeriodFrom = $pParts[0];
+                                        $stPeriodTo   = $pParts[1];
+                                    }
+                                }
                             ?>
-                                <tr class="payroll-history-row hover:bg-gray-50/70 dark:hover:bg-gray-700/30 transition-colors" data-date="<?= $settledDateOnly; ?>">
+                                <tr class="payroll-history-row hover:bg-gray-50/70 dark:hover:bg-gray-700/30 transition-colors"
+                                    data-date="<?= $settledDateOnly; ?>"
+                                    data-period-from="<?= htmlspecialchars($stPeriodFrom); ?>"
+                                    data-period-to="<?= htmlspecialchars($stPeriodTo); ?>">
                                     <td class="px-4 py-3.5 sm:px-6 font-mono font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                                         <?= htmlspecialchars($st['settlement_ticket']); ?>
                                     </td>
@@ -680,9 +692,14 @@ function recalculatePayrollForPeriod() {
         }
 
         if (btnContainer) {
+            const activeBadge = document.getElementById('activePayPeriodBadge');
+            const activePeriodLabel = isPayrollAllCycles 
+                ? 'All Unsettled Delivery Cycles' 
+                : (activeBadge ? activeBadge.textContent.trim() : (currentPayrollFrom && currentPayrollTo ? `${currentPayrollFrom} – ${currentPayrollTo}` : 'Current Week'));
+
             if (periodNet > 0) {
                 btnContainer.innerHTML = `
-                    <button type="button" onclick="openSettlePayrollModal(${driverId}, '${escapeJsQuotes(driverName)}', ${periodGross}, ${advances}, ${periodNet}, ${remBal})"
+                    <button type="button" onclick="openSettlePayrollModal(${driverId}, '${escapeJsQuotes(driverName)}', ${periodGross}, ${advances}, ${periodNet}, ${remBal}, '${currentPayrollFrom || ''}', '${currentPayrollTo || ''}', ${isPayrollAllCycles ? 1 : 0}, '${escapeJsQuotes(activePeriodLabel)}')"
                         class="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
                         <i class="fa-solid fa-money-bill-transfer"></i>
                         <span>Settle</span>
@@ -721,9 +738,21 @@ function filterHistoryTableForPeriod() {
 
     historyRows.forEach(row => {
         const date = row.getAttribute('data-date');
+        const pFrom = row.getAttribute('data-period-from');
+        const pTo   = row.getAttribute('data-period-to');
+
         if (isPayrollAllCycles || !currentPayrollFrom || !currentPayrollTo) {
             row.classList.remove('hidden');
             visibleCount++;
+        } else if (pFrom && pTo) {
+            if ((pFrom >= currentPayrollFrom && pFrom <= currentPayrollTo) || 
+                (pTo >= currentPayrollFrom && pTo <= currentPayrollTo) ||
+                (pFrom <= currentPayrollFrom && pTo >= currentPayrollTo)) {
+                row.classList.remove('hidden');
+                visibleCount++;
+            } else {
+                row.classList.add('hidden');
+            }
         } else if (date >= currentPayrollFrom && date <= currentPayrollTo) {
             row.classList.remove('hidden');
             visibleCount++;

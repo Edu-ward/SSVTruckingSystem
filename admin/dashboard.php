@@ -1151,8 +1151,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
     }
 
     if ($_POST['action'] === 'settle_driver_payroll') {
-        $driver_id = intval($_POST['driver_id']);
-        $notes = trim($_POST['notes'] ?? '');
+        $driver_id      = intval($_POST['driver_id']);
+        $notes          = trim($_POST['notes'] ?? '');
+        $payPeriodFrom  = trim($_POST['pay_period_from'] ?? '');
+        $payPeriodTo    = trim($_POST['pay_period_to'] ?? '');
+        $isAllCycles    = !empty($_POST['is_all_cycles']) && $_POST['is_all_cycles'] == '1';
+        $payPeriodLabel = trim($_POST['pay_period_label'] ?? '');
+
         try {
             $pdo->beginTransaction();
 
@@ -1168,8 +1173,30 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $curBalStmt->execute([$driver_id]);
             $previousBalance = floatval($curBalStmt->fetchColumn() ?: 0);
 
-            $unclaimedStmt = $pdo->prepare("SELECT id, pay_amount FROM dispatches WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)");
-            $unclaimedStmt->execute([$driver_id]);
+            // Fetch unclaimed delivered dispatches for the target driver strictly within the selected pay period
+            if ($isAllCycles || empty($payPeriodFrom) || empty($payPeriodTo)) {
+                $unclaimedStmt = $pdo->prepare("
+                    SELECT id, pay_amount 
+                    FROM dispatches 
+                    WHERE driver_id = ? 
+                      AND status = 'Delivered' 
+                      AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)
+                    ORDER BY id ASC
+                ");
+                $unclaimedStmt->execute([$driver_id]);
+            } else {
+                $unclaimedStmt = $pdo->prepare("
+                    SELECT id, pay_amount 
+                    FROM dispatches 
+                    WHERE driver_id = ? 
+                      AND status = 'Delivered' 
+                      AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)
+                      AND COALESCE(DATE(transit_end_time), dispatch_date, DATE(created_at)) >= ?
+                      AND COALESCE(DATE(transit_end_time), dispatch_date, DATE(created_at)) <= ?
+                    ORDER BY id ASC
+                ");
+                $unclaimedStmt->execute([$driver_id, $payPeriodFrom, $payPeriodTo]);
+            }
             $unclaimedDispatches = $unclaimedStmt->fetchAll(PDO::FETCH_ASSOC);
 
             $grossAmount = 0.00;
@@ -1177,6 +1204,39 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             foreach ($unclaimedDispatches as $disp) {
                 $grossAmount += floatval($disp['pay_amount']);
                 $dispatchIds[] = $disp['id'];
+            }
+
+            // If dispatches table had no rows for this driver, check driver_trips
+            $dtIds = [];
+            if (empty($unclaimedDispatches)) {
+                if ($isAllCycles || empty($payPeriodFrom) || empty($payPeriodTo)) {
+                    $dtStmt = $pdo->prepare("
+                        SELECT id, pay_amount 
+                        FROM driver_trips 
+                        WHERE driver_id = ? 
+                          AND status = 'Delivered' 
+                          AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)
+                        ORDER BY id ASC
+                    ");
+                    $dtStmt->execute([$driver_id]);
+                } else {
+                    $dtStmt = $pdo->prepare("
+                        SELECT id, pay_amount 
+                        FROM driver_trips 
+                        WHERE driver_id = ? 
+                          AND status = 'Delivered' 
+                          AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)
+                          AND COALESCE(DATE(transit_end_time), trip_date, DATE(created_at)) >= ?
+                          AND COALESCE(DATE(transit_end_time), trip_date, DATE(created_at)) <= ?
+                        ORDER BY id ASC
+                    ");
+                    $dtStmt->execute([$driver_id, $payPeriodFrom, $payPeriodTo]);
+                }
+                $unclaimedDt = $dtStmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($unclaimedDt as $dtRow) {
+                    $grossAmount += floatval($dtRow['pay_amount']);
+                    $dtIds[] = $dtRow['id'];
+                }
             }
 
             $caUnsettledStmt = $pdo->prepare("SELECT id, amount FROM cash_advances WHERE driver_id = ? AND status = 'Approved' AND (is_settled = 0 OR is_settled IS NULL)");
@@ -1191,10 +1251,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             }
 
             $totalPayable = max(0, $grossAmount + $previousBalance - $cashAdvanceDeduction);
-            $tripsCount = count($unclaimedDispatches);
+            $tripsCount = !empty($dispatchIds) ? count($dispatchIds) : count($dtIds);
 
             if ($grossAmount <= 0 && $previousBalance <= 0 && $cashAdvanceDeduction <= 0) {
-                throw new Exception("No unclaimed earnings, prior balance, or advances to settle for this driver.");
+                throw new Exception("No unclaimed earnings, prior carried balance, or advances to settle for this driver in the selected pay period.");
             }
 
             if (isset($_POST['claimed_amount']) && is_numeric($_POST['claimed_amount'])) {
@@ -1207,6 +1267,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $newRemainingBalance = max(0, $totalPayable - $disbursedAmount);
 
             $ticketNumber = 'PAY-' . date('Y') . '-' . str_pad($driver_id, 3, '0', STR_PAD_LEFT) . '-' . strtoupper(substr(uniqid(), -4));
+
+            $fullNotes = (!empty($payPeriodLabel) ? "[Pay Period: {$payPeriodLabel}] " : "") . $notes;
 
             $settleInsert = $pdo->prepare("
                 INSERT INTO driver_payroll_settlements 
@@ -1224,7 +1286,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $newRemainingBalance,
                 $tripsCount,
                 $_SESSION['user_id'] ?? null,
-                $notes
+                $fullNotes
             ]);
             $settlementId = $pdo->lastInsertId();
 
@@ -1234,8 +1296,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $paidStmt->execute(array_merge([$settlementId], $dispatchIds));
             }
 
-            $pdo->prepare("UPDATE driver_trips SET is_payroll_paid = 1, payroll_settled_at = NOW(), payroll_id = ? WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)")
-                ->execute([$settlementId, $driver_id]);
+            if (!empty($dtIds)) {
+                $inDtQuery = implode(',', array_fill(0, count($dtIds), '?'));
+                $paidDtStmt = $pdo->prepare("UPDATE driver_trips SET is_payroll_paid = 1, payroll_settled_at = NOW(), payroll_id = ? WHERE id IN ($inDtQuery)");
+                $paidDtStmt->execute(array_merge([$settlementId], $dtIds));
+            } elseif ($isAllCycles || empty($payPeriodFrom) || empty($payPeriodTo)) {
+                $pdo->prepare("UPDATE driver_trips SET is_payroll_paid = 1, payroll_settled_at = NOW(), payroll_id = ? WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)")
+                    ->execute([$settlementId, $driver_id]);
+            } else {
+                $pdo->prepare("UPDATE driver_trips SET is_payroll_paid = 1, payroll_settled_at = NOW(), payroll_id = ? WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL) AND COALESCE(DATE(transit_end_time), trip_date, DATE(created_at)) >= ? AND COALESCE(DATE(transit_end_time), trip_date, DATE(created_at)) <= ?")
+                    ->execute([$settlementId, $driver_id, $payPeriodFrom, $payPeriodTo]);
+            }
 
             if (!empty($caIds)) {
                 $inCaQuery = implode(',', array_fill(0, count($caIds), '?'));

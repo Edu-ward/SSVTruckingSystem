@@ -670,8 +670,16 @@
             <input type="hidden" name="action" value="settle_driver_payroll">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="driver_id" id="sp-driver-id" value="">
+            <input type="hidden" name="pay_period_from" id="sp-period-from" value="">
+            <input type="hidden" name="pay_period_to" id="sp-period-to" value="">
+            <input type="hidden" name="is_all_cycles" id="sp-is-all-cycles" value="0">
+            <input type="hidden" name="pay_period_label" id="sp-period-label" value="">
 
             <div class="bg-gray-50 dark:bg-gray-900/60 p-3.5 rounded-xl border border-gray-100 dark:border-gray-700/60 space-y-2">
+                <div class="flex justify-between items-center text-xs pb-2 border-b border-gray-100 dark:border-gray-700/60">
+                    <span class="text-gray-500 dark:text-gray-400 font-medium">Pay Period:</span>
+                    <span class="font-extrabold text-emerald-700 dark:text-emerald-300 text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800" id="sp-period-badge">This Week</span>
+                </div>
                 <div class="flex justify-between items-center text-xs">
                     <span class="text-gray-500 dark:text-gray-400 font-medium">Driver:</span>
                     <span class="font-bold text-gray-900 dark:text-gray-100 text-sm" id="sp-driver-name">--</span>
