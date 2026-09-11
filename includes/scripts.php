@@ -2576,6 +2576,95 @@
         function openChangePasswordModal() { openResetPasswordModal(); }
         function closeOtpModal() { closePwdResetModal(); }
 
+        // ==========================================
+        // Global Action Loading Controller
+        // ==========================================
+        window.showActionLoader = function(title, subtitle) {
+            const loader = document.getElementById('globalActionLoader');
+            const titleEl = document.getElementById('globalActionLoaderTitle');
+            const subEl = document.getElementById('globalActionLoaderSub');
+            const card = document.getElementById('globalActionLoaderCard');
+            if (!loader) return;
+            if (title && titleEl) titleEl.textContent = title;
+            if (subtitle && subEl) subEl.textContent = subtitle;
+            loader.classList.remove('opacity-0', 'pointer-events-none');
+            loader.classList.add('opacity-100');
+            if (card) {
+                card.classList.remove('scale-95');
+                card.classList.add('scale-100');
+            }
+        };
+
+        window.hideActionLoader = function() {
+            const loader = document.getElementById('globalActionLoader');
+            const card = document.getElementById('globalActionLoaderCard');
+            if (!loader) return;
+            loader.classList.add('opacity-0', 'pointer-events-none');
+            loader.classList.remove('opacity-100');
+            if (card) {
+                card.classList.add('scale-95');
+                card.classList.remove('scale-100');
+            }
+        };
+
+        window.addEventListener('pageshow', function() {
+            window.hideActionLoader();
+        });
+
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            if (!form || !form.tagName || form.tagName.toLowerCase() !== 'form') return;
+
+            let actionTitle = 'Processing Action...';
+            let actionSub = 'Please wait while the system securely processes your request...';
+
+            const formId = form.id || '';
+            const actionAttr = form.getAttribute('action') || '';
+            const actionVal = (form.querySelector('input[name="action"]') || {}).value || '';
+
+            if (formId === 'settlePayrollForm' || actionVal === 'settle_driver_payroll') {
+                actionTitle = 'Settling Driver Payroll & Finalizing Disbursement...';
+                actionSub = 'Verifying trips, releasing 100% salary, and generating payout voucher...';
+            } else if (actionVal.includes('cash_advance') || formId.includes('cashAdvance')) {
+                actionTitle = 'Processing Cash Advance...';
+                actionSub = 'Updating advance ledger and driver balance...';
+            } else if (actionVal.includes('dispatch') || formId.includes('Dispatch')) {
+                actionTitle = 'Processing Dispatch & Routing...';
+                actionSub = 'Updating delivery details, route coordinates, and truck status...';
+            } else if (actionVal.includes('driver') || formId.includes('Driver')) {
+                actionTitle = 'Updating Driver Information...';
+                actionSub = 'Saving driver credentials and license records...';
+            } else if (actionVal.includes('truck') || actionVal.includes('fleet') || formId.includes('Truck')) {
+                actionTitle = 'Updating Fleet Vehicle...';
+                actionSub = 'Saving truck specs, RFID, and maintenance status...';
+            } else if (actionAttr.includes('export_reports') || formId.includes('export')) {
+                actionTitle = 'Exporting Financial & Operational Report...';
+                actionSub = 'Compiling data and preparing download...';
+                setTimeout(window.hideActionLoader, 3500);
+            } else {
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    const txt = submitBtn.textContent.trim().replace(/\s+/g, ' ');
+                    if (txt && txt.length < 30) {
+                        actionTitle = `${txt}...`;
+                    }
+                }
+            }
+
+            window.showActionLoader(actionTitle, actionSub);
+
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn && !submitBtn.disabled) {
+                const existingIcon = submitBtn.querySelector('i');
+                if (existingIcon) {
+                    existingIcon.className = 'fa-solid fa-circle-notch fa-spin mr-1.5';
+                } else {
+                    submitBtn.insertAdjacentHTML('afterbegin', '<i class="fa-solid fa-circle-notch fa-spin mr-1.5"></i>');
+                }
+                submitBtn.classList.add('opacity-80', 'cursor-wait');
+            }
+        });
+
         document.addEventListener("DOMContentLoaded", function() {
             const icon = document.getElementById('themeIcon');
             if (icon && document.documentElement.classList.contains('dark')) {

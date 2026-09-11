@@ -59,7 +59,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
             <div>
                 <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">Payroll Management</h2>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    Manage weekly pay periods, driver compensation, trip earnings, carried balances, cash advance deductions, and disbursement settlements.
+                    Manage weekly pay periods, driver compensation, trip earnings, cash advance deductions, and disbursement settlements.
                 </p>
             </div>
         </div>
@@ -68,15 +68,16 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
             <!-- Search Driver Input -->
             <div class="relative flex-1 md:w-72">
                 <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                <input type="text" id="payrollDriverSearchInput" placeholder="Search driver, CDL, truck..." oninput="filterPayrollTable()" class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
-                <button type="button" id="payrollSearchClear" onclick="clearPayrollSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs">
+                <input type="text" id="payrollDriverSearchInput" oninput="filterPayrollTable()" placeholder="Search driver, CDL, truck..." 
+                    class="w-full pl-9 pr-8 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 text-gray-900 dark:text-gray-100 transition shadow-inner">
+                <button type="button" id="payrollSearchClear" onclick="clearPayrollSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <!-- Quick Link to Cash Advances -->
-            <button type="button" onclick="switchTab('cash_advances')" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-800 transition flex items-center gap-2 flex-shrink-0 cursor-pointer">
-                <i class="fa-solid fa-hand-holding-dollar text-amber-600 dark:text-amber-400"></i>
+            <!-- Quick Cash Advances Link -->
+            <button type="button" onclick="switchTab('cash_advances')" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-800 transition shadow-sm flex items-center gap-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-hand-holding-dollar text-amber-500"></i>
                 <span>Cash Advances</span>
                 <?php if (($pendingCashAdvanceCount ?? 0) > 0): ?>
                     <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white"><?= $pendingCashAdvanceCount ?></span>
@@ -85,88 +86,87 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
         </div>
     </div>
 
-    <!-- Pay Period Selector Bar -->
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-5 mb-6">
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div class="flex items-center space-x-3.5">
-                <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-base flex-shrink-0">
+    <!-- Active Pay Period Header Banner -->
+    <div class="mb-6 bg-gradient-to-br from-gray-900 via-emerald-950 to-gray-900 border border-emerald-800/40 rounded-3xl p-5 sm:p-6 text-white shadow-xl relative overflow-hidden">
+        <div class="absolute -right-10 -bottom-10 w-44 h-44 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400 text-xl flex-shrink-0 shadow-inner">
                     <i class="fa-solid fa-calendar-week"></i>
                 </div>
                 <div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Pay Period:</span>
-                        <span id="activePayPeriodBadge" class="text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                            <?= htmlspecialchars($defaultPeriod['clean_dates']); ?>
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <span class="text-xs font-bold uppercase tracking-widest text-emerald-300">Pay Period:</span>
+                        <span id="activePayPeriodBadge" class="text-sm font-extrabold px-3 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-200">
+                            <?= htmlspecialchars($defaultPeriod['clean_dates']) ?>
                         </span>
                     </div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        Select a weekly delivery cycle to evaluate driver trip earnings and disburse wages.
-                    </p>
+                    <p class="text-xs text-gray-300 mt-1">Select a weekly delivery cycle to evaluate driver trip earnings and disburse wages.</p>
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2.5">
-                <!-- Dropdown selector with dates -->
-                <div class="relative min-w-[270px] sm:min-w-[320px]">
-                    <select id="payPeriodSelector" onchange="onPayrollPeriodChange(this.value)"
-                            class="w-full text-xs font-semibold py-2.5 px-3.5 pr-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none shadow-xs">
-                        <?php foreach ($payrollPayPeriods as $p): ?>
-                            <option value="<?= $p['from'] . '|' . $p['to']; ?>" 
-                                    data-label="<?= htmlspecialchars($p['clean_dates']); ?>" 
-                                    data-short="<?= htmlspecialchars($p['short_label']); ?>"
-                                    <?= $p['is_current'] ? 'selected' : ''; ?>>
-                                <?= htmlspecialchars($p['label']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                        <option value="ALL" data-label="All Delivery Cycles (All Time)" data-short="All Weeks">Show All Past Unsettled Trips</option>
-                        <option value="CUSTOM" data-label="Custom Date Range" data-short="Custom">Custom Date Range...</option>
-                    </select>
-                    <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400 text-xs">
-                        <i class="fa-solid fa-chevron-down"></i>
-                    </div>
-                </div>
+            <!-- Pay Period Selector Control -->
+            <div class="flex items-center gap-2 self-start md:self-auto bg-gray-800/80 p-1.5 rounded-2xl border border-gray-700/80 backdrop-blur-xs flex-wrap sm:flex-nowrap">
+                <select id="payPeriodSelector" onchange="onPayrollPeriodChange(this.value)" 
+                    class="bg-transparent text-xs font-bold text-gray-200 border-none focus:ring-0 cursor-pointer pr-8 py-1.5 rounded-xl hover:bg-gray-700/50 transition">
+                    <?php foreach ($payrollPayPeriods as $p): ?>
+                        <option value="<?= $p['from'] . '|' . $p['to'] ?>" 
+                            data-label="<?= htmlspecialchars($p['clean_dates']) ?>"
+                            data-short="<?= htmlspecialchars($p['short_label']) ?>"
+                            class="bg-gray-900 text-gray-100" <?= $p['is_current'] ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($p['label']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                    <option value="ALL" data-label="All Delivery Cycles (All Time)" data-short="All Weeks" class="bg-gray-900 text-emerald-300 font-bold">
+                        Show All Past Unsettled Trips
+                    </option>
+                    <option value="CUSTOM" data-label="Custom Date Range" data-short="Custom" class="bg-gray-900 text-gray-100">
+                        Custom Date Range...
+                    </option>
+                </select>
 
-                <!-- Previous / Next Week Quick Shift Buttons -->
-                <div class="flex items-center gap-1">
-                    <button type="button" onclick="shiftPayrollWeek(1)" title="Previous Week"
-                            class="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-xs active:scale-95 transition cursor-pointer">
-                        <i class="fa-solid fa-chevron-left"></i>
-                    </button>
-                    <button type="button" id="payrollCurrentWeekBtn" onclick="shiftPayrollWeek(0)" title="Current Week (This Week)"
-                            class="px-3 h-9 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-800/40 text-xs font-bold active:scale-95 transition cursor-pointer whitespace-nowrap">
-                        <span id="payrollCurrentWeekBtnText">This Week</span>
-                    </button>
-                    <button type="button" onclick="shiftPayrollWeek(-1)" title="Next Week"
-                            class="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-xs active:scale-95 transition cursor-pointer">
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
+                <div class="h-4 w-px bg-gray-700"></div>
 
-        <!-- Custom Date Range Bar (Shown when CUSTOM is selected) -->
-        <div id="payrollCustomDateBar" class="hidden mt-4 pt-4 border-t border-gray-100 dark:border-gray-700/80 flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                    <i class="fa-solid fa-calendar-days text-emerald-500"></i> Custom Pay Period Range:
-                </span>
-                <div class="flex items-center gap-1.5">
-                    <input type="date" id="payrollCustomDateFrom" value="<?= $thisMonday ?>"
-                           class="px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs">
-                    <span class="text-gray-400 font-bold">to</span>
-                    <input type="date" id="payrollCustomDateTo" value="<?= $thisSunday ?>"
-                           class="px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs">
-                </div>
-                <button type="button" onclick="applyPayrollCustomDateRange()"
-                        class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition active:scale-95 cursor-pointer">
-                    Apply Filter
+                <!-- Step backward (older week) -->
+                <button type="button" onclick="shiftPayrollWeek(1)" class="w-8 h-8 rounded-xl flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-700/70 text-xs transition" title="Previous Week">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+
+                <!-- Return to "This Week" (current cycle) -->
+                <button type="button" id="payrollCurrentWeekBtn" onclick="shiftPayrollWeek(0)" 
+                    class="px-3 h-8 rounded-xl border border-emerald-500/40 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-xs font-bold active:scale-95 transition cursor-pointer whitespace-nowrap" 
+                    title="Current Week (This Week)">
+                    <span id="payrollCurrentWeekBtnText">This Week</span>
+                </button>
+
+                <!-- Step forward (newer week) -->
+                <button type="button" onclick="shiftPayrollWeek(-1)" class="w-8 h-8 rounded-xl flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-700/70 text-xs transition" title="Next Week">
+                    <i class="fa-solid fa-chevron-right"></i>
                 </button>
             </div>
         </div>
+
+        <!-- Hidden Custom Range Inputs -->
+        <div id="payrollCustomDateBar" class="hidden mt-4 pt-4 border-t border-gray-700/60 flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-2 text-xs">
+                <span class="text-gray-400">From:</span>
+                <input type="date" id="payrollCustomDateFrom" value="<?= $thisMonday ?>" 
+                    class="bg-gray-800 text-white border border-gray-600 rounded-lg px-2.5 py-1 text-xs focus:ring-emerald-500">
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+                <span class="text-gray-400">To:</span>
+                <input type="date" id="payrollCustomDateTo" value="<?= $thisSunday ?>" 
+                    class="bg-gray-800 text-white border border-gray-600 rounded-lg px-2.5 py-1 text-xs focus:ring-emerald-500">
+            </div>
+            <button type="button" onclick="applyPayrollCustomDateRange()" 
+                class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition shadow-sm">
+                Apply Filter
+            </button>
+        </div>
     </div>
 
-    <!-- Financial KPI Summary Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <!-- Financial KPI Summary Cards (3 Columns) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <!-- KPI 1: Net Payable -->
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-emerald-200/70 dark:border-emerald-900/40 shadow-sm relative overflow-hidden">
             <div class="flex items-start justify-between">
@@ -223,25 +223,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
             </div>
             <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
         </div>
-
-        <!-- KPI 4: Carried Balance -->
-        <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-indigo-200/70 dark:border-indigo-900/40 shadow-sm relative overflow-hidden">
-            <div class="flex items-start justify-between">
-                <div>
-                    <span class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Carried Balances</span>
-                    <div class="text-2xl font-black text-gray-900 dark:text-gray-100 mt-1.5" id="kpiCarriedBalance">
-                        ₱<?= number_format($totalPendingRemaining, 2) ?>
-                    </div>
-                    <span class="text-xs text-gray-500 dark:text-gray-400 mt-1 inline-block">
-                        Held over from past cycles
-                    </span>
-                </div>
-                <div class="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-lg">
-                    <i class="fa-solid fa-coins"></i>
-                </div>
-            </div>
-            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-400 to-purple-500"></div>
-        </div>
     </div>
 
     <!-- Sub Navigation Tabs -->
@@ -268,7 +249,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                             <th class="px-4 py-3.5 sm:px-6">Driver & Assigned Truck</th>
                             <th class="px-4 py-3.5 text-center">Status</th>
                             <th class="px-4 py-3.5 text-right">Pay Period Trips</th>
-                            <th class="px-4 py-3.5 text-right">Carried Bal.</th>
                             <th class="px-4 py-3.5 text-right">Cash Advances</th>
                             <th class="px-4 py-3.5 text-right">Net Payable</th>
                             <th class="px-4 py-3.5 sm:px-6 text-right">Actions</th>
@@ -348,16 +328,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                     </div>
                                 </td>
 
-                                <!-- Carried Balance -->
-                                <td class="px-4 py-3.5 text-right whitespace-nowrap">
-                                    <div class="font-semibold text-indigo-600 dark:text-indigo-400">
-                                        ₱<?= number_format($driver['remaining_balance'] ?? 0, 2); ?>
-                                    </div>
-                                    <button type="button" onclick="openAdjustBalanceModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['remaining_balance'] ?? 0; ?>)" class="text-[10px] font-semibold text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline">
-                                        Adjust
-                                    </button>
-                                </td>
-
                                 <!-- Cash Advances -->
                                 <td class="px-4 py-3.5 text-right whitespace-nowrap">
                                     <?php if (($driver['approved_cash_advances'] ?? 0) > 0): ?>
@@ -384,7 +354,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                     <div class="flex items-center justify-end space-x-2">
                                         <span class="driver-settle-btn-container">
                                             <?php if ($hasPayable): ?>
-                                                <button type="button" onclick="openSettlePayrollModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['gross_earnings'] ?? 0; ?>, <?= $driver['approved_cash_advances'] ?? 0; ?>, <?= $driver['net_earnings'] ?? 0; ?>, <?= $driver['remaining_balance'] ?? 0; ?>, '<?= $defaultPeriod['from']; ?>', '<?= $defaultPeriod['to']; ?>', 0, '<?= addslashes($defaultPeriod['clean_dates']); ?>')"
+                                                <button type="button" onclick="openSettlePayrollModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['gross_earnings'] ?? 0; ?>, <?= $driver['approved_cash_advances'] ?? 0; ?>, <?= $driver['net_earnings'] ?? 0; ?>, 0, '<?= $defaultPeriod['from']; ?>', '<?= $defaultPeriod['to']; ?>', 0, '<?= addslashes($defaultPeriod['clean_dates']); ?>')"
                                                     class="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
                                                     <i class="fa-solid fa-money-bill-transfer"></i>
                                                     <span>Settle</span>
@@ -396,12 +366,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                                 </button>
                                             <?php endif; ?>
                                         </span>
-
-                                        <button type="button" onclick="openAdjustBalanceModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['remaining_balance'] ?? 0; ?>)"
-                                            class="w-8 h-8 rounded-lg flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-700 transition"
-                                            title="Adjust Carried Balance">
-                                            <i class="fa-solid fa-coins text-xs"></i>
-                                        </button>
 
                                         <button type="button" onclick="openPrintDriverTripsModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>')"
                                             class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-700 transition"
@@ -453,7 +417,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                 <th class="px-4 py-3.5 text-right">Gross Pay</th>
                                 <th class="px-4 py-3.5 text-right">CA Deductions</th>
                                 <th class="px-4 py-3.5 text-right">Disbursed Amount</th>
-                                <th class="px-4 py-3.5 text-right">Carried Bal.</th>
                                 <th class="px-4 py-3.5 sm:px-6 text-right">Voucher</th>
                             </tr>
                         </thead>
@@ -497,9 +460,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                     </td>
                                     <td class="px-4 py-3.5 text-right font-extrabold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                                         ₱<?= number_format($st['amount_claimed'] ?? 0, 2); ?>
-                                    </td>
-                                    <td class="px-4 py-3.5 text-right font-medium text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
-                                        ₱<?= number_format($st['remaining_balance'] ?? 0, 2); ?>
                                     </td>
                                     <td class="px-4 py-3.5 sm:px-6 text-right whitespace-nowrap">
                                         <button type="button" onclick="window.open('print_payroll.php?settlement_id=<?= $st['id']; ?>', '_blank')" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition inline-flex items-center gap-1.5 shadow-sm">
@@ -637,6 +597,13 @@ function applyPayrollCustomDateRange() {
 
 function recalculatePayrollForPeriod() {
     const rows = document.querySelectorAll('#payrollTableBody .payroll-driver-row');
+    const tableBody = document.getElementById('payrollTableBody');
+    if (tableBody) {
+        tableBody.style.transition = 'opacity 0.15s ease';
+        tableBody.style.opacity = '0.4';
+        setTimeout(() => { tableBody.style.opacity = '1'; }, 100);
+    }
+
     let totalGrossSum = 0;
     let totalNetSum = 0;
     let totalTripsSum = 0;
@@ -674,7 +641,7 @@ function recalculatePayrollForPeriod() {
             });
         }
 
-        const periodNet = Math.max(0, periodGross + remBal - advances);
+        const periodNet = Math.max(0, periodGross - advances);
 
         totalGrossSum += periodGross;
         totalNetSum += periodNet;
@@ -703,7 +670,7 @@ function recalculatePayrollForPeriod() {
 
             if (periodNet > 0) {
                 btnContainer.innerHTML = `
-                    <button type="button" onclick="openSettlePayrollModal(${driverId}, '${escapeJsQuotes(driverName)}', ${periodGross}, ${advances}, ${periodNet}, ${remBal}, '${currentPayrollFrom || ''}', '${currentPayrollTo || ''}', ${isPayrollAllCycles ? 1 : 0}, '${escapeJsQuotes(activePeriodLabel)}')"
+                    <button type="button" onclick="openSettlePayrollModal(${driverId}, '${escapeJsQuotes(driverName)}', ${periodGross}, ${advances}, ${periodNet}, 0, '${currentPayrollFrom || ''}', '${currentPayrollTo || ''}', ${isPayrollAllCycles ? 1 : 0}, '${escapeJsQuotes(activePeriodLabel)}')"
                         class="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
                         <i class="fa-solid fa-money-bill-transfer"></i>
                         <span>Settle</span>

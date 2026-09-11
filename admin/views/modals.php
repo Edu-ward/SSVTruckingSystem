@@ -689,10 +689,6 @@
                     <span class="text-gray-500 dark:text-gray-400 font-medium">Unclaimed Gross Earnings:</span>
                     <span class="font-bold text-emerald-600 dark:text-emerald-400" id="sp-gross-amount">₱0.00</span>
                 </div>
-                <div class="flex justify-between items-center text-xs hidden" id="sp-previous-balance-row">
-                    <span class="text-indigo-600 dark:text-indigo-400 font-medium">Prior Carried Balance:</span>
-                    <span class="font-bold text-indigo-600 dark:text-indigo-400" id="sp-previous-balance">+₱0.00</span>
-                </div>
                 <div class="flex justify-between items-center text-xs">
                     <span class="text-gray-500 dark:text-gray-400 font-medium">Cash Advances to Deduct:</span>
                     <span class="font-bold text-orange-600 dark:text-orange-400" id="sp-advances-amount">-₱0.00</span>

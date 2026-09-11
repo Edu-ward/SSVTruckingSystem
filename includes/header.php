@@ -423,6 +423,38 @@
     
     <div id="toast-container" class="fixed top-5 right-5 z-[9999] flex flex-col space-y-3 pointer-events-none"></div>
 
+    <!-- Global Action Loading Spinner Overlay -->
+    <div id="globalActionLoader" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-gray-950/70 backdrop-blur-sm transition-all duration-300 opacity-0 pointer-events-none">
+        <div class="relative flex flex-col items-center p-7 sm:p-8 rounded-3xl bg-white/95 dark:bg-gray-900/95 border border-gray-100 dark:border-gray-800 shadow-2xl shadow-emerald-500/10 max-w-xs w-full text-center transform scale-95 transition-transform duration-300" id="globalActionLoaderCard">
+            <!-- Glowing background pulse -->
+            <div class="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-blue-500/20 rounded-3xl blur-xl opacity-80 animate-pulse pointer-events-none"></div>
+            
+            <div class="relative flex flex-col items-center">
+                <!-- Dual-ring Spinning Loader with Center Truck Icon -->
+                <div class="relative w-16 h-16 mb-4">
+                    <div class="w-16 h-16 rounded-full border-4 border-emerald-500/20 dark:border-emerald-500/10 border-t-emerald-600 dark:border-t-emerald-400 animate-spin"></div>
+                    <div class="absolute inset-1.5 w-13 h-13 rounded-full border-4 border-teal-500/20 dark:border-teal-500/10 border-b-teal-500 dark:border-b-teal-300 animate-spin" style="animation-direction: reverse; animation-duration: 0.85s;"></div>
+                    <div class="absolute inset-0 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-base">
+                        <i class="fa-solid fa-truck-fast animate-pulse"></i>
+                    </div>
+                </div>
+
+                <!-- Title & Subtitle -->
+                <h4 id="globalActionLoaderTitle" class="text-sm font-bold text-gray-900 dark:text-white tracking-wide">
+                    Processing Action...
+                </h4>
+                <p id="globalActionLoaderSub" class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                    Please wait while the system updates...
+                </p>
+
+                <!-- Subtle animated progress bar -->
+                <div class="w-full bg-gray-100 dark:bg-gray-800 h-1.5 rounded-full overflow-hidden mt-4">
+                    <div class="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 rounded-full animate-pulse w-full"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <?php if ($_SESSION['role'] === 'Admin'): ?>
 
         <div id="sidebar-overlay" class="sidebar-backdrop fixed inset-0 bg-black/50 z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
