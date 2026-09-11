@@ -579,9 +579,16 @@
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative max-h-[90vh] flex flex-col">
         <button onclick="toggleModal('viewDriverModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200 z-10"><i class="fa-solid fa-xmark fa-lg"></i></button>
         <div class="bg-blue-600 p-5 sm:p-6 text-center flex-shrink-0">
-            
-            <img id="vd-photo" src="" alt=""
-                class="w-20 h-20 rounded-full object-cover border-4 border-white/80 shadow-xl mx-auto mb-2 sm:mb-3 hidden">
+            <div class="relative inline-block mx-auto mb-2 sm:mb-3">
+                <img id="vd-photo" src="" alt="" onclick="expandDriverPhoto()"
+                    class="w-20 h-20 rounded-full object-cover border-4 border-white/80 shadow-xl mx-auto cursor-pointer hover:scale-105 hover:border-white transition-all duration-200 hidden"
+                    title="Click to view enlarged photo">
+                <button type="button" id="vd-photo-zoom-hint" onclick="expandDriverPhoto()"
+                    class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white dark:bg-gray-800 text-blue-600 shadow-md border border-gray-200 dark:border-gray-700 flex items-center justify-center text-[10px] cursor-pointer hover:scale-110 transition hidden"
+                    title="Click to expand photo">
+                    <i class="fa-solid fa-magnifying-glass-plus"></i>
+                </button>
+            </div>
             
             <div class="w-16 h-16 sm:w-20 sm:h-20 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold text-blue-600 mx-auto mb-2 sm:mb-3 shadow-lg" id="vd-initials">--</div>
             <h3 class="text-lg sm:text-xl font-bold text-white" id="vd-name">Driver Name</h3>
@@ -643,6 +650,45 @@
                 </button>
                 <button onclick="toggleModal('viewDriverModal', false)" class="px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition">Close</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Driver Profile Photo Expand / Lightbox Modal -->
+<div id="driverPhotoModal" class="fixed inset-0 z-[70] flex items-center justify-center bg-gray-950/80 backdrop-blur-xs hidden p-3 sm:p-4" onclick="if(event.target === this) toggleModal('driverPhotoModal', false)">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md sm:max-w-lg overflow-hidden border border-gray-100 dark:border-gray-700 flex flex-col items-center" onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="w-full px-4 sm:px-5 py-3.5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/80 dark:bg-gray-800/80 flex-shrink-0">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm flex-shrink-0">
+                    <i class="fa-solid fa-id-badge"></i>
+                </div>
+                <div class="min-w-0">
+                    <h4 id="driverPhotoModalName" class="font-bold text-sm sm:text-base text-gray-900 dark:text-gray-100 truncate">Driver Photo</h4>
+                    <p id="driverPhotoModalCdl" class="text-xs text-gray-500 dark:text-gray-400 truncate">Profile Image</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+                <a id="driverPhotoModalDownload" href="" target="_blank" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/40 text-gray-500 dark:text-gray-300 flex items-center justify-center text-xs transition" title="Open full image in new tab">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                </a>
+                <button type="button" onclick="toggleModal('driverPhotoModal', false)" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/40 text-gray-500 dark:text-gray-300 flex items-center justify-center text-sm transition" title="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Image Container -->
+        <div class="p-4 sm:p-6 w-full flex items-center justify-center bg-gray-900/90 min-h-[260px] max-h-[68vh] overflow-auto select-none">
+            <img id="driverPhotoModalImg" src="" alt="Driver Profile Photo" class="max-h-[62vh] max-w-full object-contain rounded-xl shadow-2xl border border-white/10">
+        </div>
+
+        <!-- Footer -->
+        <div class="w-full px-4 sm:px-5 py-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-info text-blue-500 text-[11px]"></i> Click outside or close button to return</span>
+            <button type="button" onclick="toggleModal('driverPhotoModal', false)" class="px-4 py-1.5 rounded-xl bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold transition">
+                Close
+            </button>
         </div>
     </div>
 </div>

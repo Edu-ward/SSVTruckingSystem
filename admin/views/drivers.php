@@ -130,7 +130,9 @@
                         <div class="flex items-center space-x-3 min-w-0 pr-2">
                             <?php if ($dPhotoUrl): ?>
                                 <img src="<?= $dPhotoUrl ?>" alt="<?= htmlspecialchars($driver['name']) ?>"
-                                     class="w-12 h-12 rounded-xl object-cover shadow-md flex-shrink-0 border-2 border-white dark:border-gray-700 ring-2 ring-blue-500/20">
+                                     onclick="expandDriverPhoto('<?= $dPhotoUrl ?>', '<?= htmlspecialchars(addslashes($driver['name'])) ?>', 'CDL: <?= htmlspecialchars(addslashes($driver['cdl_number'] ?? 'N/A')) ?>')"
+                                     class="w-12 h-12 rounded-xl object-cover shadow-md flex-shrink-0 border-2 border-white dark:border-gray-700 ring-2 ring-blue-500/20 cursor-pointer hover:scale-105 hover:ring-blue-500 transition-all duration-200"
+                                     title="Click to expand photo">
                             <?php else: ?>
                                 <div class="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-base shadow-md shadow-blue-500/20 flex-shrink-0">
                                     <?= getInitials($driver['name']); ?>

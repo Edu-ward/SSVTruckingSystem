@@ -501,11 +501,42 @@
 
         let currentViewingDriver = null;
 
+        function expandDriverPhoto(src, name, cdl) {
+            const photoEl = document.getElementById('vd-photo');
+            let photoSrc = src;
+            if (!photoSrc && photoEl && !photoEl.classList.contains('hidden') && photoEl.src) {
+                photoSrc = photoEl.src;
+            }
+            if (!photoSrc) return;
+
+            const modalImg = document.getElementById('driverPhotoModalImg');
+            const modalName = document.getElementById('driverPhotoModalName');
+            const modalCdl = document.getElementById('driverPhotoModalCdl');
+            const modalDownload = document.getElementById('driverPhotoModalDownload');
+
+            if (modalImg) {
+                modalImg.src = photoSrc;
+                modalImg.alt = (name || (currentViewingDriver?.name || 'Driver')) + ' Profile Photo';
+            }
+            if (modalName) {
+                modalName.innerText = name || (document.getElementById('vd-name')?.innerText || (currentViewingDriver?.name || 'Driver Photo'));
+            }
+            if (modalCdl) {
+                modalCdl.innerText = cdl || (document.getElementById('vd-cdl')?.innerText || (currentViewingDriver?.cdl_number ? ('CDL: ' + currentViewingDriver.cdl_number) : 'Profile Image'));
+            }
+            if (modalDownload) {
+                modalDownload.href = photoSrc;
+            }
+
+            toggleModal('driverPhotoModal', true);
+        }
+
         function openViewDriverModal(driver) {
             currentViewingDriver = driver;
 
             const photoEl    = document.getElementById('vd-photo');
             const initialsEl = document.getElementById('vd-initials');
+            const zoomHintEl = document.getElementById('vd-photo-zoom-hint');
             if (driver.profile_photo) {
                 const photoUrl = '../' + driver.profile_photo + '?v=' + Date.now();
                 if (photoEl) {
@@ -513,9 +544,11 @@
                     photoEl.alt = driver.name;
                     photoEl.classList.remove('hidden');
                 }
+                if (zoomHintEl) zoomHintEl.classList.remove('hidden');
                 if (initialsEl) initialsEl.classList.add('hidden');
             } else {
                 if (photoEl) photoEl.classList.add('hidden');
+                if (zoomHintEl) zoomHintEl.classList.add('hidden');
                 if (initialsEl) {
                     initialsEl.classList.remove('hidden');
                     initialsEl.innerText = getInitialsJS(driver.name);
