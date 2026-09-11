@@ -695,12 +695,13 @@
 
                     
                     <!-- Driver Navigation Features -->
+                    <?php $activeDriverTabNav = $_GET['tab'] ?? 'dashboard'; ?>
                     <nav class="flex-1 px-3 py-4 space-y-1">
-                        <button type="button" onclick="switchTab('dashboard')" id="nav-dashboard" class="sidebar-nav-item active w-full text-left">
+                        <button type="button" onclick="switchTab('dashboard')" id="nav-dashboard" class="sidebar-nav-item <?= $activeDriverTabNav === 'dashboard' ? 'active' : ''; ?> w-full text-left">
                             <i class="fa-solid fa-house nav-icon"></i>
                             <span>Dashboard</span>
                         </button>
-                        <button type="button" onclick="switchTab('route')" id="nav-route" class="sidebar-nav-item w-full text-left flex items-center justify-between">
+                        <button type="button" onclick="switchTab('route')" id="nav-route" class="sidebar-nav-item <?= $activeDriverTabNav === 'route' ? 'active' : ''; ?> w-full text-left flex items-center justify-between">
                             <span class="flex items-center space-x-3">
                                 <i class="fa-solid fa-map-location-dot nav-icon"></i>
                                 <span>Live Trip Route</span>
@@ -709,7 +710,7 @@
                                 <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Active Trip"></span>
                             <?php endif; ?>
                         </button>
-                        <button type="button" onclick="switchTab('trips')" id="nav-trips" class="sidebar-nav-item w-full text-left flex items-center justify-between">
+                        <button type="button" onclick="switchTab('trips')" id="nav-trips" class="sidebar-nav-item <?= $activeDriverTabNav === 'trips' ? 'active' : ''; ?> w-full text-left flex items-center justify-between">
                             <span class="flex items-center space-x-3">
                                 <i class="fa-solid fa-route nav-icon"></i>
                                 <span>Trips</span>
@@ -718,7 +719,7 @@
                                 <?= count($weeklyFilteredTrips ?? $trips ?? []); ?>
                             </span>
                         </button>
-                        <button type="button" onclick="switchTab('cash_advance')" id="nav-cash_advance" class="sidebar-nav-item w-full text-left flex items-center justify-between">
+                        <button type="button" onclick="switchTab('cash_advance')" id="nav-cash_advance" class="sidebar-nav-item <?= $activeDriverTabNav === 'cash_advance' ? 'active' : ''; ?> w-full text-left flex items-center justify-between">
                             <span class="flex items-center space-x-3">
                                 <i class="fa-solid fa-hand-holding-dollar nav-icon"></i>
                                 <span>Cash Advance</span>
@@ -729,7 +730,7 @@
                                 </span>
                             <?php endif; ?>
                         </button>
-                        <button type="button" onclick="switchTab('payroll')" id="nav-payroll" class="sidebar-nav-item w-full text-left flex items-center justify-between">
+                        <button type="button" onclick="switchTab('payroll')" id="nav-payroll" class="sidebar-nav-item <?= $activeDriverTabNav === 'payroll' ? 'active' : ''; ?> w-full text-left flex items-center justify-between">
                             <span class="flex items-center space-x-3">
                                 <i class="fa-solid fa-wallet nav-icon"></i>
                                 <span>Payroll</span>
@@ -740,7 +741,7 @@
                                 </span>
                             <?php endif; ?>
                         </button>
-                        <button type="button" onclick="switchTab('notifications')" id="nav-notifications" class="sidebar-nav-item w-full text-left flex items-center justify-between">
+                        <button type="button" onclick="switchTab('notifications')" id="nav-notifications" class="sidebar-nav-item <?= $activeDriverTabNav === 'notifications' ? 'active' : ''; ?> w-full text-left flex items-center justify-between">
                             <span class="flex items-center space-x-3">
                                 <i class="fa-solid fa-bell nav-icon"></i>
                                 <span>Notifications</span>
@@ -751,7 +752,7 @@
                                 </span>
                             <?php endif; ?>
                         </button>
-                        <button type="button" onclick="switchTab('profile')" id="nav-profile" class="sidebar-nav-item w-full text-left">
+                        <button type="button" onclick="switchTab('profile')" id="nav-profile" class="sidebar-nav-item <?= $activeDriverTabNav === 'profile' ? 'active' : ''; ?> w-full text-left">
                             <i class="fa-solid fa-id-card nav-icon"></i>
                             <span>My Profile</span>
                         </button>
@@ -800,43 +801,43 @@
 
                 <!-- Driver Mobile Bottom Navigation Bar -->
                 <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-0.5 pt-1.5 pb-[max(0.6rem,calc(env(safe-area-inset-bottom,0px)+0.35rem))] safe-bottom mobile-bottom-nav">
-                    <button type="button" onclick="switchTab('dashboard')" id="bottom-nav-dashboard" class="bottom-nav-item active flex-1">
+                    <button type="button" onclick="switchTab('dashboard')" id="bottom-nav-dashboard" class="bottom-nav-item <?= $activeDriverTabNav === 'dashboard' ? 'active' : ''; ?> flex-1">
                         <i class="fa-solid fa-house text-base mb-0.5"></i>
                         <span class="text-[9px] font-semibold">Home</span>
                     </button>
-                    <button type="button" onclick="switchTab('route')" id="bottom-nav-route" class="bottom-nav-item flex-1 relative">
+                    <button type="button" onclick="switchTab('route')" id="bottom-nav-route" class="bottom-nav-item <?= $activeDriverTabNav === 'route' ? 'active' : ''; ?> flex-1 relative">
                         <i class="fa-solid fa-map-location-dot text-base mb-0.5"></i>
                         <span class="text-[9px] font-semibold">Route</span>
                         <?php if (!empty($active_dispatch) && in_array($active_dispatch['status'] ?? '', ['In Transit', 'Loading', 'Unloading'])): ?>
                             <span class="absolute top-1 right-1/4 w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                         <?php endif; ?>
                     </button>
-                    <button type="button" onclick="switchTab('trips')" id="bottom-nav-trips" class="bottom-nav-item flex-1">
+                    <button type="button" onclick="switchTab('trips')" id="bottom-nav-trips" class="bottom-nav-item <?= $activeDriverTabNav === 'trips' ? 'active' : ''; ?> flex-1">
                         <i class="fa-solid fa-route text-base mb-0.5"></i>
                         <span class="text-[9px] font-semibold">Trips</span>
                     </button>
-                    <button type="button" onclick="switchTab('cash_advance')" id="bottom-nav-cash_advance" class="bottom-nav-item flex-1 relative">
+                    <button type="button" onclick="switchTab('cash_advance')" id="bottom-nav-cash_advance" class="bottom-nav-item <?= $activeDriverTabNav === 'cash_advance' ? 'active' : ''; ?> flex-1 relative">
                         <i class="fa-solid fa-hand-holding-dollar text-base mb-0.5"></i>
                         <span class="text-[9px] font-semibold">Advance</span>
                         <?php if (($caPendingCount ?? 0) > 0): ?>
                             <span class="absolute top-1 right-1/4 w-2 h-2 rounded-full bg-amber-500"></span>
                         <?php endif; ?>
                     </button>
-                    <button type="button" onclick="switchTab('payroll')" id="bottom-nav-payroll" class="bottom-nav-item flex-1 relative">
+                    <button type="button" onclick="switchTab('payroll')" id="bottom-nav-payroll" class="bottom-nav-item <?= $activeDriverTabNav === 'payroll' ? 'active' : ''; ?> flex-1 relative">
                         <i class="fa-solid fa-wallet text-base mb-0.5"></i>
                         <span class="text-[9px] font-semibold">Payroll</span>
                         <?php if (($netPay ?? 0) > 0): ?>
                             <span class="absolute top-1 right-1/4 w-2 h-2 rounded-full bg-emerald-500"></span>
                         <?php endif; ?>
                     </button>
-                    <button type="button" onclick="switchTab('notifications')" id="bottom-nav-notifications" class="bottom-nav-item flex-1 relative">
+                    <button type="button" onclick="switchTab('notifications')" id="bottom-nav-notifications" class="bottom-nav-item <?= $activeDriverTabNav === 'notifications' ? 'active' : ''; ?> flex-1 relative">
                         <i class="fa-solid fa-bell text-base mb-0.5"></i>
                         <span class="text-[9px] font-semibold">Alerts</span>
                         <?php if (($unreadNotificationCount ?? 0) > 0): ?>
                             <span class="absolute top-1 right-1/4 w-2 h-2 rounded-full bg-rose-500"></span>
                         <?php endif; ?>
                     </button>
-                    <button type="button" onclick="switchTab('profile')" id="bottom-nav-profile" class="bottom-nav-item flex-1">
+                    <button type="button" onclick="switchTab('profile')" id="bottom-nav-profile" class="bottom-nav-item <?= $activeDriverTabNav === 'profile' ? 'active' : ''; ?> flex-1">
                         <i class="fa-solid fa-id-card text-base mb-0.5"></i>
                         <span class="text-[9px] font-semibold">Profile</span>
                     </button>

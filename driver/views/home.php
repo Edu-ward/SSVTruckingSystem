@@ -1,4 +1,5 @@
 <?php
+$currentDriverTab = $_GET['tab'] ?? 'dashboard';
 $driverFullName  = trim(($driverProfile['first_name'] ?? '') . ' ' . ($driverProfile['last_name'] ?? ''));
 $driverUsername  = $driverProfile['username'] ?? '';
 $driverPhotoPath = $driverProfile['profile_photo'] ?? null;
@@ -17,7 +18,7 @@ if (!empty($driverFullName)) {
 <!-- =========================================================
      TAB 1: DASHBOARD OVERVIEW
      ========================================================= -->
-<div id="view-dashboard" class="tab-content space-y-6">
+<div id="view-dashboard" class="tab-content <?= $currentDriverTab === 'dashboard' ? '' : 'hidden'; ?> space-y-6">
 
     <!-- Welcome Greeting & Quick Bar -->
     <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
@@ -248,7 +249,7 @@ if (!empty($driverFullName)) {
 <!-- =========================================================
      TAB 2: LIVE TRIP ROUTE & NAVIGATION
      ========================================================= -->
-<div id="view-route" class="tab-content hidden space-y-6">
+<div id="view-route" class="tab-content <?= $currentDriverTab === 'route' ? '' : 'hidden'; ?> space-y-6">
 
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden transition-all relative z-0">
         <!-- Route Banner -->
@@ -380,7 +381,7 @@ if (!empty($driverFullName)) {
 <!-- =========================================================
      TAB 3: TRIPS (WEEKLY VIEW WITH MONDAY-SUNDAY SELECTOR)
      ========================================================= -->
-<div id="view-trips" class="tab-content hidden space-y-6">
+<div id="view-trips" class="tab-content <?= $currentDriverTab === 'trips' ? '' : 'hidden'; ?> space-y-6">
 
     <!-- Page Header -->
     <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -707,7 +708,7 @@ if (!empty($driverFullName)) {
 <!-- =========================================================
      TAB 4: CASH ADVANCE (DEDICATED MENU)
      ========================================================= -->
-<div id="view-cash_advance" class="tab-content hidden space-y-6">
+<div id="view-cash_advance" class="tab-content <?= $currentDriverTab === 'cash_advance' ? '' : 'hidden'; ?> space-y-6">
 
     <!-- Header Banner with Request Advance Button -->
     <div class="bg-gradient-to-r from-amber-600 via-orange-600 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -847,7 +848,7 @@ if (!empty($driverFullName)) {
 <!-- =========================================================
      TAB 5: PAYROLL & COMPENSATION
      ========================================================= -->
-<div id="view-payroll" class="tab-content hidden space-y-6">
+<div id="view-payroll" class="tab-content <?= $currentDriverTab === 'payroll' ? '' : 'hidden'; ?> space-y-6">
 
     <!-- Header Banner -->
     <div class="bg-gradient-to-r from-emerald-700 via-teal-700 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1041,7 +1042,7 @@ if (!empty($driverFullName)) {
 <!-- =========================================================
      TAB 6: NOTIFICATIONS (NEW FEATURE TAB)
      ========================================================= -->
-<div id="view-notifications" class="tab-content hidden space-y-6">
+<div id="view-notifications" class="tab-content <?= $currentDriverTab === 'notifications' ? '' : 'hidden'; ?> space-y-6">
 
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1121,7 +1122,7 @@ if (!empty($driverFullName)) {
 <!-- =========================================================
      TAB 7: PROFILE & ACCOUNT SETTINGS
      ========================================================= -->
-<div id="view-profile" class="tab-content hidden space-y-6">
+<div id="view-profile" class="tab-content <?= $currentDriverTab === 'profile' ? '' : 'hidden'; ?> space-y-6">
 
     <!-- Profile Hero Card -->
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700/80 overflow-hidden">
@@ -1717,7 +1718,8 @@ if (!empty($driverFullName)) {
     // -------------------------------------------------------------
     // Leaflet Road Route Map & GPS
     // -------------------------------------------------------------
-    let driverMap = null;
+    var driverMap = null;
+    window.driverMap = null;
     let driverRoutePolyline = null;
     let driverOriginMarker = null;
     let driverDestMarker = null;
@@ -1782,6 +1784,25 @@ if (!empty($driverFullName)) {
         const mapContainer = document.getElementById('driverRouteMap');
         if (!mapContainer || typeof L === 'undefined') return;
 
+        // If map already initialized, just invalidate size and refresh bounds
+        if (driverMap || window.driverMap) {
+            const m = driverMap || window.driverMap;
+            setTimeout(() => {
+                m.invalidateSize();
+                if (typeof fitDriverRouteBounds === 'function') {
+                    fitDriverRouteBounds();
+                }
+            }, 100);
+            return;
+        }
+
+        // Prevent Leaflet "Map container is already initialized" error
+        if (mapContainer._leaflet_id) {
+            try {
+                mapContainer._leaflet_id = null;
+            } catch (e) {}
+        }
+
         try {
             const googleSatLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
                 maxZoom: 20,
@@ -1812,10 +1833,12 @@ if (!empty($driverFullName)) {
 
             driverMap = L.map('driverRouteMap', {
                 center: [GARAGE_LOCATION.lat, GARAGE_LOCATION.lng],
-                zoom: 12,
+                zoom: 13,
                 layers: [googleSatLayer],
-                zoomControl: true
+                zoomControl: true,
+                attributionControl: true
             });
+            window.driverMap = driverMap;
 
             L.control.layers({
                 "🛰️ Google Satellite": googleSatLayer,
@@ -1842,7 +1865,7 @@ if (!empty($driverFullName)) {
                     </div>
                 `);
 
-            if (activeDestName && activeDestName !== 'San Leonardo') {
+            if (activeDestName && activeDestName !== 'San Leonardo' && activeDestName !== 'San Leonardo Garage') {
                 resolveAndPlotRoute(activeDestName);
             } else {
                 const distEl = document.getElementById('routeDistanceText');
@@ -1855,9 +1878,34 @@ if (!empty($driverFullName)) {
 
             startDriverLiveLocation();
 
-            setTimeout(() => {
-                if (driverMap) driverMap.invalidateSize();
-            }, 300);
+            // Setup ResizeObserver for responsive auto-invalidate
+            if (window.ResizeObserver && mapContainer) {
+                const ro = new ResizeObserver(() => {
+                    if (window.driverMap) {
+                        window.driverMap.invalidateSize();
+                    }
+                });
+                ro.observe(mapContainer);
+            }
+
+            // Window resize listener
+            window.addEventListener('resize', function() {
+                if (window.driverMap) {
+                    window.driverMap.invalidateSize();
+                }
+            });
+
+            // Staggered invalidateSize ticks to ensure all tiles render seamlessly
+            const forceInvalidate = () => {
+                if (window.driverMap) {
+                    window.driverMap.invalidateSize();
+                }
+            };
+            requestAnimationFrame(forceInvalidate);
+            setTimeout(forceInvalidate, 100);
+            setTimeout(forceInvalidate, 300);
+            setTimeout(forceInvalidate, 600);
+            setTimeout(forceInvalidate, 1200);
 
         } catch (e) {
             console.error("Driver route map initialization error:", e);
@@ -2059,22 +2107,31 @@ if (!empty($driverFullName)) {
     }
 
     function fitDriverRouteBounds() {
-        if (!driverMap) return;
+        const m = driverMap || window.driverMap;
+        if (!m) return;
         const points = [];
         if (GARAGE_LOCATION) points.push([GARAGE_LOCATION.lat, GARAGE_LOCATION.lng]);
-        if (activeDestCoords) points.push([activeDestCoords.lat, activeDestCoords.lng]);
-        if (driverCurrentLat && driverCurrentLng) points.push([driverCurrentLat, driverCurrentLng]);
-
-        if (points.length > 0) {
-            const bounds = L.latLngBounds(points);
-            driverMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+        if (activeDestCoords && (activeDestCoords.lat !== GARAGE_LOCATION.lat || activeDestCoords.lng !== GARAGE_LOCATION.lng)) {
+            points.push([activeDestCoords.lat, activeDestCoords.lng]);
         }
+        if (driverCurrentLat && driverCurrentLng && (Math.abs(driverCurrentLat - GARAGE_LOCATION.lat) > 0.0001 || Math.abs(driverCurrentLng - GARAGE_LOCATION.lng) > 0.0001)) {
+            points.push([driverCurrentLat, driverCurrentLng]);
+        }
+
+        if (points.length >= 2) {
+            const bounds = L.latLngBounds(points);
+            m.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+        } else {
+            m.setView([GARAGE_LOCATION.lat, GARAGE_LOCATION.lng], 13);
+        }
+        setTimeout(() => m.invalidateSize(), 150);
     }
 
     function centerOnDriverLiveLocation() {
-        if (!driverMap) return;
+        const m = driverMap || window.driverMap;
+        if (!m) return;
         if (driverCurrentLat && driverCurrentLng) {
-            driverMap.flyTo([driverCurrentLat, driverCurrentLng], 15, { animate: true, duration: 1 });
+            m.flyTo([driverCurrentLat, driverCurrentLng], 15, { animate: true, duration: 1 });
             if (driverGpsMarker) driverGpsMarker.openPopup();
         } else {
             if (typeof showToast === 'function') showToast('GPS location is still synchronizing...', 'info');
@@ -2110,6 +2167,13 @@ if (!empty($driverFullName)) {
     }
 
     document.addEventListener("DOMContentLoaded", function() {
-        initDriverMap();
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get('tab') || 'dashboard';
+        if (tab === 'route') {
+            setTimeout(initDriverMap, 50);
+            setTimeout(() => {
+                if (window.driverMap) window.driverMap.invalidateSize();
+            }, 300);
+        }
     });
 </script>

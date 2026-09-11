@@ -21,13 +21,16 @@
             const bottomNavBtn = document.getElementById('bottom-nav-' + tabName);
             if (bottomNavBtn) bottomNavBtn.classList.add('active');
             if (tabName === 'tracking') {
-                setTimeout(() => {
+                const fixAdminMap = () => {
                     if (!map) {
                         initMap();
                     } else {
                         map.invalidateSize();
                     }
-                }, 250);
+                };
+                setTimeout(fixAdminMap, 50);
+                setTimeout(fixAdminMap, 250);
+                setTimeout(fixAdminMap, 600);
             }
             if (tabName === 'settings') {
                 setTimeout(() => {
@@ -201,9 +204,26 @@
 
                 renderMapMarkers(trackingData);
 
+                window.map = map;
+                if (window.ResizeObserver) {
+                    const mapEl = document.getElementById('map');
+                    if (mapEl) {
+                        new ResizeObserver(() => {
+                            if (map) map.invalidateSize();
+                        }).observe(mapEl);
+                    }
+                }
+                window.addEventListener('resize', () => { if (map) map.invalidateSize(); });
+
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 100);
                 setTimeout(() => {
                     map.invalidateSize();
                 }, 300);
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 600);
 
                 setInterval(refreshMap, 5000);
             } catch (error) {
@@ -2136,16 +2156,21 @@
             if (bottomNavBtn) bottomNavBtn.classList.add('active');
 
             if (tabName === 'route') {
-                setTimeout(() => {
-                    if (window.driverMap) {
-                        window.driverMap.invalidateSize();
+                const fixDriverMap = () => {
+                    const m = window.driverMap || (typeof driverMap !== 'undefined' ? driverMap : null);
+                    if (m) {
+                        m.invalidateSize();
                         if (typeof fitDriverRouteBounds === 'function') {
                             fitDriverRouteBounds();
                         }
                     } else if (typeof initDriverMap === 'function') {
                         initDriverMap();
                     }
-                }, 250);
+                };
+                setTimeout(fixDriverMap, 50);
+                setTimeout(fixDriverMap, 200);
+                setTimeout(fixDriverMap, 500);
+                setTimeout(fixDriverMap, 1000);
             }
 
             window.history.pushState({}, '', '?tab=' + tabName);
