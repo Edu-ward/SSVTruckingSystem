@@ -4,7 +4,7 @@ require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../includes/activity_log.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Driver') {
-    header("Location: index.php");
+    header("Location: ../index.php");
     exit;
 }
 

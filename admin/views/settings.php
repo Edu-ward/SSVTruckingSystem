@@ -28,6 +28,13 @@
             unset($_SESSION['dest_success']); ?>
         </div>
     <?php endif; ?>
+    <?php if (!empty($_SESSION['dest_warning'])): ?>
+        <div class="px-4 py-3 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-xl text-sm text-amber-800 dark:text-amber-300 flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <?= htmlspecialchars($_SESSION['dest_warning']);
+            unset($_SESSION['dest_warning']); ?>
+        </div>
+    <?php endif; ?>
     <?php if (!empty($_SESSION['dest_error'])): ?>
         <div class="px-4 py-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-xl text-sm text-red-800 dark:text-red-300 flex items-center gap-2">
             <i class="fa-solid fa-circle-xmark"></i>
@@ -43,6 +50,11 @@
                 <h3 class="text-base font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                     <i class="fa-solid fa-sliders text-blue-600 dark:text-blue-400"></i>
                     General Trip Pay Rates
+                    <?php if ($isSuperadmin): ?>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50">
+                            <i class="fa-solid fa-crown text-[9px] mr-0.5"></i> Superadmin Master Rates
+                        </span>
+                    <?php endif; ?>
                 </h3>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Set the flat rate for all trips within the San Leonardo radius and the per-kilometer rate for distance beyond the municipal boundary.
@@ -75,6 +87,75 @@
             <div>
                 <button type="submit" class="btn-primary text-sm w-full py-2.5 mb-6">
                     <i class="fa-solid fa-floppy-disk"></i><span>Save General Rates</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Operational Limits Settings Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 sm:p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-700">
+            <div>
+                <h3 class="text-base font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <i class="fa-solid fa-scale-balanced text-indigo-600 dark:text-indigo-400"></i>
+                    Business & Operational Limits
+                </h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Enforce business rules, dispatch quotas, operating hours window, and driver cash advance ceilings.
+                </p>
+            </div>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold <?= $isSuperadmin ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/40' : 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40' ?>">
+                <i class="fa-solid <?= $isSuperadmin ? 'fa-crown text-purple-500' : 'fa-shield-check text-indigo-500' ?>"></i>
+                <?= $isSuperadmin ? 'Superadmin System Rules' : 'Active System Rules' ?>
+            </span>
+        </div>
+        <form method="POST" action="dashboard.php?tab=settings" class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <input type="hidden" name="action" value="update_operational_limits">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Max Cash Advance Per Driver (₱)
+                </label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm font-bold">₱</span>
+                    <input type="number" step="100" min="500" max="50000" name="max_cash_advance" id="settingsMaxCashAdvance" value="<?= htmlspecialchars(number_format($MAX_CASH_ADVANCE ?? 5000.00, 2, '.', '')); ?>" required class="w-full pl-8 pr-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm font-semibold">
+                </div>
+                <span class="text-[11px] text-gray-400">Hard cap for unsettled advances</span>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Operating Hours Window
+                </label>
+                <div class="grid grid-cols-2 gap-2">
+                    <select name="op_hours_start" class="w-full px-2.5 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-xs font-semibold">
+                        <?php for ($h = 0; $h < 24; $h++): ?>
+                            <option value="<?= $h ?>" <?= ($OP_HOURS_START ?? 4) == $h ? 'selected' : '' ?>>
+                                <?= date('g A', mktime($h, 0)) ?>
+                            </option>
+                        <?php endfor; ?>
+                    </select>
+                    <select name="op_hours_end" class="w-full px-2.5 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-xs font-semibold">
+                        <?php for ($h = 0; $h < 24; $h++): ?>
+                            <option value="<?= $h ?>" <?= ($OP_HOURS_END ?? 21) == $h ? 'selected' : '' ?>>
+                                <?= date('g A', mktime($h, 0)) ?>
+                            </option>
+                        <?php endfor; ?>
+                    </select>
+                </div>
+                <span class="text-[11px] text-gray-400">Start / End (Asia/Manila)</span>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Daily Dispatch Cap Per Truck
+                </label>
+                <div class="relative">
+                    <input type="number" min="1" max="100" name="daily_truck_dispatch_limit" id="settingsTruckDispatchLimit" value="<?= htmlspecialchars((string)($DAILY_TRUCK_DISPATCH_LIMIT ?? 10)); ?>" required class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm font-semibold">
+                </div>
+                <span class="text-[11px] text-gray-400">Max dispatches allowed per truck daily (default: 10)</span>
+            </div>
+            <div>
+                <button type="submit" class="btn-primary text-sm w-full py-2.5 mb-6">
+                    <i class="fa-solid fa-floppy-disk"></i><span>Save Limits</span>
                 </button>
             </div>
         </form>
@@ -307,9 +388,26 @@
                             $dPay  = calculateTripPay($dDist, $dest['name'], $dRate);
                             $dActive = !empty($dest['is_active']);
                             ?>
+                            <?php
+                            $geoTerms = ['metro manila', 'makati', 'quezon city', 'pasig', 'marikina', 'parañaque', 'paranaque', 'pasay', 'caloocan', 'malabon', 'navotas', 'valenzuela', 'mandaluyong', 'las piñas', 'las pinas', 'muntinlupa', 'taguig', 'pateros', 'san juan', 'cebu', 'davao', 'mindanao', 'visayas', 'iloilo', 'cagayan de oro', 'zamboanga', 'bacolod', 'bohol', 'palawan', 'batangas', 'cavite', 'laguna', 'rizal'];
+                            $dnLow = strtolower($dest['name']);
+                            $isGeoFlagged = !empty($dest['is_out_of_area']);
+                            if (!$isGeoFlagged) {
+                                foreach ($geoTerms as $gt) {
+                                    if (strpos($dnLow, $gt) !== false) { $isGeoFlagged = true; break; }
+                                }
+                            }
+                            ?>
                             <tr class="hover:bg-gray-50/70 dark:hover:bg-gray-700/30 transition-colors dest-table-row" data-name="<?= htmlspecialchars(strtolower($dest['name'])) ?>">
                                 <td class="py-3 px-4">
-                                    <div class="font-semibold text-gray-800 dark:text-gray-200"><?= htmlspecialchars($dest['name']) ?></div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-semibold text-gray-800 dark:text-gray-200"><?= htmlspecialchars($dest['name']) ?></span>
+                                        <?php if ($isGeoFlagged): ?>
+                                            <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 border border-amber-300 dark:border-amber-700 flex items-center gap-1" title="Destination appears outside typical service area">
+                                                <i class="fa-solid fa-triangle-exclamation text-[10px]"></i> Out of Area
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
                                 <td class="py-3 px-4">
                                     <span class="font-medium text-gray-700 dark:text-gray-300"><?= $dDist > 0 ? $dDist . ' km' : '<span class="text-gray-400 italic">Auto/OSM</span>' ?></span>
@@ -524,10 +622,10 @@
         });
         window.settingsSimulatorMap = settingsSimMap;
 
-        L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-            maxZoom: 20,
-            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-            attribution: '&copy; Google Maps Satellite'
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            subdomains: ['a', 'b', 'c'],
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
         }).addTo(settingsSimMap);
 
         const garageIcon = L.divIcon({

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
     
-    <title><?= ($_SESSION['role'] === 'Admin') ? 'SSV Trucking - Admin Panel' : (($_SESSION['role'] === 'Checker') ? 'Checker Panel - SSV Trucking' : 'Driver Panel - SSV Trucking') ?></title>
+    <title><?= (in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin'])) ? (($_SESSION['role'] === 'Superadmin') ? 'SSV Trucking - Superadmin Panel' : 'SSV Trucking - Admin Panel') : (($_SESSION['role'] === 'Checker') ? 'Checker Panel - SSV Trucking' : 'Driver Panel - SSV Trucking') ?></title>
 
     <script>
         if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -68,7 +68,7 @@
                     if (!sessionConfirmed) {
                         triggerTabLogout();
                     }
-                }, 120);
+                }, 800);
             } else {
                 triggerTabLogout();
             }
@@ -113,10 +113,11 @@
         }
     </script>
 
-    <?php if (in_array($_SESSION['role'] ?? '', ['Admin', 'Driver'])): ?>
+    <?php if (in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin', 'Driver'])): ?>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <?php endif; ?>
-    <?php if (($_SESSION['role'] ?? '') === 'Admin'): ?>
+    <?php if (in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin'])): ?>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <?php endif; ?>
     <?php if (($_SESSION['role'] ?? '') === 'Driver'): ?>
@@ -274,7 +275,7 @@
             color: #9ca3af !important;
         }
 
-        <?php if ($_SESSION['role'] === 'Admin'): ?>#map {
+        <?php if (in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin'])): ?>#map {
             height: 700px;
             width: 100%;
             border-radius: 1rem;
@@ -455,7 +456,7 @@
         </div>
     </div>
 
-    <?php if ($_SESSION['role'] === 'Admin'): ?>
+    <?php if (in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin'])): ?>
 
         <div id="sidebar-overlay" class="sidebar-backdrop fixed inset-0 bg-black/50 z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
 
@@ -471,7 +472,7 @@
                     </div>
                     <div class="min-w-0">
                         <h1 class="text-sm font-bold text-gray-900 dark:text-white truncate">SSV Trucking</h1>
-                        <p class="text-[11px] text-gray-400 dark:text-gray-500 font-medium">Admin Panel</p>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 font-medium"><?= ($_SESSION['role'] ?? '') === 'Superadmin' ? 'Superadmin Panel' : 'Admin Panel' ?></p>
                     </div>
                 </div>
                 
@@ -490,63 +491,75 @@
 
             
             <nav class="flex-1 px-3 py-1 space-y-0.5 overflow-y-auto overscroll-contain no-scrollbar">
-                <p class="px-3 text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-widest my-1">Main Menu</p>
-                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="sidebar-nav-item active w-full">
-                    <i class="fa-solid fa-border-all nav-icon"></i>
-                    <span>Dashboard</span>
-                </button>
-                <button onclick="switchTab('tracking')" id="nav-tracking" class="sidebar-nav-item w-full">
-                    <i class="fa-solid fa-map-location-dot nav-icon"></i>
-                    <span>Live Tracking</span>
-                </button>
-                <button onclick="switchTab('dispatches')" id="nav-dispatches" class="sidebar-nav-item w-full">
-                    <i class="fa-regular fa-file-lines nav-icon"></i>
-                    <span>Dispatches</span>
-                </button>
+                <?php if (($_SESSION['role'] ?? '') === 'Superadmin'): ?>
+                    <p class="px-3 text-[10px] font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest my-1.5">Account & Access Control</p>
+                    <button onclick="switchTab('admin_management')" id="nav-admin_management" class="sidebar-nav-item w-full">
+                        <i class="fa-solid fa-user-shield nav-icon text-indigo-500"></i>
+                        <span>Admin Accounts</span>
+                    </button>
+                    <button onclick="switchTab('activity_logs')" id="nav-activity_logs" class="sidebar-nav-item w-full">
+                        <i class="fa-solid fa-clock-rotate-left nav-icon text-indigo-500"></i>
+                        <span>Activity Logs</span>
+                    </button>
+                <?php else: ?>
+                    <p class="px-3 text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-widest my-1">Main Menu</p>
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="sidebar-nav-item active w-full">
+                        <i class="fa-solid fa-border-all nav-icon"></i>
+                        <span>Dashboard</span>
+                    </button>
+                    <button onclick="switchTab('tracking')" id="nav-tracking" class="sidebar-nav-item w-full">
+                        <i class="fa-solid fa-map-location-dot nav-icon"></i>
+                        <span>Live Tracking</span>
+                    </button>
+                    <button onclick="switchTab('dispatches')" id="nav-dispatches" class="sidebar-nav-item w-full">
+                        <i class="fa-regular fa-file-lines nav-icon"></i>
+                        <span>Dispatches</span>
+                    </button>
 
-                <p class="px-3 pt-2 text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-widest my-1">Management</p>
-                <button onclick="switchTab('fleet')" id="nav-fleet" class="sidebar-nav-item w-full">
-                    <i class="fa-solid fa-truck-fast nav-icon"></i>
-                    <span>Fleet</span>
-                </button>
-                <button onclick="switchTab('drivers')" id="nav-drivers" class="sidebar-nav-item w-full">
-                    <i class="fa-solid fa-users nav-icon"></i>
-                    <span>Drivers</span>
-                </button>
-                <button onclick="switchTab('payroll')" id="nav-payroll" class="sidebar-nav-item w-full">
-                    <i class="fa-solid fa-wallet nav-icon"></i>
-                    <span class="flex-1 text-left">Payroll</span>
-                </button>
-                <button onclick="switchTab('cash_advances')" id="nav-cash_advances" class="sidebar-nav-item w-full">
-                    <i class="fa-solid fa-hand-holding-dollar nav-icon"></i>
-                    <span class="flex-1 text-left">Cash Advances</span>
-                    <?php if (($pendingCashAdvanceCount ?? 0) > 0): ?>
-                        <span id="cashAdvanceBadge" class="ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-amber-500 text-white flex items-center justify-center"><?= $pendingCashAdvanceCount ?></span>
-                    <?php endif; ?>
-                </button>
-                <button onclick="switchTab('orders')" id="nav-orders" class="sidebar-nav-item w-full">
-                    <i class="fa-solid fa-clipboard-list nav-icon"></i>
-                    <span>Orders</span>
-                </button>
-                <button onclick="switchTab('reports')" id="nav-reports" class="sidebar-nav-item w-full">
-                    <i class="fa-solid fa-chart-column nav-icon"></i>
-                    <span>Reports</span>
-                </button>
-                <button onclick="switchTab('activity_logs')" id="nav-activity_logs" class="sidebar-nav-item w-full">
-                    <i class="fa-solid fa-clock-rotate-left nav-icon"></i>
-                    <span>Activity Logs</span>
-                </button>
-                <button onclick="switchTab('pwd_requests')" id="nav-pwd_requests" class="sidebar-nav-item w-full">
-                    <i class="fa-solid fa-key nav-icon"></i>
-                    <span class="flex-1 text-left">Password Requests</span>
-                    <?php if (($pendingPwdResetCount ?? 0) > 0): ?>
-                        <span id="pwdResetBadge" class="ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-red-500 text-white flex items-center justify-center"><?= $pendingPwdResetCount ?></span>
-                    <?php endif; ?>
-                </button>
-                <button onclick="switchTab('settings')" id="nav-settings" class="sidebar-nav-item w-full">
-                    <i class="fa-solid fa-sliders nav-icon"></i>
-                    <span>Settings</span>
-                </button>
+                    <p class="px-3 pt-2 text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-widest my-1">Management</p>
+                    <button onclick="switchTab('fleet')" id="nav-fleet" class="sidebar-nav-item w-full">
+                        <i class="fa-solid fa-truck-fast nav-icon"></i>
+                        <span>Fleet</span>
+                    </button>
+                    <button onclick="switchTab('drivers')" id="nav-drivers" class="sidebar-nav-item w-full">
+                        <i class="fa-solid fa-users nav-icon"></i>
+                        <span>Drivers</span>
+                    </button>
+                    <button onclick="switchTab('payroll')" id="nav-payroll" class="sidebar-nav-item w-full">
+                        <i class="fa-solid fa-wallet nav-icon"></i>
+                        <span class="flex-1 text-left">Payroll</span>
+                    </button>
+                    <button onclick="switchTab('cash_advances')" id="nav-cash_advances" class="sidebar-nav-item w-full">
+                        <i class="fa-solid fa-hand-holding-dollar nav-icon"></i>
+                        <span class="flex-1 text-left">Cash Advances</span>
+                        <?php if (($pendingCashAdvanceCount ?? 0) > 0): ?>
+                            <span id="cashAdvanceBadge" class="ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-amber-500 text-white flex items-center justify-center"><?= $pendingCashAdvanceCount ?></span>
+                        <?php endif; ?>
+                    </button>
+                    <button onclick="switchTab('orders')" id="nav-orders" class="sidebar-nav-item w-full">
+                        <i class="fa-solid fa-clipboard-list nav-icon"></i>
+                        <span>Orders</span>
+                    </button>
+                    <button onclick="switchTab('reports')" id="nav-reports" class="sidebar-nav-item w-full">
+                        <i class="fa-solid fa-chart-column nav-icon"></i>
+                        <span>Reports</span>
+                    </button>
+                    <button onclick="switchTab('activity_logs')" id="nav-activity_logs" class="sidebar-nav-item w-full">
+                        <i class="fa-solid fa-clock-rotate-left nav-icon"></i>
+                        <span>Activity Logs</span>
+                    </button>
+                    <button onclick="switchTab('pwd_requests')" id="nav-pwd_requests" class="sidebar-nav-item w-full">
+                        <i class="fa-solid fa-key nav-icon"></i>
+                        <span class="flex-1 text-left">Password Requests</span>
+                        <?php if (($pendingPwdResetCount ?? 0) > 0): ?>
+                            <span id="pwdResetBadge" class="ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-red-500 text-white flex items-center justify-center"><?= $pendingPwdResetCount ?></span>
+                        <?php endif; ?>
+                    </button>
+                    <button onclick="switchTab('settings')" id="nav-settings" class="sidebar-nav-item w-full">
+                        <i class="fa-solid fa-sliders nav-icon"></i>
+                        <span>Settings</span>
+                    </button>
+                <?php endif; ?>
             </nav>
 
             
@@ -579,15 +592,143 @@
                 </div>
             </div>
             <div class="flex items-center space-x-2">
-                
+                <?php
+                $notifBadgeClass = ($adminNotifUrgentCount ?? 0) > 0 ? 'bg-rose-500 animate-pulse' : 'bg-amber-500';
+                $notifBadgeNum   = ($adminNotifTotalBadge ?? 0);
+                ?>
+                <div class="relative" id="adminNotifContainerMobile">
+                    <button type="button" onclick="toggleAdminNotifDropdown(event)" class="relative w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-all active:scale-95 cursor-pointer" title="Notifications" aria-label="Notifications">
+                        <i class="fa-solid fa-bell text-sm"></i>
+                        <?php if ($notifBadgeNum > 0): ?>
+                            <span class="admin-notif-badge absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full <?= $notifBadgeClass ?> text-white text-[10px] font-extrabold flex items-center justify-center shadow-md">
+                                <?= $notifBadgeNum > 99 ? '99+' : $notifBadgeNum ?>
+                            </span>
+                        <?php endif; ?>
+                    </button>
+                </div>
+                <button onclick="toggleTheme(event)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-all active:scale-95" aria-label="Toggle theme">
+                    <i class="themeIconMobile fa-solid fa-moon text-sm"></i>
+                </button>
                 <a href="../logout.php" onclick="confirmLogout(event)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 border border-red-200/60 dark:border-red-800/40 transition-all shadow-sm active:scale-95" title="Logout" aria-label="Logout">
                     <i class="fa-solid fa-right-from-bracket text-sm"></i>
                 </a>
             </div>
         </div>
 
+        <!-- Admin Notification Dropdown Panel (Fixed popup for both desktop and mobile) -->
+        <div id="adminNotifDropdown" class="hidden fixed top-16 right-3 sm:right-6 lg:right-8 w-80 sm:w-96 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 z-[100] overflow-hidden">
+            <div class="p-3.5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/70 dark:bg-gray-800/60">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-bell text-blue-600 dark:text-blue-400"></i>
+                    <span class="font-bold text-sm text-gray-900 dark:text-gray-100">Notifications</span>
+                    <?php if ($notifBadgeNum > 0): ?>
+                        <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full <?= ($adminNotifUrgentCount ?? 0) > 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300' ?>">
+                            <?= $notifBadgeNum ?> new
+                        </span>
+                    <?php endif; ?>
+                </div>
+                <button type="button" onclick="toggleAdminNotifDropdown(false)" class="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+            <!-- Priority Groups List -->
+            <div class="max-h-96 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800/80 no-scrollbar">
+                <?php if (empty($adminNotifications)): ?>
+                    <div class="py-10 px-4 text-center text-gray-400 dark:text-gray-500 text-xs">
+                        <i class="fa-regular fa-bell-slash text-3xl mb-2 text-gray-300 dark:text-gray-600 block"></i>
+                        <p class="font-medium">No active notifications</p>
+                        <p class="text-[11px] text-gray-400 mt-0.5">All trips, orders, and requests are up to date.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($adminNotifications as $notif):
+                        $p = $notif['priority'];
+                        $borderCol = $p === 1 ? 'border-l-4 border-l-rose-500 bg-rose-50/25 dark:bg-rose-950/20' : ($p === 2 ? 'border-l-4 border-l-amber-500 bg-amber-50/20 dark:bg-amber-950/15' : 'border-l-4 border-l-emerald-500');
+                        $badgeStyle = $p === 1 ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300' : ($p === 2 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300');
+                        $badgeText = $p === 1 ? '🔴 URGENT' : ($p === 2 ? '🟡 ACTION NEEDED' : '🟢 INFO');
+                    ?>
+                        <div class="p-3.5 hover:bg-gray-50/90 dark:hover:bg-gray-800/50 transition <?= $borderCol ?>">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded <?= $badgeStyle ?>">
+                                    <?= $badgeText ?>
+                                </span>
+                                <span class="text-[10px] text-gray-400 dark:text-gray-500">
+                                    <?= !empty($notif['ts']) ? date('g:i A', $notif['ts']) : '' ?>
+                                </span>
+                            </div>
+                            <div class="text-xs font-bold text-gray-900 dark:text-gray-100 mt-1">
+                                <?= htmlspecialchars($notif['title']) ?>
+                            </div>
+                            <p class="text-[11px] text-gray-600 dark:text-gray-300 mt-0.5 leading-relaxed">
+                                <?= $notif['body'] ?>
+                            </p>
+                            <div class="mt-2 flex justify-end">
+                                <button type="button" onclick="handleNotifNavigate('<?= htmlspecialchars($notif['tab']) ?>')" class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 cursor-pointer">
+                                    <span>Go to <?= ucfirst(htmlspecialchars($notif['tab'])) ?></span>
+                                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+
         
         <div id="main-content" class="lg:ml-72 min-h-screen pt-16 lg:pt-0 pb-12 lg:pb-0 transition-all duration-300">
+            <!-- Desktop Admin Top Header Bar -->
+            <header class="hidden lg:flex items-center justify-between px-6 lg:px-8 py-3.5 bg-white/80 dark:bg-gray-950/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30">
+                <div class="flex items-center space-x-3">
+                    <?php if (($_SESSION['role'] ?? '') === 'Superadmin'): ?>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse"></span>
+                            <span class="text-xs font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wider">Superadmin Console</span>
+                            <span class="text-[11px] text-gray-400 dark:text-gray-500 hidden sm:inline">&bull; Admin Accounts &amp; Audit Logs Control</span>
+                        </div>
+                    <?php else: ?>
+                        <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">Operating Hours:</span>
+                        <?php
+                        $currH = (int)date('G');
+                        $isOperating = ($currH >= ($OP_HOURS_START ?? 4) && $currH < ($OP_HOURS_END ?? 21));
+                        ?>
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold <?= $isOperating ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40' : 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40' ?>" id="topbar-op-hours-badge">
+                            <span class="w-2 h-2 rounded-full <?= $isOperating ? 'bg-emerald-500' : 'bg-amber-500' ?>"></span>
+                            <?= $isOperating ? 'Active (' . date('g:i A', mktime($OP_HOURS_START ?? 4, 0)) . ' – ' . date('g:i A', mktime($OP_HOURS_END ?? 21, 0)) . ')' : 'Off-Hours Mode' ?>
+                        </span>
+                    <?php endif; ?>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <!-- Notification Bell (Desktop) -->
+                    <div class="relative" id="adminNotifContainerDesktop">
+                        <button type="button" onclick="toggleAdminNotifDropdown(event)" class="relative w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-all active:scale-95 cursor-pointer" title="Notifications" aria-label="Notifications">
+                            <i class="fa-solid fa-bell text-base"></i>
+                            <?php if ($notifBadgeNum > 0): ?>
+                                <span class="admin-notif-badge absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full <?= $notifBadgeClass ?> text-white text-[10px] font-extrabold flex items-center justify-center shadow-md">
+                                    <?= $notifBadgeNum > 99 ? '99+' : $notifBadgeNum ?>
+                                </span>
+                            <?php endif; ?>
+                        </button>
+                    </div>
+                    <!-- Theme Toggle (Desktop) -->
+                    <button onclick="toggleTheme(event)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-all active:scale-95" title="Toggle Theme" aria-label="Toggle Theme">
+                        <i class="themeIconDesktop fa-solid fa-moon text-sm"></i>
+                    </button>
+                    <!-- Admin Avatar Badge -->
+                    <div class="flex items-center space-x-2 pl-2 border-l border-gray-200 dark:border-gray-800">
+                        <div class="w-9 h-9 rounded-xl <?= ($_SESSION['role'] ?? '') === 'Superadmin' ? 'bg-gradient-to-tr from-indigo-600 to-purple-600 shadow-indigo-500/20' : 'bg-blue-600' ?> text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                            <?= ($_SESSION['role'] ?? '') === 'Superadmin' ? 'SA' : 'AD' ?>
+                        </div>
+                        <div class="text-left hidden xl:block">
+                            <div class="text-xs font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                                <span><?= htmlspecialchars($_SESSION['username'] ?? 'Admin') ?></span>
+                                <?php if (($_SESSION['role'] ?? '') === 'Superadmin'): ?>
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">Super</span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="text-[10px] text-gray-400 dark:text-gray-500"><?= ($_SESSION['role'] ?? '') === 'Superadmin' ? 'Super Administrator' : 'System Admin' ?></div>
+                        </div>
+                    </div>
+                </div>
+            </header>
 
         <?php elseif ($_SESSION['role'] === 'Checker'): ?>
 

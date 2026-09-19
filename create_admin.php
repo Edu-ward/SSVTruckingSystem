@@ -21,6 +21,11 @@ if ($isCli) {
     }
     $username = $argv[1] ?? 'admin';
     $password = $argv[2] ?? 'adminpass99';
+    $role = $argv[3] ?? 'Superadmin';
+
+    if (!in_array($role, ['Admin', 'Superadmin'])) {
+        $role = 'Superadmin';
+    }
 
     $hash = password_hash($password, PASSWORD_BCRYPT);
 
@@ -29,15 +34,16 @@ if ($isCli) {
     $existing = $stmt->fetch();
 
     if ($existing) {
-        $update = $pdo->prepare("UPDATE users SET password = ?, role = 'Admin' WHERE id = ?");
-        $update->execute([$hash, $existing['id']]);
-        echo "[SUCCESS] Admin account '{$username}' password was updated!" . PHP_EOL;
+        $update = $pdo->prepare("UPDATE users SET password = ?, role = ?, status = 'Active' WHERE id = ?");
+        $update->execute([$hash, $role, $existing['id']]);
+        echo "[SUCCESS] {$role} account '{$username}' password and role updated!" . PHP_EOL;
     } else {
-        $insert = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'Admin')");
-        $insert->execute([$username, $hash]);
-        echo "[SUCCESS] Admin account '{$username}' was created successfully!" . PHP_EOL;
+        $insert = $pdo->prepare("INSERT INTO users (username, password, role, status) VALUES (?, ?, ?, 'Active')");
+        $insert->execute([$username, $hash, $role]);
+        echo "[SUCCESS] {$role} account '{$username}' was created successfully!" . PHP_EOL;
     }
     echo "Password: {$password}" . PHP_EOL;
+    echo "Role: {$role}" . PHP_EOL;
     echo "Login at: index.php" . PHP_EOL;
     exit(0);
 }
@@ -56,6 +62,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($pdo)) {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     $confirmPassword = $_POST['confirm_password'] ?? '';
+    $role = trim($_POST['role'] ?? 'Superadmin');
+    if (!in_array($role, ['Admin', 'Superadmin'])) {
+        $role = 'Superadmin';
+    }
 
     if (empty($username) || empty($password)) {
         $message = "Please fill in all fields.";
@@ -75,14 +85,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($pdo)) {
             $hash = password_hash($password, PASSWORD_BCRYPT);
 
             if ($existing) {
-                $update = $pdo->prepare("UPDATE users SET password = ?, role = 'Admin' WHERE id = ?");
-                $update->execute([$hash, $existing['id']]);
-                $message = "Admin account '<strong>" . htmlspecialchars($username) . "</strong>' password has been updated successfully!";
+                $update = $pdo->prepare("UPDATE users SET password = ?, role = ?, status = 'Active' WHERE id = ?");
+                $update->execute([$hash, $role, $existing['id']]);
+                $message = "{$role} account '<strong>" . htmlspecialchars($username) . "</strong>' has been updated successfully!";
                 $messageType = "success";
             } else {
-                $insert = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'Admin')");
-                $insert->execute([$username, $hash]);
-                $message = "Admin account '<strong>" . htmlspecialchars($username) . "</strong>' created successfully!";
+                $insert = $pdo->prepare("INSERT INTO users (username, password, role, status) VALUES (?, ?, ?, 'Active')");
+                $insert->execute([$username, $hash, $role]);
+                $message = "{$role} account '<strong>" . htmlspecialchars($username) . "</strong>' created successfully!";
                 $messageType = "success";
             }
         } catch (PDOException $e) {
@@ -96,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($pdo)) {
 $existingAdmins = [];
 if (isset($pdo)) {
     try {
-        $stmt = $pdo->query("SELECT id, username, created_at FROM users WHERE role = 'Admin' ORDER BY id ASC");
+        $stmt = $pdo->query("SELECT id, username, role, status, created_at FROM users WHERE role IN ('Admin', 'Superadmin') ORDER BY (role = 'Superadmin') DESC, id ASC");
         $existingAdmins = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (Throwable $e) {
         $existingAdmins = [];
@@ -215,6 +225,14 @@ if (isset($pdo)) {
                         <input type="text" id="usernameInput" name="username" required value="admin" placeholder="e.g. admin"
                             class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-gray-900/80 border border-gray-700 text-gray-100 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
                     </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1.5">Account Role</label>
+                    <select name="role" class="w-full px-3 py-2.5 rounded-xl bg-gray-900/80 border border-gray-700 text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="Superadmin" selected>Superadmin (Full Control)</option>
+                        <option value="Admin">Admin (Standard Operator)</option>
+                    </select>
                 </div>
 
                 <div>

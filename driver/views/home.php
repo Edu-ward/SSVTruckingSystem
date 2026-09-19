@@ -1829,16 +1829,10 @@ if (!empty($driverFullName)) {
         }
 
         try {
-            const googleSatLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                maxZoom: 20,
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                attribution: '&copy; Google Maps Satellite'
-            });
-
-            const googleStreetLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-                maxZoom: 20,
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                attribution: '&copy; Google Maps'
+            const streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                subdomains: ['a', 'b', 'c'],
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
             });
 
             const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -1850,26 +1844,18 @@ if (!empty($driverFullName)) {
             });
             const satelliteLayer = L.layerGroup([esriImagery, esriLabels]);
 
-            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                subdomains: ['a', 'b', 'c'],
-                attribution: '&copy; OpenStreetMap contributors'
-            });
-
             driverMap = L.map('driverRouteMap', {
                 center: [GARAGE_LOCATION.lat, GARAGE_LOCATION.lng],
                 zoom: 13,
-                layers: [googleSatLayer],
+                layers: [streetLayer],
                 zoomControl: true,
                 attributionControl: true
             });
             window.driverMap = driverMap;
 
             L.control.layers({
-                "🛰️ Google Satellite": googleSatLayer,
-                "🌐 Google Streets": googleStreetLayer,
-                "🛰️ Satellite (Hybrid)": satelliteLayer,
-                "🗺️ OpenStreetMap": streetLayer
+                "🗺️ OpenStreetMap": streetLayer,
+                "🛰️ Satellite (Hybrid)": satelliteLayer
             }, null, { position: 'topright' }).addTo(driverMap);
 
             const originIcon = L.divIcon({

@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/security_headers.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin'])) {
     http_response_code(403);
     echo json_encode(['error' => 'Unauthorized']);
     exit;

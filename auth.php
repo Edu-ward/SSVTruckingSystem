@@ -39,7 +39,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password'])) {
-        
+        // Account active status check (applies to Admin, Superadmin, etc.)
+        if (($user['status'] ?? 'Active') === 'Inactive' || ($user['status'] ?? 'Active') === 'Suspended') {
+            log_activity($pdo, 'Failed Login', 'Deactivated account tried to log in: ' . $username);
+            header("Location: index.php?error=inactive");
+            exit;
+        }
+
         if ($user['role'] == 'Driver') {
             $chkStatus = $pdo->prepare("SELECT status FROM drivers WHERE id = ?");
             $chkStatus->execute([$user['id']]);
@@ -70,7 +76,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         log_activity($pdo, 'Login', 'Logged in successfully as ' . $user['role']);
 
-        if ($user['role'] == 'Admin') {
+        if ($user['role'] === 'Superadmin') {
+            header("Location: admin/dashboard.php?tab=admin_management");
+            exit;
+        } elseif ($user['role'] === 'Admin') {
             header("Location: admin/dashboard.php");
             exit;
         } elseif ($user['role'] == 'Driver') {

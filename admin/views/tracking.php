@@ -17,8 +17,8 @@
                 </div>
                 <span id="map-last-updated" class="text-xs text-gray-400 dark:text-gray-500 font-mono"></span>
             </div>
-            <div class="flex-grow border border-gray-200/80 dark:border-gray-700/80 rounded-2xl overflow-hidden relative shadow-inner min-h-[360px] sm:min-h-[520px]">
-                <div id="map" class="absolute inset-0 w-full h-full"></div>
+            <div class="w-full h-[520px] sm:h-[620px] rounded-2xl overflow-hidden border border-gray-200/80 dark:border-gray-700/80 relative shadow-inner">
+                <div id="map" class="w-full h-full" style="width: 100%; height: 100%; min-height: 480px; z-index: 1;"></div>
                 
                 <button onclick="recenterMap()" id="locateMeBtn"
                     title="Center map on fleet"

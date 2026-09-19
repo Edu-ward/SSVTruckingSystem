@@ -1,13 +1,17 @@
 <?php ?>
-<?php if (in_array($_SESSION['role'] ?? '', ['Admin', 'Driver'])): ?>
+<?php if (in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin', 'Driver'])): ?>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <?php endif; ?>
 
-<?php if ($_SESSION['role'] === 'Admin'): ?>
+<?php if (in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin'])): ?>
     
     <script>
+        // Expose CSRF token for JS-initiated admin API calls
+        const _csrfToken = <?= json_encode($_SESSION['csrf_token'] ?? '') ?>;
+
+        const isSuperadminUser = <?= json_encode($isSuperadmin ?? (($_SESSION['role'] ?? '') === 'Superadmin')) ?>;
         const urlParams = new URLSearchParams(window.location.search);
-        const activeTab = urlParams.get('tab') || 'dashboard';
+        const activeTab = urlParams.get('tab') || (isSuperadminUser ? 'admin_management' : 'dashboard');
         let map = null;
 
         function switchTab(tabName) {
@@ -55,7 +59,337 @@
         }
         switchTab(activeTab);
 
+        // ── Admin Notification Center Controls ──────────────────────────────────
+        function toggleAdminNotifDropdown(state) {
+            const dropdown = document.getElementById('adminNotifDropdown');
+            if (!dropdown) return;
+            if (typeof state === 'boolean') {
+                if (state) dropdown.classList.remove('hidden');
+                else dropdown.classList.add('hidden');
+                return;
+            }
+            if (state && state.stopPropagation) state.stopPropagation();
+            dropdown.classList.toggle('hidden');
+        }
+
+        function handleNotifNavigate(tabName) {
+            toggleAdminNotifDropdown(false);
+            if (typeof switchTab === 'function') {
+                switchTab(tabName);
+            }
+        }
+
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('adminNotifDropdown');
+            if (dropdown && !dropdown.classList.contains('hidden')) {
+                const btnM = document.getElementById('adminNotifContainerMobile');
+                const btnD = document.getElementById('adminNotifContainerDesktop');
+                if (!dropdown.contains(e.target) && (!btnM || !btnM.contains(e.target)) && (!btnD || !btnD.contains(e.target))) {
+                    dropdown.classList.add('hidden');
+                }
+            }
+        });
+
+        // ── Dashboard Drill-Down Drawer ──────────────────────────────────────────
+        let _currentDrillDownType = null;
+
+        function closeDrillDown() {
+            const panel = document.getElementById('drill-down-panel');
+            if (panel) panel.classList.add('hidden');
+            document.querySelectorAll('.drill-chevron').forEach(el => el.classList.remove('rotate-180'));
+            _currentDrillDownType = null;
+        }
+
+        function openDrillDown(type) {
+            const panel = document.getElementById('drill-down-panel');
+            const icon = document.getElementById('drill-down-icon');
+            const title = document.getElementById('drill-down-title');
+            const subtitle = document.getElementById('drill-down-subtitle');
+            const link = document.getElementById('drill-down-link');
+            const content = document.getElementById('drill-down-content');
+            if (!panel || !content) return;
+
+            if (_currentDrillDownType === type) {
+                closeDrillDown();
+                return;
+            }
+
+            _currentDrillDownType = type;
+            document.querySelectorAll('.drill-chevron').forEach(el => el.classList.remove('rotate-180'));
+            const chevron = document.getElementById('chevron-' + type);
+            if (chevron) chevron.classList.add('rotate-180');
+
+            const data = window.drillDownData || {};
+            let html = '';
+
+            if (type === 'fleet') {
+                icon.innerHTML = '<i class="fa-solid fa-truck text-blue-600 dark:text-blue-400"></i>';
+                title.textContent = 'Registered Fleet Vehicles';
+                subtitle.textContent = `${(data.fleet || []).length} registered trucks in system`;
+                link.setAttribute('onclick', "switchTab('fleet')");
+                link.innerHTML = '<span>Manage Fleet</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>';
+
+                const trucks = data.fleet || [];
+                if (trucks.length === 0) {
+                    html = '<div class="text-center py-6 text-gray-400 text-xs">No registered trucks found.</div>';
+                } else {
+                    html = `
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="border-b border-gray-100 dark:border-gray-700 text-gray-400 uppercase text-[10px] tracking-wider">
+                                    <th class="py-2.5 px-3">Plate / Code</th>
+                                    <th class="py-2.5 px-3">Status</th>
+                                    <th class="py-2.5 px-3">Assigned Driver(s)</th>
+                                    <th class="py-2.5 px-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60 font-medium text-gray-700 dark:text-gray-300">
+                    `;
+                    trucks.forEach(t => {
+                        const sColor = t.status === 'Idle' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : (t.status === 'In Transit' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300');
+                        html += `
+                            <tr class="hover:bg-gray-50/70 dark:hover:bg-gray-750 transition">
+                                <td class="py-2.5 px-3 font-bold text-gray-900 dark:text-white">${escapeHtml(t.truck_code)}</td>
+                                <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${sColor}">${escapeHtml(t.status)}</span></td>
+                                <td class="py-2.5 px-3">${escapeHtml(t.driver_names || 'None Assigned')}</td>
+                                <td class="py-2.5 px-3 text-right">
+                                    <button onclick="switchTab('fleet')" class="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">View</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    html += `</tbody></table>`;
+                }
+            } else if (type === 'active') {
+                icon.innerHTML = '<i class="fa-solid fa-route text-emerald-600 dark:text-emerald-400"></i>';
+                title.textContent = 'Active On-the-Road Dispatches';
+                subtitle.textContent = `${(data.active || []).length} live dispatches currently in progress`;
+                link.setAttribute('onclick', "switchTab('dispatches')");
+                link.innerHTML = '<span>Dispatches Tab</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>';
+
+                const activeDisps = data.active || [];
+                if (activeDisps.length === 0) {
+                    html = '<div class="text-center py-6 text-gray-400 text-xs">No active dispatches right now. All trucks are currently at the garage.</div>';
+                } else {
+                    html = `
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="border-b border-gray-100 dark:border-gray-700 text-gray-400 uppercase text-[10px] tracking-wider">
+                                    <th class="py-2.5 px-3">Ticket #</th>
+                                    <th class="py-2.5 px-3">Truck & Driver</th>
+                                    <th class="py-2.5 px-3">Destination</th>
+                                    <th class="py-2.5 px-3">ETA</th>
+                                    <th class="py-2.5 px-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60 font-medium text-gray-700 dark:text-gray-300">
+                    `;
+                    activeDisps.forEach(d => {
+                        const etaFormatted = d.estimated_arrival_time ? new Date(d.estimated_arrival_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '—';
+                        const dJson = escapeHtml(JSON.stringify(d));
+                        html += `
+                            <tr onclick='openViewDispatchModal(${JSON.stringify(d)})' class="hover:bg-blue-50/60 dark:hover:bg-gray-750 transition cursor-pointer" title="Click to view dispatch record">
+                                <td class="py-2.5 px-3 font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">${escapeHtml(d.ticket_number)} <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-60"></i></td>
+                                <td class="py-2.5 px-3 font-medium">${escapeHtml(d.truck_code || '—')} • ${escapeHtml(d.driver_name || '—')}</td>
+                                <td class="py-2.5 px-3">${escapeHtml(d.destination)}</td>
+                                <td class="py-2.5 px-3 text-indigo-600 dark:text-indigo-400 font-bold">${etaFormatted}</td>
+                                <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">${escapeHtml(d.status)}</span></td>
+                            </tr>
+                        `;
+                    });
+                    html += `</tbody></table>`;
+                }
+            } else if (type === 'completed') {
+                icon.innerHTML = '<i class="fa-solid fa-circle-check text-amber-600 dark:text-amber-400"></i>';
+                title.textContent = "Today's Delivered Dispatches";
+                subtitle.textContent = `${(data.completed || []).length} deliveries recorded today`;
+                link.setAttribute('onclick', "switchTab('reports')");
+                link.innerHTML = '<span>View Reports</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>';
+
+                const comps = data.completed || [];
+                if (comps.length === 0) {
+                    html = '<div class="text-center py-6 text-gray-400 text-xs">No dispatches delivered yet today.</div>';
+                } else {
+                    html = `
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="border-b border-gray-100 dark:border-gray-700 text-gray-400 uppercase text-[10px] tracking-wider">
+                                    <th class="py-2.5 px-3">Ticket #</th>
+                                    <th class="py-2.5 px-3">Truck & Driver</th>
+                                    <th class="py-2.5 px-3">Destination</th>
+                                    <th class="py-2.5 px-3">Delivery Time</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60 font-medium text-gray-700 dark:text-gray-300">
+                    `;
+                    comps.forEach(c => {
+                        const delivTime = c.transit_end_time ? new Date(c.transit_end_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Today';
+                        html += `
+                            <tr onclick='openViewDispatchModal(${JSON.stringify(c)})' class="hover:bg-amber-50/60 dark:hover:bg-gray-750 transition cursor-pointer" title="Click to view dispatch record">
+                                <td class="py-2.5 px-3 font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">${escapeHtml(c.ticket_number)} <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-60"></i></td>
+                                <td class="py-2.5 px-3">${escapeHtml(c.truck_code || '—')} • ${escapeHtml(c.driver_name || '—')}</td>
+                                <td class="py-2.5 px-3">${escapeHtml(c.destination)}</td>
+                                <td class="py-2.5 px-3 text-emerald-600 dark:text-emerald-400 font-bold">${delivTime}</td>
+                            </tr>
+                        `;
+                    });
+                    html += `</tbody></table>`;
+                }
+            } else if (type === 'idle') {
+                icon.innerHTML = '<i class="fa-solid fa-truck text-blue-600 dark:text-blue-400"></i>';
+                title.textContent = 'Idle Trucks Ready for Dispatch';
+                subtitle.textContent = `${(data.idle || []).length} trucks parked at garage`;
+                link.setAttribute('onclick', "openCreateDispatchModalShortcut()");
+                link.innerHTML = '<span>New Dispatch</span> <i class="fa-solid fa-plus text-[10px]"></i>';
+
+                const idles = data.idle || [];
+                if (idles.length === 0) {
+                    html = '<div class="text-center py-6 text-gray-400 text-xs">No idle trucks. All trucks are dispatched or in maintenance.</div>';
+                } else {
+                    html = `
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="border-b border-gray-100 dark:border-gray-700 text-gray-400 uppercase text-[10px] tracking-wider">
+                                    <th class="py-2.5 px-3">Truck Code</th>
+                                    <th class="py-2.5 px-3">Assigned Driver(s)</th>
+                                    <th class="py-2.5 px-3">Status</th>
+                                    <th class="py-2.5 px-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60 font-medium text-gray-700 dark:text-gray-300">
+                    `;
+                    idles.forEach(t => {
+                        html += `
+                            <tr class="hover:bg-gray-50/70 dark:hover:bg-gray-750 transition">
+                                <td class="py-2.5 px-3 font-bold text-gray-900 dark:text-white">${escapeHtml(t.truck_code)}</td>
+                                <td class="py-2.5 px-3">${escapeHtml(t.driver_names || 'No Driver Assigned')}</td>
+                                <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Idle</span></td>
+                                <td class="py-2.5 px-3 text-right">
+                                    <button onclick="openCreateDispatchForTruck('${escapeHtml(t.truck_code)}')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-xs">
+                                        <i class="fa-solid fa-paper-plane text-[10px] mr-1"></i> Dispatch
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    html += `</tbody></table>`;
+                }
+            } else if (type === 'ontime') {
+                icon.innerHTML = '<i class="fa-solid fa-clock text-emerald-600 dark:text-emerald-400"></i>';
+                title.textContent = 'On-Time Delivery Performance';
+                const rateVal = data.onTimeRate !== null ? (Number(data.onTimeRate).toFixed(1) + '%') : 'No data';
+                subtitle.textContent = `Current Month On-Time Rate: ${rateVal}`;
+                link.setAttribute('onclick', "switchTab('reports')");
+                link.innerHTML = '<span>Full Reports</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>';
+
+                html = `
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 py-2">
+                        <div class="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-center">
+                            <span class="text-xs text-emerald-700 dark:text-emerald-300 font-bold uppercase tracking-wide">On-Time Rate</span>
+                            <div class="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">${rateVal}</div>
+                            <span class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 block">Delivered before or at ETA</span>
+                        </div>
+                        <div class="p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl text-center">
+                            <span class="text-xs text-blue-700 dark:text-blue-300 font-bold uppercase tracking-wide">Target Benchmark</span>
+                            <div class="text-3xl font-extrabold text-blue-600 dark:text-blue-400 mt-1">95.0%</div>
+                            <span class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 block">Standard fleet SLA</span>
+                        </div>
+                        <div class="p-4 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl text-center">
+                            <span class="text-xs text-purple-700 dark:text-purple-300 font-bold uppercase tracking-wide">ETA Calculation</span>
+                            <div class="text-sm font-bold text-purple-600 dark:text-purple-400 mt-2">OSM Road Distance</div>
+                            <span class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 block">35 km/h avg speed + 20m allowance</span>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'rfid') {
+                icon.innerHTML = '<i class="fa-solid fa-wifi text-purple-600 dark:text-purple-400"></i>';
+                title.textContent = 'Active RFID Readers & Tags';
+                subtitle.textContent = `${data.rfidActive || 0} active vehicle transponders linked`;
+                link.setAttribute('onclick', "switchTab('fleet')");
+                link.innerHTML = '<span>Fleet View</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>';
+
+                html = `
+                    <div class="space-y-3 py-1">
+                        <div class="p-3.5 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-xl flex items-center justify-between text-xs">
+                            <span class="text-purple-900 dark:text-purple-200 font-semibold"><i class="fa-solid fa-tower-broadcast text-purple-600 mr-2"></i> Garage Gate RFID Reader</span>
+                            <span class="px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">ONLINE</span>
+                        </div>
+                        <div class="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-600 dark:text-gray-300">
+                            Automatic detection active for arrivals, departures, and turnaround tracking at San Leonardo Quarry Garage.
+                        </div>
+                    </div>
+                `;
+            }
+
+            content.innerHTML = html;
+            panel.classList.remove('hidden');
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function openCreateDispatchModalShortcut() {
+            closeDrillDown();
+            switchTab('dispatches');
+            if (typeof toggleModal === 'function') {
+                toggleModal('dispatchModal', true);
+            }
+        }
+
+        function openCreateDispatchForTruck(truckCode) {
+            closeDrillDown();
+            switchTab('dispatches');
+            if (typeof toggleModal === 'function') {
+                toggleModal('dispatchModal', true);
+                setTimeout(() => {
+                    const data = window.drillDownData || {};
+                    const truck = (data.fleet || []).find(t => t.truck_code === truckCode);
+                    if (truck && truck.rfid_tag) {
+                        const rfidInput = document.getElementById('rfidInput');
+                        if (rfidInput) {
+                            rfidInput.value = truck.rfid_tag;
+                            rfidInput.dispatchEvent(new Event('change'));
+                        }
+                    }
+                }, 200);
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // Live driver active dispatch validation
+        function checkDriverActiveDispatch(driverId, driverName) {
+            const alertBox = document.getElementById('driverActiveDispatchAlert');
+            const alertMsg = document.getElementById('driverActiveDispatchAlertMsg');
+            const submitBtn = document.querySelector('#dispatchForm button[type="submit"]');
+            if (!alertBox) return;
+
+            if (!driverId) {
+                alertBox.classList.add('hidden');
+                if (submitBtn) submitBtn.disabled = false;
+                return;
+            }
+
+            const activeList = (window.drillDownData && window.drillDownData.active) || [];
+            const activeMatch = activeList.find(d => String(d.driver_id) === String(driverId) || (driverName && d.driver_name && d.driver_name.trim().toLowerCase() === driverName.trim().toLowerCase()));
+            if (activeMatch) {
+                alertMsg.innerHTML = `<strong>Driver Unavailable:</strong> ${escapeHtml(driverName || 'Driver')} already has active trip <strong>#${escapeHtml(activeMatch.ticket_number)}</strong> (${escapeHtml(activeMatch.destination)}). Resolve it before creating a new one.`;
+                alertBox.classList.remove('hidden');
+                if (submitBtn) submitBtn.disabled = true;
+            } else {
+                alertBox.classList.add('hidden');
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        }
+
         function refreshPwdResetBadge() {
+
             fetch('get_pwd_reset_count.php')
                 .then(r => r.json())
                 .then(data => {
@@ -105,49 +439,221 @@
         }
         setInterval(refreshCashAdvanceBadge, 15000);
 
-        function filterActivityLogs() {
-            const search = (document.getElementById('activityLogSearch')?.value || '').toLowerCase();
+        function setActivityCategory(cat) {
+            const input = document.getElementById('logCategoryInput');
+            if (input) input.value = cat;
+
+            // Immediately update visual active states on category pills
+            document.querySelectorAll('.cat-pill-btn').forEach(btn => {
+                const btnCat = btn.dataset.cat ?? '';
+                const isActive = (btnCat === cat);
+                if (isActive) {
+                    btn.className = 'cat-pill-btn px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition whitespace-nowrap bg-violet-600 text-white shadow-xs font-bold ring-2 ring-violet-400';
+                    const icon = btn.querySelector('i');
+                    if (icon) icon.className = icon.className.replace(/text-[a-z]+-\d+/, 'text-white');
+                } else {
+                    btn.className = 'cat-pill-btn px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition whitespace-nowrap bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/60 font-medium';
+                    const icon = btn.querySelector('i');
+                    if (icon) icon.className = icon.className.replace('text-white', 'text-gray-400');
+                }
+            });
+
+            // Instant client-side filter without reloading
+            filterActivityLogsClient();
+        }
+
+        function handleDatePresetChange(val) {
+            const customRow = document.getElementById('customDateRangeRow');
+            const fromInput = document.getElementById('logDateFromInput');
+            const toInput = document.getElementById('logDateToInput');
+            if (val === 'custom') {
+                if (customRow) customRow.classList.remove('hidden');
+            } else {
+                if (customRow) customRow.classList.add('hidden');
+                if (fromInput) fromInput.value = '';
+                if (toInput) toInput.value = '';
+            }
+            // Instant client-side filter without reloading
+            filterActivityLogsClient();
+        }
+
+        function filterActivityLogsClient() {
+            const search = (document.getElementById('activityLogSearchInput')?.value || '').toLowerCase().trim();
             const role = document.getElementById('activityLogRoleFilter')?.value || '';
+            const category = (document.getElementById('logCategoryInput')?.value || '').toLowerCase();
+            const datePreset = document.getElementById('activityLogDatePreset')?.value || '';
+            const dateFrom = document.getElementById('logDateFromInput')?.value || '';
+            const dateTo = document.getElementById('logDateToInput')?.value || '';
+
+            // Compute date boundaries
+            let minDate = '';
+            let maxDate = '';
+            const now = new Date();
+            const fmt = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+
+            if (datePreset === 'today') {
+                minDate = maxDate = fmt(now);
+            } else if (datePreset === 'yesterday') {
+                const y = new Date(now);
+                y.setDate(y.getDate() - 1);
+                minDate = maxDate = fmt(y);
+            } else if (datePreset === 'week') {
+                const w = new Date(now);
+                w.setDate(w.getDate() - 7);
+                minDate = fmt(w);
+                maxDate = fmt(now);
+            } else if (datePreset === 'month') {
+                const m = new Date(now);
+                m.setDate(m.getDate() - 30);
+                minDate = fmt(m);
+                maxDate = fmt(now);
+            } else if (datePreset === 'custom' || dateFrom || dateTo) {
+                minDate = dateFrom;
+                maxDate = dateTo;
+            }
+
             const rows = document.querySelectorAll('.activity-log-row');
             let visible = 0;
             rows.forEach(row => {
+                const rowSearch = (row.dataset.search || '').toLowerCase();
                 const rowRole = row.dataset.role || '';
-                const rowSearch = row.dataset.search || '';
-                const matchRole = !role || rowRole === role;
+                const rowCategory = (row.dataset.category || '').toLowerCase();
+                const rowDate = row.dataset.date || '';
+
                 const matchSearch = !search || rowSearch.includes(search);
-                if (matchRole && matchSearch) {
+                const matchRole = !role || rowRole === role;
+                const matchCategory = !category || rowCategory === category;
+
+                let matchDate = true;
+                if (minDate && rowDate && rowDate < minDate) matchDate = false;
+                if (maxDate && rowDate && rowDate > maxDate) matchDate = false;
+
+                if (matchSearch && matchRole && matchCategory && matchDate) {
                     row.style.display = '';
                     visible++;
                 } else {
                     row.style.display = 'none';
                 }
             });
+
             const countEl = document.getElementById('activityLogVisibleCount');
-            if (countEl) countEl.textContent = visible + ' of ' + rows.length + ' entries visible';
+            if (countEl) {
+                if (search || role || category || datePreset || dateFrom || dateTo) {
+                    countEl.textContent = `Showing ${visible} of ${rows.length} records matching filter`;
+                } else {
+                    countEl.textContent = 'Click any row to inspect complete event payload';
+                }
+            }
+        }
+
+        function openAuditInspectorModal(log) {
+            if (!log) return;
+            if (typeof log === 'string') {
+                try { log = JSON.parse(log); } catch (e) { return; }
+            }
+
+            const idEl = document.getElementById('ai_id');
+            if (idEl) idEl.innerText = log.id || '--';
+
+            const actEl = document.getElementById('ai_action');
+            if (actEl) actEl.innerText = log.action || 'Event Details';
+
+            const catEl = document.getElementById('ai_category_badge');
+            if (catEl) {
+                const cat = log.category || 'System';
+                catEl.innerText = cat;
+                let cClass = 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+                if (cat === 'Security') cClass = 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300';
+                else if (cat === 'Dispatches') cClass = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300';
+                else if (cat === 'Fleet') cClass = 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300';
+                else if (cat === 'Personnel') cClass = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300';
+                else if (cat === 'Payroll') cClass = 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300';
+                else if (cat === 'Orders') cClass = 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300';
+                catEl.className = 'px-2 py-0.5 text-[10px] font-bold rounded-full ' + cClass;
+            }
+
+            const userEl = document.getElementById('ai_user');
+            if (userEl) userEl.innerText = log.username || 'System';
+
+            const roleEl = document.getElementById('ai_role');
+            if (roleEl) roleEl.innerText = log.role || 'Unknown';
+
+            const timeEl = document.getElementById('ai_timestamp');
+            if (timeEl) timeEl.innerText = log.created_at || '--';
+
+            const relEl = document.getElementById('ai_relative_time');
+            if (relEl && log.created_at) {
+                try {
+                    const diffMs = Date.now() - new Date(log.created_at).getTime();
+                    const diffMin = Math.floor(diffMs / 60000);
+                    if (diffMin < 1) relEl.innerText = 'Just now';
+                    else if (diffMin < 60) relEl.innerText = `${diffMin}m ago`;
+                    else if (diffMin < 1440) relEl.innerText = `${Math.floor(diffMin / 60)}h ago`;
+                    else relEl.innerText = `${Math.floor(diffMin / 1440)}d ago`;
+                } catch (e) {
+                    relEl.innerText = '';
+                }
+            }
+
+            const ipEl = document.getElementById('ai_ip');
+            if (ipEl) ipEl.innerText = log.ip_address || '—';
+
+            const detEl = document.getElementById('ai_details_text');
+            if (detEl) detEl.innerText = log.details && log.details.trim() ? log.details : 'No additional details recorded for this action.';
+
+            toggleModal('auditInspectorModal', true);
+        }
+
+        function copyAiIp() {
+            const ip = document.getElementById('ai_ip')?.innerText;
+            if (ip && ip !== '—') {
+                navigator.clipboard?.writeText(ip);
+                if (typeof showFloatingToast === 'function') showFloatingToast('IP address copied to clipboard');
+            }
+        }
+
+        function copyAiDetails() {
+            const det = document.getElementById('ai_details_text')?.innerText;
+            if (det) {
+                navigator.clipboard?.writeText(det);
+                if (typeof showFloatingToast === 'function') showFloatingToast('Event details copied to clipboard');
+            }
         }
 
         const trackingData = <?= json_encode($trackingTrucks ?? []); ?>;
-        let googleSatLayer = null;
-        let googleStreetLayer = null;
         let satelliteLayer = null;
         let streetLayer = null;
 
         function initMap() {
             const mapDiv = document.getElementById('map');
             if (!mapDiv) return;
+
+            // Wait for Leaflet to load if script is still downloading
+            if (typeof L === 'undefined') {
+                setTimeout(initMap, 150);
+                return;
+            }
+
+            // If map already exists, simply recalculate layout dimensions
+            if (map) {
+                map.invalidateSize();
+                return;
+            }
+
+            // Clear any stale Leaflet DOM association if re-initializing
+            if (mapDiv._leaflet_id) {
+                mapDiv._leaflet_id = null;
+            }
+
             try {
-                googleSatLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                    maxZoom: 20,
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                    attribution: '&copy; Google Maps Satellite'
+                // OpenStreetMap Standard - 100% Free, No API Key, No Watermark
+                streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    subdomains: ['a', 'b', 'c'],
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
                 });
 
-                googleStreetLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-                    maxZoom: 20,
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                    attribution: '&copy; Google Maps'
-                });
-
+                // Esri World Imagery (Hybrid with place & boundary labels) - Free, No API Key
                 const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                     maxZoom: 19,
                     attribution: 'Tiles &copy; Esri'
@@ -157,24 +663,16 @@
                 });
                 satelliteLayer = L.layerGroup([esriImagery, esriLabels]);
 
-                streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    subdomains: ['a', 'b', 'c'],
-                    attribution: '&copy; OpenStreetMap contributors'
-                });
-
                 map = L.map('map', {
                     center: [15.359042, 120.965016],
                     zoom: 14,
-                    layers: [googleSatLayer],
+                    layers: [streetLayer],
                     zoomControl: true
                 });
 
                 const baseMaps = {
-                    "🛰️ Google Satellite": googleSatLayer,
-                    "🌐 Google Streets": googleStreetLayer,
-                    "🛰️ Satellite (Hybrid)": satelliteLayer,
-                    "🗺️ OpenStreetMap": streetLayer
+                    "🗺️ OpenStreetMap": streetLayer,
+                    "🛰️ Satellite (Hybrid)": satelliteLayer
                 };
                 L.control.layers(baseMaps, null, {
                     position: 'topright'
@@ -225,7 +723,7 @@
                     map.invalidateSize();
                 }, 600);
 
-                setInterval(refreshMap, 5000);
+                _mapRefreshIntervalId = setInterval(refreshMap, 5000);
             } catch (error) {
                 console.error("Map initialization failed:", error);
             }
@@ -234,6 +732,7 @@
         let truckMarkers = {};
 
         function renderMapMarkers(trucks) {
+            if (!map || !Array.isArray(trucks)) return;
             const activeCodes = trucks.map(t => t.truck_code);
             Object.keys(truckMarkers).forEach(code => {
                 if (!activeCodes.includes(code)) {
@@ -349,11 +848,21 @@
             });
         }
 
+        let _mapRefreshFailures = 0;
+        let _mapRefreshIntervalId = null;
+
         function refreshMap() {
             if (!map) return;
             fetch('get_tracking_data.php')
                 .then(r => r.json())
                 .then(data => {
+                    _mapRefreshFailures = 0;
+                    // If we previously slowed down, restore normal 5s interval
+                    if (_mapRefreshIntervalId && _mapRefreshIntervalId._slowed) {
+                        clearInterval(_mapRefreshIntervalId);
+                        _mapRefreshIntervalId = setInterval(refreshMap, 5000);
+                        _mapRefreshIntervalId._slowed = false;
+                    }
                     if (data.success) {
                         renderMapMarkers(data.trucks);
                         const badge = document.getElementById('map-last-updated');
@@ -363,7 +872,18 @@
                         }
                     }
                 })
-                .catch(err => console.warn('Map refresh error:', err));
+                .catch(err => {
+                    console.warn('Map refresh error:', err);
+                    _mapRefreshFailures++;
+                    if (_mapRefreshFailures >= 3 && _mapRefreshIntervalId && !_mapRefreshIntervalId._slowed) {
+                        clearInterval(_mapRefreshIntervalId);
+                        _mapRefreshIntervalId = setInterval(refreshMap, 30000);
+                        _mapRefreshIntervalId._slowed = true;
+                        if (typeof showToast === 'function') {
+                            showToast('⚠️ Map updates paused — server unreachable. Retrying every 30s.', 'warning', 8000);
+                        }
+                    }
+                });
         }
 
         function focusTruck(lat, lng, truckCode) {
@@ -1482,6 +2002,92 @@
             toggleModal('editOrderModal', true);
         }
 
+        function openViewDispatchModal(ticket) {
+            if (!ticket) return;
+            if (typeof ticket === 'string') {
+                try {
+                    ticket = JSON.parse(ticket);
+                } catch (e) {
+                    console.error("Invalid ticket JSON:", e);
+                    return;
+                }
+            }
+
+            const ticketEl = document.getElementById('vd_ticket_number');
+            if (ticketEl) ticketEl.innerText = ticket.ticket_number || ('#' + (ticket.id || ''));
+
+            const badgeEl = document.getElementById('vd_status_badge');
+            if (badgeEl) {
+                const st = ticket.status || 'Pending';
+                badgeEl.innerText = st;
+                let badgeClass = 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+                if (st === 'Delivered') badgeClass = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300';
+                else if (st === 'In Transit') badgeClass = 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300';
+                else if (st === 'Pending') badgeClass = 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300';
+                else if (st === 'Cancelled') badgeClass = 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300';
+                badgeEl.className = 'px-2.5 py-0.5 text-xs font-bold rounded-full ' + badgeClass;
+            }
+
+            const truckEl = document.getElementById('vd_truck_info');
+            if (truckEl) {
+                truckEl.innerText = (ticket.truck_code || 'N/A') + (ticket.plate_number ? ' (' + ticket.plate_number + ')' : '');
+            }
+
+            const driverEl = document.getElementById('vd_driver_name');
+            if (driverEl) driverEl.innerText = ticket.driver_name || 'N/A';
+
+            const clientEl = document.getElementById('vd_client_name');
+            if (clientEl) clientEl.innerText = ticket.client_name || 'Walk-in / Direct';
+
+            const contactEl = document.getElementById('vd_contact_number');
+            if (contactEl) contactEl.innerText = ticket.contact_number || 'N/A';
+
+            const destEl = document.getElementById('vd_destination');
+            if (destEl) {
+                const distKm = ticket.distance_km && parseFloat(ticket.distance_km) > 0 ? ' (' + Math.round(ticket.distance_km) + ' km)' : '';
+                destEl.innerText = (ticket.destination || 'N/A') + distKm;
+            }
+
+            const cuEl = document.getElementById('vd_cubic_meters');
+            if (cuEl) cuEl.innerText = ticket.cubic_meters ? (parseFloat(ticket.cubic_meters).toFixed(2) + ' cu.m') : 'N/A';
+
+            const lmEl = document.getElementById('vd_landmark');
+            if (lmEl) lmEl.innerText = (ticket.landmark && ticket.landmark.trim()) ? ticket.landmark : 'None specified';
+
+            const payEl = document.getElementById('vd_trip_pay');
+            if (payEl) {
+                const payVal = parseFloat(ticket.pay_amount || ticket.driver_trip_pay || 0);
+                payEl.innerText = '₱' + payVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+            const distNoteEl = document.getElementById('vd_distance_note');
+            if (distNoteEl) {
+                distNoteEl.innerText = (ticket.distance_km && parseFloat(ticket.distance_km) > 0) ? `Est. distance: ${Math.round(ticket.distance_km)} km round-trip` : 'Standard trip rate';
+            }
+
+            const dateEl = document.getElementById('vd_dispatch_date');
+            if (dateEl) dateEl.innerText = ticket.dispatch_date || (ticket.created_at ? ticket.created_at.split(' ')[0] : '—');
+
+            const depEl = document.getElementById('vd_departure_time');
+            if (depEl) depEl.innerText = ticket.transit_start_time ? ticket.transit_start_time : (ticket.created_at || '—');
+
+            const delEl = document.getElementById('vd_delivery_time');
+            if (delEl) delEl.innerText = ticket.transit_end_time ? ticket.transit_end_time : (ticket.status === 'Delivered' ? 'Completed' : 'Pending Delivery');
+
+            const printBtn = document.getElementById('vd_print_btn');
+            if (printBtn) {
+                if (ticket.id) {
+                    printBtn.style.display = 'inline-flex';
+                    printBtn.onclick = function() {
+                        window.open('print_ticket.php?id=' + ticket.id, '_blank');
+                    };
+                } else {
+                    printBtn.style.display = 'none';
+                }
+            }
+
+            toggleModal('viewDispatchDetailsModal', true);
+        }
+
         function openEditDispatchModal(ticket) {
             if (!ticket) return;
             if (typeof ticket === 'string') {
@@ -1953,6 +2559,15 @@
                                         return;
                                     }
 
+                                    if (data.today_dispatches !== undefined && data.today_dispatches >= 10) {
+                                        rfidFeedback.innerHTML = `<span class="text-red-500 font-bold"><i class="fa-solid fa-ban"></i> Daily Limit Reached: ${data.truck_code} has already reached the limit of 10 dispatches today (${data.today_dispatches}/10)!</span>`;
+                                        truckPlate.value = '';
+                                        hiddenTruckId.value = '';
+                                        rfidInput.value = '';
+                                        resetDispatchDriverInputs();
+                                        return;
+                                    }
+
                                     const driverCount = data.driver_count !== undefined ? data.driver_count : (data.driver_id ? 1 : 0);
 
                                     if (driverCount === 0 || (!data.driver_id && (!data.drivers || data.drivers.length === 0))) {
@@ -1997,6 +2612,9 @@
                                                 opt.textContent = `${d.name} (${d.status})`;
                                                 assignedDriverSelect.appendChild(opt);
                                             });
+                                            assignedDriverSelect.onchange = function() {
+                                                checkDriverActiveDispatch(this.value, this.options[this.selectedIndex]?.textContent);
+                                            };
                                             assignedDriverSelect.focus();
                                         }
 
@@ -2025,12 +2643,15 @@
                                             assignedDriverName.value = driverObj.name || 'No Driver Assigned';
                                         }
 
+                                        checkDriverActiveDispatch(driverObj.id, driverObj.name);
+
                                         rfidFeedback.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-check"></i> Truck matched! Driver auto-filled.</span>';
                                     }
                                 } else {
                                     truckPlate.value = '';
                                     hiddenTruckId.value = '';
                                     resetDispatchDriverInputs();
+                                    checkDriverActiveDispatch(null, null);
                                     rfidFeedback.innerHTML = '<span class="text-red-500"><i class="fa-solid fa-triangle-exclamation"></i> Unregistered RFID tag!</span>';
                                     rfidInput.value = '';
                                     rfidInput.focus();
@@ -2046,6 +2667,23 @@
         });
 
         document.addEventListener("DOMContentLoaded", function() {
+            if (activeTab === 'tracking') {
+                setTimeout(() => {
+                    if (!map) initMap();
+                    else map.invalidateSize();
+                }, 100);
+                setTimeout(() => {
+                    if (map) map.invalidateSize();
+                }, 400);
+            }
+
+            setInterval(() => {
+                const clk = document.getElementById('dispatchModalLiveClock');
+                if (clk) {
+                    clk.textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                }
+            }, 1000);
+
             function updateLoadingTimers() {
                 const containers = document.querySelectorAll('.loading-timer-container');
                 const LOADING_DURATION_MS = 20 * 60 * 1000;
@@ -2080,7 +2718,7 @@
                                 headers: {
                                     'Content-Type': 'application/x-www-form-urlencoded'
                                 },
-                                body: 'truck_code=' + encodeURIComponent(truckCode)
+                                body: 'truck_code=' + encodeURIComponent(truckCode) + '&csrf_token=' + encodeURIComponent(_csrfToken)
                             }).then(response => response.json()).then(data => {
                                 if (data.success) {
                                     window.location.reload();
@@ -2309,6 +2947,8 @@
                     }
 
                     function startSimulatedGps() {
+                        // Guard must be at the very top — before any side-effects (toast, ipapi fetch)
+                        // to prevent repeated toasts and IP API calls on every GPS glitch.
                         if (simIntervalId !== null) return;
 
                         showToast("ℹ️ Simulated GPS active (Local Testing Fallback). Fetching IP location...", "info", 5000);

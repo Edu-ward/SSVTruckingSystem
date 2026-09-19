@@ -6,7 +6,7 @@ require __DIR__ . '/../db.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin'])) {
     echo json_encode(['count' => 0]);
     exit;
 }

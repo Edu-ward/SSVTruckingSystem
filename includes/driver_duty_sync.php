@@ -6,6 +6,22 @@ if (!function_exists('syncDailyDriverStatuses')) {
         if ($syncedInCurrentRequest) return;
         $syncedInCurrentRequest = true;
 
+        // Rate-limit: only run once per hour using a temp file lock.
+        // This prevents the 3 heavy UPDATE queries from running on every
+        // HTTP request (including GPS polls fired every 10s per driver).
+        $lockFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ssv_duty_sync_' . date('YmdH') . '.lock';
+        if (file_exists($lockFile)) {
+            return; // Already synced this hour
+        }
+        // Create the lock file; @file_put_contents silently fails on race — acceptable
+        @file_put_contents($lockFile, date('c'));
+        // Clean up lock files older than 3 hours to avoid accumulation
+        foreach (glob(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ssv_duty_sync_*.lock') as $old) {
+            if (filemtime($old) < time() - 10800) {
+                @unlink($old);
+            }
+        }
+
         try {
             
             
@@ -58,6 +74,8 @@ if (!function_exists('syncDailyDriverStatuses')) {
             ");
         } catch (Throwable $e) {
             error_log("Error in syncDailyDriverStatuses: " . $e->getMessage());
+            // On failure, remove lock so next request can retry
+            @unlink($lockFile);
         }
     }
 }

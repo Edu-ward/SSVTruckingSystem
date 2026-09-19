@@ -30,7 +30,7 @@ if (!$advance) {
 
 
 $currentUserId = $_SESSION['user_id'] ?? ($_SESSION['driver_id'] ?? 0);
-if ($_SESSION['role'] !== 'Admin' && $currentUserId != $advance['driver_id']) {
+if (!in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin']) && $currentUserId != $advance['driver_id']) {
     die("Unauthorized access to this cash advance ticket.");
 }
 

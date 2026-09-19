@@ -51,7 +51,9 @@ try {
 
             if (hasUserSession && isTabActive) {
                 
-                if (userRole === 'Admin') {
+                if (userRole === 'Superadmin') {
+                    window.location.replace('admin/dashboard.php?tab=admin_management');
+                } else if (userRole === 'Admin') {
                     window.location.replace('admin/dashboard.php');
                 } else if (userRole === 'Driver') {
                     window.location.replace('driver/dashboard.php');
@@ -512,6 +514,16 @@ try {
                         <div>
                             <p class="font-semibold">Account Inactive</p>
                             <p class="text-amber-600/80 dark:text-amber-400/70 text-xs mt-0.5">This account has been marked as resigned. Please contact an administrator.</p>
+                        </div>
+                    </div>
+                <?php elseif (isset($_GET['error']) && htmlspecialchars($_GET['error']) == 'inactive'): ?>
+                    <div id="errorAlert" class="flex items-start space-x-3 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 p-4 rounded-xl mb-6 text-sm border border-rose-100 dark:border-rose-900/40 animate-slide-up">
+                        <div class="w-5 h-5 bg-rose-100 dark:bg-rose-900/40 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fa-solid fa-user-lock text-xs"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold">Account Deactivated</p>
+                            <p class="text-rose-500/80 dark:text-rose-400/70 text-xs mt-0.5">This account has been deactivated. Please contact a Super Administrator for assistance.</p>
                         </div>
                     </div>
                 <?php elseif (isset($_GET['error']) && htmlspecialchars($_GET['error']) == 'tab_closed'): ?>

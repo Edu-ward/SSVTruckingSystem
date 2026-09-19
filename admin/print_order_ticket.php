@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../includes/security_headers.php';
 require_once __DIR__ . '/../db.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin'])) {
     die("Unauthorized Access");
 }
 

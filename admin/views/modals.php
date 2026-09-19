@@ -2,6 +2,7 @@
 
 ?>
 
+<?php if (empty($isSuperadmin)): ?>
 <div id="addTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative max-h-[90vh] flex flex-col">
         <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
@@ -2319,3 +2320,248 @@
         </div>
     </div>
 </div>
+<?php endif; ?>
+
+<!-- ============================================================ -->
+<!-- SUPERADMIN: CREATE ADMIN ACCOUNT MODAL                      -->
+<!-- ============================================================ -->
+<?php if (!empty($isSuperadmin)): ?>
+<div id="createAdminModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm hidden p-3 sm:p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100 dark:border-gray-700 animate-scale-up">
+        <!-- Header -->
+        <div class="px-6 py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-lg border border-white/20">
+                    <i class="fa-solid fa-user-plus text-amber-300"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-base tracking-tight">Create Admin Account</h3>
+                    <p class="text-xs text-indigo-100">Provision a new administrator account</p>
+                </div>
+            </div>
+            <button type="button" onclick="toggleModal('createAdminModal', false)" class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <form method="POST" action="dashboard.php" class="p-6 space-y-4">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+            <input type="hidden" name="action" value="create_admin_account">
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Username</label>
+                <div class="relative">
+                    <i class="fa-solid fa-user absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="text" id="newAdminUsername" name="username" required minlength="3" placeholder="e.g. jdoe_admin"
+                        class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Role</label>
+                    <select name="role" required class="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="Admin" selected>Admin (Staff)</option>
+                        <option value="Superadmin">Superadmin (Root)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Initial Status</label>
+                    <select name="status" required class="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="Active" selected>Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Password</label>
+                <div class="relative">
+                    <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="password" id="newAdminPwd" name="password" required minlength="6" placeholder="Min. 6 characters"
+                        class="w-full pl-9 pr-10 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button type="button" onclick="togglePasswordVisibility('newAdminPwd', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 text-xs">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Confirm Password</label>
+                <div class="relative">
+                    <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="password" id="newAdminConfirmPwd" name="confirm_password" required minlength="6" placeholder="Repeat password"
+                        class="w-full pl-9 pr-10 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button type="button" onclick="togglePasswordVisibility('newAdminConfirmPwd', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 text-xs">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="pt-3 flex gap-3">
+                <button type="button" onclick="toggleModal('createAdminModal', false)" class="w-1/2 py-2.5 px-4 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-650 transition">
+                    Cancel
+                </button>
+                <button type="submit" class="w-1/2 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-md shadow-indigo-500/25 transition">
+                    Create Account
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SUPERADMIN: EDIT ADMIN ACCOUNT MODAL                        -->
+<!-- ============================================================ -->
+<div id="editAdminModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm hidden p-3 sm:p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100 dark:border-gray-700 animate-scale-up">
+        <!-- Header -->
+        <div class="px-6 py-5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-lg border border-white/20">
+                    <i class="fa-solid fa-user-pen text-amber-300"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-base tracking-tight">Edit Administrator</h3>
+                    <p class="text-xs text-indigo-100">Update account role and permissions</p>
+                </div>
+            </div>
+            <button type="button" onclick="toggleModal('editAdminModal', false)" class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <form method="POST" action="dashboard.php" class="p-6 space-y-4">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+            <input type="hidden" name="action" value="edit_admin_account">
+            <input type="hidden" id="editAdminId" name="admin_id" value="">
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Username</label>
+                <div class="relative">
+                    <i class="fa-solid fa-user absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="text" id="editAdminUsername" name="username" required minlength="3"
+                        class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Role</label>
+                    <select id="editAdminRole" name="role" required class="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="Admin">Admin (Staff)</option>
+                        <option value="Superadmin">Superadmin (Root)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Status</label>
+                    <select id="editAdminStatus" name="status" required class="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="pt-3 flex gap-3">
+                <button type="button" onclick="toggleModal('editAdminModal', false)" class="w-1/2 py-2.5 px-4 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-650 transition">
+                    Cancel
+                </button>
+                <button type="submit" class="w-1/2 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 shadow-md transition">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SUPERADMIN: RESET ADMIN PASSWORD MODAL                      -->
+<!-- ============================================================ -->
+<div id="resetAdminPasswordModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm hidden p-3 sm:p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100 dark:border-gray-700 animate-scale-up">
+        <!-- Header -->
+        <div class="px-6 py-5 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-lg border border-white/20">
+                    <i class="fa-solid fa-key text-white"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-base tracking-tight">Reset Password</h3>
+                    <p class="text-xs text-amber-100">Direct credential reset for administrator</p>
+                </div>
+            </div>
+            <button type="button" onclick="toggleModal('resetAdminPasswordModal', false)" class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <form method="POST" action="dashboard.php" class="p-6 space-y-4">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+            <input type="hidden" name="action" value="reset_admin_password">
+            <input type="hidden" id="resetAdminPwdId" name="admin_id" value="">
+
+            <div class="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-800/40 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                <i class="fa-solid fa-user-gear text-amber-600 text-sm"></i>
+                <span>Resetting password for: <strong id="resetAdminPwdUsername" class="font-mono text-sm">--</strong></span>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">New Password</label>
+                <div class="relative">
+                    <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="password" id="resetAdminNewPwd" name="new_password" required minlength="6" placeholder="Min. 6 characters"
+                        class="w-full pl-9 pr-10 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <button type="button" onclick="togglePasswordVisibility('resetAdminNewPwd', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 text-xs">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Confirm New Password</label>
+                <div class="relative">
+                    <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="password" id="resetAdminConfirmPwd" name="confirm_password" required minlength="6" placeholder="Repeat new password"
+                        class="w-full pl-9 pr-10 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <button type="button" onclick="togglePasswordVisibility('resetAdminConfirmPwd', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 text-xs">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="pt-3 flex gap-3">
+                <button type="button" onclick="toggleModal('resetAdminPasswordModal', false)" class="w-1/2 py-2.5 px-4 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-650 transition">
+                    Cancel
+                </button>
+                <button type="submit" class="w-1/2 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 shadow-md transition">
+                    Reset Password
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
+
+<script>
+    function togglePasswordVisibility(inputId, btn) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            if (icon) {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
+        } else {
+            input.type = 'password';
+            if (icon) {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+    }
+</script>
