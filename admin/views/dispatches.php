@@ -87,7 +87,9 @@
                     <div class="flex justify-between items-center mb-4 gap-2">
                         <div class="flex items-center space-x-2 font-bold text-gray-800 dark:text-gray-200 shrink-0">
                             <i class="fa-regular fa-file-lines text-blue-500"></i>
-                            <span class="whitespace-nowrap"><?= htmlspecialchars($ticket['ticket_number']); ?></span>
+                            <button type="button" onclick="openViewDispatchModal(<?= htmlspecialchars(json_encode($ticket), ENT_QUOTES, 'UTF-8') ?>)" class="hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition font-bold font-mono whitespace-nowrap text-left" title="Click to inspect dispatch details">
+                                <?= htmlspecialchars($ticket['ticket_number']); ?>
+                            </button>
                         </div>
 
                         <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
@@ -102,6 +104,9 @@
                             <?php endif; ?>
 
                             <div class="flex items-center space-x-2 border-l border-gray-200 dark:border-gray-600 pl-2.5 sm:pl-3 ml-0.5 sm:ml-1 shrink-0">
+                                <button onclick="openViewDispatchModal(<?= htmlspecialchars(json_encode($ticket), ENT_QUOTES, 'UTF-8') ?>)" class="text-gray-400 hover:text-blue-600 transition focus:outline-none" title="Inspect Dispatch Details">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
                                 <?php if ($ticket['status'] === 'Cancellation Requested'): ?>
                                     
                                     <button onclick="openApproveCancelModal(<?= $ticket['id']; ?>, '<?= htmlspecialchars($ticket['ticket_number']); ?>')" class="text-orange-500 hover:text-orange-600 transition focus:outline-none" title="Approve Cancellation Request">

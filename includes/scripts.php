@@ -2013,6 +2013,29 @@
                 }
             }
 
+            const _fmtDt = function(s) {
+                if (!s || s === '—') return '—';
+                try {
+                    const d = new Date(s.replace(/-/g, '/'));
+                    if (!isNaN(d.getTime())) {
+                        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' • ' +
+                               d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                    }
+                } catch(e) {}
+                return s;
+            };
+
+            const _fmtDateOnly = function(s) {
+                if (!s || s === '—') return '—';
+                try {
+                    const d = new Date(s.replace(/-/g, '/'));
+                    if (!isNaN(d.getTime())) {
+                        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    }
+                } catch(e) {}
+                return s;
+            };
+
             const ticketEl = document.getElementById('vd_ticket_number');
             if (ticketEl) ticketEl.innerText = ticket.ticket_number || ('#' + (ticket.id || ''));
 
@@ -2065,13 +2088,27 @@
             }
 
             const dateEl = document.getElementById('vd_dispatch_date');
-            if (dateEl) dateEl.innerText = ticket.dispatch_date || (ticket.created_at ? ticket.created_at.split(' ')[0] : '—');
+            if (dateEl) {
+                const rawDate = ticket.dispatch_date || (ticket.created_at ? ticket.created_at.split(' ')[0] : '—');
+                dateEl.innerText = _fmtDateOnly(rawDate);
+            }
 
             const depEl = document.getElementById('vd_departure_time');
-            if (depEl) depEl.innerText = ticket.transit_start_time ? ticket.transit_start_time : (ticket.created_at || '—');
+            if (depEl) {
+                const rawDep = ticket.transit_start_time ? ticket.transit_start_time : (ticket.created_at || '—');
+                depEl.innerText = _fmtDt(rawDep);
+            }
 
             const delEl = document.getElementById('vd_delivery_time');
-            if (delEl) delEl.innerText = ticket.transit_end_time ? ticket.transit_end_time : (ticket.status === 'Delivered' ? 'Completed' : 'Pending Delivery');
+            if (delEl) {
+                if (ticket.transit_end_time) {
+                    delEl.innerText = _fmtDt(ticket.transit_end_time);
+                } else if (ticket.status === 'Delivered') {
+                    delEl.innerText = 'Completed';
+                } else {
+                    delEl.innerText = 'Pending Delivery';
+                }
+            }
 
             const printBtn = document.getElementById('vd_print_btn');
             if (printBtn) {

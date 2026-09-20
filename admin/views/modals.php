@@ -2545,7 +2545,166 @@
 </div>
 <?php endif; ?>
 
+<!-- ============================================================ -->
+<!-- DISPATCH DETAILS INSPECTOR MODAL                             -->
+<!-- ============================================================ -->
+<div id="viewDispatchDetailsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4" onclick="if (event.target === this) toggleModal('viewDispatchDetailsModal', false)">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-xl overflow-hidden relative max-h-[90vh] flex flex-col">
+        <!-- Header -->
+        <div class="p-5 border-b border-gray-100 dark:border-gray-700/80 flex justify-between items-center flex-shrink-0 bg-white dark:bg-gray-800">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0 text-base">
+                    <i class="fa-solid fa-ticket"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 font-mono flex items-center gap-1.5">
+                            <span id="vd_ticket_number">Ticket Details</span>
+                            <button type="button" onclick="copyVdTicket()" class="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-xs transition" title="Copy Ticket Number">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </h3>
+                        <span id="vd_status_badge" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">--</span>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        Dispatch Record &bull; Date: <span id="vd_dispatch_date" class="font-medium text-gray-700 dark:text-gray-300">--</span>
+                    </p>
+                </div>
+            </div>
+            <button type="button" onclick="toggleModal('viewDispatchDetailsModal', false)" class="text-gray-400 hover:text-gray-700 dark:text-gray-200">
+                <i class="fa-solid fa-xmark fa-lg"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm">
+            <!-- Metadata Grid -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="p-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl border border-gray-100 dark:border-gray-700/60">
+                    <div class="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-0.5">Assigned Truck</div>
+                    <div class="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                        <i class="fa-solid fa-truck text-blue-500 text-xs"></i>
+                        <span id="vd_truck_info">--</span>
+                    </div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl border border-gray-100 dark:border-gray-700/60">
+                    <div class="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-0.5">Assigned Driver</div>
+                    <div class="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                        <i class="fa-solid fa-user text-blue-500 text-xs"></i>
+                        <span id="vd_driver_name">--</span>
+                    </div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl border border-gray-100 dark:border-gray-700/60">
+                    <div class="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-0.5">Client / Customer</div>
+                    <div class="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5 truncate">
+                        <i class="fa-regular fa-building text-blue-500 text-xs flex-shrink-0"></i>
+                        <span id="vd_client_name" class="truncate">--</span>
+                    </div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl border border-gray-100 dark:border-gray-700/60">
+                    <div class="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-0.5">Contact Number</div>
+                    <div class="font-semibold text-gray-900 dark:text-gray-100 flex items-center justify-between">
+                        <span id="vd_contact_number">--</span>
+                        <button type="button" onclick="copyVdContact()" class="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 ml-2 text-xs transition" title="Copy Phone Number">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl border border-gray-100 dark:border-gray-700/60 col-span-2">
+                    <div class="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-0.5">Destination</div>
+                    <div class="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                        <i class="fa-solid fa-location-dot text-rose-500 text-xs flex-shrink-0"></i>
+                        <span id="vd_destination">--</span>
+                    </div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl border border-gray-100 dark:border-gray-700/60">
+                    <div class="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-0.5">Load Volume</div>
+                    <div class="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                        <i class="fa-solid fa-cubes-stacked text-amber-500 text-xs"></i>
+                        <span id="vd_cubic_meters">--</span>
+                    </div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl border border-gray-100 dark:border-gray-700/60">
+                    <div class="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-0.5">Driver Trip Pay</div>
+                    <div class="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        <span id="vd_trip_pay">₱0.00</span>
+                    </div>
+                    <div class="text-[10px] text-gray-400 mt-0.5 truncate" id="vd_distance_note">Standard trip rate</div>
+                </div>
+            </div>
+
+            <!-- Landmark / Notes Card -->
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                        <i class="fa-solid fa-map-pin text-blue-500 mr-1"></i> Landmark / Location Note
+                    </span>
+                    <button type="button" onclick="copyVdLandmark()" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1">
+                        <i class="fa-regular fa-copy"></i> Copy Note
+                    </button>
+                </div>
+                <div class="p-3.5 bg-gray-50 dark:bg-gray-900/80 rounded-xl border border-gray-200 dark:border-gray-700 text-xs text-gray-800 dark:text-gray-200 leading-relaxed break-words" id="vd_landmark">
+                    None specified
+                </div>
+            </div>
+
+            <!-- Transit Timestamps Card -->
+            <div class="p-3.5 bg-gray-50 dark:bg-gray-900/60 rounded-xl border border-gray-100 dark:border-gray-700/60 grid grid-cols-2 gap-3">
+                <div>
+                    <div class="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-0.5">Departure / Transit Start</div>
+                    <div class="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 text-xs">
+                        <i class="fa-regular fa-clock text-blue-500 text-xs flex-shrink-0"></i>
+                        <span id="vd_departure_time">--</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-0.5">Delivery / Completion</div>
+                    <div class="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 text-xs">
+                        <i class="fa-solid fa-circle-check text-emerald-500 text-xs flex-shrink-0"></i>
+                        <span id="vd_delivery_time">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="p-4 sm:p-5 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700/80 flex justify-between items-center flex-shrink-0">
+            <button type="button" id="vd_print_btn" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition inline-flex items-center gap-2">
+                <i class="fa-solid fa-print"></i> Print Waybill
+            </button>
+            <button type="button" onclick="toggleModal('viewDispatchDetailsModal', false)" class="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-650 border border-gray-200 dark:border-gray-600 transition">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
+    function copyVdTicket() {
+        const el = document.getElementById('vd_ticket_number');
+        if (el && el.innerText) {
+            navigator.clipboard.writeText(el.innerText.trim()).then(() => {
+                if (typeof showToast === 'function') showToast('Ticket number copied to clipboard', 'info');
+            }).catch(() => {});
+        }
+    }
+    function copyVdContact() {
+        const el = document.getElementById('vd_contact_number');
+        if (el && el.innerText && el.innerText !== 'N/A' && el.innerText !== '--') {
+            navigator.clipboard.writeText(el.innerText.trim()).then(() => {
+                if (typeof showToast === 'function') showToast('Contact number copied to clipboard', 'info');
+            }).catch(() => {});
+        }
+    }
+    function copyVdLandmark() {
+        const el = document.getElementById('vd_landmark');
+        if (el && el.innerText && el.innerText !== 'None specified' && el.innerText !== '--') {
+            navigator.clipboard.writeText(el.innerText.trim()).then(() => {
+                if (typeof showToast === 'function') showToast('Landmark notes copied to clipboard', 'info');
+            }).catch(() => {});
+        }
+    }
+
     function togglePasswordVisibility(inputId, btn) {
         const input = document.getElementById(inputId);
         if (!input) return;

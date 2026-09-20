@@ -205,35 +205,42 @@
             </button>
         </div>
         <div class="divide-y divide-gray-100 dark:divide-gray-700/80">
-            <?php foreach ($recentDispatches as $dispatch):
-                $chipStyle = 'chip-blue';
-                if ($dispatch['status'] == 'Pending') $chipStyle = 'chip-amber';
-                if ($dispatch['status'] == 'Delivered') $chipStyle = 'chip-emerald';
-                $dispatchJson = htmlspecialchars(json_encode($dispatch), ENT_QUOTES, 'UTF-8');
-            ?>
-                <div onclick="openViewDispatchModal(<?= $dispatchJson ?>)" class="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-blue-50/50 dark:hover:bg-gray-700/60 transition-colors cursor-pointer group" title="Click to view dispatch details">
-                    <div class="flex items-center space-x-3.5 min-w-0">
-                        <div class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 text-gray-600 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex items-center justify-center flex-shrink-0 transition-colors">
-                            <i class="fa-solid fa-ticket text-sm"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="font-bold text-gray-900 dark:text-gray-100 text-sm truncate flex items-center gap-2">
-                                <span><?= htmlspecialchars($dispatch['ticket_number']); ?></span>
-                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"></i>
-                            </div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400 font-medium truncate">
-                                <?= htmlspecialchars($dispatch['truck_code']) . ' • ' . htmlspecialchars($dispatch['driver_name']); ?>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1">
-                        <span class="<?= $chipStyle; ?>">
-                            <?= htmlspecialchars($dispatch['status']); ?>
-                        </span>
-                        <div class="text-xs text-gray-400 dark:text-gray-500 font-medium truncate max-w-[200px] sm:max-w-none"><i class="fa-solid fa-location-dot text-[10px] mr-1"></i><?= htmlspecialchars($dispatch['destination']); ?></div>
-                    </div>
+            <?php if (empty($recentDispatches)): ?>
+                <div class="p-8 text-center text-gray-400 dark:text-gray-500 text-xs">
+                    <i class="fa-solid fa-clock-rotate-left text-2xl mb-2 opacity-50 block"></i>
+                    No recent dispatch activity recorded yet.
                 </div>
-            <?php endforeach; ?>
+            <?php else: ?>
+                <?php foreach ($recentDispatches as $dispatch):
+                    $chipStyle = 'chip-blue';
+                    if ($dispatch['status'] == 'Pending') $chipStyle = 'chip-amber';
+                    if ($dispatch['status'] == 'Delivered') $chipStyle = 'chip-emerald';
+                    $dispatchJson = htmlspecialchars(json_encode($dispatch), ENT_QUOTES, 'UTF-8');
+                ?>
+                    <div onclick="openViewDispatchModal(this.dataset.dispatch)" data-dispatch="<?= $dispatchJson ?>" class="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-blue-50/50 dark:hover:bg-gray-700/60 transition-colors cursor-pointer group" title="Click to view dispatch details">
+                        <div class="flex items-center space-x-3.5 min-w-0">
+                            <div class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 text-gray-600 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex items-center justify-center flex-shrink-0 transition-colors">
+                                <i class="fa-solid fa-ticket text-sm"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-bold text-gray-900 dark:text-gray-100 text-sm truncate flex items-center gap-2">
+                                    <span><?= htmlspecialchars($dispatch['ticket_number']); ?></span>
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 font-medium truncate">
+                                    <?= htmlspecialchars($dispatch['truck_code']) . ' • ' . htmlspecialchars($dispatch['driver_name']); ?>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1">
+                            <span class="<?= $chipStyle; ?>">
+                                <?= htmlspecialchars($dispatch['status']); ?>
+                            </span>
+                            <div class="text-xs text-gray-400 dark:text-gray-500 font-medium truncate max-w-[200px] sm:max-w-none"><i class="fa-solid fa-location-dot text-[10px] mr-1"></i><?= htmlspecialchars($dispatch['destination']); ?></div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
     </div>
 </div>

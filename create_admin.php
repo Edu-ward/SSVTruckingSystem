@@ -13,6 +13,19 @@ try {
 $message = null;
 $messageType = null;
 
+// Auto-heal / migrate missing columns in users table if needed
+if (isset($pdo)) {
+    try {
+        $cols = $pdo->query("SHOW COLUMNS FROM `users`")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('status', $cols)) {
+            $pdo->exec("ALTER TABLE `users` ADD COLUMN `status` ENUM('Active', 'Inactive', 'Suspended') NOT NULL DEFAULT 'Active'");
+        }
+        $pdo->exec("ALTER TABLE `users` MODIFY COLUMN `role` ENUM('Superadmin', 'Admin', 'Driver', 'Checker') NOT NULL DEFAULT 'Driver'");
+    } catch (Throwable $e) {
+        // Handled silently or will show error on form submit
+    }
+}
+
 
 if ($isCli) {
     if ($dbError || !isset($pdo)) {
