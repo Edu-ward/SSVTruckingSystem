@@ -705,10 +705,14 @@
                 if (waterCheck && waterCheck.isWater) {
                     if (simDestMarker && settingsSimMap) { settingsSimMap.removeLayer(simDestMarker); simDestMarker = null; }
                     if (simRouteLine && settingsSimMap) { settingsSimMap.removeLayer(simRouteLine); simRouteLine = null; }
+                    let wName = 'the sea or open water';
+                    if (waterCheck.reason && !waterCheck.reason.toLowerCase().includes('no road') && !waterCheck.reason.toLowerCase().includes('unable to geocode')) {
+                        wName = waterCheck.reason;
+                    }
                     if (typeof showToast === 'function') {
-                        showToast(`⚠️ Cannot simulate trips into the sea or open water (${waterCheck.reason || 'Open Water'}). Dump trucks operate on land only.`, 'warning');
+                        showToast(`⚠️ Cannot simulate trips into ${wName}. Dump trucks operate on land only.`, 'warning');
                     } else {
-                        alert('Cannot simulate trips into the sea or open water. Dump trucks operate on land only.');
+                        alert(`Cannot simulate trips into ${wName}. Dump trucks operate on land only.`);
                     }
                     return;
                 }

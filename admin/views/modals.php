@@ -1713,11 +1713,11 @@
         <div class="flex-grow p-3 sm:p-4 min-h-[260px] sm:min-h-[300px] relative">
             <div id="osmMiniMap" class="w-full h-full rounded-xl border border-gray-200 dark:border-gray-700 min-h-[240px] sm:min-h-[280px]"></div>
         </div>
-        <div class="p-3 sm:p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col sm:flex-row sm:justify-between items-stretch sm:items-center gap-2 flex-shrink-0">
-            <div id="selectedOsmLocationText" class="text-xs text-gray-500 dark:text-gray-400 font-medium truncate max-w-full sm:max-w-[65%]">
+        <div class="p-3 sm:p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-3 flex-shrink-0">
+            <div id="selectedOsmLocationText" class="text-xs text-gray-500 dark:text-gray-400 font-medium leading-relaxed break-words flex-1 min-w-0">
                 Click anywhere on the map or search to select a destination.
             </div>
-            <div class="flex space-x-2 justify-end">
+            <div class="flex space-x-2 justify-end shrink-0 w-full sm:w-auto">
                 <button type="button" onclick="closeNominatimSearchModal()" class="px-4 py-2 text-xs sm:text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition">Cancel</button>
                 <button type="button" id="useOsmLocationBtn" disabled onclick="applySelectedOsmLocation()" class="px-5 py-2 text-xs sm:text-sm font-semibold bg-green-600 hover:bg-green-700 text-white rounded-xl disabled:opacity-50 transition shadow-sm cursor-pointer disabled:cursor-not-allowed">
                     <i class="fa-solid fa-check mr-1"></i> Use Location
@@ -2022,13 +2022,17 @@
                             currentSelectedDistanceKm = 0;
                             currentSelectedPay = 0;
                             if (btnEl) btnEl.disabled = true;
+
+                            let waterName = 'the sea or open water';
+                            if (msg && !msg.toLowerCase().includes('no road') && !msg.toLowerCase().includes('unable to geocode')) {
+                                waterName = msg;
+                            }
+
                             if (textEl) {
-                                textEl.innerHTML = `<span class="text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1.5"><i class="fa-solid fa-water"></i> Cannot pin in the sea or open water (${msg}). Please select a valid land delivery destination.</span>`;
+                                textEl.innerHTML = `<span class="text-rose-600 dark:text-rose-400 font-semibold inline-flex items-center gap-1.5 leading-snug"><i class="fa-solid fa-triangle-exclamation shrink-0 text-rose-500"></i><span>Cannot pin in <strong>${waterName}</strong>. Please select a valid land delivery destination.</span></span>`;
                             }
                             if (typeof showToast === 'function') {
-                                showToast('⚠️ Cannot pin in the sea or open water. Dump trucks operate on land routes only.', 'warning');
-                            } else {
-                                alert('Cannot pin in the sea or open water. Please select a land delivery destination.');
+                                showToast(`⚠️ Cannot pin in ${waterName}. Dump trucks operate on land routes only.`, 'warning');
                             }
                         };
 
@@ -2147,10 +2151,14 @@
                     if (typeof NominatimService !== 'undefined' && NominatimService.checkIsWater) {
                         const waterCheck = await NominatimService.checkIsWater(res.lat, res.lng);
                         if (waterCheck && waterCheck.isWater) {
+                            let wName = 'the sea or open water';
+                            if (waterCheck.reason && !waterCheck.reason.toLowerCase().includes('no road') && !waterCheck.reason.toLowerCase().includes('unable to geocode')) {
+                                wName = waterCheck.reason;
+                            }
                             if (typeof showToast === 'function') {
-                                showToast('⚠️ Cannot select water/sea location (' + (waterCheck.reason || 'Open Water') + '). Dump trucks require a land destination.', 'warning');
+                                showToast(`⚠️ Cannot select ${wName}. Dump trucks require a land destination.`, 'warning');
                             } else {
-                                alert('Cannot select water/sea location. Dump trucks require a land destination.');
+                                alert(`Cannot select ${wName}. Dump trucks require a land destination.`);
                             }
                             return;
                         }
