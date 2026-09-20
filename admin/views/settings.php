@@ -685,6 +685,36 @@
             return;
         }
 
+        // Operational limit: Cannot pin or simulate destination in the sea or open water
+        if (typeof NominatimService !== 'undefined') {
+            if (NominatimService.isKnownWaterBody) {
+                const fastWater = NominatimService.isKnownWaterBody(lat, lng);
+                if (fastWater && fastWater.isWater) {
+                    if (simDestMarker && settingsSimMap) { settingsSimMap.removeLayer(simDestMarker); simDestMarker = null; }
+                    if (simRouteLine && settingsSimMap) { settingsSimMap.removeLayer(simRouteLine); simRouteLine = null; }
+                    if (typeof showToast === 'function') {
+                        showToast(`⚠️ Cannot simulate trips into the sea or open water (${fastWater.name}). Dump trucks operate on land only.`, 'warning');
+                    } else {
+                        alert(`Cannot simulate trips into the sea or open water (${fastWater.name}). Dump trucks operate on land only.`);
+                    }
+                    return;
+                }
+            }
+            if (NominatimService.checkIsWater) {
+                const waterCheck = await NominatimService.checkIsWater(lat, lng);
+                if (waterCheck && waterCheck.isWater) {
+                    if (simDestMarker && settingsSimMap) { settingsSimMap.removeLayer(simDestMarker); simDestMarker = null; }
+                    if (simRouteLine && settingsSimMap) { settingsSimMap.removeLayer(simRouteLine); simRouteLine = null; }
+                    if (typeof showToast === 'function') {
+                        showToast(`⚠️ Cannot simulate trips into the sea or open water (${waterCheck.reason || 'Open Water'}). Dump trucks operate on land only.`, 'warning');
+                    } else {
+                        alert('Cannot simulate trips into the sea or open water. Dump trucks operate on land only.');
+                    }
+                    return;
+                }
+            }
+        }
+
         if (!settingsSimMap) initSettingsSimulatorMap();
 
         let destName = label;

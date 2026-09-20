@@ -15,12 +15,129 @@ const NominatimService = (function () {
         maxLng: 127.0
     };
 
+    // Major known water bodies around Philippines (instant 0ms geometric check)
+    const WATER_REGIONS = [
+        // Manila Bay
+        { name: "Manila Bay", minLat: 14.42, maxLat: 14.78, minLng: 120.60, maxLng: 120.88 },
+        // Subic Bay
+        { name: "Subic Bay", minLat: 14.74, maxLat: 14.85, minLng: 120.22, maxLng: 120.29 },
+        // Lingayen Gulf
+        { name: "Lingayen Gulf", minLat: 16.08, maxLat: 16.35, minLng: 120.08, maxLng: 120.35 },
+        // Laguna de Bay
+        { name: "Laguna de Bay", minLat: 14.25, maxLat: 14.45, minLng: 121.14, maxLng: 121.35 },
+        // Taal Lake
+        { name: "Taal Lake", minLat: 13.97, maxLat: 14.07, minLng: 120.95, maxLng: 121.05 },
+        // West Philippine Sea / South China Sea (Off west coast of Luzon)
+        { name: "West Philippine Sea", minLat: 13.0, maxLat: 19.0, minLng: 116.0, maxLng: 119.70 },
+        // Pacific Ocean (Off east coast of Luzon)
+        { name: "Pacific Ocean", minLat: 14.5, maxLat: 18.5, minLng: 122.4, maxLng: 127.0 },
+        // Pacific Ocean off Central Luzon (Aurora / Dingalan / Baler coast)
+        { name: "Pacific Ocean (Aurora Coast)", minLat: 15.2, maxLat: 16.3, minLng: 121.75, maxLng: 127.0 }
+    ];
+
     function isWithinPhilippines(lat, lng) {
         if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) return false;
         const nLat = parseFloat(lat);
         const nLng = parseFloat(lng);
         return nLat >= PH_BOUNDS.minLat && nLat <= PH_BOUNDS.maxLat &&
                nLng >= PH_BOUNDS.minLng && nLng <= PH_BOUNDS.maxLng;
+    }
+
+    function isKnownWaterBody(lat, lng) {
+        if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) return false;
+        const nLat = parseFloat(lat);
+        const nLng = parseFloat(lng);
+        for (const b of WATER_REGIONS) {
+            if (nLat >= b.minLat && nLat <= b.maxLat && nLng >= b.minLng && nLng <= b.maxLng) {
+                return { isWater: true, name: b.name };
+            }
+        }
+        return false;
+    }
+
+    async function checkIsWater(lat, lng) {
+        if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) return { isWater: false };
+        const nLat = parseFloat(lat);
+        const nLng = parseFloat(lng);
+
+        // 0. Boundary check: must be within Philippines
+        if (!isWithinPhilippines(nLat, nLng)) {
+            return { isWater: true, reason: 'Outside Philippine operational boundaries' };
+        }
+
+        // 1. Instant check against known water bodies (0ms)
+        const fast = isKnownWaterBody(nLat, nLng);
+        if (fast) {
+            return { isWater: true, reason: `Located in ${fast.name}` };
+        }
+
+        // Cache check
+        const cacheKey = `water:${nLat.toFixed(4)},${nLng.toFixed(4)}`;
+        if (typeof cache[cacheKey] !== 'undefined') {
+            return cache[cacheKey];
+        }
+
+        // 2. Query OSRM nearest driving road endpoint
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 2000);
+            const osrmUrl = `https://router.project-osrm.org/nearest/v1/driving/${nLng},${nLat}?number=1`;
+            const resp = await fetch(osrmUrl, { signal: controller.signal });
+            clearTimeout(timeout);
+
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data && data.code === 'Ok' && data.waypoints && data.waypoints.length > 0) {
+                    const distM = parseFloat(data.waypoints[0].distance);
+                    // If distance to nearest drivable road is greater than 600m, it's open water/sea
+                    if (distM > 600) {
+                        const result = { isWater: true, reason: `No road access (${Math.round(distM)}m from shore/road)` };
+                        cache[cacheKey] = result;
+                        return result;
+                    }
+                } else if (data && data.code !== 'Ok') {
+                    const result = { isWater: true, reason: 'No road route available (open sea/ocean)' };
+                    cache[cacheKey] = result;
+                    return result;
+                }
+            }
+        } catch (e) {
+            console.warn('OSM Nearest road check skipped:', e);
+        }
+
+        // 3. Fallback: check OSM Nominatim natural water categories
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 2000);
+            const osmUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(nLat)}&lon=${encodeURIComponent(nLng)}&zoom=16`;
+            const resp = await fetch(osmUrl, {
+                headers: { 'Accept': 'application/json' },
+                signal: controller.signal
+            });
+            clearTimeout(timeout);
+
+            if (resp.ok) {
+                const data = await resp.json();
+                if (!data || data.error) {
+                    const result = { isWater: true, reason: 'Unable to geocode (open sea)' };
+                    cache[cacheKey] = result;
+                    return result;
+                }
+                const cat = data.category || '';
+                const type = data.type || '';
+                if (cat === 'natural' && ['water', 'sea', 'ocean', 'bay', 'coastline', 'strait'].includes(type)) {
+                    const result = { isWater: true, reason: `Natural water feature (${type})` };
+                    cache[cacheKey] = result;
+                    return result;
+                }
+            }
+        } catch (e) {
+            console.warn('OSM water fallback check skipped:', e);
+        }
+
+        const result = { isWater: false, reason: 'Valid land location' };
+        cache[cacheKey] = result;
+        return result;
     }
 
     function isWithinSanLeonardo(name) {
@@ -139,6 +256,19 @@ const NominatimService = (function () {
             return cache[cacheKey];
         }
 
+        const fastWater = isKnownWaterBody(lat, lng);
+        if (fastWater) {
+            const waterRes = {
+                isWater: true,
+                formatted: fastWater.name,
+                displayName: fastWater.name,
+                lat: parseFloat(lat),
+                lng: parseFloat(lng)
+            };
+            cache[cacheKey] = waterRes;
+            return waterRes;
+        }
+
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 2000);
@@ -246,8 +376,10 @@ const NominatimService = (function () {
                             const lat = coords[1];
                             const lng = coords[0];
 
-                            // Reject coordinates outside Philippine limits
+                            // Reject coordinates outside Philippine limits or in the sea
                             if (!isWithinPhilippines(lat, lng)) return null;
+                            if (isKnownWaterBody(lat, lng)) return null;
+                            if (p.osm_key === 'natural' && ['water', 'sea', 'ocean', 'bay', 'coastline', 'strait'].includes(p.osm_value)) return null;
 
                             const parts = [];
                             if (p.name) parts.push(p.name);
@@ -296,6 +428,8 @@ const NominatimService = (function () {
                     const lat = parseFloat(item.lat);
                     const lng = parseFloat(item.lon);
                     if (!isWithinPhilippines(lat, lng)) return null;
+                    if (isKnownWaterBody(lat, lng)) return null;
+                    if (item.category === 'natural' && ['water', 'sea', 'ocean', 'bay', 'coastline', 'strait'].includes(item.type)) return null;
 
                     const addr = item.address || {};
                     const parts = [];
@@ -389,7 +523,10 @@ const NominatimService = (function () {
     return {
         GARAGE_COORDS: GARAGE_COORDS,
         PH_BOUNDS: PH_BOUNDS,
+        WATER_REGIONS: WATER_REGIONS,
         isWithinPhilippines: isWithinPhilippines,
+        isKnownWaterBody: isKnownWaterBody,
+        checkIsWater: checkIsWater,
         isWithinSanLeonardo: isWithinSanLeonardo,
         getSanLeonardoBoundaryDistance: getSanLeonardoBoundaryDistance,
         calculateTripPay: calculateTripPay,

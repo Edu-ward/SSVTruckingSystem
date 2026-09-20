@@ -1995,7 +1995,7 @@
                     </div>
                 `);
 
-                osmMiniMap.on('click', function(e) {
+                osmMiniMap.on('click', async function(e) {
                     try {
                         const lat = e.latlng.lat;
                         const lng = e.latlng.lng;
@@ -2008,6 +2008,49 @@
                                 alert('Location must be within the Philippines operational area.');
                             }
                             return;
+                        }
+
+                        const textEl = document.getElementById('selectedOsmLocationText');
+                        const btnEl = document.getElementById('useOsmLocationBtn');
+
+                        const rejectWater = (msg) => {
+                            if (osmMarker) { osmMiniMap.removeLayer(osmMarker); osmMarker = null; }
+                            if (osmRouteLine) { osmMiniMap.removeLayer(osmRouteLine); osmRouteLine = null; }
+                            currentSelectedLat = null;
+                            currentSelectedLng = null;
+                            currentSelectedLocation = null;
+                            currentSelectedDistanceKm = 0;
+                            currentSelectedPay = 0;
+                            if (btnEl) btnEl.disabled = true;
+                            if (textEl) {
+                                textEl.innerHTML = `<span class="text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1.5"><i class="fa-solid fa-water"></i> Cannot pin in the sea or open water (${msg}). Please select a valid land delivery destination.</span>`;
+                            }
+                            if (typeof showToast === 'function') {
+                                showToast('⚠️ Cannot pin in the sea or open water. Dump trucks operate on land routes only.', 'warning');
+                            } else {
+                                alert('Cannot pin in the sea or open water. Please select a land delivery destination.');
+                            }
+                        };
+
+                        // Fast water check (0ms)
+                        if (typeof NominatimService !== 'undefined' && NominatimService.isKnownWaterBody) {
+                            const fast = NominatimService.isKnownWaterBody(lat, lng);
+                            if (fast && fast.isWater) {
+                                rejectWater(fast.name);
+                                return;
+                            }
+                        }
+
+                        // Asynchronous water verification (OSRM / Nominatim)
+                        if (typeof NominatimService !== 'undefined' && NominatimService.checkIsWater) {
+                            if (textEl) {
+                                textEl.innerHTML = `<span class="text-gray-500 italic flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i> Checking road access &amp; feasibility...</span>`;
+                            }
+                            const waterCheck = await NominatimService.checkIsWater(lat, lng);
+                            if (waterCheck && waterCheck.isWater) {
+                                rejectWater(waterCheck.reason || 'Open Water');
+                                return;
+                            }
                         }
 
                         currentSelectedLat = lat;
@@ -2041,8 +2084,6 @@
                         const calcInitial = computeDriverTripPay(roundedKm, currentSelectedLocation, lat, lng);
                         currentSelectedPay = calcInitial.pay;
 
-                        const textEl = document.getElementById('selectedOsmLocationText');
-                        const btnEl = document.getElementById('useOsmLocationBtn');
                         if (btnEl) btnEl.disabled = false;
 
                         const updateStatusText = (name) => {
@@ -2059,7 +2100,9 @@
 
                         if (typeof NominatimService !== 'undefined') {
                             NominatimService.reverseGeocode(lat, lng).then(geo => {
-                                if (geo && geo.formatted) {
+                                if (geo && geo.isWater) {
+                                    rejectWater(geo.formatted || 'Water Body');
+                                } else if (geo && geo.formatted) {
                                     currentSelectedLocation = geo.formatted;
                                     updateStatusText(geo.formatted);
                                 }
@@ -2100,7 +2143,19 @@
                 const item = document.createElement('div');
                 item.className = 'p-4 hover:bg-blue-50 dark:hover:bg-gray-700 cursor-pointer rounded transition flex items-center justify-between border-b border-gray-100 dark:border-gray-700';
                 item.innerHTML = `<div class="truncate mr-2"><div class="font-bold text-gray-800 dark:text-gray-200">${res.shortName}</div><div class="text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-sm">${res.name}</div></div><button type="button" class="text-xs bg-blue-600 text-white px-2.5 py-1 rounded-lg font-semibold shrink-0">Select</button>`;
-                item.onclick = function() {
+                item.onclick = async function() {
+                    if (typeof NominatimService !== 'undefined' && NominatimService.checkIsWater) {
+                        const waterCheck = await NominatimService.checkIsWater(res.lat, res.lng);
+                        if (waterCheck && waterCheck.isWater) {
+                            if (typeof showToast === 'function') {
+                                showToast('⚠️ Cannot select water/sea location (' + (waterCheck.reason || 'Open Water') + '). Dump trucks require a land destination.', 'warning');
+                            } else {
+                                alert('Cannot select water/sea location. Dump trucks require a land destination.');
+                            }
+                            return;
+                        }
+                    }
+
                     currentSelectedLocation = res.shortName;
                     currentSelectedLat = res.lat;
                     currentSelectedLng = res.lng;
