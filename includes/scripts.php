@@ -666,6 +666,12 @@
                 map = L.map('map', {
                     center: [15.359042, 120.965016],
                     zoom: 14,
+                    minZoom: 5,
+                    maxBounds: [
+                        [4.0, 115.5],
+                        [21.8, 127.5]
+                    ],
+                    maxBoundsViscosity: 1.0,
                     layers: [streetLayer],
                     zoomControl: true
                 });
@@ -2942,6 +2948,11 @@
 
                     async function pushLocation(lat, lng, speed) {
                         if (!isTransit) return; 
+                        // Enforce Philippine operational boundary (4.5°N - 21.5°N, 116.0°E - 127.0°E)
+                        if (lat < 4.5 || lat > 21.5 || lng < 116.0 || lng > 127.0) {
+                            console.warn('Location update rejected: Outside Philippine operational limits', lat, lng);
+                            return;
+                        }
                         const now = Date.now();
                         if (now - lastPushTime < PUSH_INTERVAL_MS) return;
                         lastPushTime = now;
@@ -2997,9 +3008,14 @@
                             .then(r => r.json())
                             .then(ipData => {
                                 if (ipData.latitude && ipData.longitude) {
-                                    startLat = ipData.latitude;
-                                    startLng = ipData.longitude;
-                                    showToast("✅ Simulation aligned with your local network location.", "success", 4000);
+                                    // Only accept IP coordinates if within Philippine operational bounds
+                                    if (ipData.latitude >= 4.5 && ipData.latitude <= 21.5 && ipData.longitude >= 116.0 && ipData.longitude <= 127.0) {
+                                        startLat = ipData.latitude;
+                                        startLng = ipData.longitude;
+                                        showToast("✅ Simulation aligned with your local network location.", "success", 4000);
+                                    } else {
+                                        console.warn("IP location is outside the Philippines. Defaulting simulation to San Leonardo Garage.");
+                                    }
                                 }
                                 runSimulation();
                             })

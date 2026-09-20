@@ -1847,6 +1847,12 @@ if (!empty($driverFullName)) {
             driverMap = L.map('driverRouteMap', {
                 center: [GARAGE_LOCATION.lat, GARAGE_LOCATION.lng],
                 zoom: 13,
+                minZoom: 5,
+                maxBounds: [
+                    [4.0, 115.5],
+                    [21.8, 127.5]
+                ],
+                maxBoundsViscosity: 1.0,
                 layers: [streetLayer],
                 zoomControl: true,
                 attributionControl: true
@@ -2057,6 +2063,11 @@ if (!empty($driverFullName)) {
         if (!navigator.geolocation || !driverMap) return;
 
         const updateGpsUI = (lat, lng, accuracy) => {
+            // Enforce Philippine operational limits
+            if (lat < 4.5 || lat > 21.5 || lng < 116.0 || lng > 127.0) {
+                console.warn('Driver GPS ignored: Outside Philippine operational limits', lat, lng);
+                return;
+            }
             driverCurrentLat = lat;
             driverCurrentLng = lng;
 

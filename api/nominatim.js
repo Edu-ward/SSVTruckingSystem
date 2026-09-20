@@ -7,6 +7,22 @@ const NominatimService = (function () {
         lng: 120.965016
     };
 
+    // Geographic Operational Limits — Philippines Only
+    const PH_BOUNDS = {
+        minLat: 4.5,
+        maxLat: 21.5,
+        minLng: 116.0,
+        maxLng: 127.0
+    };
+
+    function isWithinPhilippines(lat, lng) {
+        if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) return false;
+        const nLat = parseFloat(lat);
+        const nLng = parseFloat(lng);
+        return nLat >= PH_BOUNDS.minLat && nLat <= PH_BOUNDS.maxLat &&
+               nLng >= PH_BOUNDS.minLng && nLng <= PH_BOUNDS.maxLng;
+    }
+
     function isWithinSanLeonardo(name) {
         if (!name || typeof name !== 'string') return false;
         const lower = name.toLowerCase();
@@ -113,6 +129,10 @@ const NominatimService = (function () {
 
     async function reverseGeocode(lat, lng) {
         if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) return null;
+        if (!isWithinPhilippines(lat, lng)) {
+            console.warn(`Coordinates [${lat}, ${lng}] are outside the Philippines operational boundary.`);
+            return null;
+        }
 
         const cacheKey = `geo:${parseFloat(lat).toFixed(4)},${parseFloat(lng).toFixed(4)}`;
         if (cache[cacheKey]) {
@@ -211,33 +231,43 @@ const NominatimService = (function () {
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 2000);
-            const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(cleanQuery)}&limit=8&lat=15.359042&lon=120.965016`;
+            // Restrict photon search strictly within Philippine bounding box
+            const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(cleanQuery)}&limit=8&lat=15.359042&lon=120.965016&bbox=116.0,4.5,127.0,21.5`;
             const resp = await fetch(photonUrl, { signal: controller.signal });
             clearTimeout(timeout);
 
             if (resp.ok) {
                 const data = await resp.json();
                 if (data && data.features && data.features.length > 0) {
-                    const results = data.features.map(f => {
-                        const p = f.properties || {};
-                        const coords = f.geometry && f.geometry.coordinates ? f.geometry.coordinates : [0, 0];
-                        const parts = [];
-                        if (p.name) parts.push(p.name);
-                        if (p.district && p.district !== p.name) parts.push(p.district);
-                        if (p.city && p.city !== p.name && !parts.includes(p.city)) parts.push(p.city);
-                        if (p.state && !parts.includes(p.state)) parts.push(p.state);
+                    const results = data.features
+                        .map(f => {
+                            const p = f.properties || {};
+                            const coords = f.geometry && f.geometry.coordinates ? f.geometry.coordinates : [0, 0];
+                            const lat = coords[1];
+                            const lng = coords[0];
 
-                        const short = parts.slice(0, 2).join(', ') || p.name || 'Location';
-                        const full = parts.join(', ') || short;
+                            // Reject coordinates outside Philippine limits
+                            if (!isWithinPhilippines(lat, lng)) return null;
 
-                        return {
-                            id: p.osm_id || Math.random(),
-                            name: full,
-                            shortName: short,
-                            lat: coords[1],
-                            lng: coords[0]
-                        };
-                    });
+                            const parts = [];
+                            if (p.name) parts.push(p.name);
+                            if (p.district && p.district !== p.name) parts.push(p.district);
+                            if (p.city && p.city !== p.name && !parts.includes(p.city)) parts.push(p.city);
+                            if (p.state && !parts.includes(p.state)) parts.push(p.state);
+
+                            const short = parts.slice(0, 2).join(', ') || p.name || 'Location';
+                            const full = parts.join(', ') || short;
+
+                            return {
+                                id: p.osm_id || Math.random(),
+                                name: full,
+                                shortName: short,
+                                lat: lat,
+                                lng: lng
+                            };
+                        })
+                        .filter(Boolean);
+
                     if (results.length > 0) {
                         cache[cacheKey] = results;
                         return results;
@@ -251,7 +281,7 @@ const NominatimService = (function () {
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 2500);
-            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(cleanQuery)}&countrycodes=ph&limit=6&addressdetails=1`;
+            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(cleanQuery)}&countrycodes=ph&viewbox=116.0,21.5,127.0,4.5&bounded=1&limit=6&addressdetails=1`;
             const response = await fetch(url, {
                 headers: { 'Accept': 'application/json' },
                 signal: controller.signal
@@ -261,23 +291,29 @@ const NominatimService = (function () {
             if (!response.ok) return [];
             const results = await response.json();
 
-            const formattedResults = results.map(item => {
-                const addr = item.address || {};
-                const parts = [];
-                if (addr.road || addr.street) parts.push(addr.road || addr.street);
-                if (addr.village || addr.quarter || addr.suburb || addr.barangay) parts.push(addr.village || addr.quarter || addr.suburb || addr.barangay);
-                if (addr.city || addr.town || addr.municipality) parts.push(addr.city || addr.town || addr.municipality);
-                if (addr.province) parts.push(addr.province);
+            const formattedResults = results
+                .map(item => {
+                    const lat = parseFloat(item.lat);
+                    const lng = parseFloat(item.lon);
+                    if (!isWithinPhilippines(lat, lng)) return null;
 
-                const short = parts.length > 0 ? parts.join(', ') : item.display_name.split(',').slice(0, 3).join(',');
-                return {
-                    id: item.place_id,
-                    name: item.display_name,
-                    shortName: short,
-                    lat: parseFloat(item.lat),
-                    lng: parseFloat(item.lon)
-                };
-            });
+                    const addr = item.address || {};
+                    const parts = [];
+                    if (addr.road || addr.street) parts.push(addr.road || addr.street);
+                    if (addr.village || addr.quarter || addr.suburb || addr.barangay) parts.push(addr.village || addr.quarter || addr.suburb || addr.barangay);
+                    if (addr.city || addr.town || addr.municipality) parts.push(addr.city || addr.town || addr.municipality);
+                    if (addr.province) parts.push(addr.province);
+
+                    const short = parts.length > 0 ? parts.join(', ') : item.display_name.split(',').slice(0, 3).join(',');
+                    return {
+                        id: item.place_id,
+                        name: item.display_name,
+                        shortName: short,
+                        lat: lat,
+                        lng: lng
+                    };
+                })
+                .filter(Boolean);
 
             cache[cacheKey] = formattedResults;
             return formattedResults;
@@ -352,6 +388,8 @@ const NominatimService = (function () {
 
     return {
         GARAGE_COORDS: GARAGE_COORDS,
+        PH_BOUNDS: PH_BOUNDS,
+        isWithinPhilippines: isWithinPhilippines,
         isWithinSanLeonardo: isWithinSanLeonardo,
         getSanLeonardoBoundaryDistance: getSanLeonardoBoundaryDistance,
         calculateTripPay: calculateTripPay,

@@ -22,8 +22,13 @@ $lng   = isset($_POST['longitude']) ? floatval($_POST['longitude']) : null;
 $speed = isset($_POST['speed'])     ? floatval($_POST['speed'])     : 0;
 
 
-if ($lat === null || $lng === null || $lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
-    echo json_encode(['success' => false, 'message' => 'Invalid coordinates']);
+// Enforce Philippine geographic operational limits:
+// Latitude: 4.5° N to 21.5° N, Longitude: 116.0° E to 127.0° E
+if ($lat === null || $lng === null || $lat < 4.5 || $lat > 21.5 || $lng < 116.0 || $lng > 127.0) {
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Coordinates are outside Philippine operational territory (4.5°N - 21.5°N, 116.0°E - 127.0°E)'
+    ]);
     exit;
 }
 

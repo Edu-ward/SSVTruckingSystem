@@ -618,7 +618,13 @@
 
         settingsSimMap = L.map('settingsSimulatorMap', {
             center: [GARAGE_LOCATION.lat, GARAGE_LOCATION.lng],
-            zoom: 12
+            zoom: 12,
+            minZoom: 5,
+            maxBounds: [
+                [4.0, 115.5],
+                [21.8, 127.5]
+            ],
+            maxBoundsViscosity: 1.0
         });
         window.settingsSimulatorMap = settingsSimMap;
 
@@ -669,6 +675,16 @@
     }
 
     async function simulateLocation(lat, lng, label = '') {
+        // Enforce Philippine operational boundaries
+        if (lat < 4.5 || lat > 21.5 || lng < 116.0 || lng > 127.0) {
+            if (typeof showToast === 'function') {
+                showToast('⚠️ Location must be within the Philippines operational area.', 'warning');
+            } else {
+                alert('Location must be within the Philippines operational area.');
+            }
+            return;
+        }
+
         if (!settingsSimMap) initSettingsSimulatorMap();
 
         let destName = label;

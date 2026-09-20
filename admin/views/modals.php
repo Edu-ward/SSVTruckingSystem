@@ -1964,7 +1964,14 @@
             if (mapContainer) mapContainer.style.cursor = 'crosshair';
 
             if (!osmMiniMap) {
-                osmMiniMap = L.map('osmMiniMap').setView([15.359042, 120.965016], 13);
+                osmMiniMap = L.map('osmMiniMap', {
+                    minZoom: 5,
+                    maxBounds: [
+                        [4.0, 115.5],
+                        [21.8, 127.5]
+                    ],
+                    maxBoundsViscosity: 1.0
+                }).setView([15.359042, 120.965016], 13);
                 L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
                     maxZoom: 20,
                     subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
@@ -1992,6 +1999,17 @@
                     try {
                         const lat = e.latlng.lat;
                         const lng = e.latlng.lng;
+
+                        // Geographic operational limit: Philippines only
+                        if (lat < 4.5 || lat > 21.5 || lng < 116.0 || lng > 127.0) {
+                            if (typeof showToast === 'function') {
+                                showToast('⚠️ Location must be within the Philippines operational area.', 'warning');
+                            } else {
+                                alert('Location must be within the Philippines operational area.');
+                            }
+                            return;
+                        }
+
                         currentSelectedLat = lat;
                         currentSelectedLng = lng;
 

@@ -13,7 +13,6 @@ try {
 $message = null;
 $messageType = null;
 
-// Auto-heal / migrate missing columns in users table if needed
 if (isset($pdo)) {
     try {
         $cols = $pdo->query("SHOW COLUMNS FROM `users`")->fetchAll(PDO::FETCH_COLUMN);
@@ -22,7 +21,6 @@ if (isset($pdo)) {
         }
         $pdo->exec("ALTER TABLE `users` MODIFY COLUMN `role` ENUM('Superadmin', 'Admin', 'Driver', 'Checker') NOT NULL DEFAULT 'Driver'");
     } catch (Throwable $e) {
-        // Handled silently or will show error on form submit
     }
 }
 
@@ -32,12 +30,12 @@ if ($isCli) {
         echo "[ERROR] Database connection failed: " . ($dbError ?: 'PDO not initialized') . PHP_EOL;
         exit(1);
     }
-    $username = $argv[1] ?? 'admin';
-    $password = $argv[2] ?? 'adminpass99';
-    $role = $argv[3] ?? 'Superadmin';
+    $username = $argv[1] ?? '';
+    $password = $argv[2] ?? '';
+    $role = $argv[3] ?? 'Admin';
 
     if (!in_array($role, ['Admin', 'Superadmin'])) {
-        $role = 'Superadmin';
+        $role = 'Admin';
     }
 
     $hash = password_hash($password, PASSWORD_BCRYPT);
@@ -66,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($pdo)) {
     $action = $_POST['action'] ?? 'create';
 
     if ($action === 'delete_self') {
-        
+
         @unlink(__FILE__);
         header("Location: index.php?msg=setup_complete");
         exit;
@@ -147,7 +145,7 @@ if (isset($pdo)) {
 
     <div class="w-full max-w-md bg-gray-800/90 backdrop-blur-xl border border-gray-700/80 rounded-3xl shadow-2xl overflow-hidden">
 
-        
+
         <div class="p-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center space-x-4">
             <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-2xl border border-white/20 shadow-inner">
                 <i class="fa-solid fa-user-shield text-amber-300"></i>
@@ -160,7 +158,7 @@ if (isset($pdo)) {
 
         <div class="p-6 sm:p-8 space-y-6">
 
-            
+
             <?php if ($dbError || !isset($pdo)): ?>
                 <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start space-x-3">
                     <i class="fa-solid fa-triangle-exclamation text-rose-400 text-base mt-0.5"></i>
@@ -180,7 +178,7 @@ if (isset($pdo)) {
                 </div>
             <?php endif; ?>
 
-            
+
             <?php if ($message): ?>
                 <div class="p-4 rounded-2xl <?= $messageType === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300' ?> border text-xs flex items-start space-x-3">
                     <i class="fa-solid <?= $messageType === 'success' ? 'fa-circle-check text-emerald-400' : 'fa-circle-xmark text-rose-400' ?> text-base mt-0.5"></i>
@@ -205,7 +203,7 @@ if (isset($pdo)) {
                 </div>
             <?php endif; ?>
 
-            
+
             <?php if (!empty($existingAdmins)): ?>
                 <div class="p-4 rounded-2xl bg-gray-700/40 border border-gray-700/60">
                     <div class="flex items-center justify-between text-xs text-gray-400 mb-2 font-medium">
@@ -227,7 +225,7 @@ if (isset($pdo)) {
                 </div>
             <?php endif; ?>
 
-            
+
             <form method="POST" class="space-y-4">
                 <input type="hidden" name="action" value="create">
 
@@ -280,7 +278,7 @@ if (isset($pdo)) {
                 </div>
             </form>
 
-            
+
             <div class="text-[11px] text-gray-400 border-t border-gray-700/60 pt-4 space-y-1.5">
                 <div class="flex items-center gap-1.5 text-amber-400/90 font-medium">
                     <i class="fa-solid fa-shield-cat"></i>
