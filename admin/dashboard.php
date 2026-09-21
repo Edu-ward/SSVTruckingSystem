@@ -2721,6 +2721,28 @@ try {
     }
 }
 
+// ── Checker Dashboard Overview Stats ────────────────────────────────────────
+try {
+    $checkerScansTodayCount = (int)$pdo->query("SELECT COUNT(*) FROM order_scans WHERE DATE(created_at) = CURDATE()")->fetchColumn();
+} catch (Throwable $e) {
+    $checkerScansTodayCount = 0;
+}
+
+try {
+    $checkerOrderCountsRaw = $pdo->query("
+        SELECT checker_id, COUNT(*) AS order_count
+        FROM orders
+        WHERE status IN ('Pending', 'In Progress') AND checker_id IS NOT NULL
+        GROUP BY checker_id
+    ")->fetchAll(PDO::FETCH_ASSOC);
+    $checkerOrderCounts = [];
+    foreach ($checkerOrderCountsRaw as $_crow) {
+        $checkerOrderCounts[$_crow['checker_id']] = (int)$_crow['order_count'];
+    }
+} catch (Throwable $e) {
+    $checkerOrderCounts = [];
+}
+
 try {
     $allOrders = $pdo->query("
         SELECT o.*, COALESCE(CONCAT(c.first_name, ' ', c.last_name), u.username) AS checker_name
