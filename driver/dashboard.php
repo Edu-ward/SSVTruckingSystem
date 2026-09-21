@@ -136,13 +136,13 @@ $total_completed_trips = 0;
 $current_week = date('oW');
 $current_month = date('Y-m');
 
-// Bulletproof Monday to Sunday calculations
-$dayOfWeek = (int)date('N'); // 1 (Mon) to 7 (Sun)
+
+$dayOfWeek = (int)date('N'); 
 $thisMonday = date('Y-m-d', strtotime('-' . ($dayOfWeek - 1) . ' days'));
 $thisSaturday = date('Y-m-d', strtotime('+' . (6 - $dayOfWeek) . ' days'));
 $thisSunday = date('Y-m-d', strtotime('+' . (7 - $dayOfWeek) . ' days'));
 
-// Generate 12 past weekly pay periods (Monday to Sunday, matching payroll format)
+
 $driverTripPayPeriods = [];
 for ($w = 0; $w < 12; $w++) {
     $mon = date('Y-m-d', strtotime("$thisMonday -$w weeks"));
@@ -171,7 +171,7 @@ for ($w = 0; $w < 12; $w++) {
     ];
 }
 
-$selectableWeeks = $driverTripPayPeriods; // Backwards-compatibility alias
+$selectableWeeks = $driverTripPayPeriods; 
 
 $selectedFrom = $_GET['date_from'] ?? $thisMonday;
 $selectedTo   = $_GET['date_to']   ?? $thisSunday;
@@ -254,7 +254,7 @@ $grossEarnStmt = $pdo->prepare("SELECT COALESCE(SUM(pay_amount), 0) FROM dispatc
 $grossEarnStmt->execute([$driver_id]);
 $driverGrossEarnings = floatval($grossEarnStmt->fetchColumn());
 
-// All cash advances for driver
+
 $cashAdvStmt = $pdo->prepare("SELECT id, amount, reason, status, is_settled, requested_at, resolved_at FROM cash_advances WHERE driver_id = ? ORDER BY requested_at DESC");
 $cashAdvStmt->execute([$driver_id]);
 $driverCashAdvances = $cashAdvStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -275,7 +275,7 @@ foreach ($driverCashAdvances as $ca) {
 
 $netPay = max(0, $driverGrossEarnings + $driverRemainingBalance - $totalCashAdvancesClaimed);
 
-// Delivered trips for payroll
+
 $stmtPayrollTrips = $pdo->prepare("
     SELECT 
         d.id,
@@ -298,15 +298,15 @@ $stmtPayrollTrips = $pdo->prepare("
 $stmtPayrollTrips->execute([$driver_id]);
 $payrollTrips = $stmtPayrollTrips->fetchAll(PDO::FETCH_ASSOC);
 
-// Payroll past settlement vouchers / claims
+
 $settleStmt = $pdo->prepare("SELECT settlement_ticket, gross_amount, previous_balance, cash_advance_deduction, net_pay, amount_claimed, remaining_balance, trips_count, settled_at, notes FROM driver_payroll_settlements WHERE driver_id = ? ORDER BY settled_at DESC LIMIT 10");
 $settleStmt->execute([$driver_id]);
 $payrollSettlements = $settleStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Driver Notifications aggregation
+
 $driverNotifications = [];
 
-// 1. Dispatch updates
+
 $notifDispStmt = $pdo->prepare("SELECT ticket_number, destination, status, created_at, transit_start_time, transit_end_time FROM dispatches WHERE driver_id = ? ORDER BY id DESC LIMIT 12");
 $notifDispStmt->execute([$driver_id]);
 foreach ($notifDispStmt->fetchAll(PDO::FETCH_ASSOC) as $nd) {
@@ -363,7 +363,7 @@ foreach ($notifDispStmt->fetchAll(PDO::FETCH_ASSOC) as $nd) {
     }
 }
 
-// 2. Cash advance updates
+
 foreach ($driverCashAdvances as $ca) {
     $caTs = strtotime($ca['resolved_at'] ?: $ca['requested_at']);
     if ($ca['status'] === 'Approved') {
@@ -405,7 +405,7 @@ foreach ($driverCashAdvances as $ca) {
     }
 }
 
-// 3. Password reset updates
+
 $notifPrStmt = $pdo->prepare("SELECT id, status, requested_at, resolved_at FROM password_reset_requests WHERE user_id = ? ORDER BY id DESC LIMIT 3");
 $notifPrStmt->execute([$driver_id]);
 foreach ($notifPrStmt->fetchAll(PDO::FETCH_ASSOC) as $pr) {
@@ -425,7 +425,7 @@ foreach ($notifPrStmt->fetchAll(PDO::FETCH_ASSOC) as $pr) {
     }
 }
 
-// 4. Payroll settlements
+
 foreach ($payrollSettlements as $ps) {
     $driverNotifications[] = [
         'id' => 'ps_' . $ps['settlement_ticket'],
@@ -440,12 +440,12 @@ foreach ($payrollSettlements as $ps) {
     ];
 }
 
-// Sort notifications newest first
+
 usort($driverNotifications, function($a, $b) {
     return $b['timestamp'] - $a['timestamp'];
 });
 
-// Calculate unread badge count (items within last 72 hours)
+
 $unreadNotificationCount = 0;
 $recentThreshold = time() - (72 * 3600);
 foreach ($driverNotifications as $n) {

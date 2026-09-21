@@ -1,5 +1,5 @@
 <?php
-// admin/views/admin_management.php - Superadmin Admin Account Management View
+
 if (!defined('IS_ADMIN_PANEL')) {
     define('IS_ADMIN_PANEL', true);
 }
@@ -19,7 +19,6 @@ if (!$isSuperadmin) {
     return;
 }
 
-// Stats calculation
 $totalAdmins = count($adminAccounts);
 $totalSuperadmins = count(array_filter($adminAccounts, fn($a) => $a['role'] === 'Superadmin'));
 $totalActiveAdmins = count(array_filter($adminAccounts, fn($a) => ($a['status'] ?? 'Active') === 'Active'));
@@ -28,7 +27,7 @@ $totalInactiveAdmins = $totalAdmins - $totalActiveAdmins;
 
 <div id="view-admin_management" class="tab-content hidden space-y-6">
 
-    <!-- Flash Messages -->
+    
     <?php if (!empty($_SESSION['admin_msg_success'])): ?>
         <div class="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300 text-sm flex items-start justify-between gap-3 animate-slide-up shadow-sm">
             <div class="flex items-center gap-3">
@@ -55,7 +54,7 @@ $totalInactiveAdmins = $totalAdmins - $totalActiveAdmins;
         <?php unset($_SESSION['admin_msg_error']); ?>
     <?php endif; ?>
 
-    <!-- View Header -->
+    
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
             <div class="flex items-center gap-3">
@@ -79,7 +78,7 @@ $totalInactiveAdmins = $totalAdmins - $totalActiveAdmins;
         </div>
     </div>
 
-    <!-- Stat Metric Cards -->
+    
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
             <div class="flex items-center justify-between">
@@ -126,7 +125,7 @@ $totalInactiveAdmins = $totalAdmins - $totalActiveAdmins;
         </div>
     </div>
 
-    <!-- Filter & Search Controls -->
+    
     <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
         <div class="relative w-full sm:w-72">
             <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
@@ -147,7 +146,7 @@ $totalInactiveAdmins = $totalAdmins - $totalActiveAdmins;
         </div>
     </div>
 
-    <!-- Admin Accounts Table Card -->
+    
     <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs text-gray-600 dark:text-gray-300" id="adminAccountsTable">
@@ -179,7 +178,7 @@ $totalInactiveAdmins = $totalAdmins - $totalActiveAdmins;
                                 data-role="<?= htmlspecialchars($adm['role']) ?>"
                                 data-status="<?= $isActive ? 'Active' : 'Inactive' ?>">
                                 
-                                <!-- User Info -->
+                                
                                 <td class="px-5 py-3.5">
                                     <div class="flex items-center gap-3">
                                         <div class="w-9 h-9 rounded-xl <?= $isSuper ? 'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-indigo-500/20' : 'bg-blue-600 text-white' ?> flex items-center justify-center font-bold text-xs shadow-sm flex-shrink-0">
@@ -197,7 +196,7 @@ $totalInactiveAdmins = $totalAdmins - $totalActiveAdmins;
                                     </div>
                                 </td>
 
-                                <!-- Role Pill -->
+                                
                                 <td class="px-5 py-3.5">
                                     <?php if ($isSuper): ?>
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
@@ -212,7 +211,7 @@ $totalInactiveAdmins = $totalAdmins - $totalActiveAdmins;
                                     <?php endif; ?>
                                 </td>
 
-                                <!-- Account Status -->
+                                
                                 <td class="px-5 py-3.5">
                                     <?php if ($isActive): ?>
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
@@ -227,27 +226,27 @@ $totalInactiveAdmins = $totalAdmins - $totalActiveAdmins;
                                     <?php endif; ?>
                                 </td>
 
-                                <!-- Created Date -->
+                                
                                 <td class="px-5 py-3.5 text-gray-500 dark:text-gray-400 text-[11px]">
                                     <?= !empty($adm['created_at']) ? date('M d, Y h:i A', strtotime($adm['created_at'])) : '—' ?>
                                 </td>
 
-                                <!-- Action Buttons -->
+                                
                                 <td class="px-5 py-3.5 text-right">
                                     <div class="inline-flex items-center gap-1.5 justify-end">
-                                        <!-- Edit Details -->
+                                        
                                         <button type="button" onclick="openEditAdminModal(<?= (int)$adm['id'] ?>, '<?= htmlspecialchars(addslashes($adm['username'])) ?>', '<?= htmlspecialchars($adm['role']) ?>', '<?= htmlspecialchars($adm['status'] ?? 'Active') ?>')"
                                             class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 flex items-center justify-center transition active:scale-95" title="Edit Admin">
                                             <i class="fa-solid fa-pen-to-square text-xs"></i>
                                         </button>
 
-                                        <!-- Reset Password -->
+                                        
                                         <button type="button" onclick="openResetAdminPasswordModal(<?= (int)$adm['id'] ?>, '<?= htmlspecialchars(addslashes($adm['username'])) ?>')"
                                             class="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center transition active:scale-95" title="Reset Password">
                                             <i class="fa-solid fa-key text-xs"></i>
                                         </button>
 
-                                        <!-- Toggle Status (Activate / Deactivate) -->
+                                        
                                         <?php if ($isSelf): ?>
                                             <button type="button" disabled title="You cannot deactivate your current account" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800/40 text-gray-400 cursor-not-allowed flex items-center justify-center">
                                                 <i class="fa-solid fa-power-off text-xs opacity-40"></i>
@@ -265,7 +264,7 @@ $totalInactiveAdmins = $totalAdmins - $totalActiveAdmins;
                                             </form>
                                         <?php endif; ?>
 
-                                        <!-- Delete Account -->
+                                        
                                         <?php if ($isSelf): ?>
                                             <button type="button" disabled title="You cannot delete your own account" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800/40 text-gray-400 cursor-not-allowed flex items-center justify-center">
                                                 <i class="fa-solid fa-trash text-xs opacity-40"></i>

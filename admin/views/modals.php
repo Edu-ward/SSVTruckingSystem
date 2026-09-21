@@ -74,7 +74,7 @@
                 </div>
             </div>
 
-            <!-- Assigned Drivers (Maximum of 2) -->
+            
             <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 space-y-3">
                 <div class="flex items-center justify-between">
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
@@ -89,7 +89,7 @@
                     Assign up to 2 drivers to this vehicle (Primary and Alternate / Co-driver).
                 </p>
 
-                <!-- Driver 1 -->
+                
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Driver 1 (Primary)</label>
                     <select name="driver_id_1" id="edit_truck_driver_1" onchange="syncEditTruckDriverSelects()" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors">
@@ -105,7 +105,7 @@
                     </select>
                 </div>
 
-                <!-- Driver 2 -->
+                
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Driver 2 (Alternate / Co-Driver)</label>
                     <select name="driver_id_2" id="edit_truck_driver_2" onchange="syncEditTruckDriverSelects()" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors">
@@ -655,10 +655,10 @@
     </div>
 </div>
 
-<!-- Driver Profile Photo Expand / Lightbox Modal -->
+
 <div id="driverPhotoModal" class="fixed inset-0 z-[70] flex items-center justify-center bg-gray-950/80 backdrop-blur-xs hidden p-3 sm:p-4" onclick="if(event.target === this) toggleModal('driverPhotoModal', false)">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md sm:max-w-lg overflow-hidden border border-gray-100 dark:border-gray-700 flex flex-col items-center" onclick="event.stopPropagation()">
-        <!-- Header -->
+        
         <div class="w-full px-4 sm:px-5 py-3.5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/80 dark:bg-gray-800/80 flex-shrink-0">
             <div class="flex items-center gap-2.5 min-w-0">
                 <div class="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm flex-shrink-0">
@@ -679,12 +679,12 @@
             </div>
         </div>
 
-        <!-- Image Container -->
+        
         <div class="p-4 sm:p-6 w-full flex items-center justify-center bg-gray-900/90 min-h-[260px] max-h-[68vh] overflow-auto select-none">
             <img id="driverPhotoModalImg" src="" alt="Driver Profile Photo" class="max-h-[62vh] max-w-full object-contain rounded-xl shadow-2xl border border-white/10">
         </div>
 
-        <!-- Footer -->
+        
         <div class="w-full px-4 sm:px-5 py-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
             <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-info text-blue-500 text-[11px]"></i> Click outside or close button to return</span>
             <button type="button" onclick="toggleModal('driverPhotoModal', false)" class="px-4 py-1.5 rounded-xl bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold transition">
@@ -746,7 +746,7 @@
                 </div>
             </div>
 
-            <!-- 100% Full Disbursement Banner -->
+            
             <input type="hidden" name="claimed_amount" id="sp-claimed-input" value="">
             <div class="p-3.5 bg-emerald-50/80 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/80 dark:border-emerald-800/60 text-xs flex items-center justify-between">
                 <div class="flex items-center gap-2.5">
@@ -1648,6 +1648,100 @@
     </div>
 </div>
 
+<div id="resetCheckerPasswordModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden relative p-6 text-center max-h-[90vh] overflow-y-auto">
+        <button type="button" onclick="toggleModal('resetCheckerPasswordModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200"><i class="fa-solid fa-xmark fa-lg"></i></button>
+        <div class="w-14 h-14 sm:w-16 sm:h-16 bg-orange-50 dark:bg-orange-900/30 text-orange-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-3 sm:mb-4">
+            <i class="fa-solid fa-key"></i>
+        </div>
+        <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Reset Password</h3>
+        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-4">Enter a new password for <strong id="rcp-name" class="text-gray-800 dark:text-gray-200"></strong>.</p>
+        <form method="POST" action="dashboard.php" class="text-left space-y-4">
+            <input type="hidden" name="action" value="reset_checker_password">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+            <input type="hidden" name="checker_id" id="rcp_checker_id" value="">
+            <input type="hidden" name="redirect_tab" id="rcp_redirect_tab" value="checkers">
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">New Password <span class="text-red-500">*</span></label>
+                <div class="relative">
+                    <input type="password" name="new_password" id="new_checker_password" required placeholder="At least 8 characters..."
+                        class="pw-complexity-input w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 pr-10 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors text-sm">
+                    <button type="button" onclick="togglePasswordVisibility('new_checker_password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <i class="fa-regular fa-eye text-sm"></i>
+                    </button>
+                </div>
+
+                <div class="mt-3 space-y-1.5 text-xs text-left">
+                    <div class="req-length flex items-center text-gray-500 dark:text-gray-400">
+                        <i class="fa-solid fa-circle text-[6px] mr-2"></i> At least 8 characters
+                    </div>
+                    <div class="req-uppercase flex items-center text-gray-500 dark:text-gray-400">
+                        <i class="fa-solid fa-circle text-[6px] mr-2"></i> At least one uppercase letter (A-Z)
+                    </div>
+                    <div class="req-lowercase flex items-center text-gray-500 dark:text-gray-400">
+                        <i class="fa-solid fa-circle text-[6px] mr-2"></i> At least one lowercase letter (a-z)
+                    </div>
+                    <div class="req-number flex items-center text-gray-500 dark:text-gray-400">
+                        <i class="fa-solid fa-circle text-[6px] mr-2"></i> At least one number (0-9)
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex space-x-3 pt-2">
+                <button type="button" onclick="toggleModal('resetCheckerPasswordModal', false)" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition">Cancel</button>
+                <button type="submit" id="resetCheckerPasswordSubmitBtn" disabled class="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">Update Password</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="checkerOrdersModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-60 hidden p-3 sm:p-4 backdrop-blur-xs">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden relative max-h-[90vh] flex flex-col">
+        <div class="bg-slate-900 text-white p-5 sm:p-6 flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center space-x-3.5">
+                <div class="w-11 h-11 bg-teal-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-md flex-shrink-0">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-base sm:text-lg font-bold text-white">Orders Assigned to <span id="chko-checker-name" class="text-teal-300"></span></h3>
+                        <span id="chko-order-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-500/20 text-teal-300 border border-teal-400/30">0 orders</span>
+                    </div>
+                    <p class="text-slate-400 text-xs mt-0.5">Orders assigned to this field checker for site verification and RFID scans</p>
+                </div>
+            </div>
+            <button onclick="toggleModal('checkerOrdersModal', false)" class="text-gray-400 hover:text-white transition p-1" aria-label="Close">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 p-4 sm:p-5 bg-gray-50 dark:bg-gray-900/60 border-b border-gray-200 dark:border-gray-700 text-xs flex-shrink-0">
+            <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm text-center">
+                <span class="text-gray-400 font-semibold block uppercase text-[10px]">Total Assigned</span>
+                <span id="chko-stat-total" class="font-extrabold text-gray-900 dark:text-gray-100 text-base mt-0.5 block">0</span>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-blue-200 dark:border-blue-800/40 shadow-sm text-center">
+                <span class="text-blue-500 font-semibold block uppercase text-[10px]">Active Orders</span>
+                <span id="chko-stat-active" class="font-extrabold text-blue-600 dark:text-blue-400 text-base mt-0.5 block">0</span>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800/40 shadow-sm text-center">
+                <span class="text-emerald-600 font-semibold block uppercase text-[10px]">Fulfilled</span>
+                <span id="chko-stat-fulfilled" class="font-extrabold text-emerald-600 dark:text-emerald-400 text-base mt-0.5 block">0</span>
+            </div>
+        </div>
+
+        <div class="overflow-y-auto flex-1 p-4 sm:p-6" id="chko-orders-list-container">
+        </div>
+
+        <div class="p-4 bg-gray-50 dark:bg-gray-750 border-t border-gray-200 dark:border-gray-700 flex justify-end flex-shrink-0">
+            <button type="button" onclick="toggleModal('checkerOrdersModal', false)" class="px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
 
 <div id="cancelOrderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden relative p-5 sm:p-6 text-center max-h-[90vh] overflow-y-auto">
@@ -2403,13 +2497,13 @@
 </div>
 <?php endif; ?>
 
-<!-- ============================================================ -->
-<!-- SUPERADMIN: CREATE ADMIN ACCOUNT MODAL                      -->
-<!-- ============================================================ -->
+
+
+
 <?php if (!empty($isSuperadmin)): ?>
 <div id="createAdminModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100 dark:border-gray-700 animate-scale-up">
-        <!-- Header -->
+        
         <div class="px-6 py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-lg border border-white/20">
@@ -2425,7 +2519,7 @@
             </button>
         </div>
 
-        <!-- Body -->
+        
         <form method="POST" action="dashboard.php" class="p-6 space-y-4">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
             <input type="hidden" name="action" value="create_admin_account">
@@ -2492,12 +2586,12 @@
     </div>
 </div>
 
-<!-- ============================================================ -->
-<!-- SUPERADMIN: EDIT ADMIN ACCOUNT MODAL                        -->
-<!-- ============================================================ -->
+
+
+
 <div id="editAdminModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100 dark:border-gray-700 animate-scale-up">
-        <!-- Header -->
+        
         <div class="px-6 py-5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-lg border border-white/20">
@@ -2513,7 +2607,7 @@
             </button>
         </div>
 
-        <!-- Body -->
+        
         <form method="POST" action="dashboard.php" class="p-6 space-y-4">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
             <input type="hidden" name="action" value="edit_admin_account">
@@ -2557,12 +2651,12 @@
     </div>
 </div>
 
-<!-- ============================================================ -->
-<!-- SUPERADMIN: RESET ADMIN PASSWORD MODAL                      -->
-<!-- ============================================================ -->
+
+
+
 <div id="resetAdminPasswordModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100 dark:border-gray-700 animate-scale-up">
-        <!-- Header -->
+        
         <div class="px-6 py-5 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-lg border border-white/20">
@@ -2578,7 +2672,7 @@
             </button>
         </div>
 
-        <!-- Body -->
+        
         <form method="POST" action="dashboard.php" class="p-6 space-y-4">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
             <input type="hidden" name="action" value="reset_admin_password">
@@ -2626,12 +2720,12 @@
 </div>
 <?php endif; ?>
 
-<!-- ============================================================ -->
-<!-- DISPATCH DETAILS INSPECTOR MODAL                             -->
-<!-- ============================================================ -->
+
+
+
 <div id="viewDispatchDetailsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4" onclick="if (event.target === this) toggleModal('viewDispatchDetailsModal', false)">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-xl overflow-hidden relative max-h-[90vh] flex flex-col">
-        <!-- Header -->
+        
         <div class="p-5 border-b border-gray-100 dark:border-gray-700/80 flex justify-between items-center flex-shrink-0 bg-white dark:bg-gray-800">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0 text-base">
@@ -2657,9 +2751,9 @@
             </button>
         </div>
 
-        <!-- Body -->
+        
         <div class="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm">
-            <!-- Metadata Grid -->
+            
             <div class="grid grid-cols-2 gap-3">
                 <div class="p-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl border border-gray-100 dark:border-gray-700/60">
                     <div class="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-0.5">Assigned Truck</div>
@@ -2714,7 +2808,7 @@
                 </div>
             </div>
 
-            <!-- Landmark / Notes Card -->
+            
             <div>
                 <div class="flex items-center justify-between mb-1.5">
                     <span class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
@@ -2729,7 +2823,7 @@
                 </div>
             </div>
 
-            <!-- Transit Timestamps Card -->
+            
             <div class="p-3.5 bg-gray-50 dark:bg-gray-900/60 rounded-xl border border-gray-100 dark:border-gray-700/60 grid grid-cols-2 gap-3">
                 <div>
                     <div class="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-0.5">Departure / Transit Start</div>
@@ -2748,7 +2842,7 @@
             </div>
         </div>
 
-        <!-- Footer -->
+        
         <div class="p-4 sm:p-5 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700/80 flex justify-between items-center flex-shrink-0">
             <button type="button" id="vd_print_btn" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition inline-flex items-center gap-2">
                 <i class="fa-solid fa-print"></i> Print Waybill

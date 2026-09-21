@@ -4,13 +4,11 @@ require_once __DIR__ . '/../db.php';
 
 header('Content-Type: application/json');
 
-
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin'])) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
 }
-
 
 $stmt = $pdo->query("
     SELECT 
@@ -37,7 +35,6 @@ $stmt = $pdo->query("
 ");
 
 $trucks = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
 
 foreach ($trucks as &$tr) {
     if (!empty($tr['estimated_arrival_time'])) {

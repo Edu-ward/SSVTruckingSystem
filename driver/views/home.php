@@ -15,12 +15,9 @@ if (!empty($driverFullName)) {
 }
 ?>
 
-<!-- =========================================================
-     TAB 1: DASHBOARD OVERVIEW
-     ========================================================= -->
 <div id="view-dashboard" class="tab-content <?= $currentDriverTab === 'dashboard' ? '' : 'hidden'; ?> space-y-6">
 
-    <!-- Welcome Greeting & Quick Bar -->
+    
     <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
         <div class="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
             <i class="fa-solid fa-truck-moving text-9xl"></i>
@@ -72,7 +69,7 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    <!-- Active Dispatch or Idle Status Card -->
+    
     <div>
         <?php if ($active_dispatch): ?>
             <?php 
@@ -169,7 +166,7 @@ if (!empty($driverFullName)) {
                         </div>
                     </div>
 
-                    <!-- Dispatch Actions -->
+                    
                     <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                         <button type="button" onclick="switchTab('route')"
                                 class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 active:scale-95 transition">
@@ -208,7 +205,7 @@ if (!empty($driverFullName)) {
         <?php endif; ?>
     </div>
 
-    <!-- 3 Delivery KPI Cards -->
+    
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-5 text-white relative overflow-hidden shadow-md transition transform hover:-translate-y-0.5">
             <div class="relative z-10">
@@ -245,14 +242,10 @@ if (!empty($driverFullName)) {
     </div>
 </div>
 
-
-<!-- =========================================================
-     TAB 2: LIVE TRIP ROUTE & NAVIGATION
-     ========================================================= -->
 <div id="view-route" class="tab-content <?= $currentDriverTab === 'route' ? '' : 'hidden'; ?> space-y-6">
 
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden transition-all relative z-0">
-        <!-- Route Banner -->
+        
         <div class="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 p-5 sm:p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="flex items-center space-x-3.5">
                 <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-blue-300 text-2xl flex-shrink-0 shadow-inner">
@@ -285,7 +278,7 @@ if (!empty($driverFullName)) {
                 </div>
             </div>
 
-            <!-- Nav App Buttons -->
+            
             <div class="flex flex-wrap items-center gap-2">
                 <button type="button" onclick="launchGoogleMapsNav()"
                         class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-gray-800 hover:bg-gray-100 active:scale-95 shadow transition">
@@ -298,7 +291,7 @@ if (!empty($driverFullName)) {
             </div>
         </div>
 
-        <!-- Metric Bars -->
+        
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 sm:p-5 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700 text-xs sm:text-sm">
             <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200/80 dark:border-gray-700/80">
                 <div class="text-gray-400 dark:text-gray-500 text-[11px] font-semibold uppercase flex items-center gap-1">
@@ -337,12 +330,12 @@ if (!empty($driverFullName)) {
             </div>
         </div>
 
-        <!-- Leaflet Map Box -->
+        
         <div class="p-3 sm:p-5 relative z-0">
             <div class="relative w-full h-[400px] sm:h-[550px] rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-inner z-0">
                 <div id="driverRouteMap" class="w-full h-full relative z-0"></div>
 
-                <!-- Floating Controls -->
+                
                 <div class="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
                     <button type="button" onclick="fitDriverRouteBounds()" title="Fit full route in view"
                             class="w-11 h-11 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl shadow-lg hover:bg-blue-50 dark:hover:bg-gray-700 flex items-center justify-center transition active:scale-90">
@@ -354,7 +347,7 @@ if (!empty($driverFullName)) {
                     </button>
                 </div>
 
-                <!-- Status Pill -->
+                
                 <div class="absolute top-4 left-4 z-10 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2 shadow-md flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span id="driverMapStatusText">Live GPS Route Active</span>
@@ -377,13 +370,9 @@ if (!empty($driverFullName)) {
 
 </div>
 
-
-<!-- =========================================================
-     TAB 3: TRIPS (WEEKLY VIEW WITH MONDAY-SUNDAY SELECTOR)
-     ========================================================= -->
 <div id="view-trips" class="tab-content <?= $currentDriverTab === 'trips' ? '' : 'hidden'; ?> space-y-6">
 
-    <!-- Page Header -->
+    
     <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div class="flex items-center space-x-3.5">
             <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-lg font-bold shadow-sm">
@@ -398,7 +387,7 @@ if (!empty($driverFullName)) {
         </div>
 
         <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            <!-- Search Destination / Status -->
+            
             <div class="relative flex-1 md:w-72">
                 <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
                 <input type="text" id="driverTripSearchInput" placeholder="Search destination, status..." oninput="filterDriverTrips()" class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
@@ -409,7 +398,7 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    <!-- Week Period Selector Bar (Identical style to Payroll Management) -->
+    
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-5 mb-6">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div class="flex items-center space-x-3.5">
@@ -430,7 +419,7 @@ if (!empty($driverFullName)) {
             </div>
 
             <div class="flex flex-wrap items-center gap-2.5">
-                <!-- Dropdown selector with dates -->
+                
                 <div class="relative min-w-[270px] sm:min-w-[320px]">
                     <select id="driverTripPeriodSelector" onchange="onDriverTripPeriodChange(this.value)"
                             class="w-full text-xs font-semibold py-2.5 px-3.5 pr-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none shadow-xs">
@@ -452,7 +441,7 @@ if (!empty($driverFullName)) {
                     </div>
                 </div>
 
-                <!-- Previous / Next Week Quick Shift Buttons -->
+                
                 <div class="flex items-center gap-1">
                     <button type="button" onclick="shiftDriverTripWeek(1)" title="Previous Week"
                             class="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-xs active:scale-95 transition cursor-pointer">
@@ -470,7 +459,7 @@ if (!empty($driverFullName)) {
             </div>
         </div>
 
-        <!-- Custom Date Range Bar (Shown when CUSTOM is selected) -->
+        
         <div id="driverTripCustomDateBar" class="hidden mt-4 pt-4 border-t border-gray-100 dark:border-gray-700/80 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div class="flex items-center gap-2 flex-wrap">
                 <span class="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
@@ -491,7 +480,7 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    <!-- Weekly Summary KPI Banner -->
+    
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         <div class="bg-blue-50/70 dark:bg-blue-950/20 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 flex items-center justify-between">
             <div>
@@ -530,7 +519,7 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    <!-- Mobile View (Cards) -->
+    
     <div class="block sm:hidden space-y-3" id="driverTripsMobileList">
         <?php if (!empty($trips)): ?>
             <?php foreach ($trips as $trip): ?>
@@ -611,7 +600,7 @@ if (!empty($driverFullName)) {
             <?php endforeach; ?>
         <?php endif; ?>
 
-        <!-- Empty State Mobile -->
+        
         <div id="driverTripsMobileEmpty" class="py-12 text-center text-gray-400" style="<?= count($weeklyFilteredTrips) === 0 ? '' : 'display: none;'; ?>">
             <i class="fa-solid fa-road text-4xl mb-2 opacity-30"></i>
             <p class="text-sm font-medium">No trips recorded for this selected period.</p>
@@ -619,7 +608,7 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    <!-- Desktop View (Table) -->
+    
     <div class="hidden sm:block overflow-x-auto">
         <table class="w-full text-left border-collapse" id="driverTripsTable">
             <thead>
@@ -694,7 +683,7 @@ if (!empty($driverFullName)) {
                     <?php endforeach; ?>
                 <?php endif; ?>
 
-                <!-- Empty State Desktop -->
+                
                 <tr id="driverTripsDesktopEmpty" style="<?= count($weeklyFilteredTrips) === 0 ? '' : 'display: none;'; ?>">
                     <td colspan="7" class="py-12 px-3 text-center text-gray-400">
                         <i class="fa-solid fa-road text-4xl mb-3 text-gray-300 block"></i>
@@ -707,13 +696,9 @@ if (!empty($driverFullName)) {
 
 </div>
 
-
-<!-- =========================================================
-     TAB 4: CASH ADVANCE (DEDICATED MENU)
-     ========================================================= -->
 <div id="view-cash_advance" class="tab-content <?= $currentDriverTab === 'cash_advance' ? '' : 'hidden'; ?> space-y-6">
 
-    <!-- Header Banner with Request Advance Button -->
+    
     <div class="bg-gradient-to-r from-amber-600 via-orange-600 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex items-center space-x-3.5">
             <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-amber-200 text-2xl flex-shrink-0 shadow-inner">
@@ -736,7 +721,7 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    <!-- 3 Cash Advance Metric Cards -->
+    
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div class="flex items-center justify-between mb-2">
@@ -772,7 +757,7 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    <!-- Request History List & Print Vouchers -->
+    
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between flex-wrap gap-2">
             <div>
@@ -847,13 +832,9 @@ if (!empty($driverFullName)) {
 
 </div>
 
-
-<!-- =========================================================
-     TAB 5: PAYROLL & COMPENSATION
-     ========================================================= -->
 <div id="view-payroll" class="tab-content <?= $currentDriverTab === 'payroll' ? '' : 'hidden'; ?> space-y-6">
 
-    <!-- Header Banner -->
+    
     <div class="bg-gradient-to-r from-emerald-700 via-teal-700 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex items-center space-x-3.5">
             <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-emerald-300 text-2xl flex-shrink-0 shadow-inner">
@@ -876,9 +857,9 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    <!-- 4 Financial Metric Cards -->
+    
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- 1. Gross Earnings -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Gross Trip Earnings</span>
@@ -890,7 +871,7 @@ if (!empty($driverFullName)) {
             <p class="text-[11px] text-gray-400 mt-1">From delivered trips awaiting payout</p>
         </div>
 
-        <!-- 2. Carried Balance -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Remaining Balance</span>
@@ -902,7 +883,7 @@ if (!empty($driverFullName)) {
             <p class="text-[11px] text-gray-400 mt-1">Carried forward from prior settlement</p>
         </div>
 
-        <!-- 3. Approved Cash Advances -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Advance Deductions</span>
@@ -914,7 +895,7 @@ if (!empty($driverFullName)) {
             <p class="text-[11px] text-gray-400 mt-1">Auto-deducted from gross</p>
         </div>
 
-        <!-- 4. Net Payable -->
+        
         <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-md">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-semibold text-emerald-100 uppercase">Current Net Payable</span>
@@ -927,7 +908,7 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    <!-- Section: Delivered Trips Contributing to Payroll -->
+    
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
             <div>
@@ -997,7 +978,7 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    <!-- Past Settlement Claims History -->
+    
     <?php if (!empty($payrollSettlements)): ?>
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div class="p-5 border-b border-gray-100 dark:border-gray-700">
@@ -1041,10 +1022,6 @@ if (!empty($driverFullName)) {
 
 </div>
 
-
-<!-- =========================================================
-     TAB 6: NOTIFICATIONS (NEW FEATURE TAB)
-     ========================================================= -->
 <div id="view-notifications" class="tab-content <?= $currentDriverTab === 'notifications' ? '' : 'hidden'; ?> space-y-6">
 
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -1121,13 +1098,9 @@ if (!empty($driverFullName)) {
 
 </div>
 
-
-<!-- =========================================================
-     TAB 7: PROFILE & ACCOUNT SETTINGS
-     ========================================================= -->
 <div id="view-profile" class="tab-content <?= $currentDriverTab === 'profile' ? '' : 'hidden'; ?> space-y-6">
 
-    <!-- Profile Hero Card -->
+    
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700/80 overflow-hidden">
         <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-900 h-24 relative">
             <div class="absolute inset-0 opacity-10" style="background-image: repeating-linear-gradient(45deg,transparent,transparent 8px,rgba(255,255,255,.1) 8px,rgba(255,255,255,.1) 16px)"></div>
@@ -1180,9 +1153,9 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    <!-- Personal & Fleet Information -->
+    
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Personal Information -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 p-5 sm:p-6">
             <h3 class="text-base font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <i class="fa-solid fa-id-card text-blue-600"></i> Driver Credentials
@@ -1213,7 +1186,7 @@ if (!empty($driverFullName)) {
             </div>
         </div>
 
-        <!-- Assigned Truck Details -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 p-5 sm:p-6">
             <h3 class="text-base font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <i class="fa-solid fa-truck text-indigo-600"></i> Assigned Truck & Fleet
@@ -1245,7 +1218,7 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    <!-- Security & Account Actions -->
+    
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 p-5 sm:p-6">
         <h3 class="text-base font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <i class="fa-solid fa-lock text-slate-600"></i> Account Security & Preferences
@@ -1286,7 +1259,7 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    <!-- Hidden Photo Upload Form & Cropper Modal -->
+    
     <form id="profilePhotoForm" method="POST" action="upload_profile_photo.php" enctype="multipart/form-data" class="hidden">
         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
         <input type="file" name="profile_photo" id="profilePhotoInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden">
@@ -1349,10 +1322,6 @@ if (!empty($driverFullName)) {
     </div>
 </div>
 
-
-<!-- =========================================================
-     JAVASCRIPT: WEEK SELECTOR, GPS, MAP, CROPPER & FILTER
-     ========================================================= -->
 <script>
     // -------------------------------------------------------------
     // Trips Week Period Selector & Real-Time Filtering

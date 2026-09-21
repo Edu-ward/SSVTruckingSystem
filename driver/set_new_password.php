@@ -12,7 +12,6 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Driver') {
 
 $user_id = $_SESSION['user_id'];
 
-
 $check = $pdo->prepare("SELECT id FROM password_reset_requests WHERE user_id = ? AND status = 'Approved' ORDER BY id DESC LIMIT 1");
 $check->execute([$user_id]);
 $req = $check->fetch();

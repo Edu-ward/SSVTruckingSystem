@@ -154,7 +154,6 @@
                         </div>
                     </div>
 
-
                     <div class="space-y-2 text-xs text-gray-600 dark:text-gray-300 mb-3">
                         <div class="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-900 rounded-xl">
                             <span class="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
@@ -209,7 +208,6 @@
                             </span>
                         </div>
 
-
                         <?php if (!empty($driver['recent_trips'])):
                             $latestTrip = $driver['recent_trips'][0];
                         ?>
@@ -239,7 +237,6 @@
                             </div>
                         <?php endif; ?>
                     </div>
-
 
                     <div class="flex items-center justify-between pt-2.5 border-t border-gray-100 dark:border-gray-700/60 mb-3">
                         <span class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Quick Actions</span>
@@ -274,7 +271,6 @@
                     </div>
                 </div>
 
-
                 <div class="grid grid-cols-2 gap-2.5 pt-2">
                     <button onclick='openViewDriverModal(<?= $driverJson; ?>)' class="w-full py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-semibold rounded-xl transition-all">View Details</button>
                     <button onclick='openContactDriverModal(<?= $driverJson; ?>)' class="w-full py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 text-xs font-semibold rounded-xl transition-all">Contact</button>
@@ -292,9 +288,6 @@
             </button>
         </div>
     </div>
-
-
-
 
     <script>
         function filterDriverCards() {

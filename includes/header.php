@@ -424,14 +424,14 @@
     
     <div id="toast-container" class="fixed top-5 right-5 z-[9999] flex flex-col space-y-3 pointer-events-none"></div>
 
-    <!-- Global Action Loading Spinner Overlay -->
+    
     <div id="globalActionLoader" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-gray-950/70 backdrop-blur-sm transition-all duration-300 opacity-0 pointer-events-none">
         <div class="relative flex flex-col items-center p-7 sm:p-8 rounded-3xl bg-white/95 dark:bg-gray-900/95 border border-gray-100 dark:border-gray-800 shadow-2xl shadow-emerald-500/10 max-w-xs w-full text-center transform scale-95 transition-transform duration-300" id="globalActionLoaderCard">
-            <!-- Glowing background pulse -->
+            
             <div class="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-blue-500/20 rounded-3xl blur-xl opacity-80 animate-pulse pointer-events-none"></div>
             
             <div class="relative flex flex-col items-center">
-                <!-- Dual-ring Spinning Loader with Center Truck Icon -->
+                
                 <div class="relative w-16 h-16 mb-4">
                     <div class="w-16 h-16 rounded-full border-4 border-emerald-500/20 dark:border-emerald-500/10 border-t-emerald-600 dark:border-t-emerald-400 animate-spin"></div>
                     <div class="absolute inset-1.5 w-13 h-13 rounded-full border-4 border-teal-500/20 dark:border-teal-500/10 border-b-teal-500 dark:border-b-teal-300 animate-spin" style="animation-direction: reverse; animation-duration: 0.85s;"></div>
@@ -440,7 +440,7 @@
                     </div>
                 </div>
 
-                <!-- Title & Subtitle -->
+                
                 <h4 id="globalActionLoaderTitle" class="text-sm font-bold text-gray-900 dark:text-white tracking-wide">
                     Processing Action...
                 </h4>
@@ -448,7 +448,7 @@
                     Please wait while the system updates...
                 </p>
 
-                <!-- Subtle animated progress bar -->
+                
                 <div class="w-full bg-gray-100 dark:bg-gray-800 h-1.5 rounded-full overflow-hidden mt-4">
                     <div class="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 rounded-full animate-pulse w-full"></div>
                 </div>
@@ -536,9 +536,13 @@
                             <span id="cashAdvanceBadge" class="ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-amber-500 text-white flex items-center justify-center"><?= $pendingCashAdvanceCount ?></span>
                         <?php endif; ?>
                     </button>
-                    <button onclick="switchTab('orders')" id="nav-orders" class="sidebar-nav-item w-full">
+                    <button onclick="if(typeof clearCheckerOrderFilter === 'function') clearCheckerOrderFilter(); switchTab('orders')" id="nav-orders" class="sidebar-nav-item w-full">
                         <i class="fa-solid fa-clipboard-list nav-icon"></i>
                         <span>Orders</span>
+                    </button>
+                    <button onclick="switchTab('checkers')" id="nav-checkers" class="sidebar-nav-item w-full">
+                        <i class="fa-solid fa-user-check nav-icon"></i>
+                        <span>Checkers</span>
                     </button>
                     <button onclick="switchTab('reports')" id="nav-reports" class="sidebar-nav-item w-full">
                         <i class="fa-solid fa-chart-column nav-icon"></i>
@@ -615,7 +619,7 @@
             </div>
         </div>
 
-        <!-- Admin Notification Dropdown Panel (Fixed popup for both desktop and mobile) -->
+        
         <div id="adminNotifDropdown" class="hidden fixed top-16 right-3 sm:right-6 lg:right-8 w-80 sm:w-96 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 z-[100] overflow-hidden">
             <div class="p-3.5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/70 dark:bg-gray-800/60">
                 <div class="flex items-center gap-2">
@@ -631,7 +635,7 @@
                     <i class="fa-solid fa-xmark text-sm"></i>
                 </button>
             </div>
-            <!-- Priority Groups List -->
+            
             <div class="max-h-96 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800/80 no-scrollbar">
                 <?php if (empty($adminNotifications)): ?>
                     <div class="py-10 px-4 text-center text-gray-400 dark:text-gray-500 text-xs">
@@ -675,7 +679,7 @@
 
         
         <div id="main-content" class="lg:ml-72 min-h-screen pt-16 lg:pt-0 pb-12 lg:pb-0 transition-all duration-300">
-            <!-- Desktop Admin Top Header Bar -->
+            
             <header class="hidden lg:flex items-center justify-between px-6 lg:px-8 py-3.5 bg-white/80 dark:bg-gray-950/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30">
                 <div class="flex items-center space-x-3">
                     <?php if (($_SESSION['role'] ?? '') === 'Superadmin'): ?>
@@ -697,7 +701,7 @@
                     <?php endif; ?>
                 </div>
                 <div class="flex items-center space-x-3">
-                    <!-- Notification Bell (Desktop) -->
+                    
                     <div class="relative" id="adminNotifContainerDesktop">
                         <button type="button" onclick="toggleAdminNotifDropdown(event)" class="relative w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-all active:scale-95 cursor-pointer" title="Notifications" aria-label="Notifications">
                             <i class="fa-solid fa-bell text-base"></i>
@@ -708,11 +712,11 @@
                             <?php endif; ?>
                         </button>
                     </div>
-                    <!-- Theme Toggle (Desktop) -->
+                    
                     <button onclick="toggleTheme(event)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-all active:scale-95" title="Toggle Theme" aria-label="Toggle Theme">
                         <i class="themeIconDesktop fa-solid fa-moon text-sm"></i>
                     </button>
-                    <!-- Admin Avatar Badge -->
+                    
                     <div class="flex items-center space-x-2 pl-2 border-l border-gray-200 dark:border-gray-800">
                         <div class="w-9 h-9 rounded-xl <?= ($_SESSION['role'] ?? '') === 'Superadmin' ? 'bg-gradient-to-tr from-indigo-600 to-purple-600 shadow-indigo-500/20' : 'bg-blue-600' ?> text-white flex items-center justify-center font-bold text-xs shadow-sm">
                             <?= ($_SESSION['role'] ?? '') === 'Superadmin' ? 'SA' : 'AD' ?>
@@ -867,7 +871,7 @@
                     </div>
 
                     
-                    <!-- Driver Navigation Features -->
+                    
                     <?php $activeDriverTabNav = $_GET['tab'] ?? 'dashboard'; ?>
                     <nav class="flex-1 px-3 py-4 space-y-1">
                         <button type="button" onclick="switchTab('dashboard')" id="nav-dashboard" class="sidebar-nav-item <?= $activeDriverTabNav === 'dashboard' ? 'active' : ''; ?> w-full text-left">
@@ -972,7 +976,7 @@
                     </div>
                 </div>
 
-                <!-- Driver Mobile Bottom Navigation Bar -->
+                
                 <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-0.5 pt-1.5 pb-[max(0.6rem,calc(env(safe-area-inset-bottom,0px)+0.35rem))] safe-bottom mobile-bottom-nav">
                     <button type="button" onclick="switchTab('dashboard')" id="bottom-nav-dashboard" class="bottom-nav-item <?= $activeDriverTabNav === 'dashboard' ? 'active' : ''; ?> flex-1">
                         <i class="fa-solid fa-house text-base mb-0.5"></i>

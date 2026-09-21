@@ -2,7 +2,6 @@
 
 $isCli = (php_sapi_name() === 'cli');
 
-
 $dbError = null;
 try {
     require_once __DIR__ . '/db.php';
@@ -23,7 +22,6 @@ if (isset($pdo)) {
     } catch (Throwable $e) {
     }
 }
-
 
 if ($isCli) {
     if ($dbError || !isset($pdo)) {
@@ -58,7 +56,6 @@ if ($isCli) {
     echo "Login at: index.php" . PHP_EOL;
     exit(0);
 }
-
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($pdo)) {
     $action = $_POST['action'] ?? 'create';
@@ -113,7 +110,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($pdo)) {
     }
 }
 
-
 $existingAdmins = [];
 if (isset($pdo)) {
     try {
@@ -145,7 +141,6 @@ if (isset($pdo)) {
 
     <div class="w-full max-w-md bg-gray-800/90 backdrop-blur-xl border border-gray-700/80 rounded-3xl shadow-2xl overflow-hidden">
 
-
         <div class="p-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center space-x-4">
             <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-2xl border border-white/20 shadow-inner">
                 <i class="fa-solid fa-user-shield text-amber-300"></i>
@@ -157,7 +152,6 @@ if (isset($pdo)) {
         </div>
 
         <div class="p-6 sm:p-8 space-y-6">
-
 
             <?php if ($dbError || !isset($pdo)): ?>
                 <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start space-x-3">
@@ -177,7 +171,6 @@ if (isset($pdo)) {
                     <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 font-bold uppercase"><?= defined('IS_PRODUCTION') && IS_PRODUCTION ? 'Live' : 'Local' ?></span>
                 </div>
             <?php endif; ?>
-
 
             <?php if ($message): ?>
                 <div class="p-4 rounded-2xl <?= $messageType === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300' ?> border text-xs flex items-start space-x-3">
@@ -203,7 +196,6 @@ if (isset($pdo)) {
                 </div>
             <?php endif; ?>
 
-
             <?php if (!empty($existingAdmins)): ?>
                 <div class="p-4 rounded-2xl bg-gray-700/40 border border-gray-700/60">
                     <div class="flex items-center justify-between text-xs text-gray-400 mb-2 font-medium">
@@ -224,7 +216,6 @@ if (isset($pdo)) {
                     </div>
                 </div>
             <?php endif; ?>
-
 
             <form method="POST" class="space-y-4">
                 <input type="hidden" name="action" value="create">
@@ -277,7 +268,6 @@ if (isset($pdo)) {
                     </button>
                 </div>
             </form>
-
 
             <div class="text-[11px] text-gray-400 border-t border-gray-700/60 pt-4 space-y-1.5">
                 <div class="flex items-center gap-1.5 text-amber-400/90 font-medium">

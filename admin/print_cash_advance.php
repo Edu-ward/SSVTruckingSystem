@@ -28,7 +28,6 @@ if (!$advance) {
     die("Cash advance record not found.");
 }
 
-
 $currentUserId = $_SESSION['user_id'] ?? ($_SESSION['driver_id'] ?? 0);
 if (!in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin']) && $currentUserId != $advance['driver_id']) {
     die("Unauthorized access to this cash advance ticket.");

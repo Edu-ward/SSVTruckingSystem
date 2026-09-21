@@ -169,7 +169,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         die("CSRF token validation failed.");
     }
 
-    // Superadmin is dedicated to Admin Account Management
+    
     if ($isSuperadmin && !in_array($_POST['action'], ['create_admin_account', 'edit_admin_account', 'reset_admin_password', 'toggle_admin_status', 'delete_admin_account'])) {
         log_activity($pdo, 'Security Notice', "Superadmin {$_SESSION['username']} attempted restricted operational action: {$_POST['action']}");
         $_SESSION['admin_msg_error'] = "Superadmin accounts are restricted to Administrator Account Management only. Program operations are managed by Administrators.";
@@ -177,9 +177,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-    // ==========================================
-    // SUPERADMIN ACTIONS: ADMIN MANAGEMENT
-    // ==========================================
+    
+    
+    
     if (in_array($_POST['action'], ['create_admin_account', 'edit_admin_account', 'reset_admin_password', 'toggle_admin_status', 'delete_admin_account'])) {
         if (!$isSuperadmin) {
             log_activity($pdo, 'Security Violation', "Unauthorized admin management attempt by user {$_SESSION['username']} (ID {$_SESSION['user_id']})");
@@ -255,7 +255,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 } elseif (empty($newUsername) || strlen($newUsername) < 3) {
                     $_SESSION['admin_msg_error'] = "Valid username of at least 3 characters is required.";
                 } else {
-                    // Check if self-demoting the only Superadmin
+                    
                     if ($target['id'] == $_SESSION['user_id'] && $newRole !== 'Superadmin') {
                         $countSuper = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'Superadmin'")->fetchColumn();
                         if ($countSuper <= 1) {
@@ -265,14 +265,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                         }
                     }
 
-                    // Check if self-deactivating
+                    
                     if ($target['id'] == $_SESSION['user_id'] && $newStatus === 'Inactive') {
                         $_SESSION['admin_msg_error'] = "You cannot deactivate your own currently active Superadmin account.";
                         header('Location: dashboard.php?tab=admin_management');
                         exit;
                     }
 
-                    // Check username clash if changed
+                    
                     if ($newUsername !== $target['username']) {
                         $clash = $pdo->prepare("SELECT id FROM users WHERE username = ? AND id != ?");
                         $clash->execute([$newUsername, $targetId]);
@@ -286,7 +286,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                     $upd = $pdo->prepare("UPDATE users SET username = ?, role = ?, status = ? WHERE id = ?");
                     $upd->execute([$newUsername, $newRole, $newStatus, $targetId]);
 
-                    // If user updated their own username/role, update active session
+                    
                     if ($target['id'] == $_SESSION['user_id']) {
                         $_SESSION['username'] = $newUsername;
                         $_SESSION['role'] = $newRole;
@@ -379,7 +379,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                     if (!$target) {
                         $_SESSION['admin_msg_error'] = "Target admin account not found.";
                     } else {
-                        // If target is Superadmin, prevent delete if it's the last one
+                        
                         if ($target['role'] === 'Superadmin') {
                             $superCount = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'Superadmin'")->fetchColumn();
                             if ($superCount <= 1) {
@@ -430,7 +430,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         if (!$dname) {
             $_SESSION['dest_error'] = 'Destination name is required.';
         } else {
-            // Geographic out-of-area flag
+            
             $geoFlagTerms = ['metro manila', 'makati', 'quezon city', 'pasig', 'marikina', 'parañaque', 'paranaque', 'pasay', 'caloocan', 'malabon', 'navotas', 'valenzuela', 'mandaluyong', 'las piñas', 'las pinas', 'muntinlupa', 'taguig', 'pateros', 'san juan', 'cebu', 'davao', 'mindanao', 'visayas', 'iloilo', 'cagayan de oro', 'zamboanga', 'bacolod', 'bohol', 'palawan', 'batangas', 'cavite', 'laguna', 'rizal'];
             $dnLower = strtolower($dname);
             $isOutOfArea = false;
@@ -449,7 +449,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 if (!$isOutOfArea) $_SESSION['dest_success'] = "Destination '" . htmlspecialchars($dname) . "' added successfully.";
                 log_activity($pdo, 'Added Destination', "Added destination: $dname (distance: {$dkm} km, rate: ₱{$drate})");
             } catch (Exception $e) {
-                // Column may not exist yet — fall back to original insert
+                
                 try {
                     $pdo->prepare("INSERT INTO destinations (name, distance_km, driver_rate) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE distance_km = VALUES(distance_km), driver_rate = VALUES(driver_rate)")
                         ->execute([$dname, $dkm, $drate]);
@@ -472,7 +472,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         if (!$did || !$dname) {
             $_SESSION['dest_error'] = 'Invalid destination data.';
         } else {
-            // Geographic out-of-area flag
+            
             $geoFlagTerms = ['metro manila', 'makati', 'quezon city', 'pasig', 'marikina', 'parañaque', 'paranaque', 'pasay', 'caloocan', 'malabon', 'navotas', 'valenzuela', 'mandaluyong', 'las piñas', 'las pinas', 'muntinlupa', 'taguig', 'pateros', 'san juan', 'cebu', 'davao', 'mindanao', 'visayas', 'iloilo', 'cagayan de oro', 'zamboanga', 'bacolod', 'bohol', 'palawan', 'batangas', 'cavite', 'laguna', 'rizal'];
             $dnLower = strtolower($dname);
             $isOutOfArea = false;
@@ -492,7 +492,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 if (!$isOutOfArea) $_SESSION['dest_success'] = "Destination updated: '" . htmlspecialchars($dname) . "' — " . ($dkm > 0 ? number_format($dkm, 1) . " km (₱" . number_format($payText, 2) . " pay)" : "Flat rate ₱" . number_format($drate, 2)) . ".";
                 log_activity($pdo, 'Edited Destination', "Updated destination ID $did: $dname (distance: {$dkm} km, rate: ₱{$drate})");
             } catch (Exception $e) {
-                // Column may not exist yet — fall back to original update
+                
                 try {
                     $pdo->prepare("UPDATE destinations SET name = ?, distance_km = ?, driver_rate = ?, is_active = ? WHERE id = ?")
                         ->execute([$dname, $dkm, $drate, $active, $did]);
@@ -527,7 +527,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-    // Duplicate edit_destination block removed — handled above (lines 188-209)
+    
 
     if ($_POST['action'] == 'create_dispatch') {
         $truck_id = !empty($_POST['truck_id']) ? $_POST['truck_id'] : null;
@@ -540,18 +540,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             exit;
         }
 
-        // ── Business Rule 1: Operating Hours ──────────────────────────────────
-        // Allow override via hidden field confirm_off_hours=1
-        $currentHour = (int)date('G'); // 0-23, PHP server time (Asia/Manila)
+        
+        
+        $currentHour = (int)date('G'); 
         $isOffHours = ($currentHour >= $OP_HOURS_END || $currentHour < $OP_HOURS_START);
         if ($isOffHours && empty($_POST['confirm_off_hours'])) {
             $_SESSION['scan_err'] = "⏰ Off-Hours Warning: Dispatches are normally created between " . date('g:i A', mktime($OP_HOURS_START, 0, 0)) . " and " . date('g:i A', mktime($OP_HOURS_END, 0, 0)) . ". To proceed outside operating hours, resubmit with confirmation.";
-            $_SESSION['off_hours_pending'] = $_POST; // preserve form data
+            $_SESSION['off_hours_pending'] = $_POST; 
             header("Location: dashboard.php?tab=dispatches");
             exit;
         }
 
-        // ── Business Rule 2: Driver Active Dispatch Check ────────────────────
+        
         $activeDispStmt = $pdo->prepare("SELECT ticket_number FROM dispatches WHERE driver_id = ? AND status IN ('Pending','In Transit','Loading','Unloading','Cancellation Requested') ORDER BY id DESC LIMIT 1");
         $activeDispStmt->execute([$driver_id]);
         $existingTicket = $activeDispStmt->fetchColumn();
@@ -564,7 +564,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             exit;
         }
 
-        // ── Business Rule 3: Daily Truck Dispatch Limit (10 trips) ───────────
+        
         $todayTruckDispsStmt = $pdo->prepare("SELECT COUNT(*) FROM dispatches WHERE truck_id = ? AND dispatch_date = CURDATE()");
         $todayTruckDispsStmt->execute([$truck_id]);
         $todayTruckDisps = (int)$todayTruckDispsStmt->fetchColumn();
@@ -671,7 +671,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $estimated_arrival_time = date('Y-m-d H:i:s', strtotime("+{$etaMinutes} minutes"));
         }
 
-        // Use a placeholder ticket number; replaced below with collision-free ID-based number
+        
         $ticketPlaceholder = 'TKT-PENDING-' . time();
 
         try {
@@ -681,7 +681,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $insert->execute([$ticketPlaceholder, $truck_id, $driver_id, $client_name, $contact_number, $origin, $destination, $landmark, $driver_pay, $cubic_meters, $order_id, $estimated_arrival_time]);
             $new_dispatch_id = $pdo->lastInsertId();
 
-            // Generate collision-free ticket number from guaranteed-unique auto-increment ID
+            
             $ticketNum = 'TKT-' . date('Y') . '-' . str_pad($new_dispatch_id, 4, '0', STR_PAD_LEFT);
             $pdo->prepare("UPDATE dispatches SET ticket_number = ? WHERE id = ?")->execute([$ticketNum, $new_dispatch_id]);
 
@@ -1149,6 +1149,36 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         }
     }
 
+    if ($_POST['action'] == 'reset_checker_password') {
+        $checker_id   = intval($_POST['checker_id'] ?? 0);
+        $new_password = $_POST['new_password'] ?? '';
+        $redirect_tab = in_array($_POST['redirect_tab'] ?? '', ['checkers', 'orders']) ? $_POST['redirect_tab'] : 'checkers';
+
+        if (!$checker_id) {
+            $_SESSION['error'] = "Invalid checker ID.";
+            header("Location: dashboard.php?tab=" . $redirect_tab);
+            exit;
+        }
+        if (strlen($new_password) < 8 || !preg_match('/[A-Z]/', $new_password) || !preg_match('/[a-z]/', $new_password) || !preg_match('/[0-9]/', $new_password)) {
+            $_SESSION['error'] = "Password must be at least 8 characters long and contain uppercase, lowercase, and numeric characters.";
+            header("Location: dashboard.php?tab=" . $redirect_tab);
+            exit;
+        }
+        try {
+            $hashed = password_hash($new_password, PASSWORD_DEFAULT);
+            $pdo->prepare("UPDATE users SET password = ? WHERE id = ? AND role = 'Checker'")->execute([$hashed, $checker_id]);
+            $_SESSION['success'] = "Checker's password reset successfully.";
+            log_activity($pdo, 'Reset Checker Password', 'Reset password for checker ID ' . $checker_id);
+            header("Location: dashboard.php?tab=" . $redirect_tab);
+            exit;
+        } catch (Exception $e) {
+            $_SESSION['error'] = "Failed to reset checker password. Please try again.";
+            header("Location: dashboard.php?tab=" . $redirect_tab);
+            exit;
+        }
+    }
+
+
     if ($_POST['action'] == 'add_truck') {
         $truck_code = trim($_POST['truck_code']);
         $rfid_tag   = trim($_POST['rfid_tag']);
@@ -1210,7 +1240,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             }
         }
 
-        // Build list of unique assigned drivers (max 2)
+        
         $newDriverIds = [];
         if ($driver_id_1) $newDriverIds[] = $driver_id_1;
         if ($driver_id_2 && !in_array($driver_id_2, $newDriverIds)) $newDriverIds[] = $driver_id_2;
@@ -1227,7 +1257,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $stmt = $pdo->prepare("UPDATE trucks SET truck_code = ?, rfid_tag = ? WHERE id = ?");
             $stmt->execute([$truck_code, $rfid_tag ?: null, $truck_id]);
 
-            // Unassign drivers previously on this truck who are not in the new selection
+            
             if (empty($newDriverIds)) {
                 $pdo->prepare("UPDATE drivers SET truck_id = NULL WHERE truck_id = ?")->execute([$truck_id]);
             } else {
@@ -1237,11 +1267,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $unassignStmt->execute($unassignParams);
             }
 
-            // Assign selected drivers to this truck
+            
             foreach ($newDriverIds as $dId) {
                 $pdo->prepare("UPDATE drivers SET truck_id = ? WHERE id = ? AND status != 'Resigned'")->execute([$truck_id, $dId]);
 
-                // Keep active dispatches for assigned driver synchronized
+                
                 $pdo->prepare("UPDATE dispatches SET truck_id = ? WHERE driver_id = ? AND status IN ('Pending', 'Loading', 'In Transit', 'Unloading')")
                     ->execute([$truck_id, $dId]);
             }
@@ -1495,7 +1525,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $caStmt->execute([$ca_id]);
             $ca = $caStmt->fetch();
             if ($ca) {
-                // ── Business Rule 4: Cash Advance Hard Cap ────────────────────
+                
                 $outstandingStmt = $pdo->prepare("
                     SELECT COALESCE(SUM(amount), 0) FROM cash_advances
                     WHERE driver_id = ? AND status IN ('Pending','Approved') AND (is_settled = 0 OR is_settled IS NULL) AND id != ?
@@ -1590,7 +1620,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 }
             }
 
-            // Also check dispatches for this period
+            
             if ($isAllCycles || empty($payPeriodFrom) || empty($payPeriodTo)) {
                 $unclaimedStmt = $pdo->prepare("
                     SELECT id, pay_amount 
@@ -1627,7 +1657,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 }
             }
 
-            // If still no trips found, check driver_trips by date range
+            
             if (empty($dtIds) && empty($dispatchIds)) {
                 if ($isAllCycles || empty($payPeriodFrom) || empty($payPeriodTo)) {
                     $dtStmt = $pdo->prepare("
@@ -1681,7 +1711,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 throw new Exception("No unclaimed earnings, prior carried balance, or advances to settle for this driver in the selected pay period.");
             }
 
-            // Enforce 100% full salary release - no balance on net payable
+            
             $disbursedAmount     = $totalPayable;
             $newRemainingBalance = 0.00;
 
@@ -1721,7 +1751,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $paidDtStmt->execute(array_merge([$settlementId], $dtIds));
             }
 
-            // Unconditionally ensure any delivered driver_trips & dispatches in this pay period for this driver are marked paid
+            
             if ($isAllCycles || empty($payPeriodFrom) || empty($payPeriodTo)) {
                 $pdo->prepare("UPDATE driver_trips SET is_payroll_paid = 1, payroll_settled_at = NOW(), payroll_id = ? WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)")
                     ->execute([$settlementId, $driver_id]);
@@ -1871,13 +1901,13 @@ $completedToday = $pdo->query("SELECT COUNT(*) FROM dispatches WHERE status = 'D
 $idleTrucks = $pdo->query("SELECT COUNT(*) FROM trucks WHERE status = 'Idle'")->fetchColumn();
 $rfidActive = $pdo->query("SELECT COUNT(*) FROM trucks WHERE rfid_active = 1")->fetchColumn();
 
-// ── Admin Notification Center ────────────────────────────────────────────────
-// Priority 1 (URGENT): Cancellation requests + overdue dispatches (>30 min past ETA)
-// Priority 2 (ACTION): Pending cash advances + pending password resets
-// Priority 3 (INFO): Recent deliveries (last 6h) + new orders (last 24h)
+
+
+
+
 $adminNotifications = [];
 try {
-    // P1: Cancellation requests
+    
     $cancelReqs = $pdo->query("
         SELECT d.id, d.ticket_number, CONCAT(dr.first_name,' ',dr.last_name) AS driver_name, d.destination
         FROM dispatches d LEFT JOIN drivers dr ON d.driver_id = dr.id
@@ -1894,7 +1924,7 @@ try {
             'ts' => time()
         ];
     }
-    // P1: Overdue dispatches (In Transit, past ETA by >30 min)
+    
     $overdueDisps = $pdo->query("
         SELECT d.id, d.ticket_number, CONCAT(dr.first_name,' ',dr.last_name) AS driver_name,
                d.destination, d.estimated_arrival_time
@@ -1916,7 +1946,7 @@ try {
             'ts' => strtotime($od['estimated_arrival_time'])
         ];
     }
-    // P2: Pending cash advances
+    
     foreach (($pendingCashAdvances ?? []) as $pca) {
         $adminNotifications[] = [
             'priority' => 2,
@@ -1928,7 +1958,7 @@ try {
             'ts' => strtotime($pca['requested_at'] ?? 'now')
         ];
     }
-    // P2: Pending password resets
+    
     foreach (($pwdResetRequests ?? []) as $pwr) {
         $adminNotifications[] = [
             'priority' => 2,
@@ -1940,7 +1970,7 @@ try {
             'ts' => strtotime($pwr['requested_at'] ?? 'now')
         ];
     }
-    // P3: Recent deliveries (last 6h)
+    
     $recentDeliveries = $pdo->query("
         SELECT d.ticket_number, CONCAT(dr.first_name,' ',dr.last_name) AS driver_name, d.destination, d.transit_end_time
         FROM dispatches d LEFT JOIN drivers dr ON d.driver_id = dr.id
@@ -1958,9 +1988,9 @@ try {
             'ts' => strtotime($rd['transit_end_time'] ?? 'now')
         ];
     }
-    // Sort: priority ASC, then ts DESC
+    
     usort($adminNotifications, fn($a, $b) => $a['priority'] !== $b['priority'] ? $a['priority'] - $b['priority'] : $b['ts'] - $a['ts']);
-} catch (Throwable $e) { /* Silently degrade if DB table column missing */
+} catch (Throwable $e) { 
 }
 $adminNotifUrgentCount = count(array_filter($adminNotifications, fn($n) => $n['priority'] === 1));
 $adminNotifActionCount = count(array_filter($adminNotifications, fn($n) => $n['priority'] === 2));
@@ -2001,122 +2031,161 @@ try {
         LEFT JOIN dispatches disp ON t.id = disp.truck_id AND disp.status IN ('Pending', 'Loading', 'In Transit', 'Unloading')
         LEFT JOIN drivers d ON d.id = COALESCE(disp.driver_id, (SELECT id FROM drivers WHERE truck_id = t.id AND status != 'Resigned' LIMIT 1))
         WHERE t.status != 'Idle' AND t.latitude IS NOT NULL
-        GROUP BY t.id
         ORDER BY (disp.id IS NOT NULL) DESC, t.truck_code ASC
     ")->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     $trackingTrucks = [];
 }
 
-$allDispatches = $pdo->query("SELECT d.id, d.ticket_number, d.driver_id, d.cubic_meters, d.order_id, o.order_number, t.truck_code, CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name, d.status, d.destination, d.created_at, d.transit_start_time, d.transit_end_time, COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name, COALESCE(NULLIF(d.contact_number, ''), o.contact_number) AS contact_number, COALESCE(NULLIF(d.landmark, ''), o.landmark) AS landmark FROM dispatches d LEFT JOIN trucks t ON d.truck_id = t.id LEFT JOIN drivers dr ON d.driver_id = dr.id LEFT JOIN orders o ON d.order_id = o.id ORDER BY d.id DESC")->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $allDispatches = $pdo->query("SELECT d.id, d.ticket_number, d.driver_id, d.cubic_meters, d.order_id, o.order_number, t.truck_code, CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name, d.status, d.destination, d.created_at, d.transit_start_time, d.transit_end_time, COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name, COALESCE(NULLIF(d.contact_number, ''), o.contact_number) AS contact_number, COALESCE(NULLIF(d.landmark, ''), o.landmark) AS landmark FROM dispatches d LEFT JOIN trucks t ON d.truck_id = t.id LEFT JOIN drivers dr ON d.driver_id = dr.id LEFT JOIN orders o ON d.order_id = o.id ORDER BY d.id DESC")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $allDispatches = [];
+}
+if (!is_array($allDispatches)) $allDispatches = [];
+
 $activeTickets = array_filter($allDispatches, function ($d) {
-    return in_array($d['status'], ['Pending', 'In Transit', 'Loading', 'Unloading']);
+    return in_array($d['status'] ?? '', ['Pending', 'In Transit', 'Loading', 'Unloading']);
 });
 $cancellationRequests = array_filter($allDispatches, function ($d) {
-    return $d['status'] === 'Cancellation Requested';
+    return ($d['status'] ?? '') === 'Cancellation Requested';
 });
 $completedTickets = array_filter($allDispatches, function ($d) {
-    return in_array($d['status'], ['Delivered', 'Cancelled']);
+    return in_array($d['status'] ?? '', ['Delivered', 'Cancelled']);
 });
 
-$fleetData = $pdo->query("
-    SELECT 
-        t.id, 
-        t.truck_code, 
-        t.rfid_tag, 
-        t.status, 
-        t.speed, 
-        t.latitude, 
-        t.longitude, 
-        t.current_location, 
-        GROUP_CONCAT(DISTINCT CONCAT(d.first_name, ' ', d.last_name) SEPARATOR ' • ') AS driver_name, 
-        COUNT(DISTINCT d.id) AS driver_count,
-        GROUP_CONCAT(DISTINCT d.id ORDER BY d.id ASC SEPARATOR ',') AS driver_ids,
-        MAX(disp.ticket_number) AS ticket_number, 
-        MAX(disp.destination) AS destination 
-    FROM trucks t 
-    LEFT JOIN dispatches disp ON t.id = disp.truck_id AND disp.status IN ('Pending', 'In Transit', 'Loading', 'Unloading') 
-    LEFT JOIN drivers d ON t.id = d.truck_id AND d.status != 'Resigned'
-    GROUP BY t.id
-    ORDER BY t.truck_code ASC
-")->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $fleetData = $pdo->query("
+        SELECT 
+            t.id, 
+            t.truck_code, 
+            t.rfid_tag, 
+            t.status, 
+            t.speed, 
+            t.latitude, 
+            t.longitude, 
+            t.current_location, 
+            GROUP_CONCAT(DISTINCT CONCAT(d.first_name, ' ', d.last_name) SEPARATOR ' • ') AS driver_name, 
+            COUNT(DISTINCT d.id) AS driver_count,
+            GROUP_CONCAT(DISTINCT d.id ORDER BY d.id ASC SEPARATOR ',') AS driver_ids,
+            MAX(disp.ticket_number) AS ticket_number, 
+            MAX(disp.destination) AS destination 
+        FROM trucks t 
+        LEFT JOIN dispatches disp ON t.id = disp.truck_id AND disp.status IN ('Pending', 'In Transit', 'Loading', 'Unloading') 
+        LEFT JOIN drivers d ON t.id = d.truck_id AND d.status != 'Resigned'
+        GROUP BY t.id
+        ORDER BY t.truck_code ASC
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $fleetData = [];
+}
+if (!is_array($fleetData)) $fleetData = [];
 
-$allTrucksList = $pdo->query("
-    SELECT 
-        t.id, 
-        t.truck_code, 
-        t.status,
-        COUNT(DISTINCT d.id) AS driver_count,
-        GROUP_CONCAT(DISTINCT d.id ORDER BY d.id ASC SEPARATOR ',') AS assigned_driver_ids,
-        GROUP_CONCAT(DISTINCT CONCAT(d.first_name, ' ', d.last_name) SEPARATOR ', ') AS driver_names
-    FROM trucks t 
-    LEFT JOIN drivers d ON t.id = d.truck_id AND d.status != 'Resigned'
-    WHERE t.status != 'Decommissioned' 
-    GROUP BY t.id
-    ORDER BY t.truck_code ASC
-")->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $allTrucksList = $pdo->query("
+        SELECT 
+            t.id, 
+            t.truck_code, 
+            t.status,
+            COUNT(DISTINCT d.id) AS driver_count,
+            GROUP_CONCAT(DISTINCT d.id ORDER BY d.id ASC SEPARATOR ',') AS assigned_driver_ids,
+            GROUP_CONCAT(DISTINCT CONCAT(d.first_name, ' ', d.last_name) SEPARATOR ', ') AS driver_names
+        FROM trucks t 
+        LEFT JOIN drivers d ON t.id = d.truck_id AND d.status != 'Resigned'
+        WHERE t.status != 'Decommissioned' 
+        GROUP BY t.id
+        ORDER BY t.truck_code ASC
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $allTrucksList = [];
+}
+if (!is_array($allTrucksList)) $allTrucksList = [];
 
-// Also inject today's completed-dispatch records for drill-down
-$completedTodayRecords = $pdo->query("
-    SELECT d.ticket_number, d.destination, d.transit_end_time,
-           CONCAT(dr.first_name,' ',dr.last_name) AS driver_name,
-           t.truck_code
-    FROM dispatches d
-    LEFT JOIN drivers dr ON d.driver_id = dr.id
-    LEFT JOIN trucks t ON d.truck_id = t.id
-    WHERE d.status = 'Delivered' AND d.dispatch_date = CURDATE()
-    ORDER BY d.transit_end_time DESC LIMIT 20
-")->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $completedTodayRecords = $pdo->query("
+        SELECT d.ticket_number, d.destination, d.transit_end_time,
+               CONCAT(dr.first_name,' ',dr.last_name) AS driver_name,
+               t.truck_code
+        FROM dispatches d
+        LEFT JOIN drivers dr ON d.driver_id = dr.id
+        LEFT JOIN trucks t ON d.truck_id = t.id
+        WHERE d.status = 'Delivered' AND d.dispatch_date = CURDATE()
+        ORDER BY d.transit_end_time DESC LIMIT 20
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $completedTodayRecords = [];
+}
+if (!is_array($completedTodayRecords)) $completedTodayRecords = [];
 
-$idleTrucksRecords = $pdo->query("
-    SELECT t.id, t.truck_code, t.status,
-           GROUP_CONCAT(DISTINCT CONCAT(d.first_name,' ',d.last_name) SEPARATOR ' & ') AS driver_names
-    FROM trucks t
-    LEFT JOIN drivers d ON t.id = d.truck_id AND d.status != 'Resigned'
-    WHERE t.status = 'Idle'
-    GROUP BY t.id ORDER BY t.truck_code ASC LIMIT 20
-")->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $idleTrucksRecords = $pdo->query("
+        SELECT t.id, t.truck_code, t.status,
+               GROUP_CONCAT(DISTINCT CONCAT(d.first_name,' ',d.last_name) SEPARATOR ' & ') AS driver_names
+        FROM trucks t
+        LEFT JOIN drivers d ON t.id = d.truck_id AND d.status != 'Resigned'
+        WHERE t.status = 'Idle'
+        GROUP BY t.id ORDER BY t.truck_code ASC LIMIT 20
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $idleTrucksRecords = [];
+}
+if (!is_array($idleTrucksRecords)) $idleTrucksRecords = [];
 
-$activeTicketsRecords = $pdo->query("
-    SELECT d.id, d.ticket_number, d.destination, d.status, d.estimated_arrival_time, d.transit_start_time,
-           CONCAT(dr.first_name,' ',dr.last_name) AS driver_name,
-           t.truck_code
-    FROM dispatches d
-    LEFT JOIN drivers dr ON d.driver_id = dr.id
-    LEFT JOIN trucks t ON d.truck_id = t.id
-    WHERE d.status IN ('In Transit', 'Loading', 'Unloading', 'Pending', 'Cancellation Requested')
-    ORDER BY d.id DESC LIMIT 25
-")->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $activeTicketsRecords = $pdo->query("
+        SELECT d.id, d.ticket_number, d.destination, d.status, d.estimated_arrival_time, d.transit_start_time,
+               CONCAT(dr.first_name,' ',dr.last_name) AS driver_name,
+               t.truck_code
+        FROM dispatches d
+        LEFT JOIN drivers dr ON d.driver_id = dr.id
+        LEFT JOIN trucks t ON d.truck_id = t.id
+        WHERE d.status IN ('In Transit', 'Loading', 'Unloading', 'Pending', 'Cancellation Requested')
+        ORDER BY d.id DESC LIMIT 25
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $activeTicketsRecords = [];
+}
+if (!is_array($activeTicketsRecords)) $activeTicketsRecords = [];
 
-$allDrivers = $pdo->query("
-    SELECT 
-        d.*, 
-        u.username,
-        CONCAT(d.first_name, ' ', d.last_name) AS name, 
-        t.truck_code,
-        (
-            SELECT GROUP_CONCAT(CONCAT(d2.first_name, ' ', d2.last_name) SEPARATOR ', ')
-            FROM drivers d2
-            WHERE d2.truck_id = d.truck_id AND d2.id != d.id AND d2.status != 'Resigned'
-        ) AS co_driver_name
-    FROM drivers d 
-    LEFT JOIN users u ON u.id = d.id
-    LEFT JOIN trucks t ON t.id = d.truck_id
-    ORDER BY d.first_name ASC
-")->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $allDrivers = $pdo->query("
+        SELECT 
+            d.*, 
+            u.username,
+            CONCAT(d.first_name, ' ', d.last_name) AS name, 
+            t.truck_code,
+            (
+                SELECT GROUP_CONCAT(CONCAT(d2.first_name, ' ', d2.last_name) SEPARATOR ', ')
+                FROM drivers d2
+                WHERE d2.truck_id = d.truck_id AND d2.id != d.id AND d2.status != 'Resigned'
+            ) AS co_driver_name
+        FROM drivers d 
+        LEFT JOIN users u ON u.id = d.id
+        LEFT JOIN trucks t ON t.id = d.truck_id
+        ORDER BY d.first_name ASC
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $allDrivers = [];
+}
+if (!is_array($allDrivers)) $allDrivers = [];
 
-$assignableDrivers = $pdo->query("
-    SELECT 
-        d.id, 
-        CONCAT(d.first_name, ' ', d.last_name) AS name, 
-        d.truck_id,
-        d.status,
-        t.truck_code
-    FROM drivers d
-    LEFT JOIN trucks t ON t.id = d.truck_id
-    WHERE d.status != 'Resigned'
-    ORDER BY d.first_name ASC, d.last_name ASC
-")->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $assignableDrivers = $pdo->query("
+        SELECT 
+            d.id, 
+            CONCAT(d.first_name, ' ', d.last_name) AS name, 
+            d.truck_id,
+            d.status,
+            t.truck_code
+        FROM drivers d
+        LEFT JOIN trucks t ON t.id = d.truck_id
+        WHERE d.status != 'Resigned'
+        ORDER BY d.first_name ASC, d.last_name ASC
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $assignableDrivers = [];
+}
+if (!is_array($assignableDrivers)) $assignableDrivers = [];
 
 if (!function_exists('computeDriverPerformanceStats')) {
     function computeDriverPerformanceStats($driverTrips, $onTimePct = 100, $rating = 5.0)
@@ -2721,7 +2790,7 @@ try {
     }
 }
 
-// ── Checker Dashboard Overview Stats ────────────────────────────────────────
+
 try {
     $checkerScansTodayCount = (int)$pdo->query("SELECT COUNT(*) FROM order_scans WHERE DATE(created_at) = CURDATE()")->fetchColumn();
 } catch (Throwable $e) {
@@ -2755,7 +2824,7 @@ try {
     $allOrders = [];
 }
 
-// ── Activity Logs Filtering & CSV Export ────────────────────────────
+
 $logSearch = trim($_GET['log_search'] ?? '');
 $logRole = trim($_GET['log_role'] ?? '');
 $logCategory = trim($_GET['log_category'] ?? '');
@@ -2831,7 +2900,7 @@ if ($logCategory !== '') {
 
 $whereSql = !empty($logWhere) ? 'WHERE ' . implode(' AND ', $logWhere) : '';
 
-// CSV Export Download
+
 if (($_GET['tab'] ?? '') === 'activity_logs' && ($_GET['action'] ?? '') === 'export_csv') {
     try {
         $csvStmt = $pdo->prepare("
@@ -2931,6 +3000,7 @@ include __DIR__ . '/../includes/header.php';
         include __DIR__ . '/views/payroll.php';
         include __DIR__ . '/views/cash_advances.php';
         include __DIR__ . '/views/orders.php';
+        include __DIR__ . '/views/checkers.php';
         include __DIR__ . '/views/reports.php';
         include __DIR__ . '/views/activity_logs.php';
         include __DIR__ . '/views/pwd_requests.php';
@@ -2974,7 +3044,7 @@ include __DIR__ . '/../includes/header.php';
     unset($_SESSION['auto_print_payroll_settlement_id']);
     unset($_SESSION['auto_print_payroll_ticket_num']);
 ?>
-    <!-- Settlement Success & Print Voucher Modal -->
+    
     <div id="payrollSettlementSuccessModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-xs p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 text-center border border-gray-100 dark:border-gray-700 animate-in fade-in zoom-in duration-200">
             <div class="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">

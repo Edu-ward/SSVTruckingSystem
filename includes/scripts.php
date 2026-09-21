@@ -958,23 +958,30 @@
 
 
         function switchDispatchTab(tab) {
-            document.getElementById('dispatch-grid-active').classList.add('hidden');
-            document.getElementById('dispatch-grid-requests').classList.add('hidden');
-            document.getElementById('dispatch-grid-completed').classList.add('hidden');
+            const gridActive = document.getElementById('dispatch-grid-active');
+            const gridRequests = document.getElementById('dispatch-grid-requests');
+            const gridCompleted = document.getElementById('dispatch-grid-completed');
+            const btnActive = document.getElementById('btn-tab-active');
+            const btnRequests = document.getElementById('btn-tab-requests');
+            const btnCompleted = document.getElementById('btn-tab-completed');
 
-            document.getElementById('btn-tab-active').className = "px-6 py-2 rounded-full hover:text-gray-900 dark:text-gray-100 transition";
-            document.getElementById('btn-tab-requests').className = "px-6 py-2 rounded-full hover:text-gray-900 dark:text-gray-100 transition relative";
-            document.getElementById('btn-tab-completed').className = "px-6 py-2 rounded-full hover:text-gray-900 dark:text-gray-100 transition";
+            if (gridActive) gridActive.classList.add('hidden');
+            if (gridRequests) gridRequests.classList.add('hidden');
+            if (gridCompleted) gridCompleted.classList.add('hidden');
+
+            if (btnActive) btnActive.className = "flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full hover:text-gray-900 dark:text-gray-100 transition text-center";
+            if (btnRequests) btnRequests.className = "flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full hover:text-gray-900 dark:text-gray-100 transition relative text-center";
+            if (btnCompleted) btnCompleted.className = "flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full hover:text-gray-900 dark:text-gray-100 transition text-center";
 
             if (tab === 'active') {
-                document.getElementById('dispatch-grid-active').classList.remove('hidden');
-                document.getElementById('btn-tab-active').className = "px-6 py-2 rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition";
+                if (gridActive) gridActive.classList.remove('hidden');
+                if (btnActive) btnActive.className = "flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition text-center font-semibold";
             } else if (tab === 'requests') {
-                document.getElementById('dispatch-grid-requests').classList.remove('hidden');
-                document.getElementById('btn-tab-requests').className = "px-6 py-2 rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition relative";
+                if (gridRequests) gridRequests.classList.remove('hidden');
+                if (btnRequests) btnRequests.className = "flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition relative text-center font-semibold";
             } else {
-                document.getElementById('dispatch-grid-completed').classList.remove('hidden');
-                document.getElementById('btn-tab-completed').className = "px-6 py-2 rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition";
+                if (gridCompleted) gridCompleted.classList.remove('hidden');
+                if (btnCompleted) btnCompleted.className = "flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition text-center font-semibold";
             }
 
             if (typeof filterDispatches === 'function') {
@@ -1081,14 +1088,17 @@
                 }
             }
 
-            document.getElementById('vd-name').innerText = driver.name;
-            document.getElementById('vd-cdl').innerText = driver.cdl_number || 'N/A';
-            document.getElementById('vd-status').innerText = driver.status;
-            document.getElementById('vd-phone').innerText = driver.phone || 'N/A';
-            document.getElementById('vd-truck').innerText = driver.truck_code || 'None assigned';
-
-            document.getElementById('vd-deliveries').innerText = driver.total_deliveries ? driver.total_deliveries : 0;
-            document.getElementById('vd-ontime').innerText = (driver.on_time_pct ? parseFloat(driver.on_time_pct).toFixed(1) : '100.0') + '%';
+            const setVdText = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = val;
+            };
+            setVdText('vd-name', driver.name || 'Driver');
+            setVdText('vd-cdl', driver.cdl_number || 'N/A');
+            setVdText('vd-status', driver.status || 'Active');
+            setVdText('vd-phone', driver.phone || 'N/A');
+            setVdText('vd-truck', driver.truck_code || 'None assigned');
+            setVdText('vd-deliveries', driver.total_deliveries ? driver.total_deliveries : 0);
+            setVdText('vd-ontime', (driver.on_time_pct ? parseFloat(driver.on_time_pct).toFixed(1) : '100.0') + '%');
 
             const tripsContainer = document.getElementById('vd-recent-trips');
             const viewAllBtnContainer = document.getElementById('vd-view-all-trips-btn-container');
@@ -1645,9 +1655,12 @@
         }
 
         function openContactDriverModal(driver) {
-            document.getElementById('cd-title').innerText = 'Contact ' + driver.name.split(' ')[0];
-            document.getElementById('cd-phone-text').innerText = 'Call ' + (driver.phone || 'N/A');
-            document.getElementById('cd-phone-link').href = driver.phone ? 'tel:' + driver.phone : '#';
+            const titleEl = document.getElementById('cd-title');
+            if (titleEl) titleEl.innerText = 'Contact ' + ((driver && driver.name) ? driver.name.split(' ')[0] : 'Driver');
+            const textEl = document.getElementById('cd-phone-text');
+            if (textEl) textEl.innerText = 'Call ' + ((driver && driver.phone) ? driver.phone : 'N/A');
+            const linkEl = document.getElementById('cd-phone-link');
+            if (linkEl) linkEl.href = (driver && driver.phone) ? ('tel:' + driver.phone) : '#';
             toggleModal('contactDriverModal', true);
         }
 
@@ -1663,8 +1676,10 @@
         }
 
         function openResetPasswordModal(id, name) {
-            document.getElementById('rp-name').innerText = name;
-            document.getElementById('reset_password_driver_id').value = id;
+            const nameEl = document.getElementById('rp-name');
+            if (nameEl) nameEl.innerText = name;
+            const idEl = document.getElementById('reset_password_driver_id');
+            if (idEl) idEl.value = id;
             const pwdInput = document.getElementById('new_driver_password');
             if (pwdInput) {
                 pwdInput.value = '';
@@ -1685,22 +1700,30 @@
         }
 
         function openMarkFixedModal(truckId, truckCode) {
-            document.getElementById('mf-truck-code').innerText = truckCode;
-            document.getElementById('mf_truck_id').value = truckId;
+            const codeEl = document.getElementById('mf-truck-code');
+            if (codeEl) codeEl.innerText = truckCode;
+            const idEl = document.getElementById('mf_truck_id');
+            if (idEl) idEl.value = truckId;
             toggleModal('markFixedModal', true);
         }
 
         function openUpdateStatusModal(truckId, currentStatus, truckCode) {
-            document.getElementById('us-truck-code').innerText = truckCode;
-            document.getElementById('update_status_truck_id').value = truckId;
-            document.getElementById('update_status_select').value = currentStatus;
+            const codeEl = document.getElementById('us-truck-code');
+            if (codeEl) codeEl.innerText = truckCode;
+            const idEl = document.getElementById('update_status_truck_id');
+            if (idEl) idEl.value = truckId;
+            const selEl = document.getElementById('update_status_select');
+            if (selEl) selEl.value = currentStatus;
             toggleModal('updateStatusModal', true);
         }
 
         function openUpdateDriverStatusModal(driverId, currentStatus, driverName) {
-            document.getElementById('uds-driver-name').innerText = driverName;
-            document.getElementById('update_status_driver_id').value = driverId;
-            document.getElementById('update_driver_status_select').value = currentStatus;
+            const nameEl = document.getElementById('uds-driver-name');
+            if (nameEl) nameEl.innerText = driverName;
+            const idEl = document.getElementById('update_status_driver_id');
+            if (idEl) idEl.value = driverId;
+            const selEl = document.getElementById('update_driver_status_select');
+            if (selEl) selEl.value = currentStatus;
             toggleModal('updateDriverStatusModal', true);
         }
 
@@ -1906,46 +1929,60 @@
         }
 
         function openSwitchTruckModal(driverId, driverName, truckCode) {
-            document.getElementById('st-driver-name').innerText = driverName;
-            document.getElementById('st-truck-code').innerText = truckCode || 'None';
-            document.getElementById('switch_truck_driver_id').value = driverId;
+            const nameEl = document.getElementById('st-driver-name');
+            if (nameEl) nameEl.innerText = driverName;
+            const codeEl = document.getElementById('st-truck-code');
+            if (codeEl) codeEl.innerText = truckCode || 'None';
+            const idEl = document.getElementById('switch_truck_driver_id');
+            if (idEl) idEl.value = driverId;
 
             const activeTabContent = document.querySelector('.tab-content:not(.hidden)');
             if (activeTabContent) {
                 const tabId = activeTabContent.id.replace('view-', '');
-                document.getElementById('switch_truck_redirect_tab').value = tabId;
+                const tabEl = document.getElementById('switch_truck_redirect_tab');
+                if (tabEl) tabEl.value = tabId;
             }
 
             toggleModal('switchTruckModal', true);
         }
 
         function openApproveCancelModal(dispatchId, ticketNumber) {
-            document.getElementById('ac-ticket-number').innerText = ticketNumber;
-            document.getElementById('approve_cancel_dispatch_id').value = dispatchId;
+            const numEl = document.getElementById('ac-ticket-number');
+            if (numEl) numEl.innerText = ticketNumber;
+            const idEl = document.getElementById('approve_cancel_dispatch_id');
+            if (idEl) idEl.value = dispatchId;
             toggleModal('approveCancelModal', true);
         }
 
         function openDeleteDispatchModal(dispatchId, ticketNumber) {
-            document.getElementById('dd-ticket-number').innerText = ticketNumber;
-            document.getElementById('delete_dispatch_id').value = dispatchId;
+            const numEl = document.getElementById('dd-ticket-number');
+            if (numEl) numEl.innerText = ticketNumber;
+            const idEl = document.getElementById('delete_dispatch_id');
+            if (idEl) idEl.value = dispatchId;
             toggleModal('deleteDispatchModal', true);
         }
 
         function markDispatchDelivered(dispatchId, ticketNumber) {
-            document.getElementById('cd-ticket-number').innerText = ticketNumber;
-            document.getElementById('complete_dispatch_id').value = dispatchId;
+            const numEl = document.getElementById('cd-ticket-number');
+            if (numEl) numEl.innerText = ticketNumber;
+            const idEl = document.getElementById('complete_dispatch_id');
+            if (idEl) idEl.value = dispatchId;
             toggleModal('completeDispatchModal', true);
         }
 
         function openAssignCheckerModal(orderId, orderNumber) {
-            document.getElementById('ac-order-number').innerText = orderNumber;
-            document.getElementById('ac_order_id').value = orderId;
+            const numEl = document.getElementById('ac-order-number');
+            if (numEl) numEl.innerText = orderNumber;
+            const idEl = document.getElementById('ac_order_id');
+            if (idEl) idEl.value = orderId;
             toggleModal('assignCheckerModal', true);
         }
 
         function openCancelOrderModal(orderId, orderNumber) {
-            document.getElementById('co-order-number').innerText = orderNumber;
-            document.getElementById('co_order_id').value = orderId;
+            const numEl = document.getElementById('co-order-number');
+            if (numEl) numEl.innerText = orderNumber;
+            const idEl = document.getElementById('co_order_id');
+            if (idEl) idEl.value = orderId;
             toggleModal('cancelOrderModal', true);
         }
 
@@ -1958,6 +1995,131 @@
         }
         function openDeleteCheckerModal(checkerId, checkerName) {
             openResignCheckerModal(checkerId, checkerName);
+        }
+
+        function openResetCheckerPasswordModal(checkerId, checkerName, redirectTab = 'checkers') {
+            const nameEl = document.getElementById('rcp-name');
+            if (nameEl) nameEl.textContent = checkerName;
+            const idEl = document.getElementById('rcp_checker_id');
+            if (idEl) idEl.value = checkerId;
+            const tabEl = document.getElementById('rcp_redirect_tab');
+            if (tabEl) tabEl.value = redirectTab;
+            const pwdInput = document.getElementById('new_checker_password');
+            if (pwdInput) {
+                pwdInput.value = '';
+                pwdInput.dispatchEvent(new Event('input'));
+            }
+            toggleModal('resetCheckerPasswordModal', true);
+        }
+
+        function openCheckerOrdersModal(checkerId, checkerName) {
+            const nameEl = document.getElementById('chko-checker-name');
+            if (nameEl) nameEl.textContent = checkerName || ('Checker #' + checkerId);
+
+            const allOrders = window.allOrdersData || [];
+            const orders = allOrders.filter(function(o) {
+                return parseInt(o.checker_id, 10) === parseInt(checkerId, 10);
+            });
+
+            const totalCount = orders.length;
+            const activeCount = orders.filter(function(o) {
+                return o.status === 'In Progress' || o.status === 'Pending';
+            }).length;
+            const fulfilledCount = orders.filter(function(o) {
+                return o.status === 'Fulfilled';
+            }).length;
+
+            const badgeEl = document.getElementById('chko-order-count-badge');
+            if (badgeEl) badgeEl.textContent = totalCount + ' order' + (totalCount !== 1 ? 's' : '');
+
+            const statTotal = document.getElementById('chko-stat-total');
+            if (statTotal) statTotal.textContent = totalCount;
+
+            const statActive = document.getElementById('chko-stat-active');
+            if (statActive) statActive.textContent = activeCount;
+
+            const statFulfilled = document.getElementById('chko-stat-fulfilled');
+            if (statFulfilled) statFulfilled.textContent = fulfilledCount;
+
+            const container = document.getElementById('chko-orders-list-container');
+            if (!container) return;
+
+            if (orders.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-gray-400 dark:text-gray-500">
+                        <div class="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-700/60 flex items-center justify-center text-2xl mx-auto mb-3 text-gray-400 dark:text-gray-400">
+                            <i class="fa-solid fa-clipboard-check"></i>
+                        </div>
+                        <p class="text-sm font-bold text-gray-700 dark:text-gray-200">No Orders Assigned</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">There are currently no orders assigned to ` + (checkerName ? escapeHtml(checkerName) : 'this checker') + `.</p>
+                    </div>
+                `;
+            } else {
+                const statusConfig = {
+                    'Pending': 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-700/50',
+                    'In Progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-700/50',
+                    'Fulfilled': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700/50',
+                    'Cancelled': 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300 border-rose-200 dark:border-rose-700/50'
+                };
+
+                let html = '<div class="divide-y divide-gray-100 dark:divide-gray-700/70">';
+
+                orders.forEach(function(o) {
+                    const reqCm = parseFloat(o.cubic_meters_required || o.trucks_required || 0);
+                    const doneCm = parseFloat(o.cubic_meters_fulfilled || o.trucks_fulfilled || 0);
+                    const pct = reqCm > 0 ? Math.min(100, Math.round((doneCm / reqCm) * 100)) : 0;
+                    const gravelLabel = (window.gravelTypeLabels && window.gravelTypeLabels[o.gravel_type]) ? window.gravelTypeLabels[o.gravel_type] : (o.gravel_type || 'Gravel');
+                    const statusClass = statusConfig[o.status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600';
+                    const dateStr = o.created_at ? new Date(o.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+
+                    html += `
+                        <div class="py-4 first:pt-0 last:pb-0">
+                            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap mb-1">
+                                        <span class="font-mono font-extrabold text-sm text-gray-900 dark:text-gray-100">${escapeHtml(o.order_number)}</span>
+                                        <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${statusClass}">
+                                            ${escapeHtml(o.status)}
+                                        </span>
+                                        ${dateStr ? `<span class="text-[11px] text-gray-400 dark:text-gray-500">${escapeHtml(dateStr)}</span>` : ''}
+                                    </div>
+                                    <div class="text-xs text-gray-700 dark:text-gray-300 flex items-center gap-1.5 font-medium mb-1">
+                                        <i class="fa-solid fa-user text-gray-400 text-[10px]"></i>
+                                        <span>${escapeHtml(o.client_name || 'Client')}</span>
+                                        ${o.contact_number ? `<span class="text-gray-300 dark:text-gray-600">•</span><span class="text-gray-500 dark:text-gray-400 flex items-center gap-1"><i class="fa-solid fa-phone text-[9px]"></i> ${escapeHtml(o.contact_number)}</span>` : ''}
+                                    </div>
+                                    <div class="text-xs text-gray-600 dark:text-gray-400 flex items-start gap-1.5">
+                                        <i class="fa-solid fa-location-dot text-rose-500 text-[10px] mt-0.5 flex-shrink-0"></i>
+                                        <span class="truncate max-w-md">${escapeHtml(o.destination || 'No destination')} ${o.landmark ? `<span class="text-gray-400 dark:text-gray-500">(${escapeHtml(o.landmark)})</span>` : ''}</span>
+                                    </div>
+                                </div>
+
+                                <div class="sm:text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 flex-shrink-0">
+                                    <div class="text-left sm:text-right">
+                                        <div class="text-xs font-semibold text-gray-700 dark:text-gray-300">${escapeHtml(gravelLabel)}</div>
+                                        <div class="text-xs font-bold text-gray-900 dark:text-gray-100 mt-0.5">${doneCm.toFixed(2)} / ${reqCm.toFixed(2)} cu.m</div>
+                                        <div class="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1 sm:ml-auto">
+                                            <div class="${pct >= 100 ? 'bg-emerald-500' : 'bg-blue-500'} h-1.5 rounded-full" style="width:${pct}%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-1.5 mt-1">
+                                        <a href="print_order_ticket.php?id=${encodeURIComponent(o.id)}" target="_blank"
+                                           title="Print Order Ticket"
+                                           class="px-2.5 py-1 rounded-lg text-xs font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/30 hover:bg-teal-100 dark:hover:bg-teal-900/50 border border-teal-200 dark:border-teal-700/50 transition inline-flex items-center gap-1">
+                                            <i class="fa-solid fa-print text-[10px]"></i> Ticket
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+                container.innerHTML = html;
+            }
+
+            toggleModal('checkerOrdersModal', true);
         }
 
         function openEditOrderModal(order) {

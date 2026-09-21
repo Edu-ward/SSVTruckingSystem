@@ -70,7 +70,7 @@ if ($settlement_id > 0) {
         $settledTrips = $dtStmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Extract Pay Period from settlement notes if tagged
+    
     $ticketPayPeriod = null;
     $rawNotes = $settlement['notes'] ?? '';
     if (!empty($rawNotes) && preg_match('/\[Pay Period:\s*([^\]]+)\]/', $rawNotes, $m)) {
@@ -132,7 +132,6 @@ if ($settlement_id > 0) {
 } else {
     die("No settlement or driver specified.");
 }
-
 
 $ptStmt = $pdo->prepare("
     SELECT 

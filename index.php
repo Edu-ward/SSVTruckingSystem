@@ -9,7 +9,6 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-
 try {
     $statFleet      = (int) $pdo->query("SELECT COUNT(*) FROM trucks")->fetchColumn();
     $statDeliveries = (int) $pdo->query("SELECT COUNT(*) FROM dispatches WHERE status = 'Delivered'")->fetchColumn();

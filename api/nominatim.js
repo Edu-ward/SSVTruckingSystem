@@ -7,7 +7,7 @@ const NominatimService = (function () {
         lng: 120.965016
     };
 
-    // Geographic Operational Limits — Philippines Only
+    
     const PH_BOUNDS = {
         minLat: 4.5,
         maxLat: 21.5,
@@ -15,23 +15,23 @@ const NominatimService = (function () {
         maxLng: 127.0
     };
 
-    // Major known water bodies around Philippines (instant 0ms geometric check)
+    
     const WATER_REGIONS = [
-        // Manila Bay
+        
         { name: "Manila Bay", minLat: 14.42, maxLat: 14.78, minLng: 120.60, maxLng: 120.88 },
-        // Subic Bay
+        
         { name: "Subic Bay", minLat: 14.74, maxLat: 14.85, minLng: 120.22, maxLng: 120.29 },
-        // Lingayen Gulf
+        
         { name: "Lingayen Gulf", minLat: 16.08, maxLat: 16.35, minLng: 120.08, maxLng: 120.35 },
-        // Laguna de Bay
+        
         { name: "Laguna de Bay", minLat: 14.25, maxLat: 14.45, minLng: 121.14, maxLng: 121.35 },
-        // Taal Lake
+        
         { name: "Taal Lake", minLat: 13.97, maxLat: 14.07, minLng: 120.95, maxLng: 121.05 },
-        // West Philippine Sea / South China Sea (Off west coast of Luzon)
+        
         { name: "West Philippine Sea", minLat: 13.0, maxLat: 19.0, minLng: 116.0, maxLng: 119.70 },
-        // Pacific Ocean (Off east coast of Luzon)
+        
         { name: "Pacific Ocean", minLat: 14.5, maxLat: 18.5, minLng: 122.4, maxLng: 127.0 },
-        // Pacific Ocean off Central Luzon (Aurora / Dingalan / Baler coast)
+        
         { name: "Pacific Ocean (Aurora Coast)", minLat: 15.2, maxLat: 16.3, minLng: 121.75, maxLng: 127.0 }
     ];
 
@@ -60,24 +60,24 @@ const NominatimService = (function () {
         const nLat = parseFloat(lat);
         const nLng = parseFloat(lng);
 
-        // 0. Boundary check: must be within Philippines
+        
         if (!isWithinPhilippines(nLat, nLng)) {
             return { isWater: true, reason: 'Outside Philippine operational boundaries' };
         }
 
-        // 1. Instant check against known water bodies (0ms)
+        
         const fast = isKnownWaterBody(nLat, nLng);
         if (fast) {
             return { isWater: true, reason: `Located in ${fast.name}` };
         }
 
-        // Cache check
+        
         const cacheKey = `water:${nLat.toFixed(4)},${nLng.toFixed(4)}`;
         if (typeof cache[cacheKey] !== 'undefined') {
             return cache[cacheKey];
         }
 
-        // 2. Query OSRM nearest driving road endpoint
+        
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 2000);
@@ -89,7 +89,7 @@ const NominatimService = (function () {
                 const data = await resp.json();
                 if (data && data.code === 'Ok' && data.waypoints && data.waypoints.length > 0) {
                     const distM = parseFloat(data.waypoints[0].distance);
-                    // If distance to nearest drivable road is greater than 600m, it's open water/sea
+                    
                     if (distM > 600) {
                         const result = { isWater: true, reason: `No road access (${Math.round(distM)}m from shore/road)` };
                         cache[cacheKey] = result;
@@ -105,7 +105,7 @@ const NominatimService = (function () {
             console.warn('OSM Nearest road check skipped:', e);
         }
 
-        // 3. Fallback: check OSM Nominatim natural water categories
+        
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 2000);
@@ -361,7 +361,7 @@ const NominatimService = (function () {
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 2000);
-            // Restrict photon search strictly within Philippine bounding box
+            
             const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(cleanQuery)}&limit=8&lat=15.359042&lon=120.965016&bbox=116.0,4.5,127.0,21.5`;
             const resp = await fetch(photonUrl, { signal: controller.signal });
             clearTimeout(timeout);
@@ -376,7 +376,7 @@ const NominatimService = (function () {
                             const lat = coords[1];
                             const lng = coords[0];
 
-                            // Reject coordinates outside Philippine limits or in the sea
+                            
                             if (!isWithinPhilippines(lat, lng)) return null;
                             if (isKnownWaterBody(lat, lng)) return null;
                             if (p.osm_key === 'natural' && ['water', 'sea', 'ocean', 'bay', 'coastline', 'strait'].includes(p.osm_value)) return null;

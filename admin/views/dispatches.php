@@ -54,16 +54,16 @@
 
         <div class="flex flex-wrap sm:inline-flex bg-gray-100 dark:bg-gray-700/70 p-1 rounded-xl sm:rounded-full gap-1 mb-6 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 w-full sm:w-auto">
             <button id="btn-tab-active" onclick="switchDispatchTab('active')" class="flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition text-center font-semibold">
-                Active (<?= count($activeTickets); ?>)
+                Active (<?= count($activeTickets ?? []); ?>)
             </button>
             <button id="btn-tab-requests" onclick="switchDispatchTab('requests')" class="flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full hover:text-gray-900 dark:text-gray-100 transition relative text-center">
-                Requests (<?= count($cancellationRequests); ?>)
-                <?php if (count($cancellationRequests) > 0): ?>
+                Requests (<?= count($cancellationRequests ?? []); ?>)
+                <?php if (count($cancellationRequests ?? []) > 0): ?>
                     <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></span>
                 <?php endif; ?>
             </button>
             <button id="btn-tab-completed" onclick="switchDispatchTab('completed')" class="flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full hover:text-gray-900 dark:text-gray-100 transition text-center">
-                Completed/Cancelled (<?= count($completedTickets); ?>)
+                Completed/Cancelled (<?= count($completedTickets ?? []); ?>)
             </button>
         </div>
 

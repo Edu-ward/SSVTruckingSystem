@@ -19,20 +19,20 @@
             <i class="fa-solid fa-arrow-right text-[10px]"></i>
         </button>
     </div>
-    <?php endif; ?>    <!-- Top Stat Cards (Clickable Drill-Down Targets) -->
+    <?php endif; ?>    
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
-        <div onclick="openDrillDown('fleet')" class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white shadow-xl shadow-blue-500/20 hover:-translate-y-1 transition-all duration-300 group border border-white/10 cursor-pointer select-none ring-offset-2 hover:ring-2 hover:ring-blue-400">
+        <div onclick="switchTab('fleet')" class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white shadow-xl shadow-blue-500/20 hover:-translate-y-1 transition-all duration-300 group border border-white/10 cursor-pointer select-none ring-offset-2 hover:ring-2 hover:ring-blue-400" title="Go to Fleet Section">
             <div class="flex justify-between items-start">
                 <div>
                     <span class="text-xs font-semibold uppercase tracking-wider text-blue-200 flex items-center">
                         <span>Total Fleet</span>
-                        <i class="fa-solid fa-chevron-down text-[10px] ml-1.5 opacity-70 transition-transform duration-300 drill-chevron" id="chevron-fleet"></i>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-1.5 opacity-70 group-hover:opacity-100 transition-opacity"></i>
                     </span>
                     <div class="text-4xl font-extrabold mt-2 mb-1 tracking-tight" data-counter="<?= $totalFleet ?? 0; ?>">
                         <?= $totalFleet ?? 0; ?>
                     </div>
                     <span class="inline-flex items-center text-xs font-medium text-blue-100 bg-white/10 px-2.5 py-0.5 rounded-full backdrop-blur-md">
-                        <i class="fa-solid fa-shield-halved mr-1 text-[10px]"></i> Click for Fleet Details
+                        <i class="fa-solid fa-truck mr-1 text-[10px]"></i> View Fleet Section
                     </span>
                 </div>
                 <div class="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white text-2xl group-hover:scale-110 transition-transform">
@@ -85,7 +85,7 @@
         </div>
     </div>
 
-    <!-- Drill-Down Detail Slide Panel (Hidden by default, slides down on card click) -->
+    
     <div id="drill-down-panel" class="hidden mb-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700/80 overflow-hidden transition-all duration-300">
         <div class="px-5 py-3.5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/80 dark:bg-gray-750">
             <div class="flex items-center space-x-2.5">
@@ -107,7 +107,7 @@
             </div>
         </div>
         <div id="drill-down-content" class="p-4 sm:p-5 overflow-x-auto max-h-96 no-scrollbar">
-            <!-- Populated dynamically by openDrillDown(type) in scripts.php -->
+            
         </div>
     </div>
 
@@ -243,163 +243,5 @@
             <?php endif; ?>
         </div>
     </div>
-
-    <!-- =====================================================================
-         CHECKER OVERVIEW SECTION
-         ===================================================================== -->
-    <?php
-        $activeCheckers  = array_filter($allCheckers ?? [], fn($c) => ($c['status'] ?? 'Active') !== 'Resigned');
-        $activeOrdersForCheckers = array_filter($allOrders ?? [], fn($o) => in_array($o['status'] ?? '', ['Pending', 'In Progress']));
-    ?>
-    <div class="mt-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 overflow-hidden">
-
-        <!-- Card Header -->
-        <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700/80 flex items-center justify-between gap-3 flex-wrap">
-            <div>
-                <h3 class="font-bold text-gray-800 dark:text-gray-200 text-base flex items-center gap-2">
-                    <i class="fa-solid fa-clipboard-check text-teal-500"></i> Checker Overview
-                </h3>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Active checkers, assigned orders, and today's scan activity</p>
-            </div>
-            <button onclick="switchTab('orders')" class="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1 flex-shrink-0">
-                Manage Orders <i class="fa-solid fa-arrow-right text-[10px]"></i>
-            </button>
-        </div>
-
-        <!-- Mini Stat Row -->
-        <div class="grid grid-cols-3 divide-x divide-gray-100 dark:divide-gray-700/80 border-b border-gray-100 dark:border-gray-700/80">
-            <div class="p-4 text-center">
-                <div class="text-2xl font-extrabold text-gray-800 dark:text-gray-100"><?= count($allCheckers ?? []) ?></div>
-                <div class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider mt-0.5">Total Checkers</div>
-            </div>
-            <div class="p-4 text-center">
-                <div class="text-2xl font-extrabold text-teal-600 dark:text-teal-400"><?= count($activeCheckers) ?></div>
-                <div class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider mt-0.5">Active</div>
-            </div>
-            <div class="p-4 text-center">
-                <div class="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400"><?= $checkerScansTodayCount ?? 0 ?></div>
-                <div class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider mt-0.5">Scans Today</div>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-5 divide-y lg:divide-y-0 lg:divide-x divide-gray-100 dark:divide-gray-700/80">
-
-            <!-- Left: Active Orders Progress (3/5 width) -->
-            <div class="lg:col-span-3 p-5 sm:p-6">
-                <h4 class="font-bold text-gray-700 dark:text-gray-300 text-sm mb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-list-check text-teal-500"></i> Active Orders
-                    <span class="text-xs font-semibold bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded-full">
-                        <?= count($activeOrdersForCheckers) ?>
-                    </span>
-                </h4>
-                <?php if (empty($activeOrdersForCheckers)): ?>
-                    <div class="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500 text-xs gap-2">
-                        <i class="fa-solid fa-clipboard-check text-3xl opacity-30"></i>
-                        <span>No active orders right now.</span>
-                    </div>
-                <?php else: ?>
-                    <div class="space-y-3 max-h-64 overflow-y-auto pr-1 no-scrollbar">
-                    <?php foreach ($activeOrdersForCheckers as $_co):
-                        $_req  = floatval($_co['cubic_meters_required'] > 0 ? $_co['cubic_meters_required'] : ($_co['trucks_required'] ?? 1));
-                        $_done = floatval($_co['cubic_meters_fulfilled'] > 0 ? $_co['cubic_meters_fulfilled'] : ($_co['trucks_fulfilled'] ?? 0));
-                        $_pct  = $_req > 0 ? min(100, round(($_done / $_req) * 100)) : 0;
-                        $_statusChip = $_co['status'] === 'In Progress' ? 'chip-blue' : 'chip-amber';
-                    ?>
-                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3.5 border border-gray-100 dark:border-gray-700 hover:border-teal-200 dark:hover:border-teal-700/50 transition">
-                            <div class="flex items-start justify-between gap-2 mb-2">
-                                <div class="min-w-0">
-                                    <div class="font-bold text-gray-800 dark:text-gray-100 text-xs truncate">
-                                        <?= htmlspecialchars($_co['order_number'] ?? '#' . $_co['id']) ?>
-                                        &nbsp;·&nbsp;
-                                        <span class="font-medium text-gray-500 dark:text-gray-400"><?= htmlspecialchars($_co['client_name'] ?? '—') ?></span>
-                                    </div>
-                                    <div class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 flex items-center gap-1.5 truncate">
-                                        <i class="fa-solid fa-location-dot text-red-400 text-[10px]"></i>
-                                        <?= htmlspecialchars($_co['destination'] ?? '—') ?>
-                                        <?php if (!empty($_co['checker_name'])): ?>
-                                            &nbsp;·&nbsp;<i class="fa-solid fa-user-check text-teal-400 text-[10px]"></i>
-                                            <?= htmlspecialchars($_co['checker_name']) ?>
-                                        <?php else: ?>
-                                            &nbsp;·&nbsp;<span class="text-red-400 font-semibold"><i class="fa-solid fa-user-slash text-[10px]"></i> No Checker</span>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                                <span class="<?= $_statusChip ?> flex-shrink-0 text-[10px]"><?= htmlspecialchars($_co['status']) ?></span>
-                            </div>
-                            <!-- Progress Bar -->
-                            <div class="flex items-center gap-2">
-                                <div class="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 overflow-hidden">
-                                    <div class="h-1.5 rounded-full transition-all duration-500 <?= $_pct >= 100 ? 'bg-emerald-500' : ($_pct >= 50 ? 'bg-teal-500' : 'bg-blue-500') ?>"
-                                         style="width: <?= $_pct ?>%"></div>
-                                </div>
-                                <span class="text-[11px] font-bold text-gray-500 dark:text-gray-400 flex-shrink-0">
-                                    <?= number_format($_done, 0) ?>/<?= number_format($_req, 0) ?> <span class="font-normal opacity-70">cu.m</span>
-                                </span>
-                                <span class="text-[11px] font-bold <?= $_pct >= 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' ?> flex-shrink-0">
-                                    <?= $_pct ?>%
-                                </span>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
-            </div>
-
-            <!-- Right: Checker Roster (2/5 width) -->
-            <div class="lg:col-span-2 p-5 sm:p-6">
-                <h4 class="font-bold text-gray-700 dark:text-gray-300 text-sm mb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-users text-indigo-500"></i> Checker Roster
-                </h4>
-                <?php if (empty($allCheckers)): ?>
-                    <div class="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500 text-xs gap-2">
-                        <i class="fa-solid fa-users text-3xl opacity-30"></i>
-                        <span>No checkers registered yet.</span>
-                        <button onclick="switchTab('orders')" class="mt-1 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-teal-600 hover:bg-teal-700 text-white transition active:scale-95">
-                            + Add Checker
-                        </button>
-                    </div>
-                <?php else: ?>
-                    <div class="space-y-2 max-h-64 overflow-y-auto pr-1 no-scrollbar">
-                    <?php foreach ($allCheckers as $_chk):
-                        $_isActive    = ($_chk['status'] ?? 'Active') !== 'Resigned';
-                        $_initials    = strtoupper(substr($_chk['first_name'] ?? $_chk['username'] ?? '?', 0, 1) . substr($_chk['last_name'] ?? '', 0, 1));
-                        $_displayName = trim(($_chk['first_name'] ?? '') . ' ' . ($_chk['last_name'] ?? '')) ?: ($_chk['username'] ?? 'Checker');
-                        $_orderCount  = $checkerOrderCounts[$_chk['id']] ?? 0;
-                    ?>
-                        <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-700/50 transition">
-                            <!-- Avatar -->
-                            <div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0
-                                <?= $_isActive ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400' ?>">
-                                <?= htmlspecialchars($_initials ?: '?') ?>
-                            </div>
-                            <!-- Info -->
-                            <div class="min-w-0 flex-1">
-                                <div class="font-semibold text-gray-800 dark:text-gray-100 text-xs truncate"><?= htmlspecialchars($_displayName) ?></div>
-                                <div class="text-[11px] text-gray-400 dark:text-gray-500 truncate">
-                                    <?php if ($_orderCount > 0): ?>
-                                        <i class="fa-solid fa-clipboard-list text-teal-400 mr-0.5"></i>
-                                        <?= $_orderCount ?> active order<?= $_orderCount > 1 ? 's' : '' ?>
-                                    <?php else: ?>
-                                        <i class="fa-solid fa-circle text-gray-300 dark:text-gray-600 text-[8px] mr-0.5"></i> No orders assigned
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            <!-- Status badge -->
-                            <?php if ($_isActive): ?>
-                                <span class="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700/50">Active</span>
-                            <?php else: ?>
-                                <span class="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600">Resigned</span>
-                            <?php endif; ?>
-                        </div>
-                    <?php endforeach; ?>
-                    </div>
-                    <button onclick="switchTab('orders')" class="mt-3 w-full text-center text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline py-1">
-                        Manage Checkers & Orders <i class="fa-solid fa-arrow-right text-[10px] ml-1"></i>
-                    </button>
-                <?php endif; ?>
-            </div>
-
-        </div><!-- end grid -->
-    </div><!-- end checker card -->
 
 </div>

@@ -368,7 +368,6 @@ $totalUnsettledAmount = array_sum(array_column($unsettledAdvancesList, 'amount')
 
 </div>
 
-
 <div id="caConfirmModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-gray-900 bg-opacity-60 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden relative flex flex-col">
         
@@ -471,7 +470,6 @@ function closeCaConfirmModal() {
 function submitCaAction() {
     document.getElementById('caActionForm').submit();
 }
-
 
 document.getElementById('caConfirmModal').addEventListener('click', function(e) {
     if (e.target === this) closeCaConfirmModal();

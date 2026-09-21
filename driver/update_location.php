@@ -4,7 +4,6 @@ require_once __DIR__ . '/../db.php';
 
 header('Content-Type: application/json');
 
-
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Driver') {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
@@ -21,9 +20,6 @@ $lat   = isset($_POST['latitude'])  ? floatval($_POST['latitude'])  : null;
 $lng   = isset($_POST['longitude']) ? floatval($_POST['longitude']) : null;
 $speed = isset($_POST['speed'])     ? floatval($_POST['speed'])     : 0;
 
-
-// Enforce Philippine geographic operational limits:
-// Latitude: 4.5° N to 21.5° N, Longitude: 116.0° E to 127.0° E
 if ($lat === null || $lng === null || $lat < 4.5 || $lat > 21.5 || $lng < 116.0 || $lng > 127.0) {
     echo json_encode([
         'success' => false, 
@@ -31,7 +27,6 @@ if ($lat === null || $lng === null || $lat < 4.5 || $lat > 21.5 || $lng < 116.0 
     ]);
     exit;
 }
-
 
 $stmtCheck = $pdo->prepare("
     SELECT d.truck_id 
@@ -50,7 +45,6 @@ if (!$activeDispatch) {
 
 $truck_id = $activeDispatch['truck_id'];
 $location_name = isset($_POST['location_name']) && !empty(trim($_POST['location_name'])) ? trim($_POST['location_name']) : 'In Transit';
-
 
 $stmt = $pdo->prepare("
     UPDATE trucks 

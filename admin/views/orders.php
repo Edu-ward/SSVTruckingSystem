@@ -109,6 +109,19 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
     </div>
 
     
+    
+    <div id="checkerFilterBanner" class="hidden items-center justify-between bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 rounded-2xl p-3 sm:p-4 mb-4 text-xs transition-all">
+        <div class="flex items-center gap-2.5 text-teal-800 dark:text-teal-200">
+            <div class="w-7 h-7 rounded-lg bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center text-teal-600 dark:text-teal-300 flex-shrink-0">
+                <i class="fa-solid fa-filter"></i>
+            </div>
+            <span>Filtered by checker: <strong id="checkerFilterName" class="font-bold text-teal-950 dark:text-teal-100"></strong> (showing assigned orders only)</span>
+        </div>
+        <button type="button" onclick="clearCheckerOrderFilter()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-teal-200 dark:border-teal-700 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/40 font-bold transition text-xs shadow-sm cursor-pointer">
+            <i class="fa-solid fa-xmark"></i> Show All Orders
+        </button>
+    </div>
+
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div class="p-6 border-b border-gray-100 dark:border-gray-700">
             <h3 class="font-semibold text-gray-800 dark:text-gray-200">All Orders</h3>
@@ -149,6 +162,7 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                         $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type'];
                     ?>
                     <tr class="order-row hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors"
+                        data-checker-id="<?= htmlspecialchars($order['checker_id'] ?? '') ?>"
                         data-search="<?= htmlspecialchars(strtolower(($order['order_number'] ?? '') . ' ' . ($order['client_name'] ?? '') . ' ' . ($order['contact_number'] ?? '') . ' ' . $gravelLabel . ' ' . ($order['destination'] ?? '') . ' ' . ($order['landmark'] ?? '') . ' ' . ($order['checker_name'] ?? '') . ' ' . ($order['status'] ?? '') . ' ' . ($order['notes'] ?? ''))) ?>">
                         <td class="px-6 py-4 font-mono font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap"><?= htmlspecialchars($order['order_number']) ?></td>
                         <td class="px-6 py-4 text-gray-700 dark:text-gray-300">
@@ -239,7 +253,7 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-3">
                     <?php if (!empty($checker['phone'])): ?>
                     <span class="text-xs text-gray-600 dark:text-gray-400">
                         <i class="fa-solid fa-phone mr-1 opacity-70"></i> <?= htmlspecialchars($checker['phone']) ?>
@@ -248,6 +262,12 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                     <span class="text-xs <?= ($checker['status'] ?? 'Active') === 'Resigned' ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300' : 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300' ?> px-2.5 py-1 rounded-full font-semibold">
                         <?= ($checker['status'] ?? 'Active') === 'Resigned' ? 'Resigned' : 'Checker' ?>
                     </span>
+                    <button onclick="openCheckerOrdersModal(<?= $checker['id'] ?>, '<?= addslashes($checker['full_name'] ?: $checker['username']) ?>')" title="View Orders" class="text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition focus:outline-none">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                    </button>
+                    <button onclick="openResetCheckerPasswordModal(<?= $checker['id'] ?>, '<?= addslashes($checker['full_name'] ?: $checker['username']) ?>', 'orders')" title="Reset Password" class="text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition focus:outline-none">
+                        <i class="fa-solid fa-key"></i>
+                    </button>
                     <button onclick="openResignCheckerModal(<?= $checker['id'] ?>, '<?= addslashes($checker['full_name'] ?: $checker['username']) ?>')" title="<?= ($checker['status'] ?? 'Active') === 'Resigned' ? 'Checker Already Resigned' : 'Resign Checker' ?>" class="text-gray-400 hover:text-amber-600 transition focus:outline-none <?= ($checker['status'] ?? 'Active') === 'Resigned' ? 'opacity-40 cursor-not-allowed' : '' ?>" <?= ($checker['status'] ?? 'Active') === 'Resigned' ? 'disabled' : '' ?>>
                         <i class="fa-solid fa-user-xmark"></i>
                     </button>
@@ -259,6 +279,8 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
     </div>
 
 <script>
+let activeCheckerFilterId = null;
+
 function filterOrders() {
     const input = document.getElementById('orderSearchInput');
     const clearBtn = document.getElementById('orderSearchClear');
@@ -274,7 +296,12 @@ function filterOrders() {
     let matchCount = 0;
     rows.forEach(row => {
         const meta = row.getAttribute('data-search') || '';
-        if (!query || meta.includes(query)) {
+        const checkerId = row.getAttribute('data-checker-id') || '';
+
+        const matchesQuery = !query || meta.includes(query);
+        const matchesChecker = !activeCheckerFilterId || (checkerId === String(activeCheckerFilterId));
+
+        if (matchesQuery && matchesChecker) {
             row.style.display = '';
             matchCount++;
         } else {
@@ -285,7 +312,15 @@ function filterOrders() {
     if (noResults) {
         if (matchCount === 0 && rows.length > 0) {
             noResults.classList.remove('hidden');
-            if (noResultsText) noResultsText.textContent = `No orders match "${query}".`;
+            if (noResultsText) {
+                if (activeCheckerFilterId && query) {
+                    noResultsText.textContent = `No orders for this checker match "${query}".`;
+                } else if (activeCheckerFilterId) {
+                    noResultsText.textContent = 'No orders currently assigned to this checker.';
+                } else {
+                    noResultsText.textContent = `No orders match "${query}".`;
+                }
+            }
         } else {
             noResults.classList.add('hidden');
         }
@@ -299,6 +334,39 @@ function clearOrderSearch() {
         filterOrders();
         input.focus();
     }
+}
+
+function viewOrdersForChecker(checkerId, checkerName) {
+    activeCheckerFilterId = checkerId;
+    switchTab('orders');
+
+    const banner = document.getElementById('checkerFilterBanner');
+    const nameEl = document.getElementById('checkerFilterName');
+    if (banner && nameEl) {
+        nameEl.textContent = checkerName || ('Checker #' + checkerId);
+        banner.classList.remove('hidden');
+        banner.classList.add('flex');
+    }
+
+    const input = document.getElementById('orderSearchInput');
+    if (input) input.value = '';
+
+    filterOrders();
+
+    const bannerOrTable = document.getElementById('checkerFilterBanner') || document.getElementById('view-orders');
+    if (bannerOrTable) {
+        bannerOrTable.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function clearCheckerOrderFilter() {
+    activeCheckerFilterId = null;
+    const banner = document.getElementById('checkerFilterBanner');
+    if (banner) {
+        banner.classList.add('hidden');
+        banner.classList.remove('flex');
+    }
+    filterOrders();
 }
 </script>
 

@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password'])) {
-        // Account active status check (applies to Admin, Superadmin, etc.)
+        
         if (($user['status'] ?? 'Active') === 'Inactive' || ($user['status'] ?? 'Active') === 'Suspended') {
             log_activity($pdo, 'Failed Login', 'Deactivated account tried to log in: ' . $username);
             header("Location: index.php?error=inactive");

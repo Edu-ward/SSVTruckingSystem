@@ -12,7 +12,6 @@ if (!isset($_GET['driver_id'])) {
 
 $driver_id = intval($_GET['driver_id']);
 
-
 $stmtDriver = $pdo->prepare("
     SELECT d.*, CONCAT(d.first_name, ' ', d.last_name) AS full_name, t.truck_code, t.rfid_tag
     FROM drivers d
@@ -80,7 +79,6 @@ $sql = "
 $stmtTrips = $pdo->prepare($sql);
 $stmtTrips->execute($params);
 $trips = $stmtTrips->fetchAll(PDO::FETCH_ASSOC);
-
 
 $totalTrips = count($trips);
 $deliveredCount = 0;

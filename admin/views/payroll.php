@@ -1,11 +1,10 @@
 <?php
 
-$dayOfWeek = (int)date('N'); // 1 (Mon) to 7 (Sun)
+$dayOfWeek = (int)date('N'); 
 $thisMonday = date('Y-m-d', strtotime('-' . ($dayOfWeek - 1) . ' days'));
 $thisSaturday = date('Y-m-d', strtotime('+' . (6 - $dayOfWeek) . ' days'));
 $thisSunday = date('Y-m-d', strtotime('+' . (7 - $dayOfWeek) . ' days'));
 
-// Generate 12 past weekly pay periods (Monday to Sunday, covering Monday-Saturday working days)
 $payrollPayPeriods = [];
 for ($w = 0; $w < 12; $w++) {
     $mon = date('Y-m-d', strtotime("$thisMonday -$w weeks"));
@@ -50,7 +49,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
 ?>
 <div id="view-payroll" class="tab-content hidden">
 
-    <!-- Page Header -->
+    
     <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div class="flex items-center space-x-3.5">
             <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg font-bold shadow-sm">
@@ -65,7 +64,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
         </div>
 
         <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            <!-- Search Driver Input -->
+            
             <div class="relative flex-1 md:w-72">
                 <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
                 <input type="text" id="payrollDriverSearchInput" oninput="filterPayrollTable()" placeholder="Search driver, CDL, truck..." 
@@ -75,7 +74,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                 </button>
             </div>
 
-            <!-- Quick Cash Advances Link -->
+            
             <button type="button" onclick="switchTab('cash_advances')" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-800 transition shadow-sm flex items-center gap-1.5 whitespace-nowrap">
                 <i class="fa-solid fa-hand-holding-dollar text-amber-500"></i>
                 <span>Cash Advances</span>
@@ -86,7 +85,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
         </div>
     </div>
 
-    <!-- Active Pay Period Header Banner -->
+    
     <div class="mb-6 bg-gradient-to-br from-gray-900 via-emerald-950 to-gray-900 border border-emerald-800/40 rounded-3xl p-5 sm:p-6 text-white shadow-xl relative overflow-hidden">
         <div class="absolute -right-10 -bottom-10 w-44 h-44 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
@@ -105,7 +104,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                 </div>
             </div>
 
-            <!-- Pay Period Selector Control -->
+            
             <div class="flex items-center gap-2 self-start md:self-auto bg-gray-800/80 p-1.5 rounded-2xl border border-gray-700/80 backdrop-blur-xs flex-wrap sm:flex-nowrap">
                 <select id="payPeriodSelector" onchange="onPayrollPeriodChange(this.value)" 
                     class="bg-transparent text-xs font-bold text-gray-200 border-none focus:ring-0 cursor-pointer pr-8 py-1.5 rounded-xl hover:bg-gray-700/50 transition">
@@ -127,26 +126,26 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
 
                 <div class="h-4 w-px bg-gray-700"></div>
 
-                <!-- Step backward (older week) -->
+                
                 <button type="button" onclick="shiftPayrollWeek(1)" class="w-8 h-8 rounded-xl flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-700/70 text-xs transition" title="Previous Week">
                     <i class="fa-solid fa-chevron-left"></i>
                 </button>
 
-                <!-- Return to "This Week" (current cycle) -->
+                
                 <button type="button" id="payrollCurrentWeekBtn" onclick="shiftPayrollWeek(0)" 
                     class="px-3 h-8 rounded-xl border border-emerald-500/40 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-xs font-bold active:scale-95 transition cursor-pointer whitespace-nowrap" 
                     title="Current Week (This Week)">
                     <span id="payrollCurrentWeekBtnText">This Week</span>
                 </button>
 
-                <!-- Step forward (newer week) -->
+                
                 <button type="button" onclick="shiftPayrollWeek(-1)" class="w-8 h-8 rounded-xl flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-700/70 text-xs transition" title="Next Week">
                     <i class="fa-solid fa-chevron-right"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Hidden Custom Range Inputs -->
+        
         <div id="payrollCustomDateBar" class="hidden mt-4 pt-4 border-t border-gray-700/60 flex flex-wrap items-center gap-3">
             <div class="flex items-center gap-2 text-xs">
                 <span class="text-gray-400">From:</span>
@@ -165,9 +164,9 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
         </div>
     </div>
 
-    <!-- Financial KPI Summary Cards (3 Columns) -->
+    
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <!-- KPI 1: Net Payable -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-emerald-200/70 dark:border-emerald-900/40 shadow-sm relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
@@ -186,7 +185,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
             <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
         </div>
 
-        <!-- KPI 2: Period Gross Earnings -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-blue-200/70 dark:border-blue-900/40 shadow-sm relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
@@ -205,7 +204,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
             <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
         </div>
 
-        <!-- KPI 3: Cash Advance Deductions -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-amber-200/70 dark:border-amber-900/40 shadow-sm relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
@@ -225,7 +224,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
         </div>
     </div>
 
-    <!-- Sub Navigation Tabs -->
+    
     <div class="mb-6 flex border-b border-gray-200 dark:border-gray-700 gap-6 text-sm font-semibold">
         <button type="button" onclick="switchPayrollSubTab('active')" id="btnPayrollSubActive" class="pb-3 border-b-2 border-emerald-600 text-emerald-600 dark:text-emerald-400 transition flex items-center gap-2">
             <i class="fa-solid fa-users-viewfinder"></i>
@@ -239,7 +238,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
         </button>
     </div>
 
-    <!-- Sub-tab 1: Active Driver Payroll Table -->
+    
     <div id="payrollSubTabActive" class="space-y-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
             <div class="overflow-x-auto">
@@ -286,7 +285,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                 data-total-gross="<?= floatval($driver['gross_earnings'] ?? 0); ?>"
                                 data-total-net="<?= floatval($driver['net_earnings'] ?? 0); ?>">
                                 
-                                <!-- Driver & Truck -->
+                                
                                 <td class="px-4 py-3.5 sm:px-6">
                                     <div class="flex items-center space-x-3">
                                         <?php if ($dPhotoUrl): ?>
@@ -311,14 +310,14 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                     </div>
                                 </td>
 
-                                <!-- Status Badge -->
+                                
                                 <td class="px-4 py-3.5 text-center whitespace-nowrap">
                                     <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full text-white <?= $driver['status'] === 'Active' ? 'bg-emerald-500' : ($driver['status'] === 'Dispatched' ? 'bg-blue-600' : ($driver['status'] === 'Resigned' ? 'bg-amber-600' : 'bg-gray-500')) ?>">
                                         <?= htmlspecialchars($driver['status']); ?>
                                     </span>
                                 </td>
 
-                                <!-- Pay Period Trips & Gross -->
+                                
                                 <td class="px-4 py-3.5 text-right whitespace-nowrap">
                                     <div class="font-bold text-gray-900 dark:text-gray-100 driver-gross-val">
                                         ₱<?= number_format($driver['gross_earnings'] ?? 0, 2); ?>
@@ -328,7 +327,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                     </div>
                                 </td>
 
-                                <!-- Cash Advances -->
+                                
                                 <td class="px-4 py-3.5 text-right whitespace-nowrap">
                                     <?php if (($driver['approved_cash_advances'] ?? 0) > 0): ?>
                                         <div class="font-bold text-amber-600 dark:text-amber-400">
@@ -342,14 +341,14 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                     <?php endif; ?>
                                 </td>
 
-                                <!-- Net Payable -->
+                                
                                 <td class="px-4 py-3.5 text-right whitespace-nowrap">
                                     <span class="text-sm font-black driver-net-val <?= $hasPayable ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400' ?>">
                                         ₱<?= number_format($driver['net_earnings'] ?? 0, 2); ?>
                                     </span>
                                 </td>
 
-                                <!-- Actions -->
+                                
                                 <td class="px-4 py-3.5 sm:px-6 text-right whitespace-nowrap">
                                     <div class="flex items-center justify-end space-x-2">
                                         <span class="driver-settle-btn-container">
@@ -380,7 +379,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                 </table>
             </div>
 
-            <!-- Empty Search Results -->
+            
             <div id="noPayrollSearchResults" class="hidden py-12 text-center">
                 <div class="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-700 text-gray-400 flex items-center justify-center mx-auto mb-3 text-lg">
                     <i class="fa-solid fa-search"></i>
@@ -392,7 +391,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
         </div>
     </div>
 
-    <!-- Sub-tab 2: Settlement History Archive -->
+    
     <div id="payrollSubTabHistory" class="hidden space-y-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
             <div class="p-4 sm:px-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/50 dark:bg-gray-900/30">

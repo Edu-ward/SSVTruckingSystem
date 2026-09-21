@@ -1,5 +1,5 @@
 <?php
-// Ensure activity_log.php helpers are available
+
 if (!function_exists('get_action_category')) {
     require_once __DIR__ . '/../../includes/activity_log.php';
 }
@@ -18,7 +18,7 @@ $exportQuery = http_build_query([
 ?>
 <div id="view-activity_logs" class="tab-content hidden">
 
-    <!-- Page Header & Global Actions -->
+    
     <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div>
             <h2 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center space-x-2.5">
@@ -43,7 +43,7 @@ $exportQuery = http_build_query([
         </div>
     </div>
 
-    <!-- KPI Metric Summary Row -->
+    
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div class="bg-white dark:bg-gray-800/80 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-4 shadow-xs">
             <div class="flex items-center space-x-3.5">
@@ -91,7 +91,7 @@ $exportQuery = http_build_query([
         </div>
     </div>
 
-    <!-- Category Quick-Pills Filter Row -->
+    
     <div class="flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-thin">
         <?php
         $categories = [
@@ -117,14 +117,14 @@ $exportQuery = http_build_query([
         <?php endforeach; ?>
     </div>
 
-    <!-- Multi-Criteria Filter Card -->
+    
     <div class="bg-white dark:bg-gray-800/90 rounded-2xl border border-gray-100 dark:border-gray-700/80 shadow-xs p-4 sm:p-5 mb-6">
         <form method="GET" action="dashboard.php" id="activityLogServerForm" class="space-y-4">
             <input type="hidden" name="tab" value="activity_logs">
             <input type="hidden" name="log_category" id="logCategoryInput" value="<?= htmlspecialchars($logCategory) ?>">
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                <!-- Keyword Search -->
+                
                 <div class="lg:col-span-2 relative">
                     <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Search Keywords</label>
                     <div class="relative">
@@ -133,7 +133,7 @@ $exportQuery = http_build_query([
                     </div>
                 </div>
 
-                <!-- Role Filter -->
+                
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">User Role</label>
                     <select name="log_role" id="activityLogRoleFilter" onchange="filterActivityLogsClient()" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500">
@@ -145,7 +145,7 @@ $exportQuery = http_build_query([
                     </select>
                 </div>
 
-                <!-- Date Preset -->
+                
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Time Range</label>
                     <select name="log_date_preset" id="activityLogDatePreset" onchange="handleDatePresetChange(this.value)" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500">
@@ -158,7 +158,7 @@ $exportQuery = http_build_query([
                     </select>
                 </div>
 
-                <!-- Limit Selector -->
+                
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Row Limit</label>
                     <select name="log_limit" id="activityLogLimit" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500">
@@ -170,7 +170,7 @@ $exportQuery = http_build_query([
                 </div>
             </div>
 
-            <!-- Custom Date Range Row (Revealed when Custom Range is active) -->
+            
             <div id="customDateRangeRow" class="<?= (!empty($logDateFrom) && empty($logDatePreset)) || $logDatePreset === 'custom' ? '' : 'hidden' ?> pt-2 border-t border-gray-100 dark:border-gray-700 flex flex-wrap items-center gap-3">
                 <div class="flex items-center gap-2">
                     <span class="text-xs text-gray-500">From:</span>
@@ -183,7 +183,7 @@ $exportQuery = http_build_query([
                 <button type="button" onclick="filterActivityLogsClient()" class="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-semibold transition">Filter Dates</button>
             </div>
 
-            <!-- Action Bar -->
+            
             <div class="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-gray-700/60 text-xs">
                 <div class="text-gray-500 dark:text-gray-400">
                     <?php if ($logSearch !== '' || $logRole !== '' || $logCategory !== '' || $logDateFrom !== '' || $logDatePreset !== ''): ?>
@@ -210,7 +210,7 @@ $exportQuery = http_build_query([
         </form>
     </div>
 
-    <!-- Activity Log Table -->
+    
     <div class="bg-white dark:bg-gray-800/70 rounded-2xl border border-gray-100 dark:border-gray-700/80 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full min-w-[760px] text-left text-xs border-collapse" id="activityLogsTable">
@@ -339,7 +339,7 @@ $exportQuery = http_build_query([
             </table>
         </div>
 
-        <!-- Table Footer / Count -->
+        
         <div class="px-5 py-3 bg-gray-50/70 dark:bg-gray-800/80 border-t border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
             <p class="text-xs text-gray-500 dark:text-gray-400">
                 Loaded <strong><?= count($activityLogs) ?></strong> records (Limit: <?= $logLimit ?>)
@@ -351,10 +351,9 @@ $exportQuery = http_build_query([
     </div>
 </div>
 
-<!-- Audit Record Inspector Modal -->
 <div id="auditInspectorModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-xl overflow-hidden relative max-h-[90vh] flex flex-col">
-        <!-- Header -->
+        
         <div class="p-5 border-b border-gray-100 dark:border-gray-700/80 flex justify-between items-center flex-shrink-0 bg-white dark:bg-gray-800">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400 flex items-center justify-center flex-shrink-0 text-base">
@@ -375,9 +374,9 @@ $exportQuery = http_build_query([
             </button>
         </div>
 
-        <!-- Body -->
+        
         <div class="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm">
-            <!-- Metadata Grid -->
+            
             <div class="grid grid-cols-2 gap-3">
                 <div class="p-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl border border-gray-100 dark:border-gray-700/60">
                     <div class="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-0.5">Initiated By</div>
@@ -402,7 +401,7 @@ $exportQuery = http_build_query([
                 </div>
             </div>
 
-            <!-- Full Details Card -->
+            
             <div>
                 <div class="flex items-center justify-between mb-1.5">
                     <span class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
@@ -418,7 +417,7 @@ $exportQuery = http_build_query([
             </div>
         </div>
 
-        <!-- Footer -->
+        
         <div class="p-4 sm:p-5 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700/80 flex justify-end flex-shrink-0">
             <button type="button" onclick="toggleModal('auditInspectorModal', false)" class="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-650 border border-gray-200 dark:border-gray-600 transition">
                 Close

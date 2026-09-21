@@ -13,7 +13,6 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['Driver', 'Che
 
 $user_id = $_SESSION['user_id'];
 
-// Only run CREATE TABLE once per process (not on every 5-second poll)
 static $_prrTableEnsured = false;
 if (!$_prrTableEnsured) {
     $_prrTableEnsured = true;
@@ -29,7 +28,7 @@ if (!$_prrTableEnsured) {
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB");
     } catch (Throwable $e) {
-        // Table likely already exists or FK mismatch — non-fatal
+        
         error_log('check_reset_status: table ensure error: ' . $e->getMessage());
     }
 }
