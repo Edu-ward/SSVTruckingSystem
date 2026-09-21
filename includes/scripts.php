@@ -2637,17 +2637,19 @@
                                         if (singleContainer) singleContainer.classList.add('hidden');
                                         if (multiContainer) multiContainer.classList.remove('hidden');
 
+                                        // Keep hiddenDriverId always enabled so it always submits via POST.
+                                        // Sync the dropdown selection into it instead of disabling it.
                                         if (hiddenDriverId) {
-                                            hiddenDriverId.disabled = true;
-                                            hiddenDriverId.name = '';
-                                            hiddenDriverId.required = false;
-                                            hiddenDriverId.value = '';
+                                            hiddenDriverId.disabled = false;
+                                            hiddenDriverId.name = 'driver_id';
+                                            hiddenDriverId.required = true;
+                                            hiddenDriverId.value = ''; // cleared until user picks
                                         }
 
                                         if (assignedDriverSelect) {
                                             assignedDriverSelect.disabled = false;
-                                            assignedDriverSelect.name = 'driver_id';
-                                            assignedDriverSelect.required = true;
+                                            assignedDriverSelect.name = ''; // NOT submitted — hiddenDriverId carries the value
+                                            assignedDriverSelect.required = false;
                                             assignedDriverSelect.innerHTML = '<option value="">— Select Which Driver is Driving —</option>';
                                             data.drivers.forEach(d => {
                                                 const opt = document.createElement('option');
@@ -2656,6 +2658,8 @@
                                                 assignedDriverSelect.appendChild(opt);
                                             });
                                             assignedDriverSelect.onchange = function() {
+                                                // Sync selected value into the hidden field that actually submits
+                                                if (hiddenDriverId) hiddenDriverId.value = this.value;
                                                 checkDriverActiveDispatch(this.value, this.options[this.selectedIndex]?.textContent);
                                             };
                                             assignedDriverSelect.focus();
