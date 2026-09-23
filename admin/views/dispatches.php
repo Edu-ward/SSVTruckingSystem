@@ -37,7 +37,7 @@
                 </div>
             </div>
             <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                
+
                 <div class="relative flex-1 sm:w-72">
                     <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
                     <input type="text" id="dispatchSearchInput" placeholder="Search tickets, trucks, drivers, clients, destinations..." oninput="filterDispatches()" class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
@@ -104,31 +104,24 @@
                             <?php endif; ?>
 
                             <div class="flex items-center space-x-2 border-l border-gray-200 dark:border-gray-600 pl-2.5 sm:pl-3 ml-0.5 sm:ml-1 shrink-0">
-                                <button onclick="openViewDispatchModal(<?= htmlspecialchars(json_encode($ticket), ENT_QUOTES, 'UTF-8') ?>)" class="text-gray-400 hover:text-blue-600 transition focus:outline-none" title="Inspect Dispatch Details">
-                                    <i class="fa-solid fa-eye"></i>
-                                </button>
                                 <?php if ($ticket['status'] === 'Cancellation Requested'): ?>
-                                    
+
                                     <button onclick="openApproveCancelModal(<?= $ticket['id']; ?>, '<?= htmlspecialchars($ticket['ticket_number']); ?>')" class="text-orange-500 hover:text-orange-600 transition focus:outline-none" title="Approve Cancellation Request">
                                         <i class="fa-solid fa-circle-check text-lg"></i>
                                     </button>
                                 <?php else: ?>
-                                    
-                                    <button onclick="markDispatchDelivered(<?= $ticket['id']; ?>, '<?= htmlspecialchars($ticket['ticket_number']); ?>')" class="text-green-500 hover:text-green-600 transition focus:outline-none" title="Mark as Delivered">
-                                        <i class="fa-solid fa-circle-check text-lg"></i>
-                                    </button>
                                 <?php endif; ?>
                                 <?php if ($ticket['status'] === 'Pending' || $ticket['status'] === 'In Transit'): ?>
-                                    
+
                                     <button onclick="openEditDispatchModal(<?= htmlspecialchars(json_encode($ticket), ENT_QUOTES, 'UTF-8') ?>)" class="text-gray-400 hover:text-indigo-600 transition focus:outline-none" title="Edit Dispatch / Re-pin Location">
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </button>
                                 <?php endif; ?>
-                                
+
                                 <button onclick="window.open('print_ticket.php?id=<?= $ticket['id']; ?>', '_blank')" class="text-gray-400 hover:text-blue-500 transition focus:outline-none" title="Print Waybill Ticket">
                                     <i class="fa-solid fa-print"></i>
                                 </button>
-                                
+
                                 <?php if ($ticket['status'] !== 'Cancelled' && $ticket['status'] !== 'Delivered'): ?>
                                     <button onclick="openDeleteDispatchModal(<?= $ticket['id']; ?>, '<?= htmlspecialchars($ticket['ticket_number']); ?>')" class="text-gray-400 hover:text-red-500 transition focus:outline-none" title="Cancel/Void Dispatch">
                                         <i class="fa-solid fa-ban"></i>

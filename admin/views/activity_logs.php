@@ -18,7 +18,7 @@ $exportQuery = http_build_query([
 ?>
 <div id="view-activity_logs" class="tab-content hidden">
 
-    
+
     <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div>
             <h2 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center space-x-2.5">
@@ -43,7 +43,7 @@ $exportQuery = http_build_query([
         </div>
     </div>
 
-    
+
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div class="bg-white dark:bg-gray-800/80 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-4 shadow-xs">
             <div class="flex items-center space-x-3.5">
@@ -91,7 +91,7 @@ $exportQuery = http_build_query([
         </div>
     </div>
 
-    
+
     <div class="flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-thin">
         <?php
         $categories = [
@@ -106,8 +106,8 @@ $exportQuery = http_build_query([
         ];
         foreach ($categories as $catKey => $catMeta):
             $isActive = ($logCategory === $catKey);
-            $pillClass = $isActive 
-                ? 'bg-violet-600 text-white shadow-xs font-bold ring-2 ring-violet-400' 
+            $pillClass = $isActive
+                ? 'bg-violet-600 text-white shadow-xs font-bold ring-2 ring-violet-400'
                 : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/60 font-medium';
         ?>
             <button type="button" data-cat="<?= $catKey ?>" onclick="setActivityCategory('<?= $catKey ?>')" class="cat-pill-btn px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition whitespace-nowrap <?= $pillClass ?>">
@@ -117,14 +117,14 @@ $exportQuery = http_build_query([
         <?php endforeach; ?>
     </div>
 
-    
+
     <div class="bg-white dark:bg-gray-800/90 rounded-2xl border border-gray-100 dark:border-gray-700/80 shadow-xs p-4 sm:p-5 mb-6">
         <form method="GET" action="dashboard.php" id="activityLogServerForm" class="space-y-4">
             <input type="hidden" name="tab" value="activity_logs">
             <input type="hidden" name="log_category" id="logCategoryInput" value="<?= htmlspecialchars($logCategory) ?>">
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                
+
                 <div class="lg:col-span-2 relative">
                     <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Search Keywords</label>
                     <div class="relative">
@@ -133,7 +133,7 @@ $exportQuery = http_build_query([
                     </div>
                 </div>
 
-                
+
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">User Role</label>
                     <select name="log_role" id="activityLogRoleFilter" onchange="filterActivityLogsClient()" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500">
@@ -145,7 +145,7 @@ $exportQuery = http_build_query([
                     </select>
                 </div>
 
-                
+
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Time Range</label>
                     <select name="log_date_preset" id="activityLogDatePreset" onchange="handleDatePresetChange(this.value)" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500">
@@ -158,7 +158,7 @@ $exportQuery = http_build_query([
                     </select>
                 </div>
 
-                
+
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Row Limit</label>
                     <select name="log_limit" id="activityLogLimit" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500">
@@ -170,7 +170,7 @@ $exportQuery = http_build_query([
                 </div>
             </div>
 
-            
+
             <div id="customDateRangeRow" class="<?= (!empty($logDateFrom) && empty($logDatePreset)) || $logDatePreset === 'custom' ? '' : 'hidden' ?> pt-2 border-t border-gray-100 dark:border-gray-700 flex flex-wrap items-center gap-3">
                 <div class="flex items-center gap-2">
                     <span class="text-xs text-gray-500">From:</span>
@@ -183,12 +183,12 @@ $exportQuery = http_build_query([
                 <button type="button" onclick="filterActivityLogsClient()" class="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-semibold transition">Filter Dates</button>
             </div>
 
-            
+
             <div class="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-gray-700/60 text-xs">
                 <div class="text-gray-500 dark:text-gray-400">
                     <?php if ($logSearch !== '' || $logRole !== '' || $logCategory !== '' || $logDateFrom !== '' || $logDatePreset !== ''): ?>
                         <span class="inline-flex items-center gap-1.5 text-violet-600 dark:text-violet-400 font-semibold">
-                            <i class="fa-solid fa-filter"></i> Filters active: 
+                            <i class="fa-solid fa-filter"></i> Filters active:
                             <?= $logCategory ? htmlspecialchars($logCategory) . ' • ' : '' ?>
                             <?= $logRole ? htmlspecialchars($logRole) . ' • ' : '' ?>
                             <?= $logSearch ? '"' . htmlspecialchars($logSearch) . '"' : '' ?>
@@ -210,26 +210,25 @@ $exportQuery = http_build_query([
         </form>
     </div>
 
-    
+
     <div class="bg-white dark:bg-gray-800/70 rounded-2xl border border-gray-100 dark:border-gray-700/80 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full min-w-[760px] text-left text-xs border-collapse" id="activityLogsTable">
+            <table class="w-full text-left text-xs border-collapse" id="activityLogsTable">
                 <thead>
                     <tr class="bg-gray-50/80 dark:bg-gray-800/90 border-b border-gray-100 dark:border-gray-700/70 text-gray-400 uppercase text-[10px] tracking-wider font-semibold">
-                        <th class="py-3 px-4">Timestamp</th>
-                        <th class="py-3 px-4">User</th>
-                        <th class="py-3 px-4">Role</th>
-                        <th class="py-3 px-4">Category</th>
-                        <th class="py-3 px-4">Action</th>
-                        <th class="py-3 px-4">Details</th>
-                        <th class="py-3 px-4">IP Address</th>
-                        <th class="py-3 px-4 text-right">Inspect</th>
+                        <th class="py-2.5 px-3">Timestamp</th>
+                        <th class="py-2.5 px-3">User</th>
+                        <th class="py-2.5 px-2 text-center">Role</th>
+                        <th class="py-2.5 px-2 text-center">Category</th>
+                        <th class="py-2.5 px-3">Action</th>
+                        <th class="py-2.5 px-3">Details</th>
+                        <th class="py-2.5 pl-7 px-2.5">IP Address</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60 font-medium text-gray-700 dark:text-gray-300">
                     <?php if (empty($activityLogs)): ?>
                         <tr>
-                            <td colspan="8" class="text-center py-14 text-gray-400 dark:text-gray-500">
+                            <td colspan="7" class="text-center py-14 text-gray-400 dark:text-gray-500">
                                 <div class="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-700/60 text-gray-400 flex items-center justify-center mx-auto mb-3 text-xl">
                                     <i class="fa-solid fa-inbox"></i>
                                 </div>
@@ -244,14 +243,14 @@ $exportQuery = http_build_query([
                         <?php foreach ($activityLogs as $log): ?>
                             <?php
                             $logCat = get_action_category($log['action'] ?? '');
-                            $roleColor = match($log['role'] ?? '') {
+                            $roleColor = match ($log['role'] ?? '') {
                                 'Superadmin' => 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
                                 'Admin'      => 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
                                 'Driver'     => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
                                 'Checker'    => 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
                                 default      => 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
                             };
-                            $catBadge = match($logCat) {
+                            $catBadge = match ($logCat) {
                                 'Security'   => 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40',
                                 'Dispatches' => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40',
                                 'Fleet'      => 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40',
@@ -260,7 +259,7 @@ $exportQuery = http_build_query([
                                 'Orders'     => 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800/40',
                                 default      => 'bg-gray-50 text-gray-600 dark:bg-gray-750 dark:text-gray-400 border border-gray-200 dark:border-gray-700',
                             };
-                            $actionIcon = match(true) {
+                            $actionIcon = match (true) {
                                 str_contains($log['action'], 'Login')        => 'fa-right-to-bracket text-emerald-500',
                                 str_contains($log['action'], 'Failed')       => 'fa-triangle-exclamation text-rose-500',
                                 str_contains($log['action'], 'Logout')       => 'fa-right-from-bracket text-gray-400',
@@ -293,11 +292,11 @@ $exportQuery = http_build_query([
                                 data-category="<?= htmlspecialchars($logCat) ?>"
                                 data-date="<?= date('Y-m-d', strtotime($log['created_at'])) ?>"
                                 data-search="<?= htmlspecialchars(strtolower(($log['username'] ?? '') . ' ' . ($log['action'] ?? '') . ' ' . ($log['details'] ?? '') . ' ' . ($log['ip_address'] ?? ''))) ?>">
-                                <td class="py-3 px-4 whitespace-nowrap">
+                                <td class="py-2.5 px-3 whitespace-nowrap">
                                     <div class="font-bold text-gray-900 dark:text-gray-100"><?= date('M j, Y', strtotime($log['created_at'])) ?></div>
                                     <div class="text-[10px] text-gray-400"><?= date('g:i:s A', strtotime($log['created_at'])) ?></div>
                                 </td>
-                                <td class="py-3 px-4 whitespace-nowrap">
+                                <td class="py-2.5 px-3 whitespace-nowrap">
                                     <div class="flex items-center gap-2">
                                         <div class="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center text-[10px] font-bold">
                                             <?= strtoupper(substr($log['username'] ?? 'S', 0, 1)) ?>
@@ -305,32 +304,27 @@ $exportQuery = http_build_query([
                                         <span class="font-semibold text-gray-800 dark:text-gray-200"><?= htmlspecialchars($log['username'] ?? 'System') ?></span>
                                     </div>
                                 </td>
-                                <td class="py-3 px-4 whitespace-nowrap">
+                                <td class="py-2.5 px-2 whitespace-nowrap text-center">
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold <?= $roleColor ?>">
                                         <?= htmlspecialchars($log['role'] ?? 'Unknown') ?>
                                     </span>
                                 </td>
-                                <td class="py-3 px-4 whitespace-nowrap">
+                                <td class="py-2.5 px-2 whitespace-nowrap text-center">
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium <?= $catBadge ?>">
                                         <?= htmlspecialchars($logCat) ?>
                                     </span>
                                 </td>
-                                <td class="py-3 px-4 whitespace-nowrap">
+                                <td class="py-2.5 px-3 whitespace-nowrap">
                                     <span class="inline-flex items-center gap-1.5 font-bold text-gray-900 dark:text-gray-100">
                                         <i class="fa-solid <?= $actionIcon ?> text-[11px]"></i>
                                         <span><?= htmlspecialchars($log['action']) ?></span>
                                     </span>
                                 </td>
-                                <td class="py-3 px-4 max-w-sm truncate text-gray-600 dark:text-gray-300" title="<?= htmlspecialchars($log['details'] ?? '') ?>">
+                                <td class="py-2.5 px-3 max-w-[180px] lg:max-w-[240px] truncate text-gray-600 dark:text-gray-300" title="<?= htmlspecialchars($log['details'] ?? '') ?>">
                                     <?= htmlspecialchars($log['details'] ?? '—') ?>
                                 </td>
-                                <td class="py-3 px-4 whitespace-nowrap font-mono text-[11px] text-gray-400 dark:text-gray-500">
+                                <td class="py-2.5 pl-10 px-2.5 whitespace-nowrap font-mono text-[11px] text-gray-400 dark:text-gray-500">
                                     <?= htmlspecialchars($log['ip_address'] ?? '—') ?>
-                                </td>
-                                <td class="py-3 px-4 text-right whitespace-nowrap" onclick="event.stopPropagation()">
-                                    <button type="button" onclick="openAuditInspectorModal(<?= $logJson ?>)" class="w-7 h-7 rounded-lg inline-flex items-center justify-center text-gray-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/40 transition" title="Inspect Record Details">
-                                        <i class="fa-solid fa-eye text-xs"></i>
-                                    </button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -339,7 +333,7 @@ $exportQuery = http_build_query([
             </table>
         </div>
 
-        
+
         <div class="px-5 py-3 bg-gray-50/70 dark:bg-gray-800/80 border-t border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
             <p class="text-xs text-gray-500 dark:text-gray-400">
                 Loaded <strong><?= count($activityLogs) ?></strong> records (Limit: <?= $logLimit ?>)
@@ -353,7 +347,7 @@ $exportQuery = http_build_query([
 
 <div id="auditInspectorModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-xl overflow-hidden relative max-h-[90vh] flex flex-col">
-        
+
         <div class="p-5 border-b border-gray-100 dark:border-gray-700/80 flex justify-between items-center flex-shrink-0 bg-white dark:bg-gray-800">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400 flex items-center justify-center flex-shrink-0 text-base">
@@ -374,9 +368,9 @@ $exportQuery = http_build_query([
             </button>
         </div>
 
-        
+
         <div class="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm">
-            
+
             <div class="grid grid-cols-2 gap-3">
                 <div class="p-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl border border-gray-100 dark:border-gray-700/60">
                     <div class="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-0.5">Initiated By</div>
@@ -401,7 +395,7 @@ $exportQuery = http_build_query([
                 </div>
             </div>
 
-            
+
             <div>
                 <div class="flex items-center justify-between mb-1.5">
                     <span class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
@@ -417,7 +411,7 @@ $exportQuery = http_build_query([
             </div>
         </div>
 
-        
+
         <div class="p-4 sm:p-5 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700/80 flex justify-end flex-shrink-0">
             <button type="button" onclick="toggleModal('auditInspectorModal', false)" class="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-650 border border-gray-200 dark:border-gray-600 transition">
                 Close

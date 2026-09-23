@@ -167,13 +167,13 @@
 
         
         <div class="hidden sm:block overflow-x-auto">
-            <table class="w-full text-left text-sm text-gray-600 dark:text-gray-300">
+            <table class="w-full text-left text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                 <thead class="bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-200 font-semibold border-b border-gray-100 dark:border-gray-700">
                     <tr>
-                        <th class="px-6 py-4">Metric</th>
-                        <th class="px-6 py-4"><?= htmlspecialchars($currMonthLabel ?? 'This Month'); ?></th>
-                        <th class="px-6 py-4"><?= htmlspecialchars($lastMonthLabel ?? 'Last Month'); ?></th>
-                        <th class="px-6 py-4">Change</th>
+                        <th class="px-3.5 sm:px-4 py-3">Metric</th>
+                        <th class="px-3.5 sm:px-4 py-3"><?= htmlspecialchars($currMonthLabel ?? 'This Month'); ?></th>
+                        <th class="px-3.5 sm:px-4 py-3"><?= htmlspecialchars($lastMonthLabel ?? 'Last Month'); ?></th>
+                        <th class="px-3.5 sm:px-4 py-3">Change</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -181,10 +181,10 @@
                         $colorClass = $metric['is_positive'] ? 'text-green-500' : 'text-red-500';
                     ?>
                         <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors">
-                            <td class="px-6 py-4 font-medium text-gray-800 dark:text-gray-200"><?= htmlspecialchars($metric['metric']); ?></td>
-                            <td class="px-6 py-4 font-bold text-gray-900 dark:text-white"><?= htmlspecialchars($metric['this_month']); ?></td>
-                            <td class="px-6 py-4"><?= htmlspecialchars($metric['last_month']); ?></td>
-                            <td class="px-6 py-4 <?= $colorClass; ?> font-bold whitespace-nowrap"><?= htmlspecialchars($metric['change_str']); ?></td>
+                            <td class="px-3.5 sm:px-4 py-3 font-medium text-gray-800 dark:text-gray-200"><?= htmlspecialchars($metric['metric']); ?></td>
+                            <td class="px-3.5 sm:px-4 py-3 font-bold text-gray-900 dark:text-white"><?= htmlspecialchars($metric['this_month']); ?></td>
+                            <td class="px-3.5 sm:px-4 py-3"><?= htmlspecialchars($metric['last_month']); ?></td>
+                            <td class="px-3.5 sm:px-4 py-3 <?= $colorClass; ?> font-bold whitespace-nowrap"><?= htmlspecialchars($metric['change_str']); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -284,15 +284,15 @@
 
             
             <div class="hidden sm:block overflow-x-auto">
-                <table class="w-full text-left text-sm text-gray-600 dark:text-gray-300">
+                <table class="w-full text-left text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                     <thead class="bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-200 font-semibold border-b border-gray-100 dark:border-gray-700">
                         <tr>
-                            <th class="px-6 py-4">Month Period</th>
-                            <th class="px-6 py-4">Deliveries</th>
-                            <th class="px-6 py-4">Volume Delivered</th>
-                            <th class="px-6 py-4">Driver Payroll</th>
-                            <th class="px-6 py-4">On-Time Rate</th>
-                            <th class="px-6 py-4 text-right">Actions</th>
+                            <th class="px-3.5 sm:px-4 py-3">Month Period</th>
+                            <th class="px-3.5 sm:px-4 py-3">Deliveries</th>
+                            <th class="px-3.5 sm:px-4 py-3">Volume Delivered</th>
+                            <th class="px-3.5 sm:px-4 py-3">Driver Payroll</th>
+                            <th class="px-3.5 sm:px-4 py-3">On-Time Rate</th>
+                            <th class="px-3.5 sm:px-4 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -302,7 +302,7 @@
                             $isCurrent = ($ma['ym'] === date('Y-m'));
                         ?>
                             <tr class="<?= $isSelected ? 'bg-blue-50/70 dark:bg-blue-950/30 font-medium' : 'hover:bg-gray-50/80 dark:hover:bg-gray-700/50' ?> transition-colors">
-                                <td class="px-6 py-4">
+                                <td class="px-3.5 sm:px-4 py-3">
                                     <div class="flex items-center gap-2">
                                         <i class="fa-regular fa-calendar text-gray-400"></i>
                                         <span class="font-bold text-gray-800 dark:text-gray-200"><?= htmlspecialchars($ma['label']); ?></span>
@@ -314,10 +314,10 @@
                                         <?php endif; ?>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 font-semibold text-gray-800 dark:text-gray-200"><?= number_format($ma['deliveries']); ?></td>
-                                <td class="px-6 py-4"><?= number_format($ma['volume_cm'], 2); ?> cu.m</td>
-                                <td class="px-6 py-4 font-semibold text-emerald-600 dark:text-emerald-400">₱<?= number_format($ma['payroll']); ?></td>
-                                <td class="px-6 py-4">
+                                <td class="px-3.5 sm:px-4 py-3 font-semibold text-gray-800 dark:text-gray-200"><?= number_format($ma['deliveries']); ?></td>
+                                <td class="px-3.5 sm:px-4 py-3"><?= number_format($ma['volume_cm'], 2); ?> cu.m</td>
+                                <td class="px-3.5 sm:px-4 py-3 font-semibold text-emerald-600 dark:text-emerald-400">₱<?= number_format($ma['payroll']); ?></td>
+                                <td class="px-3.5 sm:px-4 py-3">
                                     <?php if (!empty($ma['deliveries']) && $ma['deliveries'] > 0 && isset($ma['on_time_pct']) && $ma['on_time_pct'] !== null): ?>
                                         <span class="inline-flex items-center gap-1 font-semibold <?= $ma['on_time_pct'] >= 90 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400' ?>">
                                             <i class="fa-solid fa-circle-check text-xs"></i>
@@ -327,7 +327,7 @@
                                         <span class="text-gray-400 font-bold">-</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="px-6 py-4 text-right">
+                                <td class="px-3.5 sm:px-4 py-3 text-right">
                                     <div class="flex items-center justify-end gap-2">
                                         <?php if (!$isSelected): ?>
                                             <a href="dashboard.php?tab=reports&report_month=<?= urlencode($ma['ym']); ?>" 

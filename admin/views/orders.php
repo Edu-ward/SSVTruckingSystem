@@ -134,20 +134,20 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
             </div>
         <?php else: ?>
         <div class="overflow-x-auto">
-            <table class="w-full min-w-[760px] text-sm">
-                <thead class="bg-gray-50 dark:bg-gray-700 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <table class="w-full text-xs sm:text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-700/80 text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold border-b border-gray-100 dark:border-gray-700">
                     <tr>
-                        <th class="px-6 py-3 text-left whitespace-nowrap">Order #</th>
-                        <th class="px-6 py-3 text-left">Client</th>
-                        <th class="px-6 py-3 text-left whitespace-nowrap">Gravel Type</th>
-                        <th class="px-6 py-3 text-left">Destination</th>
-                        <th class="px-6 py-3 text-center whitespace-nowrap">Cubic Meter (cu.m)</th>
-                        <th class="px-6 py-3 text-left whitespace-nowrap">Checker</th>
-                        <th class="px-6 py-3 text-center whitespace-nowrap">Status</th>
-                        <th class="px-6 py-3 text-center whitespace-nowrap">Actions</th>
+                        <th class="px-3 sm:px-3.5 py-3 text-left whitespace-nowrap">Order #</th>
+                        <th class="px-3 sm:px-3.5 py-3 text-left">Client</th>
+                        <th class="px-3 sm:px-3.5 py-3 text-left whitespace-nowrap">Gravel Type</th>
+                        <th class="px-3 sm:px-3.5 py-3 text-left">Destination</th>
+                        <th class="px-3 sm:px-3.5 py-3 text-center whitespace-nowrap">Cubic Meter (cu.m)</th>
+                        <th class="px-3 sm:px-3.5 py-3 text-left whitespace-nowrap">Checker</th>
+                        <th class="px-3 sm:px-3.5 py-3 text-center whitespace-nowrap">Status</th>
+                        <th class="px-3 sm:px-3.5 py-3 text-center whitespace-nowrap">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700/70">
                     <?php foreach ($allOrders as $order):
                         $statusColors = [
                             'Pending'     => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/60 dark:text-yellow-200',
@@ -164,51 +164,51 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                     <tr class="order-row hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors"
                         data-checker-id="<?= htmlspecialchars($order['checker_id'] ?? '') ?>"
                         data-search="<?= htmlspecialchars(strtolower(($order['order_number'] ?? '') . ' ' . ($order['client_name'] ?? '') . ' ' . ($order['contact_number'] ?? '') . ' ' . $gravelLabel . ' ' . ($order['destination'] ?? '') . ' ' . ($order['landmark'] ?? '') . ' ' . ($order['checker_name'] ?? '') . ' ' . ($order['status'] ?? '') . ' ' . ($order['notes'] ?? ''))) ?>">
-                        <td class="px-6 py-4 font-mono font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap"><?= htmlspecialchars($order['order_number']) ?></td>
-                        <td class="px-6 py-4 text-gray-700 dark:text-gray-300">
-                            <div class="font-medium"><?= htmlspecialchars($order['client_name']) ?></div>
+                        <td class="px-3 sm:px-3.5 py-3 font-mono font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap"><?= htmlspecialchars($order['order_number']) ?></td>
+                        <td class="px-3 sm:px-3.5 py-3 text-gray-700 dark:text-gray-300 max-w-[150px]">
+                            <div class="font-medium truncate"><?= htmlspecialchars($order['client_name']) ?></div>
                             <?php if (!empty($order['contact_number'])): ?>
-                                <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5"><i class="fa-solid fa-phone text-[10px]"></i> <?= htmlspecialchars($order['contact_number']) ?></div>
+                                <div class="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5"><i class="fa-solid fa-phone text-[9px]"></i> <?= htmlspecialchars($order['contact_number']) ?></div>
                             <?php endif; ?>
                         </td>
-                        <td class="px-6 py-4 text-gray-700 dark:text-gray-300 whitespace-nowrap"><?= htmlspecialchars($gravelLabel) ?></td>
-                        <td class="px-6 py-4 text-gray-700 dark:text-gray-300">
-                            <div><?= htmlspecialchars($order['destination']) ?></div>
+                        <td class="px-3 sm:px-3.5 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap"><?= htmlspecialchars($gravelLabel) ?></td>
+                        <td class="px-3 sm:px-3.5 py-3 text-gray-700 dark:text-gray-300 max-w-[180px]">
+                            <div class="truncate" title="<?= htmlspecialchars($order['destination']) ?>"><?= htmlspecialchars($order['destination']) ?></div>
                             <?php if (!empty($order['landmark'])): ?>
-                                <div class="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5"><i class="fa-solid fa-location-dot text-[10px]"></i> <?= htmlspecialchars($order['landmark']) ?></div>
+                                <div class="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5 truncate" title="<?= htmlspecialchars($order['landmark']) ?>"><i class="fa-solid fa-location-dot text-[9px]"></i> <?= htmlspecialchars($order['landmark']) ?></div>
                             <?php endif; ?>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-3 sm:px-3.5 py-3 whitespace-nowrap">
                             <div class="flex flex-col items-center">
-                                <span class="font-bold text-gray-800 dark:text-gray-200 text-sm mb-1"><?= number_format($doneCm, 2) ?>/<?= number_format($reqCm, 2) ?> cu.m</span>
-                                <div class="w-28 bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+                                <span class="font-bold text-gray-800 dark:text-gray-200 text-xs sm:text-sm mb-1"><?= number_format($doneCm, 2) ?>/<?= number_format($reqCm, 2) ?> cu.m</span>
+                                <div class="w-24 sm:w-28 bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
                                     <div class="<?= $pct >= 100 ? 'bg-green-500' : 'bg-blue-500' ?> h-1.5 rounded-full transition-all" style="width:<?= min(100, $pct) ?>%"></div>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 text-gray-600 dark:text-gray-400 text-xs whitespace-nowrap">
+                        <td class="px-3 sm:px-3.5 py-3 text-gray-600 dark:text-gray-400 text-xs whitespace-nowrap">
                             <?= $order['checker_name'] ? htmlspecialchars($order['checker_name']) : '<span class="italic text-gray-400">Unassigned</span>' ?>
                         </td>
-                        <td class="px-6 py-4 text-center whitespace-nowrap">
-                            <span class="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap min-w-[90px] <?= $sc ?>"><?= htmlspecialchars($order['status']) ?></span>
+                        <td class="px-3 sm:px-3.5 py-3 text-center whitespace-nowrap">
+                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap min-w-[85px] <?= $sc ?>"><?= htmlspecialchars($order['status']) ?></span>
                         </td>
-                        <td class="px-6 py-4 text-center whitespace-nowrap">
-                            <div class="flex items-center justify-center space-x-3">
+                        <td class="px-3 sm:px-3.5 py-3 text-center whitespace-nowrap min-w-[110px]">
+                            <div class="flex items-center justify-center space-x-2 sm:space-x-2.5">
                                 <?php if ($order['status'] !== 'Cancelled' && $order['status'] !== 'Fulfilled'): ?>
-                                <button onclick="openEditOrderModal(<?= htmlspecialchars(json_encode($order), ENT_QUOTES, 'UTF-8') ?>)" title="Edit Order & Pinned Location" class="text-gray-400 hover:text-indigo-600 transition">
+                                <button type="button" onclick="openEditOrderModal(<?= htmlspecialchars(json_encode($order), ENT_QUOTES, 'UTF-8') ?>)" title="Edit Order & Pinned Location" class="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-1 transition cursor-pointer">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
-                                <button onclick="openAssignCheckerModal(<?= $order['id'] ?>, '<?= addslashes($order['order_number']) ?>')" title="Assign Checker" class="text-blue-500 hover:text-blue-700 transition">
+                                <button type="button" onclick="openAssignCheckerModal(<?= $order['id'] ?>, '<?= addslashes($order['order_number']) ?>')" title="Assign Checker" class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1 transition cursor-pointer">
                                     <i class="fa-solid fa-user-shield"></i>
                                 </button>
-                                <button onclick="window.open('print_order_ticket.php?id=<?= $order['id'] ?>', '_blank')" title="Print Order Ticket" class="text-gray-400 hover:text-blue-500 transition">
+                                <button type="button" onclick="window.open('print_order_ticket.php?id=<?= $order['id'] ?>', '_blank')" title="Print Order Ticket" class="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 p-1 transition cursor-pointer">
                                     <i class="fa-solid fa-print"></i>
                                 </button>
-                                <button onclick="openCancelOrderModal(<?= $order['id'] ?>, '<?= addslashes($order['order_number']) ?>')" title="Cancel Order" class="text-gray-400 hover:text-red-500 transition">
+                                <button type="button" onclick="openCancelOrderModal(<?= $order['id'] ?>, '<?= addslashes($order['order_number']) ?>')" title="Cancel Order" class="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 p-1 transition cursor-pointer">
                                     <i class="fa-solid fa-ban"></i>
                                 </button>
                                 <?php else: ?>
-                                <button onclick="window.open('print_order_ticket.php?id=<?= $order['id'] ?>', '_blank')" title="Print Order Ticket" class="text-gray-400 hover:text-blue-500 transition">
+                                <button type="button" onclick="window.open('print_order_ticket.php?id=<?= $order['id'] ?>', '_blank')" title="Print Order Ticket" class="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 p-1 transition cursor-pointer">
                                     <i class="fa-solid fa-print"></i>
                                 </button>
                                 <?php endif; ?>
@@ -225,6 +225,26 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Orders 5-per-page Pagination Bar -->
+        <div id="ordersPaginationContainer" class="px-4 py-3 bg-gray-50/70 dark:bg-gray-800/80 border-t border-gray-100 dark:border-gray-700/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div class="text-gray-500 dark:text-gray-400 font-medium" id="ordersPaginationInfo">
+                Showing <strong class="text-gray-800 dark:text-gray-200" id="ordersPageStart">0</strong> to <strong class="text-gray-800 dark:text-gray-200" id="ordersPageEnd">0</strong> of <strong class="text-gray-800 dark:text-gray-200" id="ordersPageTotal">0</strong> orders
+            </div>
+            <div class="flex items-center gap-1.5" id="ordersPaginationControls">
+                <button type="button" id="ordersPrevPageBtn" onclick="changeOrderPage(-1)" class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed font-semibold transition flex items-center gap-1 cursor-pointer shadow-xs">
+                    <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                    <span>Prev</span>
+                </button>
+                <div id="ordersPageNumbers" class="flex items-center gap-1">
+                    <!-- Page buttons injected via JS -->
+                </div>
+                <button type="button" id="ordersNextPageBtn" onclick="changeOrderPage(1)" class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed font-semibold transition flex items-center gap-1 cursor-pointer shadow-xs">
+                    <span>Next</span>
+                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </button>
+            </div>
         </div>
         <?php endif; ?>
     </div>
@@ -280,20 +300,27 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
 
 <script>
 let activeCheckerFilterId = null;
+let currentOrderPage = 1;
+const ORDERS_PER_PAGE = 5;
 
-function filterOrders() {
+function filterOrders(resetPage = true) {
+    if (resetPage) {
+        currentOrderPage = 1;
+    }
     const input = document.getElementById('orderSearchInput');
     const clearBtn = document.getElementById('orderSearchClear');
     const query = input ? input.value.toLowerCase().trim() : '';
-    const rows = document.querySelectorAll('#view-orders .order-row');
+    const rows = Array.from(document.querySelectorAll('#view-orders .order-row'));
     const noResults = document.getElementById('noOrdersMatch');
     const noResultsText = document.getElementById('noOrdersMatchText');
+    const paginationContainer = document.getElementById('ordersPaginationContainer');
 
     if (clearBtn) {
         clearBtn.classList.toggle('hidden', query.length === 0);
     }
 
-    let matchCount = 0;
+    // Filter matching rows
+    const matchingRows = [];
     rows.forEach(row => {
         const meta = row.getAttribute('data-search') || '';
         const checkerId = row.getAttribute('data-checker-id') || '';
@@ -302,15 +329,37 @@ function filterOrders() {
         const matchesChecker = !activeCheckerFilterId || (checkerId === String(activeCheckerFilterId));
 
         if (matchesQuery && matchesChecker) {
-            row.style.display = '';
-            matchCount++;
+            matchingRows.push(row);
         } else {
             row.style.display = 'none';
         }
     });
 
+    const totalMatches = matchingRows.length;
+    const totalPages = Math.max(1, Math.ceil(totalMatches / ORDERS_PER_PAGE));
+
+    if (currentOrderPage > totalPages) {
+        currentOrderPage = totalPages;
+    }
+    if (currentOrderPage < 1) {
+        currentOrderPage = 1;
+    }
+
+    // Paginate matching rows (show 5 per page)
+    const startIndex = (currentOrderPage - 1) * ORDERS_PER_PAGE;
+    const endIndex = startIndex + ORDERS_PER_PAGE;
+
+    matchingRows.forEach((row, idx) => {
+        if (idx >= startIndex && idx < endIndex) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    // Update No Results display
     if (noResults) {
-        if (matchCount === 0 && rows.length > 0) {
+        if (totalMatches === 0 && rows.length > 0) {
             noResults.classList.remove('hidden');
             if (noResultsText) {
                 if (activeCheckerFilterId && query) {
@@ -325,13 +374,56 @@ function filterOrders() {
             noResults.classList.add('hidden');
         }
     }
+
+    // Update Pagination UI
+    if (paginationContainer) {
+        if (totalMatches === 0) {
+            paginationContainer.classList.add('hidden');
+        } else {
+            paginationContainer.classList.remove('hidden');
+            const pageStartEl = document.getElementById('ordersPageStart');
+            const pageEndEl   = document.getElementById('ordersPageEnd');
+            const pageTotalEl = document.getElementById('ordersPageTotal');
+            if (pageStartEl) pageStartEl.textContent = startIndex + 1;
+            if (pageEndEl) pageEndEl.textContent = Math.min(endIndex, totalMatches);
+            if (pageTotalEl) pageTotalEl.textContent = totalMatches;
+
+            const prevBtn = document.getElementById('ordersPrevPageBtn');
+            const nextBtn = document.getElementById('ordersNextPageBtn');
+            if (prevBtn) prevBtn.disabled = (currentOrderPage <= 1);
+            if (nextBtn) nextBtn.disabled = (currentOrderPage >= totalPages);
+
+            const pageNumContainer = document.getElementById('ordersPageNumbers');
+            if (pageNumContainer) {
+                pageNumContainer.innerHTML = '';
+                for (let p = 1; p <= totalPages; p++) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = (p === currentOrderPage)
+                        ? 'w-7 h-7 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs'
+                        : 'w-7 h-7 rounded-lg text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer';
+                    btn.textContent = p;
+                    btn.onclick = () => {
+                        currentOrderPage = p;
+                        filterOrders(false);
+                    };
+                    pageNumContainer.appendChild(btn);
+                }
+            }
+        }
+    }
+}
+
+function changeOrderPage(delta) {
+    currentOrderPage += delta;
+    filterOrders(false);
 }
 
 function clearOrderSearch() {
     const input = document.getElementById('orderSearchInput');
     if (input) {
         input.value = '';
-        filterOrders();
+        filterOrders(true);
         input.focus();
     }
 }
@@ -351,7 +443,7 @@ function viewOrdersForChecker(checkerId, checkerName) {
     const input = document.getElementById('orderSearchInput');
     if (input) input.value = '';
 
-    filterOrders();
+    filterOrders(true);
 
     const bannerOrTable = document.getElementById('checkerFilterBanner') || document.getElementById('view-orders');
     if (bannerOrTable) {
@@ -366,7 +458,14 @@ function clearCheckerOrderFilter() {
         banner.classList.add('hidden');
         banner.classList.remove('flex');
     }
-    filterOrders();
+    filterOrders(true);
+}
+
+// Initialise pagination on page load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => filterOrders(false));
+} else {
+    filterOrders(false);
 }
 </script>
 

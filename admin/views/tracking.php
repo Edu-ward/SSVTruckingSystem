@@ -49,7 +49,7 @@
                     if ($truck['status'] == 'Loading') $chipClass = 'chip-blue';
                     if ($truck['status'] == 'Unloading') $chipClass = 'chip-rose';
                 ?>
-                    <div class="border border-gray-100 dark:border-gray-700/80 rounded-2xl p-4 hover:shadow-md transition-all bg-gray-50/60 dark:bg-gray-900/60 hover:bg-gray-100/70 dark:hover:bg-gray-800 group">
+                    <div class="border border-gray-100 dark:border-gray-700/80 rounded-2xl p-4 hover:shadow-md transition-all bg-gray-50/60 dark:bg-gray-900/60 hover:bg-gray-100/70 dark:hover:bg-gray-800 group" data-truck-id="<?= $truck['truck_code']; ?>">
                         <div class="flex justify-between items-start mb-2">
                             <div class="flex items-center space-x-3">
                                 <div class="w-9 h-9 rounded-xl bg-gray-200/70 dark:bg-gray-700 flex items-center justify-center text-gray-700 dark:text-gray-200 group-hover:bg-blue-600 group-hover:text-white transition-colors">
@@ -68,7 +68,9 @@
                         <div class="mt-3 space-y-1.5 text-xs text-gray-600 dark:text-gray-300 font-medium pl-1">
                             <div class="flex items-center space-x-2">
                                 <i class="fa-solid fa-location-dot w-4 text-center text-rose-500"></i>
-                                <span class="truncate"><?= htmlspecialchars($truck['current_location']); ?></span>
+                                <span class="truncate" data-live-loc="<?= $truck['truck_code']; ?>">
+                                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse mr-0.5 align-middle"></span><?= htmlspecialchars($truck['current_location']); ?>
+                                </span>
                             </div>
                             <?php if (!empty($truck['destination'])): ?>
                                 <div class="flex items-center space-x-2">

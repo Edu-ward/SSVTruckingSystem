@@ -365,14 +365,14 @@
         </div>
 
         <div class="mt-4 overflow-x-auto">
-            <table class="w-full text-left text-sm" id="destinationsTable">
-                <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <table class="w-full text-left text-xs sm:text-sm" id="destinationsTable">
+                <thead class="bg-gray-50 dark:bg-gray-700/50 text-[11px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     <tr>
-                        <th class="py-3 px-4">Destination</th>
-                        <th class="py-3 px-4">Round Trip Distance</th>
-                        <th class="py-3 px-4">Driver Rate</th>
-                        <th class="py-3 px-4">Status</th>
-                        <th class="py-3 px-4 text-center">Actions</th>
+                        <th class="py-2.5 px-3 sm:px-4">Destination</th>
+                        <th class="py-2.5 px-3 sm:px-4">Round Trip Distance</th>
+                        <th class="py-2.5 px-3 sm:px-4">Driver Rate</th>
+                        <th class="py-2.5 px-3 sm:px-4">Status</th>
+                        <th class="py-2.5 px-3 sm:px-4 text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -399,7 +399,7 @@
                             }
                             ?>
                             <tr class="hover:bg-gray-50/70 dark:hover:bg-gray-700/30 transition-colors dest-table-row" data-name="<?= htmlspecialchars(strtolower($dest['name'])) ?>">
-                                <td class="py-3 px-4">
+                                <td class="py-2.5 px-3 sm:px-4">
                                     <div class="flex items-center gap-2">
                                         <span class="font-semibold text-gray-800 dark:text-gray-200"><?= htmlspecialchars($dest['name']) ?></span>
                                         <?php if ($isGeoFlagged): ?>
@@ -409,10 +409,10 @@
                                         <?php endif; ?>
                                     </div>
                                 </td>
-                                <td class="py-3 px-4">
+                                <td class="py-2.5 px-3 sm:px-4">
                                     <span class="font-medium text-gray-700 dark:text-gray-300"><?= $dDist > 0 ? $dDist . ' km' : '<span class="text-gray-400 italic">Auto/OSM</span>' ?></span>
                                 </td>
-                                <td class="py-3 px-4">
+                                <td class="py-2.5 px-3 sm:px-4">
                                     <div class="text-xs">
                                         <span class="font-bold text-emerald-600 dark:text-emerald-400">₱<?= number_format($dPay, 2) ?></span>
                                         <?php if ($dRate > 0): ?>
@@ -420,12 +420,12 @@
                                         <?php endif; ?>
                                     </div>
                                 </td>
-                                <td class="py-3 px-4">
+                                <td class="py-2.5 px-3 sm:px-4">
                                     <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full <?= $dActive ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400' ?>">
                                         <?= $dActive ? 'Active' : 'Inactive' ?>
                                     </span>
                                 </td>
-                                <td class="py-3 px-4 text-center">
+                                <td class="py-2.5 px-3 sm:px-4 text-center">
                                     <div class="flex items-center justify-center space-x-2">
                                         <button type="button" onclick="openEditDestModal(<?= $dest['id'] ?>, '<?= htmlspecialchars(addslashes($dest['name'])) ?>', <?= $dDist ?>, <?= $dRate ?>, <?= $dActive ? 1 : 0 ?>)" class="text-gray-400 hover:text-blue-600 transition" title="Edit Destination">
                                             <i class="fa-solid fa-pen-to-square"></i>

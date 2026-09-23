@@ -117,11 +117,11 @@ $_unassignedActiveOrders = count(array_filter($allOrders ?? [], fn($o) => in_arr
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-gray-750 text-left border-b border-gray-100 dark:border-gray-700/80">
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Checker</th>
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Active Orders</th>
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Actions</th>
+                            <th class="px-3.5 sm:px-4 py-3 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Checker</th>
+                            <th class="px-3.5 sm:px-4 py-3 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
+                            <th class="px-3.5 sm:px-4 py-3 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Active Orders</th>
+                            <th class="px-3.5 sm:px-4 py-3 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                            <th class="px-3.5 sm:px-4 py-3 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700/80" id="checkerTableBody">
@@ -134,7 +134,7 @@ $_unassignedActiveOrders = count(array_filter($allOrders ?? [], fn($o) => in_arr
                         ?>
                         <tr class="checker-row hover:bg-gray-50/70 dark:hover:bg-gray-700/40 transition-colors" data-search="<?= htmlspecialchars($_searchMeta) ?>">
                             
-                            <td class="px-5 py-4">
+                            <td class="px-3.5 sm:px-4 py-3">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0
                                         <?= $_isActive ? 'bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300' : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400' ?>">
@@ -149,7 +149,7 @@ $_unassignedActiveOrders = count(array_filter($allOrders ?? [], fn($o) => in_arr
                                 </div>
                             </td>
                             
-                            <td class="px-5 py-4">
+                            <td class="px-3.5 sm:px-4 py-3">
                                 <?php if (!empty($checker['phone'])): ?>
                                     <span class="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
                                         <i class="fa-solid fa-phone text-[10px] text-teal-500"></i>
@@ -160,7 +160,7 @@ $_unassignedActiveOrders = count(array_filter($allOrders ?? [], fn($o) => in_arr
                                 <?php endif; ?>
                             </td>
                             
-                            <td class="px-5 py-4">
+                            <td class="px-3.5 sm:px-4 py-3">
                                 <?php if ($_orderCount > 0): ?>
                                     <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/40 border border-teal-200 dark:border-teal-700/50 px-2.5 py-1 rounded-full cursor-default select-none">
                                         <i class="fa-solid fa-clipboard-list text-[10px]"></i>
@@ -171,7 +171,7 @@ $_unassignedActiveOrders = count(array_filter($allOrders ?? [], fn($o) => in_arr
                                 <?php endif; ?>
                             </td>
                             
-                            <td class="px-5 py-4">
+                            <td class="px-3.5 sm:px-4 py-3">
                                 <?php if ($_isActive): ?>
                                     <span class="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700/50">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Active
@@ -183,7 +183,7 @@ $_unassignedActiveOrders = count(array_filter($allOrders ?? [], fn($o) => in_arr
                                 <?php endif; ?>
                             </td>
                             
-                            <td class="px-5 py-4 text-right">
+                            <td class="px-3.5 sm:px-4 py-3 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
                                     <button onclick="openCheckerOrdersModal(<?= $checker['id'] ?>, '<?= addslashes($_name) ?>')"
                                             title="View Orders assigned to <?= htmlspecialchars($_name) ?>"

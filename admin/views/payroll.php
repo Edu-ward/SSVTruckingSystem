@@ -245,12 +245,12 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                 <table class="w-full text-left text-xs sm:text-sm">
                     <thead class="bg-gray-50/80 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 uppercase text-[10px] sm:text-xs font-bold tracking-wider border-b border-gray-100 dark:border-gray-700">
                         <tr>
-                            <th class="px-4 py-3.5 sm:px-6">Driver & Assigned Truck</th>
-                            <th class="px-4 py-3.5 text-center">Status</th>
-                            <th class="px-4 py-3.5 text-right">Pay Period Trips</th>
-                            <th class="px-4 py-3.5 text-right">Cash Advances</th>
-                            <th class="px-4 py-3.5 text-right">Net Payable</th>
-                            <th class="px-4 py-3.5 sm:px-6 text-right">Actions</th>
+                            <th class="px-3 sm:px-4 py-3">Driver & Assigned Truck</th>
+                            <th class="px-2.5 sm:px-3 py-3 text-center">Status</th>
+                            <th class="px-2.5 sm:px-3 py-3 text-right">Pay Period Trips</th>
+                            <th class="px-2.5 sm:px-3 py-3 text-right">Cash Advances</th>
+                            <th class="px-2.5 sm:px-3 py-3 text-right">Net Payable</th>
+                            <th class="px-3 sm:px-4 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="payrollTableBody" class="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -286,7 +286,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                 data-total-net="<?= floatval($driver['net_earnings'] ?? 0); ?>">
                                 
                                 
-                                <td class="px-4 py-3.5 sm:px-6">
+                                <td class="px-3 sm:px-4 py-3">
                                     <div class="flex items-center space-x-3">
                                         <?php if ($dPhotoUrl): ?>
                                             <img src="<?= $dPhotoUrl ?>" alt="<?= htmlspecialchars($driver['name']) ?>" class="w-10 h-10 rounded-xl object-cover shadow-sm flex-shrink-0 border border-gray-200 dark:border-gray-700">
@@ -311,14 +311,14 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                 </td>
 
                                 
-                                <td class="px-4 py-3.5 text-center whitespace-nowrap">
+                                <td class="px-2.5 sm:px-3 py-3 text-center whitespace-nowrap">
                                     <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full text-white <?= $driver['status'] === 'Active' ? 'bg-emerald-500' : ($driver['status'] === 'Dispatched' ? 'bg-blue-600' : ($driver['status'] === 'Resigned' ? 'bg-amber-600' : 'bg-gray-500')) ?>">
                                         <?= htmlspecialchars($driver['status']); ?>
                                     </span>
                                 </td>
 
                                 
-                                <td class="px-4 py-3.5 text-right whitespace-nowrap">
+                                <td class="px-2.5 sm:px-3 py-3 text-right whitespace-nowrap">
                                     <div class="font-bold text-gray-900 dark:text-gray-100 driver-gross-val">
                                         ₱<?= number_format($driver['gross_earnings'] ?? 0, 2); ?>
                                     </div>
@@ -328,7 +328,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                 </td>
 
                                 
-                                <td class="px-4 py-3.5 text-right whitespace-nowrap">
+                                <td class="px-2.5 sm:px-3 py-3 text-right whitespace-nowrap">
                                     <?php if (($driver['approved_cash_advances'] ?? 0) > 0): ?>
                                         <div class="font-bold text-amber-600 dark:text-amber-400">
                                             -₱<?= number_format($driver['approved_cash_advances'] ?? 0, 2); ?>
@@ -342,14 +342,14 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                 </td>
 
                                 
-                                <td class="px-4 py-3.5 text-right whitespace-nowrap">
+                                <td class="px-2.5 sm:px-3 py-3 text-right whitespace-nowrap">
                                     <span class="text-sm font-black driver-net-val <?= $hasPayable ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400' ?>">
                                         ₱<?= number_format($driver['net_earnings'] ?? 0, 2); ?>
                                     </span>
                                 </td>
 
                                 
-                                <td class="px-4 py-3.5 sm:px-6 text-right whitespace-nowrap">
+                                <td class="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
                                     <div class="flex items-center justify-end space-x-2">
                                         <span class="driver-settle-btn-container">
                                             <?php if ($hasPayable): ?>
@@ -409,14 +409,14 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                     <table class="w-full text-left text-xs sm:text-sm">
                         <thead class="bg-gray-50/80 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 uppercase text-[10px] sm:text-xs font-bold tracking-wider border-b border-gray-100 dark:border-gray-700">
                             <tr>
-                                <th class="px-4 py-3.5 sm:px-6">Settlement Ticket</th>
-                                <th class="px-4 py-3.5">Date & Time</th>
-                                <th class="px-4 py-3.5">Driver</th>
-                                <th class="px-4 py-3.5 text-center">Deliveries</th>
-                                <th class="px-4 py-3.5 text-right">Gross Pay</th>
-                                <th class="px-4 py-3.5 text-right">CA Deductions</th>
-                                <th class="px-4 py-3.5 text-right">Disbursed Amount</th>
-                                <th class="px-4 py-3.5 sm:px-6 text-right">Voucher</th>
+                                <th class="px-3 sm:px-4 py-3">Settlement Ticket</th>
+                                <th class="px-2.5 sm:px-3 py-3">Date & Time</th>
+                                <th class="px-2.5 sm:px-3 py-3">Driver</th>
+                                <th class="px-2.5 sm:px-3 py-3 text-center">Deliveries</th>
+                                <th class="px-2.5 sm:px-3 py-3 text-right">Gross Pay</th>
+                                <th class="px-2.5 sm:px-3 py-3 text-right">CA Deductions</th>
+                                <th class="px-2.5 sm:px-3 py-3 text-right">Disbursed Amount</th>
+                                <th class="px-3 sm:px-4 py-3 text-right">Voucher</th>
                             </tr>
                         </thead>
                         <tbody id="payrollHistoryTableBody" class="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -436,13 +436,13 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                     data-date="<?= $settledDateOnly; ?>"
                                     data-period-from="<?= htmlspecialchars($stPeriodFrom); ?>"
                                     data-period-to="<?= htmlspecialchars($stPeriodTo); ?>">
-                                    <td class="px-4 py-3.5 sm:px-6 font-mono font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                                    <td class="px-3 sm:px-4 py-3 font-mono font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                                         <?= htmlspecialchars($st['settlement_ticket']); ?>
                                     </td>
-                                    <td class="px-4 py-3.5 text-gray-600 dark:text-gray-300 text-xs whitespace-nowrap">
+                                    <td class="px-2.5 sm:px-3 py-3 text-gray-600 dark:text-gray-300 text-xs whitespace-nowrap">
                                         <?= date('M d, Y h:i A', strtotime($st['settled_at'])); ?>
                                     </td>
-                                    <td class="px-4 py-3.5 whitespace-nowrap font-medium text-gray-900 dark:text-gray-100">
+                                    <td class="px-2.5 sm:px-3 py-3 whitespace-nowrap font-medium text-gray-900 dark:text-gray-100">
                                         <div><?= htmlspecialchars($st['driver_name']); ?></div>
                                         <?php if (!empty($st['truck_code'])): ?>
                                             <div class="text-[11px] text-gray-400 font-normal">Truck: <?= htmlspecialchars($st['truck_code']); ?></div>

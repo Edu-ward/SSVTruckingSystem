@@ -152,17 +152,17 @@ $totalInactiveAdmins = $totalAdmins - $totalActiveAdmins;
             <table class="w-full text-left text-xs text-gray-600 dark:text-gray-300" id="adminAccountsTable">
                 <thead class="bg-gray-50 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold border-b border-gray-200 dark:border-gray-800">
                     <tr>
-                        <th class="px-5 py-3.5">Administrator</th>
-                        <th class="px-5 py-3.5">Role</th>
-                        <th class="px-5 py-3.5">Account Status</th>
-                        <th class="px-5 py-3.5">Created Date</th>
-                        <th class="px-5 py-3.5 text-right">Actions</th>
+                        <th class="px-3.5 sm:px-4 py-3">Administrator</th>
+                        <th class="px-3.5 sm:px-4 py-3">Role</th>
+                        <th class="px-3.5 sm:px-4 py-3">Account Status</th>
+                        <th class="px-3.5 sm:px-4 py-3">Created Date</th>
+                        <th class="px-3.5 sm:px-4 py-3 text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800/60">
                     <?php if (empty($adminAccounts)): ?>
                         <tr>
-                            <td colspan="5" class="px-5 py-12 text-center text-gray-400 dark:text-gray-500">
+                            <td colspan="5" class="px-4 py-12 text-center text-gray-400 dark:text-gray-500">
                                 <i class="fa-solid fa-user-shield text-3xl mb-2 block opacity-40"></i>
                                 No administrator accounts found.
                             </td>
@@ -179,7 +179,7 @@ $totalInactiveAdmins = $totalAdmins - $totalActiveAdmins;
                                 data-status="<?= $isActive ? 'Active' : 'Inactive' ?>">
                                 
                                 
-                                <td class="px-5 py-3.5">
+                                <td class="px-3.5 sm:px-4 py-2.5 sm:py-3">
                                     <div class="flex items-center gap-3">
                                         <div class="w-9 h-9 rounded-xl <?= $isSuper ? 'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-indigo-500/20' : 'bg-blue-600 text-white' ?> flex items-center justify-center font-bold text-xs shadow-sm flex-shrink-0">
                                             <?= $isSuper ? 'SA' : 'AD' ?>
@@ -197,7 +197,7 @@ $totalInactiveAdmins = $totalAdmins - $totalActiveAdmins;
                                 </td>
 
                                 
-                                <td class="px-5 py-3.5">
+                                <td class="px-3.5 sm:px-4 py-2.5 sm:py-3">
                                     <?php if ($isSuper): ?>
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
                                             <i class="fa-solid fa-crown text-[10px]"></i>
@@ -212,7 +212,7 @@ $totalInactiveAdmins = $totalAdmins - $totalActiveAdmins;
                                 </td>
 
                                 
-                                <td class="px-5 py-3.5">
+                                <td class="px-3.5 sm:px-4 py-2.5 sm:py-3">
                                     <?php if ($isActive): ?>
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
                                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -227,12 +227,12 @@ $totalInactiveAdmins = $totalAdmins - $totalActiveAdmins;
                                 </td>
 
                                 
-                                <td class="px-5 py-3.5 text-gray-500 dark:text-gray-400 text-[11px]">
+                                <td class="px-3.5 sm:px-4 py-2.5 sm:py-3 text-gray-500 dark:text-gray-400 text-[11px]">
                                     <?= !empty($adm['created_at']) ? date('M d, Y h:i A', strtotime($adm['created_at'])) : '—' ?>
                                 </td>
 
                                 
-                                <td class="px-5 py-3.5 text-right">
+                                <td class="px-3.5 sm:px-4 py-2.5 sm:py-3 text-right">
                                     <div class="inline-flex items-center gap-1.5 justify-end">
                                         
                                         <button type="button" onclick="openEditAdminModal(<?= (int)$adm['id'] ?>, '<?= htmlspecialchars(addslashes($adm['username'])) ?>', '<?= htmlspecialchars($adm['role']) ?>', '<?= htmlspecialchars($adm['status'] ?? 'Active') ?>')"

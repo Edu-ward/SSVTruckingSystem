@@ -534,6 +534,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $driver_id = !empty($_POST['driver_id']) ? $_POST['driver_id'] : null;
         $rfid_tag = $_POST['rfid_tag'];
 
+        // If truck is known but driver_id wasn't sent (e.g. multi-driver dropdown skipped),
+        // fall back to the truck's primary assigned driver from the DB.
+        if ($truck_id && !$driver_id) {
+            $fallbackStmt = $pdo->prepare("SELECT id FROM drivers WHERE truck_id = ? AND status != 'Resigned' ORDER BY id ASC LIMIT 1");
+            $fallbackStmt->execute([$truck_id]);
+            $driver_id = $fallbackStmt->fetchColumn() ?: null;
+        }
+
         if (!$truck_id || !$driver_id) {
             $_SESSION['scan_err'] = "Cannot create dispatch. The scanned truck does not have an assigned driver.";
             header("Location: dashboard.php?tab=dispatches");
@@ -2984,7 +2992,7 @@ if ($isSuperadmin) {
 
 include __DIR__ . '/../includes/header.php';
 ?>
-<div class="max-w-[1600px] mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-8 relative">
+<div class="max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 relative">
     <?php if ($isSuperadmin): ?>
         <?php
         include __DIR__ . '/views/admin_management.php';

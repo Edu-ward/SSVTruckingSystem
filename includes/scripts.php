@@ -653,15 +653,13 @@
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
                 });
 
-                // Esri World Imagery (Hybrid with place & boundary labels) - Free, No API Key
-                const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                    maxZoom: 19,
-                    attribution: 'Tiles &copy; Esri'
+                // Google Maps Hybrid Satellite (same as the location picker modal)
+                const googleSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                    maxZoom: 20,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                    attribution: '&copy; Google Maps Satellite'
                 });
-                const esriLabels = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-                    maxZoom: 19
-                });
-                satelliteLayer = L.layerGroup([esriImagery, esriLabels]);
+                satelliteLayer = googleSatellite;
 
                 map = L.map('map', {
                     center: [15.359042, 120.965016],
@@ -672,7 +670,7 @@
                         [21.8, 127.5]
                     ],
                     maxBoundsViscosity: 1.0,
-                    layers: [streetLayer],
+                    layers: [satelliteLayer],
                     zoomControl: true
                 });
 
@@ -832,7 +830,7 @@
                             <i class="fa-regular fa-user mr-1.5 text-blue-500"></i>${truck.driver_name || 'Unassigned'}
                         </div>
                         <div style="font-size: 11.5px; color: ${mutedColor}; margin-top: 3px;">
-                            <i class="fa-solid fa-location-dot mr-1.5 text-rose-500"></i>${truck.current_location || 'San Leonardo'}
+                        <i class="fa-solid fa-location-dot mr-1.5 text-rose-500"></i><span data-popup-loc="${truck.truck_code}">${truck.current_location || 'Locating...'}</span>
                         </div>
                         ${truck.destination ? '<div style="font-size: 12px; font-weight: 600; color: #6366f1; margin-top: 4px;"><i class="fa-solid fa-flag-checkered mr-1.5"></i>To: ' + truck.destination + '</div>' : ''}
                         ${etaHtml}
@@ -875,6 +873,27 @@
                         if (badge) {
                             const now = new Date();
                             badge.textContent = 'Last updated: ' + now.toLocaleTimeString();
+                        }
+                        // Update popup & sidebar locations via reverse geocode (shared fn from fleet.php)
+                        if (typeof reverseGeocode === 'function' && typeof updateLocEl === 'function') {
+                            data.trucks.forEach((truck, i) => {
+                                const lat = parseFloat(truck.latitude);
+                                const lng = parseFloat(truck.longitude);
+                                if (!lat || !lng) return;
+                                setTimeout(() => {
+                                    reverseGeocode(lat, lng).then(loc => {
+                                        // Map popup span
+                                        const popupSpan = document.querySelector(`[data-popup-loc="${truck.truck_code}"]`);
+                                        if (popupSpan) popupSpan.textContent = loc;
+                                        // Tracking sidebar span
+                                        const sideLocEl = document.querySelector(`[data-live-loc="${truck.truck_code}"]`);
+                                        if (sideLocEl) updateLocEl(sideLocEl, loc);
+                                        // Fleet card span
+                                        const fleetLocEl = document.querySelector(`[data-live-location="${truck.id}"]`);
+                                        if (fleetLocEl) updateLocEl(fleetLocEl, loc);
+                                    });
+                                }, i * 1100);
+                            });
                         }
                     }
                 })
@@ -2737,6 +2756,21 @@
                     if (document.activeElement === rfidInput && rfidInput.value !== '') {
                         e.preventDefault();
                         return false;
+                    }
+                    // Block submit if multi-driver dropdown is shown but user hasn't picked yet
+                    const multiContainer = document.getElementById('multiDriverContainer');
+                    const hiddenDriverIdEl = document.getElementById('hiddenDriverId');
+                    if (multiContainer && !multiContainer.classList.contains('hidden')) {
+                        if (!hiddenDriverIdEl || !hiddenDriverIdEl.value) {
+                            e.preventDefault();
+                            const sel = document.getElementById('assignedDriverSelect');
+                            if (sel) {
+                                sel.classList.add('ring-2', 'ring-red-500', 'border-red-500');
+                                setTimeout(() => sel.classList.remove('ring-2', 'ring-red-500', 'border-red-500'), 3000);
+                            }
+                            if (rfidFeedback) rfidFeedback.innerHTML = '<span class="text-red-500 font-bold"><i class="fa-solid fa-circle-exclamation"></i> Please select which driver is operating this truck.</span>';
+                            return false;
+                        }
                     }
                 });
                 rfidInput.addEventListener('change', function() {
