@@ -162,6 +162,7 @@ $exportQuery = http_build_query([
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Row Limit</label>
                     <select name="log_limit" id="activityLogLimit" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500">
+                        <option value="20" <?= $logLimit == 20 ? 'selected' : '' ?>>20 Rows</option>
                         <option value="50" <?= $logLimit == 50 ? 'selected' : '' ?>>50 Rows</option>
                         <option value="100" <?= $logLimit == 100 ? 'selected' : '' ?>>100 Rows</option>
                         <option value="250" <?= $logLimit == 250 ? 'selected' : '' ?>>250 Rows</option>
