@@ -351,6 +351,61 @@ const NominatimService = (function () {
         };
     }
 
+
+    // ++ Philippine Purok Address Pre-Processor ++
+    // "Purok" is a sub-barangay subdivision in Philippine addresses.
+    // OSM/Photon do not index purok-level data, so we resolve the barangay
+    // to a geocodable query and prepend the purok label to results.
+
+    const SL_BARANGAY_ALIASES = {
+        'burgos':        'Barangay Burgos, San Leonardo, Nueva Ecija',
+        'bonifacio':     'Barangay Bonifacio, San Leonardo, Nueva Ecija',
+        'castillejos':   'Barangay Castillejos, San Leonardo, Nueva Ecija',
+        'diversion':     'Barangay Diversion, San Leonardo, Nueva Ecija',
+        'magpapalayoc':  'Barangay Magpapalayoc, San Leonardo, Nueva Ecija',
+        'mallorca':      'Barangay Mallorca, San Leonardo, Nueva Ecija',
+        'mambangnan':    'Barangay Mambangnan, San Leonardo, Nueva Ecija',
+        'nieves':        'Barangay Nieves, San Leonardo, Nueva Ecija',
+        'san anton':     'Barangay San Anton, San Leonardo, Nueva Ecija',
+        'san bartolome': 'Barangay San Bartolome, San Leonardo, Nueva Ecija',
+        'san francisco': 'Barangay San Francisco, San Leonardo, Nueva Ecija',
+        'san roque':     'Barangay San Roque, San Leonardo, Nueva Ecija',
+        'santa cruz':    'Barangay Santa Cruz, San Leonardo, Nueva Ecija',
+        'sta cruz':      'Barangay Santa Cruz, San Leonardo, Nueva Ecija',
+        'sta. cruz':     'Barangay Santa Cruz, San Leonardo, Nueva Ecija',
+        'tabuating':     'Barangay Tabuating, San Leonardo, Nueva Ecija',
+        'tagumpay':      'Barangay Tagumpay, San Leonardo, Nueva Ecija',
+        'san leonardo':  'San Leonardo, Nueva Ecija',
+    };
+
+    function parsePurokQuery(query) {
+        // Matches: "purok 5 brgy burgos", "purok 3 barangay san roque", "purok 2 san roque"
+        const m = query.match(/^purok\s+(\S+)\s+(?:brgy\.?\s*|barangay\s+)?(.+)$/i);
+        if (!m) return null;
+        const purokNum = m[1];
+        const brgyRaw  = m[2].trim().toLowerCase();
+        let resolvedQuery = null;
+        let displayBrgy   = null;
+        const sortedKeys = Object.keys(SL_BARANGAY_ALIASES).sort((a, b) => b.length - a.length);
+        for (const key of sortedKeys) {
+            if (brgyRaw === key || brgyRaw.startsWith(key)) {
+                resolvedQuery = SL_BARANGAY_ALIASES[key];
+                displayBrgy   = 'Brgy. ' + key.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                break;
+            }
+        }
+        if (!resolvedQuery) {
+            resolvedQuery = brgyRaw + ', Nueva Ecija, Philippines';
+            displayBrgy   = brgyRaw.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        }
+        return {
+            purokLabel:    'Purok ' + purokNum + ', ' + displayBrgy,
+            resolvedQuery: resolvedQuery,
+            purokNum:      purokNum
+        };
+    }
+    // ++ End Purok Pre-Processor ++
+
     async function searchAddress(query) {
         if (!query || query.trim().length < 2) return [];
         const cleanQuery = query.trim();
@@ -358,11 +413,24 @@ const NominatimService = (function () {
         const cacheKey = `search:${cleanQuery.toLowerCase()}`;
         if (cache[cacheKey]) return cache[cacheKey];
 
+        // Detect purok patterns and rewrite to a geocodable barangay query
+        const purokInfo   = parsePurokQuery(cleanQuery);
+        const searchQuery = purokInfo ? purokInfo.resolvedQuery : cleanQuery;
+
+        function decorateResults(results) {
+            if (!purokInfo || !results || results.length === 0) return results;
+            return results.map((r, i) => ({
+                ...r,
+                shortName: i === 0 ? (purokInfo.purokLabel + (r.shortName ? ', ' + r.shortName : '')) : r.shortName,
+                name:      i === 0 ? (purokInfo.purokLabel + ', ' + r.name) : r.name
+            }));
+        }
+
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 2000);
             
-            const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(cleanQuery)}&limit=8&lat=15.359042&lon=120.965016&bbox=116.0,4.5,127.0,21.5`;
+            const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(searchQuery)}&limit=8&lat=15.359042&lon=120.965016&bbox=116.0,4.5,127.0,21.5`;
             const resp = await fetch(photonUrl, { signal: controller.signal });
             clearTimeout(timeout);
 
@@ -401,8 +469,9 @@ const NominatimService = (function () {
                         .filter(Boolean);
 
                     if (results.length > 0) {
-                        cache[cacheKey] = results;
-                        return results;
+                        const decorated = decorateResults(results);
+                        cache[cacheKey] = decorated;
+                        return decorated;
                     }
                 }
             }
@@ -413,7 +482,7 @@ const NominatimService = (function () {
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 2500);
-            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(cleanQuery)}&countrycodes=ph&viewbox=116.0,21.5,127.0,4.5&bounded=1&limit=6&addressdetails=1`;
+            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(searchQuery)}&countrycodes=ph&viewbox=116.0,21.5,127.0,4.5&bounded=1&limit=6&addressdetails=1`;
             const response = await fetch(url, {
                 headers: { 'Accept': 'application/json' },
                 signal: controller.signal
@@ -449,8 +518,9 @@ const NominatimService = (function () {
                 })
                 .filter(Boolean);
 
-            cache[cacheKey] = formattedResults;
-            return formattedResults;
+            const decorated = decorateResults(formattedResults);
+            cache[cacheKey] = decorated;
+            return decorated;
         } catch (err) {
             console.warn('OSM Search error:', err);
             return [];

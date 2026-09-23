@@ -2066,11 +2066,21 @@
                     ],
                     maxBoundsViscosity: 1.0
                 }).setView([15.359042, 120.965016], 13);
-                L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                const miniStreetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    subdomains: ['a', 'b', 'c'],
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
+                });
+                const miniSatelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
                     maxZoom: 20,
                     subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
                     attribution: '&copy; Google Maps Satellite'
-                }).addTo(osmMiniMap);
+                });
+                miniStreetLayer.addTo(osmMiniMap);
+                L.control.layers({
+                    '🗺️ OpenStreetMap': miniStreetLayer,
+                    '🛰️ Satellite': miniSatelliteLayer
+                }, null, { position: 'topright' }).addTo(osmMiniMap);
                 const garageIcon = L.divIcon({
                     className: 'custom-garage-icon',
                     html: `<div class="w-8 h-8 rounded-xl bg-indigo-600 border-2 border-white text-white flex items-center justify-center shadow-lg text-xs" title="SSV Quarry Garage"><i class="fa-solid fa-warehouse"></i></div>`,

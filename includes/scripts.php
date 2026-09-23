@@ -1,7 +1,4 @@
 <?php ?>
-<?php if (in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin', 'Driver'])): ?>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<?php endif; ?>
 
 <?php if (in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin'])): ?>
     
@@ -647,7 +644,7 @@
 
             try {
                 // OpenStreetMap Standard - 100% Free, No API Key, No Watermark
-                streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     subdomains: ['a', 'b', 'c'],
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
@@ -670,7 +667,7 @@
                         [21.8, 127.5]
                     ],
                     maxBoundsViscosity: 1.0,
-                    layers: [satelliteLayer],
+                    layers: [streetLayer],
                     zoomControl: true
                 });
 
