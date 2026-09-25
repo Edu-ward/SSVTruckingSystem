@@ -54,7 +54,8 @@
                 $displayLocation = $rawLocation;
             }
 
-            $hasDestination = $isInTransit && !empty(trim($truck['destination'] ?? ''));
+            $hasActiveDispatch = !empty($truck['ticket_number']);
+            $hasDestination = $hasActiveDispatch && !empty(trim($truck['destination'] ?? ''));
             $destinationDisplay = $hasDestination ? trim($truck['destination']) : 'Unavailable';
 
             $searchMeta = htmlspecialchars(strtolower(($truck['truck_code'] ?? '') . ' ' . ($truck['driver_name'] ?? '') . ' ' . ($truck['status'] ?? '') . ' ' . ($truck['rfid_tag'] ?? '') . ' ' . $displayLocation . ' ' . $destinationDisplay));
@@ -64,8 +65,6 @@
                 $driverNames = array_map('trim', explode('•', $truck['driver_name']));
                 $driverNames = array_filter($driverNames);
             }
-
-            $hasActiveDispatch = !empty($truck['ticket_number']) || ($truck['status'] === 'In Transit');
         ?>
             <div class="fleet-card bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 sm:p-6 flex flex-col h-full relative hover:shadow-md transition" data-search="<?= $searchMeta; ?>" <?= $hasActiveDispatch ? 'data-truck-id="' . $truck['id'] . '"' : ''; ?>>
                 <div class="flex justify-between items-start mb-5 gap-2">

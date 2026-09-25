@@ -1456,11 +1456,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
 
             $pdo->prepare("UPDATE drivers SET truck_id = ? WHERE id = ?")->execute([$new_truck_id, $driver_id]);
 
-            $stmt = $pdo->prepare("SELECT id, status, destination, order_id FROM dispatches WHERE driver_id = ? AND status NOT IN ('Delivered', 'Cancelled', 'Completed')");
+            $stmt = $pdo->prepare("SELECT id, truck_id, status, destination, order_id FROM dispatches WHERE driver_id = ? AND status NOT IN ('Delivered', 'Cancelled', 'Completed')");
             $stmt->execute([$driver_id]);
             $active_dispatches = $stmt->fetchAll();
 
             foreach ($active_dispatches as $dispatch) {
+                $previous_dispatch_truck_id = $dispatch['truck_id'] ?? null;
+
                 $pdo->prepare("UPDATE dispatches SET truck_id = ? WHERE id = ?")->execute([$new_truck_id, $dispatch['id']]);
 
                 if ($dispatch['status'] === 'Cancellation Requested') {
@@ -1470,14 +1472,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                     $pdo->prepare("UPDATE trucks SET status = 'In Transit' WHERE id = ?")->execute([$new_truck_id]);
                     $pdo->prepare("UPDATE drivers SET status = 'In Transit' WHERE id = ?")->execute([$driver_id]);
 
-                    if ($old_truck_id && $old_truck_id != $new_truck_id) {
-                        $pdo->prepare("UPDATE trucks SET status = 'Maintenance' WHERE id = ?")->execute([$old_truck_id]);
+                    if ($previous_dispatch_truck_id && $previous_dispatch_truck_id != $new_truck_id) {
+                        $pdo->prepare("UPDATE trucks SET status = 'Maintenance', speed = 0 WHERE id = ?")->execute([$previous_dispatch_truck_id]);
+                    }
+                    if ($old_truck_id && $old_truck_id != $new_truck_id && $old_truck_id != $previous_dispatch_truck_id) {
+                        $pdo->prepare("UPDATE trucks SET status = 'Maintenance', speed = 0 WHERE id = ?")->execute([$old_truck_id]);
                     }
 
                     $pdo->prepare("INSERT INTO driver_trips (driver_id, destination, trip_date, status, order_id, transit_start_time) VALUES (?, ?, CURDATE(), 'In Transit', ?, NOW())")
                         ->execute([$driver_id, $dispatch['destination'], $dispatch['order_id'] ?? null]);
                 } else {
                     $pdo->prepare("UPDATE trucks SET status = ? WHERE id = ?")->execute([$dispatch['status'], $new_truck_id]);
+                    if ($previous_dispatch_truck_id && $previous_dispatch_truck_id != $new_truck_id) {
+                        $pdo->prepare("UPDATE trucks SET status = 'Idle', speed = 0 WHERE id = ?")->execute([$previous_dispatch_truck_id]);
+                    }
                 }
             }
 
@@ -2060,7 +2068,7 @@ try {
 }
 
 try {
-    $allDispatches = $pdo->query("SELECT d.id, d.ticket_number, d.driver_id, d.cubic_meters, d.order_id, o.order_number, t.truck_code, CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name, d.status, d.destination, d.created_at, d.transit_start_time, d.transit_end_time, COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name, COALESCE(NULLIF(d.contact_number, ''), o.contact_number) AS contact_number, COALESCE(NULLIF(d.landmark, ''), o.landmark) AS landmark, d.cancellation_reason, d.cancellation_photo FROM dispatches d LEFT JOIN trucks t ON d.truck_id = t.id LEFT JOIN drivers dr ON d.driver_id = dr.id LEFT JOIN orders o ON d.order_id = o.id ORDER BY d.id DESC")->fetchAll(PDO::FETCH_ASSOC);
+    $allDispatches = $pdo->query("SELECT d.id, d.ticket_number, d.driver_id, d.cubic_meters, d.order_id, o.order_number, t.truck_code, CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name, d.status, d.destination, d.dispatch_date, d.created_at, d.transit_start_time, d.transit_end_time, COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name, COALESCE(NULLIF(d.contact_number, ''), o.contact_number) AS contact_number, COALESCE(NULLIF(d.landmark, ''), o.landmark) AS landmark, d.cancellation_reason, d.cancellation_photo FROM dispatches d LEFT JOIN trucks t ON d.truck_id = t.id LEFT JOIN drivers dr ON d.driver_id = dr.id LEFT JOIN orders o ON d.order_id = o.id ORDER BY d.id DESC")->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     $allDispatches = [];
 }
@@ -2075,6 +2083,17 @@ $cancellationRequests = array_filter($allDispatches, function ($d) {
 $completedTickets = array_filter($allDispatches, function ($d) {
     return in_array($d['status'] ?? '', ['Delivered', 'Cancelled']);
 });
+
+try {
+    // Self-healing: ensure trucks with no active dispatches are not stuck in In Transit / Loading / Unloading
+    $pdo->query("
+        UPDATE trucks t
+        LEFT JOIN dispatches d ON t.id = d.truck_id AND d.status IN ('Pending', 'In Transit', 'Loading', 'Unloading', 'Cancellation Requested')
+        SET t.status = 'Idle', t.speed = 0
+        WHERE t.status IN ('In Transit', 'Loading', 'Unloading')
+          AND d.id IS NULL
+    ");
+} catch (Throwable $e) {}
 
 try {
     $fleetData = $pdo->query("

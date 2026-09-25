@@ -340,8 +340,43 @@
             </div>
         </div>
 
+        <!-- Completed Tickets Date Navigator -->
+        <div id="completed-date-navigator" class="hidden mb-6 bg-gray-50 dark:bg-gray-900/60 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-gray-700/80 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center flex-wrap gap-2">
+                <div class="inline-flex items-center bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-1">
+                    <button type="button" onclick="changeCompletedDate(-1)" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition" title="Previous Day (<)">
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+                    <div class="relative flex items-center px-3 py-1 cursor-pointer select-none group" onclick="document.getElementById('completedDatePicker')?.showPicker ? document.getElementById('completedDatePicker').showPicker() : document.getElementById('completedDatePicker')?.focus();" title="Click to choose a date">
+                        <i class="fa-regular fa-calendar text-blue-500 mr-2 text-sm group-hover:scale-110 transition-transform"></i>
+                        <span id="completedDateLabel" class="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-100 whitespace-nowrap">
+                            Today
+                        </span>
+                        <input type="date" id="completedDatePicker" max="<?= date('Y-m-d') ?>" onchange="onCompletedDatePickerChange(this.value)" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+                    </div>
+                    <button type="button" id="completedNextDayBtn" onclick="changeCompletedDate(1)" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition" title="Next Day (>)">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                </div>
+
+                <button type="button" id="completedTodayBtn" onclick="jumpCompletedToToday()" class="px-3 py-2 text-xs font-semibold rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 shadow-sm transition" title="Jump to today">
+                    Today
+                </button>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <span id="completedDateCountBadge" class="text-xs px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold shadow-xs">
+                    0 tickets
+                </span>
+                <button type="button" id="completedAllDatesBtn" onclick="toggleCompletedAllDates()" class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium transition">
+                    View All Dates
+                </button>
+            </div>
+        </div>
+
         <div id="dispatch-grid-completed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
             <?php foreach ($completedTickets as $ticket):
+                $ticketDate = !empty($ticket['dispatch_date']) ? $ticket['dispatch_date'] : date('Y-m-d', strtotime($ticket['created_at']));
                 $compSearchMeta = strtolower(implode(' ', array_filter([
                     $ticket['ticket_number'] ?? '',
                     $ticket['truck_code'] ?? '',
@@ -355,7 +390,7 @@
                     ($ticket['status'] === 'Cancelled' ? 'cancelled' : 'delivered completed')
                 ])));
             ?>
-                <div class="dispatch-card border border-gray-100 dark:border-gray-700 rounded-xl p-6 shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition" data-search="<?= htmlspecialchars($compSearchMeta) ?>">
+                <div class="dispatch-card border border-gray-100 dark:border-gray-700 rounded-xl p-6 shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition" data-search="<?= htmlspecialchars($compSearchMeta) ?>" data-date="<?= htmlspecialchars($ticketDate) ?>">
                     <div class="flex justify-between items-center mb-4">
                         <div class="flex items-center space-x-2 font-bold text-gray-800 dark:text-gray-200">
                             <i class="fa-regular fa-file-lines text-blue-500"></i>
@@ -414,6 +449,10 @@
                         <div class="flex items-center space-x-2 text-xs border-t border-gray-100 dark:border-gray-700 pt-2">
                             <div class="w-full">
                                 <div class="flex justify-between text-gray-500 dark:text-gray-400 mb-1">
+                                    <span>Dispatch Date:</span>
+                                    <span class="font-medium text-gray-700 dark:text-gray-300"><?= date('M j, Y', strtotime($ticketDate)) ?></span>
+                                </div>
+                                <div class="flex justify-between text-gray-500 dark:text-gray-400 mb-1">
                                     <span>Created:</span>
                                     <span><?= date('M j, Y h:i A', strtotime($ticket['created_at'])) ?></span>
                                 </div>
@@ -460,6 +499,18 @@
                     </div>
                 </div>
             <?php endforeach; ?>
+            <div id="noCompletedForDate" class="col-span-full py-12 text-center text-gray-400 dark:text-gray-500 hidden">
+                <i class="fa-regular fa-calendar-xmark text-4xl mb-3 text-gray-300 dark:text-gray-600 block mx-auto"></i>
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-300" id="noCompletedForDateText">No completed dispatches for this date.</p>
+                <div class="flex items-center justify-center gap-3 mt-4">
+                    <button type="button" onclick="jumpCompletedToToday()" class="text-xs px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold hover:bg-blue-100 transition shadow-xs">
+                        <i class="fa-solid fa-calendar-day mr-1"></i> Jump to Today
+                    </button>
+                    <button type="button" onclick="toggleCompletedAllDates()" class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                        View All Dates
+                    </button>
+                </div>
+            </div>
             <div id="noCompletedDispatchesMatch" class="col-span-full py-12 text-center text-gray-400 dark:text-gray-500 hidden">
                 <i class="fa-solid fa-magnifying-glass text-3xl mb-3 opacity-40 block mx-auto"></i>
                 <p class="text-sm font-medium" id="noCompletedDispatchesText">No completed dispatches match your search.</p>
@@ -479,6 +530,157 @@
         }
     <?php endif; ?>
 
+    function getTodayStr() {
+        const todayObj = new Date();
+        return `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+    }
+
+    let completedSelectedDate = '<?= date('Y-m-d') ?>';
+    let completedAllDatesMode = false;
+
+    function formatCompletedDateDisplay(dateStr) {
+        if (!dateStr) return '';
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return dateStr;
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const d = parseInt(parts[2], 10);
+        const targetDate = new Date(y, m, d);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const checkDate = new Date(y, m, d);
+        checkDate.setHours(0, 0, 0, 0);
+
+        const diffTime = checkDate.getTime() - today.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+        const formatted = targetDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+
+        if (diffDays >= 0) {
+            return `Today, ${formatted}`;
+        } else if (diffDays === -1) {
+            return `Yesterday, ${formatted}`;
+        } else {
+            const weekday = targetDate.toLocaleDateString('en-US', { weekday: 'short' });
+            return `${weekday}, ${formatted}`;
+        }
+    }
+
+    function changeCompletedDate(delta) {
+        if (completedAllDatesMode) {
+            completedAllDatesMode = false;
+        }
+        const todayStr = getTodayStr();
+        // If moving forward and already at today or later, prevent navigation
+        if (delta > 0 && completedSelectedDate >= todayStr) {
+            return;
+        }
+
+        const parts = completedSelectedDate.split('-');
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const d = parseInt(parts[2], 10);
+        const cur = new Date(y, m, d);
+        cur.setDate(cur.getDate() + delta);
+
+        const ny = cur.getFullYear();
+        const nm = String(cur.getMonth() + 1).padStart(2, '0');
+        const nd = String(cur.getDate()).padStart(2, '0');
+        let newDateStr = `${ny}-${nm}-${nd}`;
+
+        if (newDateStr > todayStr) {
+            newDateStr = todayStr;
+        }
+        completedSelectedDate = newDateStr;
+
+        updateCompletedDateUI();
+        filterDispatches();
+    }
+
+    function jumpCompletedToToday() {
+        completedSelectedDate = getTodayStr();
+        completedAllDatesMode = false;
+
+        updateCompletedDateUI();
+        filterDispatches();
+    }
+
+    function onCompletedDatePickerChange(val) {
+        if (!val) return;
+        const todayStr = getTodayStr();
+        if (val > todayStr) {
+            val = todayStr;
+        }
+        completedSelectedDate = val;
+        completedAllDatesMode = false;
+        updateCompletedDateUI();
+        filterDispatches();
+    }
+
+    function toggleCompletedAllDates() {
+        completedAllDatesMode = !completedAllDatesMode;
+        updateCompletedDateUI();
+        filterDispatches();
+    }
+
+    function updateCompletedDateUI() {
+        const label = document.getElementById('completedDateLabel');
+        const picker = document.getElementById('completedDatePicker');
+        const allBtn = document.getElementById('completedAllDatesBtn');
+        const todayBtn = document.getElementById('completedTodayBtn');
+        const nextBtn = document.getElementById('completedNextDayBtn');
+        const todayStr = getTodayStr();
+
+        if (completedSelectedDate > todayStr) {
+            completedSelectedDate = todayStr;
+        }
+
+        if (picker) {
+            picker.value = completedSelectedDate;
+            picker.max = todayStr;
+        }
+
+        if (nextBtn) {
+            const isAtTodayOrFuture = completedSelectedDate >= todayStr || completedAllDatesMode;
+            nextBtn.disabled = isAtTodayOrFuture;
+            if (isAtTodayOrFuture) {
+                nextBtn.className = 'w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 dark:text-gray-600 cursor-not-allowed transition';
+                nextBtn.title = 'Cannot navigate to future dates';
+            } else {
+                nextBtn.className = 'w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition';
+                nextBtn.title = 'Next Day (>)';
+            }
+        }
+
+        if (todayBtn) {
+            if (!completedAllDatesMode && completedSelectedDate === todayStr) {
+                todayBtn.className = 'px-3 py-2 text-xs font-semibold rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 shadow-sm transition';
+            } else {
+                todayBtn.className = 'px-3 py-2 text-xs font-semibold rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition';
+            }
+        }
+
+        if (completedAllDatesMode) {
+            if (label) label.textContent = 'All Completed Dates';
+            if (allBtn) {
+                allBtn.textContent = 'Daily View';
+                allBtn.className = 'text-xs px-3 py-1.5 rounded-lg border border-blue-500 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 font-semibold transition';
+            }
+        } else {
+            if (label) label.textContent = formatCompletedDateDisplay(completedSelectedDate);
+            if (allBtn) {
+                allBtn.textContent = 'View All Dates';
+                allBtn.className = 'text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium transition';
+            }
+        }
+    }
+
     function filterDispatches() {
         const input = document.getElementById('dispatchSearchInput');
         const clearBtn = document.getElementById('dispatchSearchClear');
@@ -488,32 +690,11 @@
             clearBtn.classList.toggle('hidden', query.length === 0);
         }
 
-        const grids = [{
-                id: 'dispatch-grid-active',
-                noResId: 'noActiveDispatchesMatch',
-                noResTextId: 'noActiveDispatchesText',
-                label: 'active dispatches'
-            },
-            {
-                id: 'dispatch-grid-requests',
-                noResId: 'noRequestsDispatchesMatch',
-                noResTextId: 'noRequestsDispatchesText',
-                label: 'cancellation requests'
-            },
-            {
-                id: 'dispatch-grid-completed',
-                noResId: 'noCompletedDispatchesMatch',
-                noResTextId: 'noCompletedDispatchesText',
-                label: 'completed dispatches'
-            }
-        ];
-
-        grids.forEach(g => {
-            const gridEl = document.getElementById(g.id);
-            if (!gridEl) return;
-            const cards = gridEl.querySelectorAll('.dispatch-card');
+        // 1. Filter active grid
+        const gridActive = document.getElementById('dispatch-grid-active');
+        if (gridActive) {
+            const cards = gridActive.querySelectorAll('.dispatch-card');
             let matchCount = 0;
-
             cards.forEach(card => {
                 const meta = card.getAttribute('data-search') || '';
                 if (!query || meta.includes(query)) {
@@ -523,18 +704,111 @@
                     card.classList.add('hidden');
                 }
             });
-
-            const noResEl = document.getElementById(g.noResId);
-            const noResTextEl = document.getElementById(g.noResTextId);
+            const noResEl = document.getElementById('noActiveDispatchesMatch');
+            const noResTextEl = document.getElementById('noActiveDispatchesText');
             if (noResEl) {
                 if (matchCount === 0 && cards.length > 0) {
                     noResEl.classList.remove('hidden');
-                    if (noResTextEl) noResTextEl.textContent = `No ${g.label} match "${query}".`;
+                    if (noResTextEl) noResTextEl.textContent = `No active dispatches match "${query}".`;
                 } else {
                     noResEl.classList.add('hidden');
                 }
             }
-        });
+        }
+
+        // 2. Filter requests grid
+        const gridRequests = document.getElementById('dispatch-grid-requests');
+        if (gridRequests) {
+            const cards = gridRequests.querySelectorAll('.dispatch-card');
+            let matchCount = 0;
+            cards.forEach(card => {
+                const meta = card.getAttribute('data-search') || '';
+                if (!query || meta.includes(query)) {
+                    card.classList.remove('hidden');
+                    matchCount++;
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+            const noResEl = document.getElementById('noRequestsDispatchesMatch');
+            const noResTextEl = document.getElementById('noRequestsDispatchesText');
+            if (noResEl) {
+                if (matchCount === 0 && cards.length > 0) {
+                    noResEl.classList.remove('hidden');
+                    if (noResTextEl) noResTextEl.textContent = `No cancellation requests match "${query}".`;
+                } else {
+                    noResEl.classList.add('hidden');
+                }
+            }
+        }
+
+        // 3. Filter completed grid (integrated with selected date)
+        const gridCompleted = document.getElementById('dispatch-grid-completed');
+        if (gridCompleted) {
+            const cards = gridCompleted.querySelectorAll('.dispatch-card');
+            let dateMatchCount = 0;
+            let finalMatchCount = 0;
+
+            cards.forEach(card => {
+                const meta = card.getAttribute('data-search') || '';
+                const cardDate = card.getAttribute('data-date') || '';
+                const matchesDate = completedAllDatesMode || (cardDate === completedSelectedDate);
+                const matchesQuery = !query || meta.includes(query);
+
+                if (matchesDate) {
+                    dateMatchCount++;
+                }
+
+                if (matchesDate && matchesQuery) {
+                    card.classList.remove('hidden');
+                    finalMatchCount++;
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+
+            // Update date count badge
+            const badge = document.getElementById('completedDateCountBadge');
+            if (badge) {
+                if (completedAllDatesMode) {
+                    badge.textContent = `${cards.length} total tickets`;
+                } else {
+                    badge.textContent = `${dateMatchCount} ticket${dateMatchCount === 1 ? '' : 's'}`;
+                }
+            }
+
+            const noDateEl = document.getElementById('noCompletedForDate');
+            const noDateTextEl = document.getElementById('noCompletedForDateText');
+            const noMatchEl = document.getElementById('noCompletedDispatchesMatch');
+            const noMatchTextEl = document.getElementById('noCompletedDispatchesText');
+
+            if (noDateEl) noDateEl.classList.add('hidden');
+            if (noMatchEl) noMatchEl.classList.add('hidden');
+
+            if (finalMatchCount === 0) {
+                if (!completedAllDatesMode && dateMatchCount === 0 && !query) {
+                    // No tickets exist on this selected date
+                    if (noDateEl) {
+                        noDateEl.classList.remove('hidden');
+                        if (noDateTextEl) {
+                            noDateTextEl.textContent = `No completed dispatches for ${formatCompletedDateDisplay(completedSelectedDate)}.`;
+                        }
+                    }
+                } else if (cards.length > 0) {
+                    // Tickets exist on this date (or all dates mode), but query didn't match
+                    if (noMatchEl) {
+                        noMatchEl.classList.remove('hidden');
+                        if (noMatchTextEl) {
+                            if (query) {
+                                noMatchTextEl.textContent = `No completed dispatches match "${query}".`;
+                            } else {
+                                noMatchTextEl.textContent = `No completed dispatches found.`;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     function clearDispatchSearch() {
@@ -545,4 +819,10 @@
             input.focus();
         }
     }
+
+    // Initialize UI on load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateCompletedDateUI();
+        filterDispatches();
+    });
 </script>
