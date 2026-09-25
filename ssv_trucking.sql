@@ -99,6 +99,8 @@ CREATE TABLE IF NOT EXISTS `dispatches` (
     `client_name` VARCHAR(255) DEFAULT NULL,
     `contact_number` VARCHAR(50) DEFAULT NULL,
     `status` VARCHAR(50) DEFAULT 'Pending',
+    `cancellation_reason` VARCHAR(255) DEFAULT NULL,
+    `cancellation_photo` VARCHAR(255) DEFAULT NULL,
     `origin` VARCHAR(255) DEFAULT NULL,
     `destination` VARCHAR(255) DEFAULT NULL,
     `landmark` VARCHAR(255) DEFAULT NULL,

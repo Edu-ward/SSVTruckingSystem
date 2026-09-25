@@ -59,9 +59,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         http_response_code(403);
         die("CSRF token validation failed.");
     }
-    $reason = trim($_POST['reason']);
+    $reason = trim($_POST['reason'] ?? '');
     if (empty($reason)) {
-        $reason = "Maintenance Required";
+        $reason = "Breakdown / Maintenance Required";
+    }
+
+    // Process photo attachment upload if provided
+    $photo_path = null;
+    if (isset($_FILES['cancellation_photo']) && $_FILES['cancellation_photo']['error'] === UPLOAD_ERR_OK) {
+        $file = $_FILES['cancellation_photo'];
+        $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $max_size = 5 * 1024 * 1024; // 5MB
+
+        if ($file['size'] > $max_size) {
+            $_SESSION['error'] = "Photo attachment exceeds the 5MB size limit.";
+            header("Location: dashboard.php");
+            exit;
+        }
+
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file['tmp_name']);
+        if (!in_array($mime, $allowed_types)) {
+            $_SESSION['error'] = "Invalid file type. Please upload a JPG, PNG, GIF, or WEBP image.";
+            header("Location: dashboard.php");
+            exit;
+        }
+
+        $ext_map = [
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/gif'  => 'gif',
+            'image/webp' => 'webp',
+        ];
+        $ext = $ext_map[$mime] ?? 'jpg';
+        $upload_dir = __DIR__ . '/../assets/uploads/cancellations/';
+        if (!is_dir($upload_dir)) {
+            @mkdir($upload_dir, 0777, true);
+        }
+        $filename = 'cancel_' . $driver_id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+        $dest = $upload_dir . $filename;
+
+        if (move_uploaded_file($file['tmp_name'], $dest)) {
+            $photo_path = 'assets/uploads/cancellations/' . $filename;
+        }
     }
 
     try {
@@ -87,8 +127,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
 
         foreach ($active_dispatches as $dispatch) {
-            $stmtUpdate = $pdo->prepare("UPDATE dispatches SET status = 'Cancellation Requested' WHERE id = ?");
-            $stmtUpdate->execute([$dispatch['id']]);
+            $stmtUpdate = $pdo->prepare("UPDATE dispatches SET status = 'Cancellation Requested', cancellation_reason = ?, cancellation_photo = ? WHERE id = ?");
+            $stmtUpdate->execute([$reason, $photo_path, $dispatch['id']]);
         }
         $stmtUpdateTrip = $pdo->prepare("UPDATE driver_trips SET status = 'Cancellation Requested' WHERE driver_id = ? AND status NOT IN ('Delivered', 'Cancelled', 'Completed')");
         $stmtUpdateTrip->execute([$driver_id]);
@@ -96,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $pdo->commit();
         if (count($active_dispatches) > 0) {
             $_SESSION['success'] = "Cancellation requested. Please wait for Admin approval.";
-            log_activity($pdo, 'Requested Cancellation', 'Driver requested trip cancellation');
+            log_activity($pdo, 'Requested Cancellation', 'Driver requested trip cancellation: ' . $reason . ($photo_path ? ' (with photo attachment)' : ''));
         } else {
             $_SESSION['error'] = "No active trip found to cancel.";
         }
@@ -234,6 +274,7 @@ $has_pending_cancellation = $stmtCancel->fetch() ? true : false;
 $stmtActive = $pdo->prepare("
     SELECT 
         d.id, d.ticket_number, d.origin, d.destination, d.status, d.cubic_meters, d.created_at, d.transit_start_time, d.transit_end_time, t.truck_code,
+        d.cancellation_reason, d.cancellation_photo,
         COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
         COALESCE(dest.distance_km, ROUND(d.pay_amount / 10, 1), 0.00) AS distance_km
     FROM dispatches d 

@@ -372,6 +372,7 @@
             <input type="hidden" name="truck_id" id="hiddenTruckId" required>
             <input type="hidden" name="distance_km" id="dispatchDistanceKm" value="0">
             <input type="hidden" name="pay_amount" id="dispatchDriverPay" value="0">
+            <input type="hidden" name="confirm_off_hours" id="dispatchConfirmOffHours" value="0">
             <div>
                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Scan Truck RFID Tag <span class="text-red-500">*</span></label>
                 <input type="text" id="rfidInput" name="rfid_tag" placeholder="Click here and scan RFID card..." required autofocus autocomplete="off" class="w-full border border-blue-300 dark:border-blue-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 dark:bg-blue-900 dark:text-gray-100 transition-colors text-sm">
@@ -504,6 +505,53 @@
                 <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-gray-900 hover:bg-black transition">Create Dispatch</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Off-Hours Dispatch Confirmation Modal -->
+<div id="offHoursConfirmModal" class="fixed inset-0 z-[70] flex items-center justify-center bg-gray-900/60 backdrop-blur-xs hidden p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative border border-gray-100 dark:border-gray-700 animate-in fade-in zoom-in duration-150">
+        <div class="p-6 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
+                <i class="fa-solid fa-clock"></i>
+            </div>
+            <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-1.5">
+                Off-Hours Dispatch Warning
+            </h3>
+            <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
+                Standard operating hours are <strong class="text-gray-800 dark:text-gray-200" id="offHoursWindowText">7:00 AM – 8:00 PM</strong>.<br>
+                You are about to dispatch a truck outside regular hauling hours.
+            </p>
+
+            <div class="bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/50 rounded-xl p-3 mb-5 text-left text-xs space-y-1.5 text-gray-700 dark:text-gray-300">
+                <div class="flex justify-between">
+                    <span class="text-gray-500 dark:text-gray-400 font-medium">Truck:</span>
+                    <strong class="font-bold text-gray-900 dark:text-gray-100" id="offHoursTruckCode">—</strong>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500 dark:text-gray-400 font-medium">Driver:</span>
+                    <strong class="font-bold text-gray-900 dark:text-gray-100" id="offHoursDriverName">—</strong>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500 dark:text-gray-400 font-medium">Destination:</span>
+                    <strong class="font-bold text-gray-900 dark:text-gray-100 truncate max-w-[200px]" id="offHoursDestination">—</strong>
+                </div>
+            </div>
+
+            <p class="text-[11px] text-gray-400 dark:text-gray-500 mb-6 font-medium">
+                Are you sure you want to authorize and proceed with this dispatch?
+            </p>
+
+            <div class="flex items-center justify-center gap-3">
+                <button type="button" onclick="closeOffHoursModal()" class="w-1/2 px-4 py-2.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmAndSubmitOffHoursDispatch()" class="w-1/2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 transition shadow-md shadow-amber-600/20 flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Confirm &amp; Proceed</span>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 <script>
@@ -1118,18 +1166,74 @@
             <input type="hidden" name="action" value="approve_cancel">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="dispatch_id" id="approve_cancel_dispatch_id">
-            <div class="p-8 text-center">
-                <p class="text-gray-600 dark:text-gray-300 mb-6">Are you sure you want to approve this cancellation request? This will mark the truck for <span class="font-bold text-orange-600">Maintenance</span> and the dispatch as <span class="font-bold text-red-600">Cancelled</span>.</p>
-                <div class="flex flex-col space-y-3">
+            <div class="p-6">
+                <!-- Driver Reason & Photo Proof Card -->
+                <div class="mb-4 bg-orange-50/80 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/40 rounded-xl p-4 text-left">
+                    <div class="text-[11px] font-bold text-orange-700 dark:text-orange-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-info"></i> Driver's Reason:
+                    </div>
+                    <p id="ac-reason" class="text-sm font-bold text-gray-900 dark:text-gray-100"></p>
+
+                    <!-- Attached Photo Preview -->
+                    <div id="ac-photo-container" class="mt-3 hidden">
+                        <div class="text-[11px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-camera text-orange-500"></i> Photo Attachment
+                            </span>
+                            <span class="text-[10px] text-orange-600 dark:text-orange-400 font-medium cursor-pointer hover:underline" onclick="openCancellationPhotoViewer(document.getElementById('ac-photo-img').src, document.getElementById('ac-ticket-number').innerText, document.getElementById('ac-reason').innerText)">
+                                <i class="fa-solid fa-magnifying-glass-plus"></i> Enlarge
+                            </span>
+                        </div>
+                        <div class="relative group rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 h-36 bg-black/5 flex items-center justify-center cursor-pointer" onclick="openCancellationPhotoViewer(document.getElementById('ac-photo-img').src, document.getElementById('ac-ticket-number').innerText, document.getElementById('ac-reason').innerText)">
+                            <img id="ac-photo-img" src="" alt="Driver Cancellation Proof" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1.5">
+                                <i class="fa-solid fa-expand text-sm"></i> Click to Enlarge
+                            </div>
+                        </div>
+                    </div>
+                    <div id="ac-no-photo" class="mt-2 text-xs text-gray-500 dark:text-gray-400 italic flex items-center gap-1">
+                        <i class="fa-regular fa-image"></i> No photo attachment provided by driver
+                    </div>
+                </div>
+
+                <p class="text-gray-600 dark:text-gray-300 text-sm mb-6 text-center">Are you sure you want to approve this cancellation request? This will mark the truck for <span class="font-bold text-orange-600">Maintenance</span> and the dispatch as <span class="font-bold text-red-600">Cancelled</span>.</p>
+                <div class="flex flex-col space-y-2.5">
                     <button type="submit" class="w-full py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-lg shadow-orange-200 dark:shadow-none transition transform hover:-translate-y-0.5">
                         Yes, Approve Cancellation
                     </button>
-                    <button type="button" onclick="toggleModal('approveCancelModal', false)" class="w-full py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+                    <button type="button" onclick="toggleModal('approveCancelModal', false)" class="w-full py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition">
                         No, Keep it Active
                     </button>
                 </div>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Cancellation Photo Lightbox Modal -->
+<div id="cancellationPhotoModal" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm hidden justify-center items-center z-[99999] p-4" onclick="closeCancellationPhotoViewer()">
+    <div class="relative max-w-2xl w-full bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-750">
+            <div>
+                <h4 class="font-bold text-gray-900 dark:text-gray-100 text-sm sm:text-base flex items-center gap-2">
+                    <i class="fa-solid fa-camera text-orange-500"></i>
+                    <span>Cancellation Proof - Ticket #<span id="cp-ticket-num"></span></span>
+                </h4>
+                <p id="cp-reason-display" class="text-xs text-gray-600 dark:text-gray-400 mt-0.5 font-medium"></p>
+            </div>
+            <button type="button" onclick="closeCancellationPhotoViewer()" class="w-8 h-8 rounded-full bg-gray-200/80 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-200 transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="p-3 bg-black flex items-center justify-center min-h-[260px] max-h-[70vh] overflow-hidden">
+            <img id="cp-modal-img" src="" alt="Cancellation Attachment Photo" class="max-w-full max-h-[65vh] object-contain rounded-lg">
+        </div>
+        <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/90 text-right flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700">
+            <span>Press Esc or click outside to dismiss</span>
+            <a id="cp-open-newtab" href="#" target="_blank" class="text-orange-600 dark:text-orange-400 hover:underline font-semibold flex items-center gap-1">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Original Image
+            </a>
+        </div>
     </div>
 </div>
 

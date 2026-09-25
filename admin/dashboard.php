@@ -717,7 +717,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $pdo->commit();
 
             $_SESSION['auto_print_id'] = $new_dispatch_id;
-            $_SESSION['success'] = "Dispatch ticket <strong>{$ticketNum}</strong> created. Truck is now <strong>In Transit</strong>.";
+            $_SESSION['success'] = "Dispatch ticket <strong>{$ticketNum}</strong> created. Truck is now <strong>In Transit</strong>. <a href='print_ticket.php?id={$new_dispatch_id}' target='_blank' rel='noopener noreferrer' class='inline-flex items-center gap-1.5 ml-2.5 underline text-white font-bold hover:text-emerald-100 transition'><i class='fa-solid fa-print text-xs'></i> Print Waybill</a>";
             $logDriver = $pdo->query("SELECT CONCAT(first_name, ' ', last_name) FROM drivers WHERE id = " . intval($driver_id))->fetchColumn() ?: 'Driver';
             $logTruck = $pdo->query("SELECT truck_code FROM trucks WHERE id = " . intval($truck_id))->fetchColumn() ?: 'Truck';
             log_activity($pdo, 'Created Dispatch', "Created dispatch ticket {$ticketNum} for truck {$logTruck} (Driver: {$logDriver}) to {$destination} ({$cubic_meters} cu.m, Pay: ₱" . number_format($driver_trip_pay, 2) . ")");
@@ -1466,10 +1466,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 if ($dispatch['status'] === 'Cancellation Requested') {
                     $pdo->prepare("UPDATE driver_trips SET status = 'Cancelled' WHERE driver_id = ? AND status = 'Cancellation Requested'")->execute([$driver_id]);
 
-                    $pdo->prepare("UPDATE dispatches SET status = 'Pending' WHERE id = ?")->execute([$dispatch['id']]);
-                    $pdo->prepare("UPDATE trucks SET status = 'Pending' WHERE id = ?")->execute([$new_truck_id]);
+                    $pdo->prepare("UPDATE dispatches SET status = 'In Transit', cancellation_reason = NULL, cancellation_photo = NULL, transit_start_time = COALESCE(transit_start_time, NOW()) WHERE id = ?")->execute([$dispatch['id']]);
+                    $pdo->prepare("UPDATE trucks SET status = 'In Transit' WHERE id = ?")->execute([$new_truck_id]);
+                    $pdo->prepare("UPDATE drivers SET status = 'In Transit' WHERE id = ?")->execute([$driver_id]);
 
-                    $pdo->prepare("INSERT INTO driver_trips (driver_id, destination, trip_date, status, order_id) VALUES (?, ?, CURDATE(), 'Pending', ?)")
+                    if ($old_truck_id && $old_truck_id != $new_truck_id) {
+                        $pdo->prepare("UPDATE trucks SET status = 'Maintenance' WHERE id = ?")->execute([$old_truck_id]);
+                    }
+
+                    $pdo->prepare("INSERT INTO driver_trips (driver_id, destination, trip_date, status, order_id, transit_start_time) VALUES (?, ?, CURDATE(), 'In Transit', ?, NOW())")
                         ->execute([$driver_id, $dispatch['destination'], $dispatch['order_id'] ?? null]);
                 } else {
                     $pdo->prepare("UPDATE trucks SET status = ? WHERE id = ?")->execute([$dispatch['status'], $new_truck_id]);
@@ -1917,17 +1922,18 @@ $adminNotifications = [];
 try {
 
     $cancelReqs = $pdo->query("
-        SELECT d.id, d.ticket_number, CONCAT(dr.first_name,' ',dr.last_name) AS driver_name, d.destination
+        SELECT d.id, d.ticket_number, CONCAT(dr.first_name,' ',dr.last_name) AS driver_name, d.destination, d.cancellation_reason, d.cancellation_photo
         FROM dispatches d LEFT JOIN drivers dr ON d.driver_id = dr.id
         WHERE d.status = 'Cancellation Requested' ORDER BY d.id DESC LIMIT 10
     ")->fetchAll(PDO::FETCH_ASSOC);
     foreach ($cancelReqs as $cr) {
+        $cancelReasonSnippet = !empty($cr['cancellation_reason']) ? ' - ' . htmlspecialchars($cr['cancellation_reason']) : '';
         $adminNotifications[] = [
             'priority' => 1,
             'icon' => 'fa-triangle-exclamation',
             'color' => 'red',
             'title' => 'Cancellation Request',
-            'body' => htmlspecialchars($cr['driver_name']) . ' requests to cancel trip to ' . htmlspecialchars($cr['destination']) . ' (' . htmlspecialchars($cr['ticket_number']) . ')',
+            'body' => htmlspecialchars($cr['driver_name']) . ' requested cancellation' . $cancelReasonSnippet . ' for trip to ' . htmlspecialchars($cr['destination']) . ' (' . htmlspecialchars($cr['ticket_number']) . ')',
             'tab' => 'dispatches',
             'ts' => time()
         ];
@@ -2036,17 +2042,25 @@ try {
             disp.transit_start_time,
             COALESCE(disp.estimated_arrival_time, DATE_ADD(disp.transit_start_time, INTERVAL 60 MINUTE), DATE_ADD(disp.created_at, INTERVAL 60 MINUTE)) AS estimated_arrival_time
         FROM trucks t 
-        LEFT JOIN dispatches disp ON t.id = disp.truck_id AND disp.status IN ('Pending', 'Loading', 'In Transit', 'Unloading')
+        INNER JOIN (
+            SELECT truck_id, MAX(id) AS active_disp_id
+            FROM dispatches
+            WHERE status IN ('Pending', 'Loading', 'In Transit', 'Unloading')
+            GROUP BY truck_id
+        ) latest_disp ON t.id = latest_disp.truck_id
+        INNER JOIN dispatches disp ON disp.id = latest_disp.active_disp_id
         LEFT JOIN drivers d ON d.id = COALESCE(disp.driver_id, (SELECT id FROM drivers WHERE truck_id = t.id AND status != 'Resigned' LIMIT 1))
-        WHERE t.status != 'Idle' AND t.latitude IS NOT NULL
-        ORDER BY (disp.id IS NOT NULL) DESC, t.truck_code ASC
+        WHERE t.status != 'Decommissioned' 
+          AND t.latitude IS NOT NULL 
+          AND t.longitude IS NOT NULL
+        ORDER BY t.truck_code ASC
     ")->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     $trackingTrucks = [];
 }
 
 try {
-    $allDispatches = $pdo->query("SELECT d.id, d.ticket_number, d.driver_id, d.cubic_meters, d.order_id, o.order_number, t.truck_code, CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name, d.status, d.destination, d.created_at, d.transit_start_time, d.transit_end_time, COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name, COALESCE(NULLIF(d.contact_number, ''), o.contact_number) AS contact_number, COALESCE(NULLIF(d.landmark, ''), o.landmark) AS landmark FROM dispatches d LEFT JOIN trucks t ON d.truck_id = t.id LEFT JOIN drivers dr ON d.driver_id = dr.id LEFT JOIN orders o ON d.order_id = o.id ORDER BY d.id DESC")->fetchAll(PDO::FETCH_ASSOC);
+    $allDispatches = $pdo->query("SELECT d.id, d.ticket_number, d.driver_id, d.cubic_meters, d.order_id, o.order_number, t.truck_code, CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name, d.status, d.destination, d.created_at, d.transit_start_time, d.transit_end_time, COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name, COALESCE(NULLIF(d.contact_number, ''), o.contact_number) AS contact_number, COALESCE(NULLIF(d.landmark, ''), o.landmark) AS landmark, d.cancellation_reason, d.cancellation_photo FROM dispatches d LEFT JOIN trucks t ON d.truck_id = t.id LEFT JOIN drivers dr ON d.driver_id = dr.id LEFT JOIN orders o ON d.order_id = o.id ORDER BY d.id DESC")->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     $allDispatches = [];
 }
@@ -3025,15 +3039,18 @@ include __DIR__ . '/../includes/header.php';
 ?>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            const printWin = window.open('print_ticket.php?id=<?= $print_id; ?>', '_blank');
-            setTimeout(() => {
-                window.focus();
-                const scannerInput = document.getElementById('dispatchScannerRfidInput');
-                if (scannerInput) {
-                    scannerInput.focus();
-                    scannerInput.select();
-                }
-            }, 300);
+            try {
+                // noopener and noreferrer are critical so the print window runs in an isolated process
+                // preventing Chromium from blocking/freezing the main dashboard event loop
+                window.open('print_ticket.php?id=<?= $print_id; ?>', '_blank', 'noopener,noreferrer');
+            } catch (e) {
+                console.warn('Popup blocked:', e);
+            }
+            const scannerInput = document.getElementById('dispatchScannerRfidInput');
+            if (scannerInput) {
+                scannerInput.focus();
+                scannerInput.select();
+            }
         });
     </script>
 <?php endif; ?>
@@ -3043,7 +3060,11 @@ include __DIR__ . '/../includes/header.php';
 ?>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            window.open('print_cash_advance.php?id=<?= $ca_print_id; ?>', '_blank');
+            try {
+                window.open('print_cash_advance.php?id=<?= $ca_print_id; ?>', '_blank', 'noopener,noreferrer');
+            } catch(e) {
+                console.warn('Popup blocked:', e);
+            }
         });
     </script>
 <?php endif; ?>
@@ -3106,7 +3127,9 @@ include __DIR__ . '/../includes/header.php';
     };
     window.adminOperatingHours = {
         start: <?= intval($OP_HOURS_START) ?>,
-        end: <?= intval($OP_HOURS_END) ?>
+        end: <?= intval($OP_HOURS_END) ?>,
+        startFormatted: '<?= date('g:i A', mktime($OP_HOURS_START, 0, 0)) ?>',
+        endFormatted: '<?= date('g:i A', mktime($OP_HOURS_END, 0, 0)) ?>'
     };
 </script>
 <?php include __DIR__ . '/../includes/scripts.php'; ?>

@@ -160,9 +160,25 @@ if (!empty($driverFullName)) {
 
                     <div class="flex items-start gap-3 p-4 rounded-xl <?= $statusColor; ?> mb-5">
                         <i class="fa-solid fa-info-circle text-lg mt-0.5"></i>
-                        <div>
+                        <div class="w-full">
                             <span class="font-bold text-sm block">Current State</span>
                             <p class="text-xs mt-1 leading-relaxed opacity-90"><?= $statusDesc; ?></p>
+                            <?php if ($status === 'Cancellation Requested'): ?>
+                                <div class="mt-2.5 pt-2.5 border-t border-amber-200/60 dark:border-amber-800/40 text-xs">
+                                    <div class="flex items-center gap-1.5 font-bold mb-1">
+                                        <i class="fa-solid fa-triangle-exclamation"></i> Submitted Reason:
+                                        <span class="font-normal"><?= htmlspecialchars($active_dispatch['cancellation_reason'] ?? 'Not specified'); ?></span>
+                                    </div>
+                                    <?php if (!empty($active_dispatch['cancellation_photo'])): ?>
+                                        <div class="mt-2">
+                                            <span class="block text-[11px] font-semibold mb-1 opacity-80">Photo Proof Attached:</span>
+                                            <a href="../<?= htmlspecialchars($active_dispatch['cancellation_photo']); ?>" target="_blank" class="inline-block">
+                                                <img src="../<?= htmlspecialchars($active_dispatch['cancellation_photo']); ?>" alt="Cancellation Attachment" class="w-32 h-20 object-cover rounded-lg border border-amber-300 dark:border-amber-700 shadow-sm hover:opacity-90 transition">
+                                            </a>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
 

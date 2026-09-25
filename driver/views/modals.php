@@ -70,16 +70,60 @@
             <p class="text-sm text-gray-655 dark:text-gray-400 mb-4">
                 Did your truck break down? You can request a trip cancellation. This will notify the Admin for approval.
             </p>
-            <form method="POST" action="dashboard.php" id="cancelTripForm">
+            <form method="POST" action="dashboard.php" id="cancelTripForm" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="request_cancel_trip">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
-                <div class="mb-6">
-                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Reason for Request</label>
-                    <input type="text" name="reason" required placeholder="e.g. Engine failure, flat tire..." class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Reason for Request <span class="text-red-500">*</span></label>
+                    <div class="flex flex-wrap gap-1.5 mb-2">
+                        <button type="button" onclick="setCancelReason('Flat Tire')" class="px-2.5 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 hover:border-orange-500 text-gray-600 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 bg-gray-50 dark:bg-gray-700 transition font-medium">Flat Tire</button>
+                        <button type="button" onclick="setCancelReason('Engine Failure')" class="px-2.5 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 hover:border-orange-500 text-gray-600 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 bg-gray-50 dark:bg-gray-700 transition font-medium">Engine Failure</button>
+                        <button type="button" onclick="setCancelReason('Brake Malfunction')" class="px-2.5 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 hover:border-orange-500 text-gray-600 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 bg-gray-50 dark:bg-gray-700 transition font-medium">Brake Malfunction</button>
+                        <button type="button" onclick="setCancelReason('Overheating')" class="px-2.5 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 hover:border-orange-500 text-gray-600 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 bg-gray-50 dark:bg-gray-700 transition font-medium">Overheating</button>
+                    </div>
+                    <input type="text" id="cancelReasonInput" name="reason" required placeholder="e.g. Engine failure, flat tire..." class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
                 </div>
+
+                <!-- Photo Attachment Option -->
+                <div class="mb-5">
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-camera text-orange-500"></i> Photo Attachment
+                        </span>
+                        <span class="text-[11px] text-gray-400 dark:text-gray-500">Optional proof (flat tire, broken part)</span>
+                    </label>
+
+                    <!-- Dropzone / Tap to snap or upload -->
+                    <div id="cancelPhotoDropzone" class="border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-orange-500 dark:hover:border-orange-400 rounded-xl p-4 text-center cursor-pointer transition bg-gray-50/60 dark:bg-gray-750/30" onclick="document.getElementById('cancelPhotoInput').click()">
+                        <input type="file" name="cancellation_photo" id="cancelPhotoInput" accept="image/*" class="hidden" onchange="handleCancelPhotoSelected(this)">
+                        <div class="w-10 h-10 mx-auto mb-1.5 rounded-full bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-camera"></i>
+                        </div>
+                        <p class="text-xs font-semibold text-gray-700 dark:text-gray-200">Take photo or upload image proof</p>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">JPG, PNG, WEBP (Max 5MB)</p>
+                    </div>
+
+                    <!-- Image Preview Container -->
+                    <div id="cancelPhotoPreviewContainer" class="hidden mt-2 relative border border-gray-200 dark:border-gray-600 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700">
+                        <img id="cancelPhotoPreviewImg" src="" alt="Photo Preview" class="w-full h-36 object-cover">
+                        <div class="absolute top-2 right-2">
+                            <button type="button" onclick="clearCancelPhoto()" class="w-7 h-7 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow transition" title="Remove Photo">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                            </button>
+                        </div>
+                        <div class="p-2 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm text-xs flex justify-between items-center text-gray-700 dark:text-gray-300 border-t border-gray-100 dark:border-gray-700">
+                            <span id="cancelPhotoFileName" class="truncate max-w-[200px] font-medium"></span>
+                            <span id="cancelPhotoFileSize" class="text-gray-400 text-[11px] ml-2"></span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex justify-end space-x-3">
                     <button type="button" onclick="closeCancelTripModal()" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition">Go Back</button>
-                    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-orange-600 hover:bg-orange-700 transition">Send Request</button>
+                    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-orange-600 hover:bg-orange-700 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-paper-plane"></i> Send Request
+                    </button>
                 </div>
             </form>
         </div>
@@ -151,6 +195,51 @@
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
             }, 300);
+        }
+
+        function setCancelReason(reason) {
+            const input = document.getElementById('cancelReasonInput');
+            if (input) {
+                input.value = reason;
+                input.focus();
+            }
+        }
+
+        function handleCancelPhotoSelected(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Photo size exceeds the 5MB limit. Please choose a smaller photo.');
+                    input.value = '';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById('cancelPhotoPreviewImg');
+                    if (img) img.src = e.target.result;
+                    const nameEl = document.getElementById('cancelPhotoFileName');
+                    if (nameEl) nameEl.innerText = file.name;
+                    const sizeEl = document.getElementById('cancelPhotoFileSize');
+                    if (sizeEl) sizeEl.innerText = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+
+                    const dropzone = document.getElementById('cancelPhotoDropzone');
+                    const preview = document.getElementById('cancelPhotoPreviewContainer');
+                    if (dropzone) dropzone.classList.add('hidden');
+                    if (preview) preview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function clearCancelPhoto() {
+            const input = document.getElementById('cancelPhotoInput');
+            if (input) input.value = '';
+            const img = document.getElementById('cancelPhotoPreviewImg');
+            if (img) img.src = '';
+            const dropzone = document.getElementById('cancelPhotoDropzone');
+            const preview = document.getElementById('cancelPhotoPreviewContainer');
+            if (preview) preview.classList.add('hidden');
+            if (dropzone) dropzone.classList.remove('hidden');
         }
 
         function openCashAdvanceModal() {

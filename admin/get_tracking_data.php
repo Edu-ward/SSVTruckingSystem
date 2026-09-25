@@ -25,10 +25,15 @@ $stmt = $pdo->query("
         disp.transit_start_time,
         COALESCE(disp.estimated_arrival_time, DATE_ADD(disp.transit_start_time, INTERVAL 60 MINUTE), DATE_ADD(disp.created_at, INTERVAL 60 MINUTE)) AS estimated_arrival_time
     FROM trucks t
-    LEFT JOIN drivers d   ON t.id = d.truck_id
-    LEFT JOIN dispatches disp ON t.id = disp.truck_id 
-        AND disp.status IN ('Pending', 'Loading', 'In Transit', 'Unloading')
-    WHERE t.status != 'Idle'
+    INNER JOIN (
+        SELECT truck_id, MAX(id) AS active_disp_id
+        FROM dispatches
+        WHERE status IN ('Pending', 'Loading', 'In Transit', 'Unloading')
+        GROUP BY truck_id
+    ) latest_disp ON t.id = latest_disp.truck_id
+    INNER JOIN dispatches disp ON disp.id = latest_disp.active_disp_id
+    LEFT JOIN drivers d ON d.id = COALESCE(disp.driver_id, (SELECT id FROM drivers WHERE truck_id = t.id AND status != 'Resigned' LIMIT 1))
+    WHERE t.status != 'Decommissioned'
       AND t.latitude IS NOT NULL
       AND t.longitude IS NOT NULL
     ORDER BY t.truck_code ASC

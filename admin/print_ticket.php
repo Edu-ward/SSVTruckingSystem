@@ -590,11 +590,15 @@ if (!$ticket) {
     </div>
 
     <script>
-        window.onload = function() {
+        window.addEventListener('load', function() {
             setTimeout(function() {
-                window.print();
-            }, 800);
-        };
+                try {
+                    window.print();
+                } catch(e) {
+                    console.warn(e);
+                }
+            }, 600);
+        });
     </script>
 </body>
 

@@ -871,6 +871,11 @@
                             const now = new Date();
                             badge.textContent = 'Last updated: ' + now.toLocaleTimeString();
                         }
+                        const countBadge = document.getElementById('active-fleet-count');
+                        if (countBadge) {
+                            const count = Array.isArray(data.trucks) ? data.trucks.length : 0;
+                            countBadge.textContent = `${count} ${count === 1 ? 'Vehicle' : 'Vehicles'}`;
+                        }
                         // Update popup & sidebar locations via reverse geocode (shared fn from fleet.php)
                         if (typeof reverseGeocode === 'function' && typeof updateLocEl === 'function') {
                             data.trucks.forEach((truck, i) => {
@@ -1013,12 +1018,20 @@
             }
             if (show) {
                 modal.classList.remove('hidden');
-                if (modalID === 'dispatchModal') setTimeout(() => document.getElementById('rfidInput')?.focus(), 100);
+                if (modalID === 'dispatchModal') {
+                    const hiddenOffHours = document.getElementById('dispatchConfirmOffHours');
+                    if (hiddenOffHours) hiddenOffHours.value = '0';
+                    setTimeout(() => document.getElementById('rfidInput')?.focus(), 100);
+                }
                 if (modalID === 'addTruckModal') setTimeout(() => document.getElementById('newTruckRfidInput')?.focus(), 100);
             } else {
                 modal.classList.add('hidden');
-                if (modalID === 'dispatchModal' && typeof resetDispatchDriverInputs === 'function') {
-                    resetDispatchDriverInputs();
+                if (modalID === 'dispatchModal') {
+                    const hiddenOffHours = document.getElementById('dispatchConfirmOffHours');
+                    if (hiddenOffHours) hiddenOffHours.value = '0';
+                    if (typeof resetDispatchDriverInputs === 'function') {
+                        resetDispatchDriverInputs();
+                    }
                 }
             }
         }
@@ -1962,12 +1975,58 @@
             toggleModal('switchTruckModal', true);
         }
 
-        function openApproveCancelModal(dispatchId, ticketNumber) {
+        function openApproveCancelModal(dispatchId, ticketNumber, reason = '', photo = '') {
             const numEl = document.getElementById('ac-ticket-number');
             if (numEl) numEl.innerText = ticketNumber;
             const idEl = document.getElementById('approve_cancel_dispatch_id');
             if (idEl) idEl.value = dispatchId;
+
+            const reasonEl = document.getElementById('ac-reason');
+            if (reasonEl) {
+                reasonEl.innerText = (reason && reason.trim()) ? reason : 'No reason specified';
+            }
+
+            const photoContainer = document.getElementById('ac-photo-container');
+            const photoImg = document.getElementById('ac-photo-img');
+            const noPhotoEl = document.getElementById('ac-no-photo');
+            if (photo && photo.trim() !== '') {
+                const cleanPhoto = photo.replace(/^\/+/, '');
+                const photoUrl = (cleanPhoto.startsWith('http') || cleanPhoto.startsWith('../')) ? cleanPhoto : ('../' + cleanPhoto);
+                if (photoImg) photoImg.src = photoUrl;
+                if (photoContainer) photoContainer.classList.remove('hidden');
+                if (noPhotoEl) noPhotoEl.classList.add('hidden');
+            } else {
+                if (photoImg) photoImg.src = '';
+                if (photoContainer) photoContainer.classList.add('hidden');
+                if (noPhotoEl) noPhotoEl.classList.remove('hidden');
+            }
+
             toggleModal('approveCancelModal', true);
+        }
+
+        function openCancellationPhotoViewer(photoUrl, ticketNumber = '', reason = '') {
+            const modal = document.getElementById('cancellationPhotoModal');
+            if (!modal) return;
+            const modalImg = document.getElementById('cp-modal-img');
+            if (modalImg) modalImg.src = photoUrl;
+            const ticketNumEl = document.getElementById('cp-ticket-num');
+            if (ticketNumEl) ticketNumEl.innerText = ticketNumber;
+            const reasonEl = document.getElementById('cp-reason-display');
+            if (reasonEl) {
+                reasonEl.innerText = reason ? ('Reason: ' + reason) : '';
+            }
+            const newTabLink = document.getElementById('cp-open-newtab');
+            if (newTabLink) newTabLink.href = photoUrl;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeCancellationPhotoViewer() {
+            const modal = document.getElementById('cancellationPhotoModal');
+            if (!modal) return;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
         }
 
         function openDeleteDispatchModal(dispatchId, ticketNumber) {
@@ -2299,7 +2358,7 @@
                 if (ticket.id) {
                     printBtn.style.display = 'inline-flex';
                     printBtn.onclick = function() {
-                        window.open('print_ticket.php?id=' + ticket.id, '_blank');
+                        window.open('print_ticket.php?id=' + ticket.id, '_blank', 'noopener,noreferrer');
                     };
                 } else {
                     printBtn.style.display = 'none';
@@ -2740,6 +2799,30 @@
                 assignedDriverSelect.required = false;
                 assignedDriverSelect.innerHTML = '<option value="">— Select Driver (2 Assigned) —</option>';
             }
+            const hiddenOffHours = document.getElementById('dispatchConfirmOffHours');
+            if (hiddenOffHours) {
+                hiddenOffHours.value = '0';
+            }
+        }
+
+        function closeOffHoursModal() {
+            if (typeof toggleModal === 'function') {
+                toggleModal('offHoursConfirmModal', false);
+            }
+            const hiddenOffHours = document.getElementById('dispatchConfirmOffHours');
+            if (hiddenOffHours) hiddenOffHours.value = '0';
+        }
+
+        function confirmAndSubmitOffHoursDispatch() {
+            const hiddenOffHours = document.getElementById('dispatchConfirmOffHours');
+            if (hiddenOffHours) hiddenOffHours.value = '1';
+            if (typeof toggleModal === 'function') {
+                toggleModal('offHoursConfirmModal', false);
+            }
+            const dispatchForm = document.getElementById('dispatchForm');
+            if (dispatchForm) {
+                dispatchForm.submit();
+            }
         }
 
         document.addEventListener("DOMContentLoaded", function() {
@@ -2766,6 +2849,49 @@
                                 setTimeout(() => sel.classList.remove('ring-2', 'ring-red-500', 'border-red-500'), 3000);
                             }
                             if (rfidFeedback) rfidFeedback.innerHTML = '<span class="text-red-500 font-bold"><i class="fa-solid fa-circle-exclamation"></i> Please select which driver is operating this truck.</span>';
+                            return false;
+                        }
+                    }
+
+                    // Check if dispatch is outside operating hours
+                    const hiddenConfirmEl = document.getElementById('dispatchConfirmOffHours');
+                    const isAlreadyConfirmed = hiddenConfirmEl && hiddenConfirmEl.value === '1';
+
+                    if (!isAlreadyConfirmed && window.adminOperatingHours) {
+                        const now = new Date();
+                        const currHour = now.getHours();
+                        const opStart = Number(window.adminOperatingHours.start ?? 7);
+                        const opEnd = Number(window.adminOperatingHours.end ?? 20);
+
+                        if (currHour < opStart || currHour >= opEnd) {
+                            e.preventDefault();
+
+                            // Populate off-hours modal details
+                            const truckCode = document.getElementById('truckPlate')?.value || 'Unknown Truck';
+                            let driverName = document.getElementById('assignedDriverName')?.value;
+                            if (!driverName) {
+                                const sel = document.getElementById('assignedDriverSelect');
+                                if (sel && sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]?.value) {
+                                    driverName = sel.options[sel.selectedIndex]?.text;
+                                }
+                            }
+                            if (!driverName) driverName = 'Assigned Driver';
+                            const destination = document.getElementById('destinationSelect')?.value || 'Not selected';
+
+                            const tEl = document.getElementById('offHoursTruckCode');
+                            if (tEl) tEl.textContent = truckCode;
+                            const dEl = document.getElementById('offHoursDriverName');
+                            if (dEl) dEl.textContent = driverName;
+                            const destEl = document.getElementById('offHoursDestination');
+                            if (destEl) destEl.textContent = destination;
+                            const wEl = document.getElementById('offHoursWindowText');
+                            if (wEl && window.adminOperatingHours.startFormatted && window.adminOperatingHours.endFormatted) {
+                                wEl.textContent = `${window.adminOperatingHours.startFormatted} – ${window.adminOperatingHours.endFormatted}`;
+                            }
+
+                            if (typeof toggleModal === 'function') {
+                                toggleModal('offHoursConfirmModal', true);
+                            }
                             return false;
                         }
                     }
