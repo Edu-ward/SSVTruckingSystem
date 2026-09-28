@@ -1731,6 +1731,16 @@
             openDecommissionTruckModal(truckId, truckCode);
         }
 
+        function openRecommissionTruckModal(truckId, truckCode, rfidTag) {
+            const codeEl = document.getElementById('rec-truck-code');
+            if (codeEl) codeEl.innerText = truckCode || '';
+            const idEl = document.getElementById('rec_truck_id');
+            if (idEl) idEl.value = truckId || '';
+            const rfidEl = document.getElementById('rec_rfid_tag');
+            if (rfidEl) rfidEl.value = rfidTag || '';
+            toggleModal('recommissionTruckModal', true);
+        }
+
         function openMarkFixedModal(truckId, truckCode) {
             const codeEl = document.getElementById('mf-truck-code');
             if (codeEl) codeEl.innerText = truckCode;

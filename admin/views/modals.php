@@ -1320,6 +1320,53 @@
     </div>
 </div>
 
+<div id="recommissionTruckModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative border border-gray-100 dark:border-gray-700 animate-in fade-in zoom-in-95 duration-150">
+        <div class="p-6">
+            <div class="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-4 text-emerald-600 dark:text-emerald-400 text-3xl">
+                <i class="fa-solid fa-truck-arrow-right"></i>
+            </div>
+            <h3 class="text-xl font-bold text-center text-gray-900 dark:text-gray-100 mb-1">Commission Truck Again</h3>
+            <p class="text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Restore truck <strong id="rec-truck-code" class="text-gray-800 dark:text-gray-200"></strong> back into active fleet operations.
+            </p>
+
+            <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl p-3.5 mb-5 text-left text-xs text-emerald-800 dark:text-emerald-300">
+                <div class="flex items-start gap-2.5">
+                    <i class="fa-solid fa-circle-check text-emerald-600 dark:text-emerald-400 text-sm mt-0.5 flex-shrink-0"></i>
+                    <div>
+                        <span class="font-bold block mb-0.5">Reactivation Details:</span>
+                        Status will be set to <strong class="underline">Idle</strong> at <em><?= htmlspecialchars($GARAGE_NAME ?? 'San Leonardo (Garage)') ?></em>. The vehicle will immediately reappear in the active fleet and become available for new dispatches and driver assignments.
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST" action="dashboard.php" class="text-left space-y-4">
+                <input type="hidden" name="action" value="recommission_truck">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                <input type="hidden" name="truck_id" id="rec_truck_id" required>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                        RFID Tag (Editable)
+                    </label>
+                    <input type="text" name="rfid_tag" id="rec_rfid_tag" placeholder="Scan or enter RFID tag..." autocomplete="off"
+                        class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+                    <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Keep existing tag or scan/enter a new RFID card for this truck.</p>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                    <button type="button" onclick="toggleModal('recommissionTruckModal', false)" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition shadow-sm flex items-center gap-2">
+                        <i class="fa-solid fa-check"></i>
+                        <span>Confirm Commission</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <div id="markFixedModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-60 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden relative transform transition-all">
         <div class="bg-green-600 p-6 text-center">

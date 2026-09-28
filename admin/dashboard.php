@@ -1342,6 +1342,49 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
+    if ($_POST['action'] === 'recommission_truck' || $_POST['action'] === 'commission_truck') {
+        $truck_id = intval($_POST['truck_id'] ?? 0);
+        $rfid_tag = trim($_POST['rfid_tag'] ?? '');
+
+        if (!$truck_id) {
+            $_SESSION['error'] = "Invalid truck specified for commissioning.";
+            header("Location: dashboard.php?tab=fleet");
+            exit;
+        }
+
+        $stmt = $pdo->prepare("SELECT id, truck_code, rfid_tag FROM trucks WHERE id = ?");
+        $stmt->execute([$truck_id]);
+        $truck = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$truck) {
+            $_SESSION['error'] = "Truck not found.";
+            header("Location: dashboard.php?tab=fleet");
+            exit;
+        }
+
+        $targetRfid = ($rfid_tag !== '') ? $rfid_tag : ($truck['rfid_tag'] ?? null);
+
+        if (!empty($targetRfid)) {
+            $dupRfid = $pdo->prepare("SELECT id, truck_code FROM trucks WHERE rfid_tag = ? AND id != ? LIMIT 1");
+            $dupRfid->execute([$targetRfid, $truck_id]);
+            $dup = $dupRfid->fetch(PDO::FETCH_ASSOC);
+            if ($dup) {
+                $_SESSION['error'] = "RFID tag <strong>" . htmlspecialchars($targetRfid) . "</strong> is already assigned to truck <strong>" . htmlspecialchars($dup['truck_code']) . "</strong>.";
+                header("Location: dashboard.php?tab=fleet&view=decommissioned");
+                exit;
+            }
+        }
+
+        $rfidActive = !empty($targetRfid) ? 1 : 0;
+
+        $update = $pdo->prepare("UPDATE trucks SET status = 'Idle', rfid_tag = ?, rfid_active = ?, speed = 0, current_location = ?, latitude = ?, longitude = ? WHERE id = ?");
+        $update->execute([$targetRfid ?: null, $rfidActive, $GARAGE_NAME, $GARAGE_LAT, $GARAGE_LNG, $truck_id]);
+
+        $_SESSION['success'] = "Truck <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> has been successfully commissioned and restored to the active fleet.";
+        log_activity($pdo, 'Commissioned Truck', 'Recommissioned truck ' . $truck['truck_code'] . ' (ID: ' . $truck_id . ')');
+        header("Location: dashboard.php?tab=fleet");
+        exit;
+    }
 
     if ($_POST['action'] == 'add_order') {
         $orderNum = 'ORD-' . date('Ymd') . '-' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
@@ -2150,6 +2193,29 @@ try {
     $fleetData = [];
 }
 if (!is_array($fleetData)) $fleetData = [];
+
+try {
+    $decommissionedTrucks = $pdo->query("
+        SELECT 
+            t.id, 
+            t.truck_code, 
+            t.rfid_tag, 
+            t.rfid_active, 
+            t.status, 
+            t.speed, 
+            t.latitude, 
+            t.longitude, 
+            t.current_location, 
+            (SELECT COUNT(*) FROM dispatches WHERE truck_id = t.id) AS total_dispatches,
+            (SELECT MAX(dispatch_date) FROM dispatches WHERE truck_id = t.id) AS last_dispatch_date
+        FROM trucks t 
+        WHERE t.status = 'Decommissioned'
+        ORDER BY t.truck_code ASC
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $decommissionedTrucks = [];
+}
+if (!is_array($decommissionedTrucks)) $decommissionedTrucks = [];
 
 try {
     $allTrucksList = $pdo->query("
