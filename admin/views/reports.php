@@ -1,5 +1,5 @@
 <div id="view-reports" class="tab-content hidden">
-    
+
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-6 flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
         <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-lg shadow-sm flex-shrink-0">
@@ -12,7 +12,7 @@
         </div>
 
         <div class="flex flex-col sm:flex-row sm:items-center flex-wrap gap-2.5 sm:gap-3 w-full xl:w-auto">
-            
+
             <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/60 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 w-full sm:w-auto justify-between sm:justify-start">
                 <label for="reportMonthSelect" class="text-xs font-semibold text-gray-500 dark:text-gray-400 pl-2 flex items-center gap-1.5 flex-shrink-0">
                     <i class="fa-regular fa-calendar-days text-blue-500"></i>
@@ -29,7 +29,7 @@
                 </select>
             </div>
 
-            
+
             <form class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto" action="export_reports.php" method="GET">
                 <select name="period" id="exportPeriodSelect" onchange="document.getElementById('custom-date-range').classList.toggle('hidden', this.value !== 'custom');" class="border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer w-full sm:w-auto">
                     <option value="month" selected>Selected Month (<?= htmlspecialchars($currMonthLabel ?? 'This Month'); ?>)</option>
@@ -60,7 +60,7 @@
         </div>
     </div>
 
-    
+
     <?php if (!empty($isHistoricalReport)): ?>
         <div class="p-4 mb-6 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-transparent border border-blue-200 dark:border-blue-800/60 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-center space-x-3 text-xs sm:text-sm min-w-0">
@@ -80,7 +80,7 @@
         </div>
     <?php endif; ?>
 
-    
+
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5 lg:gap-6 mb-6">
         <?php foreach ($reportKpis as $kpi): ?>
             <div class="<?= $kpi['color_class']; ?> rounded-2xl p-4 sm:p-5 lg:p-6 text-white relative overflow-hidden shadow-md transition-transform hover:-translate-y-0.5">
@@ -99,7 +99,7 @@
         <?php endforeach; ?>
     </div>
 
-    
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-6 border border-gray-100 dark:border-gray-700/80 overflow-hidden">
             <div class="flex items-center space-x-2.5 mb-4">
@@ -125,7 +125,7 @@
         </div>
     </div>
 
-    
+
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 overflow-hidden mb-6">
         <div class="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
             <div>
@@ -137,7 +137,7 @@
             </span>
         </div>
 
-        
+
         <div class="block sm:hidden divide-y divide-gray-100 dark:divide-gray-700/60 p-3 space-y-3">
             <?php foreach ($performanceMetrics as $metric):
                 $badgeBg = $metric['is_positive'] ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40' : 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border border-red-200/60 dark:border-red-800/40';
@@ -165,7 +165,7 @@
             <?php endforeach; ?>
         </div>
 
-        
+
         <div class="hidden sm:block overflow-x-auto">
             <table class="w-full text-left text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                 <thead class="bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-200 font-semibold border-b border-gray-100 dark:border-gray-700">
@@ -192,7 +192,7 @@
         </div>
     </div>
 
-    
+
     <?php if (!empty($monthlyArchive)): ?>
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 overflow-hidden">
             <div class="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -208,9 +208,9 @@
                 </span>
             </div>
 
-            
+
             <div class="block sm:hidden divide-y divide-gray-100 dark:divide-gray-700/60 p-3 space-y-3">
-                <?php foreach ($monthlyArchive as $ma): 
+                <?php foreach ($monthlyArchive as $ma):
                     if (empty($ma['deliveries']) || $ma['deliveries'] <= 0) continue;
                     $isSelected = ($ma['ym'] === $currMonthStr);
                     $isCurrent = ($ma['ym'] === date('Y-m'));
@@ -231,7 +231,7 @@
                             </div>
                         </div>
 
-                        
+
                         <div class="grid grid-cols-2 gap-2 bg-gray-50 dark:bg-gray-900/40 p-2.5 rounded-xl border border-gray-100 dark:border-gray-800 mb-3 text-xs">
                             <div>
                                 <span class="text-[10px] text-gray-400 font-semibold block uppercase tracking-wider">Deliveries</span>
@@ -258,11 +258,11 @@
                             </div>
                         </div>
 
-                        
+
                         <div class="flex items-center gap-2">
                             <?php if (!$isSelected): ?>
-                                <a href="dashboard.php?tab=reports&report_month=<?= urlencode($ma['ym']); ?>" 
-                                   class="flex-1 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 border border-blue-200/60 dark:border-blue-800/40 active:scale-95">
+                                <a href="dashboard.php?tab=reports&report_month=<?= urlencode($ma['ym']); ?>"
+                                    class="flex-1 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 border border-blue-200/60 dark:border-blue-800/40 active:scale-95">
                                     <i class="fa-solid fa-chart-simple text-xs"></i>
                                     <span>View Report</span>
                                 </a>
@@ -272,9 +272,9 @@
                                     <span>Viewing Report</span>
                                 </div>
                             <?php endif; ?>
-                            <a href="export_reports.php?period=month&month=<?= urlencode($ma['ym']); ?>" 
-                               title="Export CSV for <?= htmlspecialchars($ma['label']); ?>"
-                               class="w-10 h-9 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition active:scale-95 flex-shrink-0" aria-label="Export CSV">
+                            <a href="export_reports.php?period=month&month=<?= urlencode($ma['ym']); ?>"
+                                title="Export CSV for <?= htmlspecialchars($ma['label']); ?>"
+                                class="w-10 h-9 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition active:scale-95 flex-shrink-0" aria-label="Export CSV">
                                 <i class="fa-solid fa-download text-xs"></i>
                             </a>
                         </div>
@@ -282,7 +282,7 @@
                 <?php endforeach; ?>
             </div>
 
-            
+
             <div class="hidden sm:block overflow-x-auto">
                 <table class="w-full text-left text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                     <thead class="bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-200 font-semibold border-b border-gray-100 dark:border-gray-700">
@@ -296,7 +296,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                        <?php foreach ($monthlyArchive as $ma): 
+                        <?php foreach ($monthlyArchive as $ma):
                             if (empty($ma['deliveries']) || $ma['deliveries'] <= 0) continue;
                             $isSelected = ($ma['ym'] === $currMonthStr);
                             $isCurrent = ($ma['ym'] === date('Y-m'));
@@ -330,8 +330,8 @@
                                 <td class="px-3.5 sm:px-4 py-3 text-right">
                                     <div class="flex items-center justify-end gap-2">
                                         <?php if (!$isSelected): ?>
-                                            <a href="dashboard.php?tab=reports&report_month=<?= urlencode($ma['ym']); ?>" 
-                                               class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-lg transition inline-flex items-center gap-1">
+                                            <a href="dashboard.php?tab=reports&report_month=<?= urlencode($ma['ym']); ?>"
+                                                class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-lg transition inline-flex items-center gap-1">
                                                 <i class="fa-solid fa-chart-simple text-[10px]"></i>
                                                 <span>View Report</span>
                                             </a>
@@ -341,9 +341,9 @@
                                                 <span>Viewing</span>
                                             </span>
                                         <?php endif; ?>
-                                        <a href="export_reports.php?period=month&month=<?= urlencode($ma['ym']); ?>" 
-                                           title="Export CSV for <?= htmlspecialchars($ma['label']); ?>"
-                                           class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
+                                        <a href="export_reports.php?period=month&month=<?= urlencode($ma['ym']); ?>"
+                                            title="Export CSV for <?= htmlspecialchars($ma['label']); ?>"
+                                            class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
                                             <i class="fa-solid fa-download"></i>
                                         </a>
                                     </div>

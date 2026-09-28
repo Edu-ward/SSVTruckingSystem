@@ -1,6 +1,6 @@
 <?php
 
-$dayOfWeek = (int)date('N'); 
+$dayOfWeek = (int)date('N');
 $thisMonday = date('Y-m-d', strtotime('-' . ($dayOfWeek - 1) . ' days'));
 $thisSaturday = date('Y-m-d', strtotime('+' . (6 - $dayOfWeek) . ' days'));
 $thisSunday = date('Y-m-d', strtotime('+' . (7 - $dayOfWeek) . ' days'));
@@ -49,7 +49,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
 ?>
 <div id="view-payroll" class="tab-content hidden">
 
-    
+
     <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div class="flex items-center space-x-3.5">
             <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg font-bold shadow-sm">
@@ -64,17 +64,17 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
         </div>
 
         <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            
+
             <div class="relative flex-1 md:w-72">
                 <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                <input type="text" id="payrollDriverSearchInput" oninput="filterPayrollTable()" placeholder="Search driver, CDL, truck..." 
+                <input type="text" id="payrollDriverSearchInput" oninput="filterPayrollTable()" placeholder="Search driver, CDL, truck..."
                     class="w-full pl-9 pr-8 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 text-gray-900 dark:text-gray-100 transition shadow-inner">
                 <button type="button" id="payrollSearchClear" onclick="clearPayrollSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            
+
             <button type="button" onclick="switchTab('cash_advances')" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-800 transition shadow-sm flex items-center gap-1.5 whitespace-nowrap">
                 <i class="fa-solid fa-hand-holding-dollar text-amber-500"></i>
                 <span>Cash Advances</span>
@@ -85,7 +85,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
         </div>
     </div>
 
-    
+
     <div class="mb-6 bg-gradient-to-br from-gray-900 via-emerald-950 to-gray-900 border border-emerald-800/40 rounded-3xl p-5 sm:p-6 text-white shadow-xl relative overflow-hidden">
         <div class="absolute -right-10 -bottom-10 w-44 h-44 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
@@ -97,28 +97,37 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                     <div class="flex items-center gap-2.5 flex-wrap">
                         <span class="text-xs font-bold uppercase tracking-widest text-emerald-300">Pay Period:</span>
                         <span id="activePayPeriodBadge" class="text-sm font-extrabold px-3 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-200">
-                            <?= htmlspecialchars($defaultPeriod['clean_dates']) ?>
+                            All Delivery Cycles (All Pending)
                         </span>
                     </div>
-                    <p class="text-xs text-gray-300 mt-1">Select a weekly delivery cycle to evaluate driver trip earnings and disburse wages.</p>
+                    <p class="text-xs text-gray-300 mt-1" id="activePayPeriodSubtext">Evaluating all accumulated unsettled driver trips across all past delivery weeks.</p>
                 </div>
             </div>
 
-            
+            <!-- Pay Period Mode Controls -->
             <div class="flex items-center gap-2 self-start md:self-auto bg-gray-800/80 p-1.5 rounded-2xl border border-gray-700/80 backdrop-blur-xs flex-wrap sm:flex-nowrap">
-                <select id="payPeriodSelector" onchange="onPayrollPeriodChange(this.value)" 
+                <button type="button" id="payrollAllCyclesBtn" onclick="selectPayrollAllCycles()"
+                    class="px-3 h-8 rounded-xl border border-emerald-400 bg-emerald-500/30 text-emerald-200 hover:bg-emerald-500/40 text-xs font-extrabold active:scale-95 transition cursor-pointer whitespace-nowrap shadow-sm"
+                    title="Evaluate All Past Unsettled Trips (All Periods)">
+                    <i class="fa-solid fa-infinity mr-1 text-[11px]"></i>
+                    <span>All Periods</span>
+                </button>
+
+                <div class="h-4 w-px bg-gray-700"></div>
+
+                <select id="payPeriodSelector" onchange="onPayrollPeriodChange(this.value)"
                     class="bg-transparent text-xs font-bold text-gray-200 border-none focus:ring-0 cursor-pointer pr-8 py-1.5 rounded-xl hover:bg-gray-700/50 transition">
+                    <option value="ALL" data-label="All Delivery Cycles (All Pending)" data-short="All Periods" class="bg-gray-900 text-emerald-300 font-bold" selected>
+                        ★ All Periods (All Pending Payroll)
+                    </option>
                     <?php foreach ($payrollPayPeriods as $p): ?>
-                        <option value="<?= $p['from'] . '|' . $p['to'] ?>" 
+                        <option value="<?= $p['from'] . '|' . $p['to'] ?>"
                             data-label="<?= htmlspecialchars($p['clean_dates']) ?>"
                             data-short="<?= htmlspecialchars($p['short_label']) ?>"
-                            class="bg-gray-900 text-gray-100" <?= $p['is_current'] ? 'selected' : '' ?>>
+                            class="bg-gray-900 text-gray-100">
                             <?= htmlspecialchars($p['label']) ?>
                         </option>
                     <?php endforeach; ?>
-                    <option value="ALL" data-label="All Delivery Cycles (All Time)" data-short="All Weeks" class="bg-gray-900 text-emerald-300 font-bold">
-                        Show All Past Unsettled Trips
-                    </option>
                     <option value="CUSTOM" data-label="Custom Date Range" data-short="Custom" class="bg-gray-900 text-gray-100">
                         Custom Date Range...
                     </option>
@@ -126,51 +135,48 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
 
                 <div class="h-4 w-px bg-gray-700"></div>
 
-                
                 <button type="button" onclick="shiftPayrollWeek(1)" class="w-8 h-8 rounded-xl flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-700/70 text-xs transition" title="Previous Week">
                     <i class="fa-solid fa-chevron-left"></i>
                 </button>
 
-                
-                <button type="button" id="payrollCurrentWeekBtn" onclick="shiftPayrollWeek(0)" 
-                    class="px-3 h-8 rounded-xl border border-emerald-500/40 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-xs font-bold active:scale-95 transition cursor-pointer whitespace-nowrap" 
+                <button type="button" id="payrollCurrentWeekBtn" onclick="shiftPayrollWeek(0) "
+                    class="px-3 h-8 rounded-xl border border-gray-600 bg-gray-700/50 text-gray-300 hover:text-white hover:bg-gray-700 text-xs font-semibold active:scale-95 transition cursor-pointer whitespace-nowrap"
                     title="Current Week (This Week)">
                     <span id="payrollCurrentWeekBtnText">This Week</span>
                 </button>
 
-                
                 <button type="button" onclick="shiftPayrollWeek(-1)" class="w-8 h-8 rounded-xl flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-700/70 text-xs transition" title="Next Week">
                     <i class="fa-solid fa-chevron-right"></i>
                 </button>
             </div>
         </div>
 
-        
+
         <div id="payrollCustomDateBar" class="hidden mt-4 pt-4 border-t border-gray-700/60 flex flex-wrap items-center gap-3">
             <div class="flex items-center gap-2 text-xs">
                 <span class="text-gray-400">From:</span>
-                <input type="date" id="payrollCustomDateFrom" value="<?= $thisMonday ?>" 
+                <input type="date" id="payrollCustomDateFrom" value="<?= $thisMonday ?>"
                     class="bg-gray-800 text-white border border-gray-600 rounded-lg px-2.5 py-1 text-xs focus:ring-emerald-500">
             </div>
             <div class="flex items-center gap-2 text-xs">
                 <span class="text-gray-400">To:</span>
-                <input type="date" id="payrollCustomDateTo" value="<?= $thisSunday ?>" 
+                <input type="date" id="payrollCustomDateTo" value="<?= $thisSunday ?>"
                     class="bg-gray-800 text-white border border-gray-600 rounded-lg px-2.5 py-1 text-xs focus:ring-emerald-500">
             </div>
-            <button type="button" onclick="applyPayrollCustomDateRange()" 
+            <button type="button" onclick="applyPayrollCustomDateRange()"
                 class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition shadow-sm">
                 Apply Filter
             </button>
         </div>
     </div>
 
-    
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        
+
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-emerald-200/70 dark:border-emerald-900/40 shadow-sm relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
-                    <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Pay Period Net Payable</span>
+                    <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider" id="kpiNetPayableLabel">Total Net Payable (All Periods)</span>
                     <div class="text-2xl font-black text-gray-900 dark:text-gray-100 mt-1.5" id="kpiPeriodNetPayable">
                         ₱<?= number_format($totalNetPayable, 2) ?>
                     </div>
@@ -185,11 +191,11 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
             <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
         </div>
 
-        
+
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-blue-200/70 dark:border-blue-900/40 shadow-sm relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
-                    <span class="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Period Trip Gross</span>
+                    <span class="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Trip Gross Earnings</span>
                     <div class="text-2xl font-black text-gray-900 dark:text-gray-100 mt-1.5" id="kpiPeriodGross">
                         ₱<?= number_format($totalPendingGross, 2) ?>
                     </div>
@@ -204,7 +210,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
             <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
         </div>
 
-        
+
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-amber-200/70 dark:border-amber-900/40 shadow-sm relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
@@ -224,21 +230,36 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
         </div>
     </div>
 
-    
-    <div class="mb-6 flex border-b border-gray-200 dark:border-gray-700 gap-6 text-sm font-semibold">
-        <button type="button" onclick="switchPayrollSubTab('active')" id="btnPayrollSubActive" class="pb-3 border-b-2 border-emerald-600 text-emerald-600 dark:text-emerald-400 transition flex items-center gap-2">
-            <i class="fa-solid fa-users-viewfinder"></i>
-            <span>Driver Payroll Payouts</span>
-            <span class="px-2 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 font-bold"><?= count($allDrivers ?? []) ?></span>
-        </button>
-        <button type="button" onclick="switchPayrollSubTab('history')" id="btnPayrollSubHistory" class="pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition flex items-center gap-2">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            <span>Settlement History</span>
-            <span id="payrollHistoryCountBadge" class="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 font-bold"><?= $totalSettlementCount ?></span>
-        </button>
+
+    <div class="mb-6 flex flex-wrap items-center justify-between border-b border-gray-200 dark:border-gray-700 gap-4 text-sm font-semibold">
+        <div class="flex items-center gap-4 sm:gap-6 flex-wrap">
+            <button type="button" onclick="switchPayrollSubTab('active')" id="btnPayrollSubActive" class="pb-3 border-b-2 border-emerald-600 text-emerald-600 dark:text-emerald-400 transition flex items-center gap-2">
+                <i class="fa-solid fa-users-viewfinder"></i>
+                <span>Driver Payroll Payouts</span>
+                <span class="px-2 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 font-bold"><?= count($allDrivers ?? []) ?></span>
+            </button>
+            <button type="button" onclick="switchPayrollSubTab('history')" id="btnPayrollSubHistory" class="pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>Settlement History</span>
+                <span id="payrollHistoryCountBadge" class="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 font-bold"><?= $totalSettlementCount ?></span>
+            </button>
+            <div class="pb-3 flex items-center gap-2 text-xs">
+                <span class="h-4 w-px bg-gray-200 dark:bg-gray-700 hidden sm:inline-block"></span>
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200/80 dark:border-emerald-800/60 shadow-xs">
+                    <i class="fa-solid fa-coins text-emerald-600 dark:text-emerald-400"></i>
+                    <span class="text-gray-600 dark:text-gray-300 font-medium">Total Net Payable:</span>
+                    <span id="tabBarTotalNetPayable" class="font-extrabold text-emerald-700 dark:text-emerald-300 text-xs sm:text-sm">
+                        ₱<?= number_format($totalNetPayable, 2) ?>
+                    </span>
+                    <span id="tabBarScopeBadge" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold ml-0.5 px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40">
+                        All Periods
+                    </span>
+                </div>
+            </div>
+        </div>
     </div>
 
-    
+
     <div id="payrollSubTabActive" class="space-y-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
             <div class="overflow-x-auto">
@@ -247,9 +268,14 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                         <tr>
                             <th class="px-3 sm:px-4 py-3">Driver & Assigned Truck</th>
                             <th class="px-2.5 sm:px-3 py-3 text-center">Status</th>
-                            <th class="px-2.5 sm:px-3 py-3 text-right">Pay Period Trips</th>
+                            <th class="px-2.5 sm:px-3 py-3 text-right">
+                                <span id="thTripsLabel">Trips & Gross</span>
+                            </th>
                             <th class="px-2.5 sm:px-3 py-3 text-right">Cash Advances</th>
-                            <th class="px-2.5 sm:px-3 py-3 text-right">Net Payable</th>
+                            <th class="px-2.5 sm:px-3 py-3 text-right">
+                                <span>Total Net Payable</span>
+                                <span id="thNetScopeLabel" class="block text-[9px] font-normal normal-case text-emerald-600 dark:text-emerald-400 font-semibold">All periods pending</span>
+                            </th>
                             <th class="px-3 sm:px-4 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -257,9 +283,9 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                         <?php foreach ($allDrivers as $driver):
                             $hasPayable = ($driver['net_earnings'] ?? 0) > 0;
                             $unclaimedTripsCount = count(array_filter($driver['all_trips'] ?? [], fn($t) => ($t['status'] ?? '') === 'Delivered' && empty($t['is_payroll_paid'])));
-                            
+
                             $deliveredTripsList = array_values(array_filter($driver['all_trips'] ?? [], fn($t) => ($t['status'] ?? '') === 'Delivered'));
-                            $driverTripsJson = htmlspecialchars(json_encode(array_map(function($t) {
+                            $driverTripsJson = htmlspecialchars(json_encode(array_map(function ($t) {
                                 return [
                                     'id'          => $t['id'] ?? 0,
                                     'date'        => !empty($t['transit_end_time']) ? substr($t['transit_end_time'], 0, 10) : (!empty($t['trip_date']) ? substr($t['trip_date'], 0, 10) : substr($t['created_at'] ?? '', 0, 10)),
@@ -288,8 +314,8 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                 data-advances="<?= floatval($driver['approved_cash_advances'] ?? 0); ?>"
                                 data-total-gross="<?= floatval($driver['gross_earnings'] ?? 0); ?>"
                                 data-total-net="<?= floatval($driver['net_earnings'] ?? 0); ?>">
-                                
-                                
+
+
                                 <td class="px-3 sm:px-4 py-3">
                                     <div class="flex items-center space-x-3 group cursor-pointer" onclick="openDriverWeekTripsModal(this.closest('tr'))" title="View week trips">
                                         <?php if ($dPhotoUrl): ?>
@@ -315,14 +341,14 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                     </div>
                                 </td>
 
-                                
+
                                 <td class="px-2.5 sm:px-3 py-3 text-center whitespace-nowrap">
                                     <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full text-white <?= $driver['status'] === 'Active' ? 'bg-emerald-500' : ($driver['status'] === 'Dispatched' ? 'bg-blue-600' : ($driver['status'] === 'Resigned' ? 'bg-amber-600' : 'bg-gray-500')) ?>">
                                         <?= htmlspecialchars($driver['status']); ?>
                                     </span>
                                 </td>
 
-                                
+
                                 <td class="px-2.5 sm:px-3 py-3 text-right whitespace-nowrap">
                                     <div class="font-bold text-gray-900 dark:text-gray-100 driver-gross-val">
                                         ₱<?= number_format($driver['gross_earnings'] ?? 0, 2); ?>
@@ -332,7 +358,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                     </div>
                                 </td>
 
-                                
+
                                 <td class="px-2.5 sm:px-3 py-3 text-right whitespace-nowrap">
                                     <?php if (($driver['approved_cash_advances'] ?? 0) > 0): ?>
                                         <div class="font-bold text-amber-600 dark:text-amber-400">
@@ -346,20 +372,24 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                     <?php endif; ?>
                                 </td>
 
-                                
+
                                 <td class="px-2.5 sm:px-3 py-3 text-right whitespace-nowrap">
-                                    <span class="text-sm font-black driver-net-val <?= $hasPayable ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400' ?>">
+                                    <div class="text-sm font-black driver-net-val <?= $hasPayable ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400' ?>">
                                         ₱<?= number_format($driver['net_earnings'] ?? 0, 2); ?>
-                                    </span>
+                                    </div>
+                                    <div class="text-[10px] text-gray-400 driver-all-pending-val font-semibold">
+                                        <?= $hasPayable ? 'All periods pending' : 'No pending balance' ?>
+                                    </div>
                                 </td>
 
-                                
+
                                 <td class="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
                                     <div class="flex items-center justify-end space-x-2">
                                         <span class="driver-settle-btn-container">
                                             <?php if ($hasPayable): ?>
-                                                <button type="button" onclick="openSettlePayrollModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['gross_earnings'] ?? 0; ?>, <?= $driver['approved_cash_advances'] ?? 0; ?>, <?= $driver['net_earnings'] ?? 0; ?>, 0, '<?= $defaultPeriod['from']; ?>', '<?= $defaultPeriod['to']; ?>', 0, '<?= addslashes($defaultPeriod['clean_dates']); ?>')"
-                                                    class="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
+                                                <button type="button" onclick="openSettlePayrollModal(<?= $driver['id']; ?>, '<?= addslashes($driver['name']); ?>', <?= $driver['gross_earnings'] ?? 0; ?>, <?= $driver['approved_cash_advances'] ?? 0; ?>, <?= $driver['net_earnings'] ?? 0; ?>, <?= floatval($driver['remaining_balance'] ?? 0); ?>, '', '', 1, 'All Pending Delivery Cycles (All Weeks)')"
+                                                    class="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                                                    title="Generate ticket and settle all pending payroll for this driver">
                                                     <i class="fa-solid fa-money-bill-transfer"></i>
                                                     <span>Settle</span>
                                                 </button>
@@ -381,10 +411,21 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
+                    <tfoot class="bg-gray-50/90 dark:bg-gray-900/60 font-semibold border-t-2 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
+                        <tr>
+                            <td colspan="4" class="px-3 sm:px-4 py-3.5 text-right text-gray-600 dark:text-gray-400 font-bold uppercase tracking-wider text-[11px] sm:text-xs">
+                                Total Net Payable (<span id="tableFooterScopeLabel">All Periods</span>):
+                            </td>
+                            <td class="px-2.5 sm:px-3 py-3.5 text-right font-black text-emerald-600 dark:text-emerald-400 text-sm sm:text-base whitespace-nowrap" id="tableFooterTotalNetPayable">
+                                ₱<?= number_format($totalNetPayable, 2) ?>
+                            </td>
+                            <td class="px-3 sm:px-4 py-3.5"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
 
-            
+
             <div id="noPayrollSearchResults" class="hidden py-12 text-center">
                 <div class="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-700 text-gray-400 flex items-center justify-center mx-auto mb-3 text-lg">
                     <i class="fa-solid fa-search"></i>
@@ -437,10 +478,19 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                     <p class="text-sm font-medium">No trips for this period</p>
                 </div>
             </div>
+
+            <!-- Footer Action Bar -->
+            <div id="dwtm-footer-bar" class="p-3.5 bg-gray-50 dark:bg-gray-900/60 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-3 flex-shrink-0">
+                <div class="text-xs">
+                    <span class="text-gray-500 dark:text-gray-400">Total Unsettled Payout:</span>
+                    <strong class="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm ml-1" id="dwtm-unpaid-sum">₱0.00</strong>
+                </div>
+                <div id="dwtm-settle-btn-container"></div>
+            </div>
         </div>
     </div>
 
-    
+
     <div id="payrollSubTabHistory" class="hidden space-y-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
             <div class="p-4 sm:px-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/50 dark:bg-gray-900/30">
@@ -469,7 +519,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                             </tr>
                         </thead>
                         <tbody id="payrollHistoryTableBody" class="divide-y divide-gray-100 dark:divide-gray-700/60">
-                            <?php foreach ($payrollSettlements as $st): 
+                            <?php foreach ($payrollSettlements as $st):
                                 $settledDateOnly = substr($st['settled_at'], 0, 10);
                                 $stPeriodFrom = '';
                                 $stPeriodTo   = '';
@@ -530,425 +580,633 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
         </div>
     </div>
 
-<script>
-let currentPayrollFrom = "<?= $defaultPeriod['from']; ?>";
-let currentPayrollTo   = "<?= $defaultPeriod['to']; ?>";
-let isPayrollAllCycles = false;
+    <script>
+        let currentPayrollFrom = "<?= $defaultPeriod['from']; ?>";
+        let currentPayrollTo = "<?= $defaultPeriod['to']; ?>";
+        let isPayrollAllCycles = true;
 
-function updatePayrollQuickBtn(shortText, isCurrent) {
-    const btn = document.getElementById('payrollCurrentWeekBtn');
-    const btnText = document.getElementById('payrollCurrentWeekBtnText');
-    if (btnText) btnText.textContent = shortText || 'This Week';
-    if (btn) {
-        if (isCurrent) {
-            btn.title = "Current Week (This Week)";
-            btn.className = "px-3 h-9 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-800/40 text-xs font-bold active:scale-95 transition cursor-pointer whitespace-nowrap";
-        } else {
-            btn.title = `${shortText} (Click to return to This Week)`;
-            btn.className = "px-3 h-9 rounded-xl border border-teal-300 dark:border-teal-700 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-800/40 text-xs font-bold active:scale-95 transition cursor-pointer whitespace-nowrap";
-        }
-    }
-}
+        function updatePayrollQuickBtn(shortText, isCurrent, isAll) {
+            const btnAll = document.getElementById('payrollAllCyclesBtn');
+            const btnWeek = document.getElementById('payrollCurrentWeekBtn');
+            const btnWeekText = document.getElementById('payrollCurrentWeekBtnText');
+            const badgeSubtext = document.getElementById('activePayPeriodSubtext');
 
-function onPayrollPeriodChange(val) {
-    const selector = document.getElementById('payPeriodSelector');
-    const customBar = document.getElementById('payrollCustomDateBar');
-    const badge = document.getElementById('activePayPeriodBadge');
-    
-    if (val === 'CUSTOM') {
-        if (customBar) customBar.classList.remove('hidden');
-        if (badge) badge.textContent = 'Custom Date Range';
-        updatePayrollQuickBtn('Custom', false);
-        return;
-    }
-    
-    if (customBar) customBar.classList.add('hidden');
-    
-    if (val === 'ALL') {
-        isPayrollAllCycles = true;
-        currentPayrollFrom = null;
-        currentPayrollTo = null;
-        if (badge) badge.textContent = 'All Unsettled Delivery Cycles';
-        updatePayrollQuickBtn('All Weeks', false);
-        recalculatePayrollForPeriod();
-        return;
-    }
-
-    isPayrollAllCycles = false;
-    const parts = val.split('|');
-    if (parts.length === 2) {
-        currentPayrollFrom = parts[0];
-        currentPayrollTo = parts[1];
-        
-        const selectedOpt = selector ? selector.options[selector.selectedIndex] : null;
-        const label = selectedOpt ? (selectedOpt.getAttribute('data-label') || selectedOpt.text) : `${parts[0]} – ${parts[1]}`;
-        const shortLabel = selectedOpt ? (selectedOpt.getAttribute('data-short') || 'This Week') : 'This Week';
-        const isCurrent = selector ? (selector.selectedIndex === 0) : true;
-
-        if (badge) badge.textContent = label;
-        updatePayrollQuickBtn(shortLabel, isCurrent);
-
-        recalculatePayrollForPeriod();
-    }
-}
-
-function shiftPayrollWeek(direction) {
-    const selector = document.getElementById('payPeriodSelector');
-    if (!selector) return;
-
-    if (direction === 0) {
-        // Reset to "This Week" (index 0)
-        selector.selectedIndex = 0;
-        onPayrollPeriodChange(selector.value);
-        return;
-    }
-
-    // Move index (direction 1 = older week, -1 = newer week)
-    let newIndex = selector.selectedIndex + direction;
-    // Keep within the generated weekly period options (exclude ALL and CUSTOM)
-    const maxWeeksIndex = selector.options.length - 3;
-    if (newIndex >= 0 && newIndex <= maxWeeksIndex) {
-        selector.selectedIndex = newIndex;
-        onPayrollPeriodChange(selector.value);
-    }
-}
-
-function applyPayrollCustomDateRange() {
-    const fromInput = document.getElementById('payrollCustomDateFrom');
-    const toInput   = document.getElementById('payrollCustomDateTo');
-    const badge     = document.getElementById('activePayPeriodBadge');
-
-    if (!fromInput || !toInput) return;
-    const from = fromInput.value;
-    const to   = toInput.value;
-
-    if (!from || !to) {
-        alert('Please select both from and to dates.');
-        return;
-    }
-    if (from > to) {
-        alert('The "from" date must be earlier than or equal to the "to" date.');
-        return;
-    }
-
-    isPayrollAllCycles = false;
-    currentPayrollFrom = from;
-    currentPayrollTo   = to;
-
-    if (badge) {
-        badge.textContent = `${from} – ${to}`;
-    }
-    updatePayrollQuickBtn('Custom', false);
-
-    recalculatePayrollForPeriod();
-}
-
-function recalculatePayrollForPeriod() {
-    const rows = document.querySelectorAll('#payrollTableBody .payroll-driver-row');
-    const tableBody = document.getElementById('payrollTableBody');
-    if (tableBody) {
-        tableBody.style.transition = 'opacity 0.15s ease';
-        tableBody.style.opacity = '0.4';
-        setTimeout(() => { tableBody.style.opacity = '1'; }, 100);
-    }
-
-    let totalGrossSum = 0;
-    let totalNetSum = 0;
-    let totalTripsSum = 0;
-    let payableDriversCount = 0;
-
-    rows.forEach(row => {
-        let tripsData = [];
-        try {
-            tripsData = JSON.parse(row.getAttribute('data-trips') || '[]');
-        } catch(e) {}
-
-        const remBal = parseFloat(row.getAttribute('data-rembal') || 0);
-        const advances = parseFloat(row.getAttribute('data-advances') || 0);
-        const totalAllGross = parseFloat(row.getAttribute('data-total-gross') || 0);
-        const totalAllNet = parseFloat(row.getAttribute('data-total-net') || 0);
-        const driverId = row.getAttribute('data-driver-id');
-        const driverName = row.getAttribute('data-driver-name') || '';
-
-        let periodGross = 0;
-        let periodTripsCount = 0;
-
-        if (isPayrollAllCycles) {
-            tripsData.forEach(t => {
-                if (t.paid === 0) {
-                    periodGross += t.pay;
-                    periodTripsCount++;
+            if (isAll) {
+                if (btnAll) {
+                    btnAll.className = "px-3 h-8 rounded-xl border border-emerald-400 bg-emerald-500/30 text-emerald-200 hover:bg-emerald-500/40 text-xs font-extrabold active:scale-95 transition cursor-pointer whitespace-nowrap shadow-sm";
                 }
-            });
-        } else {
-            tripsData.forEach(t => {
-                if (t.paid === 0 && t.date >= currentPayrollFrom && t.date <= currentPayrollTo) {
-                    periodGross += t.pay;
-                    periodTripsCount++;
+                if (btnWeek) {
+                    btnWeek.className = "px-3 h-8 rounded-xl border border-gray-700 bg-gray-800/60 text-gray-400 hover:text-white hover:bg-gray-700 text-xs font-semibold active:scale-95 transition cursor-pointer whitespace-nowrap";
                 }
-            });
+                if (btnWeekText) btnWeekText.textContent = 'This Week';
+                if (badgeSubtext) badgeSubtext.textContent = 'Evaluating all accumulated unsettled driver trips across all past delivery weeks.';
+            } else {
+                if (btnAll) {
+                    btnAll.className = "px-3 h-8 rounded-xl border border-gray-700 bg-gray-800/60 text-gray-400 hover:text-emerald-300 hover:bg-gray-700 text-xs font-semibold active:scale-95 transition cursor-pointer whitespace-nowrap";
+                }
+                if (btnWeekText) btnWeekText.textContent = shortText || 'This Week';
+                if (btnWeek) {
+                    if (isCurrent) {
+                        btnWeek.title = "Current Week (This Week)";
+                        btnWeek.className = "px-3 h-8 rounded-xl border border-emerald-400 bg-emerald-500/30 text-emerald-200 hover:bg-emerald-500/40 text-xs font-extrabold active:scale-95 transition cursor-pointer whitespace-nowrap shadow-sm";
+                    } else {
+                        btnWeek.title = `${shortText} (Click to return to This Week)`;
+                        btnWeek.className = "px-3 h-8 rounded-xl border border-teal-400/50 bg-teal-900/30 text-teal-300 hover:bg-teal-800/40 text-xs font-bold active:scale-95 transition cursor-pointer whitespace-nowrap";
+                    }
+                }
+                if (badgeSubtext) badgeSubtext.textContent = `Filtered view for delivery cycle: ${shortText || 'Selected Week'}`;
+            }
         }
 
-        const periodNet = Math.max(0, periodGross - advances);
-
-        totalGrossSum += periodGross;
-        totalNetSum += periodNet;
-        totalTripsSum += periodTripsCount;
-        if (periodNet > 0) payableDriversCount++;
-
-        // Update driver table cells
-        const grossEl = row.querySelector('.driver-gross-val');
-        const tripsEl = row.querySelector('.driver-trips-val');
-        const netEl   = row.querySelector('.driver-net-val');
-        const btnContainer = row.querySelector('.driver-settle-btn-container');
-
-        if (grossEl) grossEl.textContent = `₱${periodGross.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        if (tripsEl) tripsEl.textContent = `${periodTripsCount} trip${periodTripsCount !== 1 ? 's' : ''}`;
-        
-        if (netEl) {
-            netEl.textContent = `₱${periodNet.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            netEl.className = `text-sm font-black driver-net-val ${periodNet > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'}`;
+        function selectPayrollAllCycles() {
+            const selector = document.getElementById('payPeriodSelector');
+            if (selector) selector.value = 'ALL';
+            onPayrollPeriodChange('ALL');
         }
 
-        if (btnContainer) {
+        function onPayrollPeriodChange(val) {
+            const selector = document.getElementById('payPeriodSelector');
+            const customBar = document.getElementById('payrollCustomDateBar');
+            const badge = document.getElementById('activePayPeriodBadge');
+
+            if (val === 'CUSTOM') {
+                if (customBar) customBar.classList.remove('hidden');
+                if (badge) badge.textContent = 'Custom Date Range';
+                updatePayrollQuickBtn('Custom', false, false);
+                return;
+            }
+
+            if (customBar) customBar.classList.add('hidden');
+
+            if (val === 'ALL') {
+                isPayrollAllCycles = true;
+                currentPayrollFrom = null;
+                currentPayrollTo = null;
+                if (badge) badge.textContent = 'All Delivery Cycles (All Pending)';
+                updatePayrollQuickBtn('All Periods', false, true);
+                recalculatePayrollForPeriod();
+                return;
+            }
+
+            isPayrollAllCycles = false;
+            const parts = val.split('|');
+            if (parts.length === 2) {
+                currentPayrollFrom = parts[0];
+                currentPayrollTo = parts[1];
+
+                const selectedOpt = selector ? selector.options[selector.selectedIndex] : null;
+                const label = selectedOpt ? (selectedOpt.getAttribute('data-label') || selectedOpt.text) : `${parts[0]} – ${parts[1]}`;
+                const shortLabel = selectedOpt ? (selectedOpt.getAttribute('data-short') || 'This Week') : 'This Week';
+                const isCurrent = selector ? (selectedOpt && selectedOpt.getAttribute('data-short') === 'This Week') : false;
+
+                if (badge) badge.textContent = label;
+                updatePayrollQuickBtn(shortLabel, isCurrent, false);
+
+                recalculatePayrollForPeriod();
+            }
+        }
+
+        function shiftPayrollWeek(direction) {
+            const selector = document.getElementById('payPeriodSelector');
+            if (!selector) return;
+
+            if (direction === 0) {
+                for (let i = 0; i < selector.options.length; i++) {
+                    if (selector.options[i].getAttribute('data-short') === 'This Week') {
+                        selector.selectedIndex = i;
+                        onPayrollPeriodChange(selector.value);
+                        return;
+                    }
+                }
+                return;
+            }
+
+            let newIndex = selector.selectedIndex + direction;
+            const maxIndex = selector.options.length - 2;
+            if (newIndex >= 1 && newIndex <= maxIndex) {
+                selector.selectedIndex = newIndex;
+                onPayrollPeriodChange(selector.value);
+            }
+        }
+
+        function applyPayrollCustomDateRange() {
+            const fromInput = document.getElementById('payrollCustomDateFrom');
+            const toInput = document.getElementById('payrollCustomDateTo');
+            const badge = document.getElementById('activePayPeriodBadge');
+
+            if (!fromInput || !toInput) return;
+            const from = fromInput.value;
+            const to = toInput.value;
+
+            if (!from || !to) {
+                alert('Please select both from and to dates.');
+                return;
+            }
+            if (from > to) {
+                alert('The "from" date must be earlier than or equal to the "to" date.');
+                return;
+            }
+
+            isPayrollAllCycles = false;
+            currentPayrollFrom = from;
+            currentPayrollTo = to;
+
+            if (badge) {
+                badge.textContent = `${from} – ${to}`;
+            }
+            updatePayrollQuickBtn('Custom', false, false);
+
+            recalculatePayrollForPeriod();
+        }
+
+        function recalculatePayrollForPeriod() {
+            const rows = document.querySelectorAll('#payrollTableBody .payroll-driver-row');
+            const tableBody = document.getElementById('payrollTableBody');
+            if (tableBody) {
+                tableBody.style.transition = 'opacity 0.15s ease';
+                tableBody.style.opacity = '0.5';
+                setTimeout(() => {
+                    tableBody.style.opacity = '1';
+                }, 100);
+            }
+
+            let totalGrossSum = 0;
+            let totalNetSum = 0;
+            let totalTripsSum = 0;
+            let payableDriversCount = 0;
+            let allDriversTotalNetSum = 0;
+
             const activeBadge = document.getElementById('activePayPeriodBadge');
-            const activePeriodLabel = isPayrollAllCycles 
-                ? 'All Unsettled Delivery Cycles' 
-                : (activeBadge ? activeBadge.textContent.trim() : (currentPayrollFrom && currentPayrollTo ? `${currentPayrollFrom} – ${currentPayrollTo}` : 'Current Week'));
+            const activePeriodLabel = isPayrollAllCycles ?
+                'All Pending Delivery Cycles (All Weeks)' :
+                (activeBadge ? activeBadge.textContent.trim() : (currentPayrollFrom && currentPayrollTo ? `${currentPayrollFrom} – ${currentPayrollTo}` : 'Current Week'));
 
-            if (periodNet > 0) {
-                btnContainer.innerHTML = `
-                    <button type="button" onclick="openSettlePayrollModal(${driverId}, '${escapeJsQuotes(driverName)}', ${periodGross}, ${advances}, ${periodNet}, 0, '${currentPayrollFrom || ''}', '${currentPayrollTo || ''}', ${isPayrollAllCycles ? 1 : 0}, '${escapeJsQuotes(activePeriodLabel)}')"
-                        class="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
-                        <i class="fa-solid fa-money-bill-transfer"></i>
-                        <span>Settle</span>
-                    </button>
-                `;
+            rows.forEach(row => {
+                let tripsData = [];
+                try {
+                    tripsData = JSON.parse(row.getAttribute('data-trips') || '[]');
+                } catch (e) {}
+
+                const remBal = parseFloat(row.getAttribute('data-rembal') || 0);
+                const advances = parseFloat(row.getAttribute('data-advances') || 0);
+                const totalAllGrossFallback = parseFloat(row.getAttribute('data-total-gross') || 0);
+                const totalAllNetFallback = parseFloat(row.getAttribute('data-total-net') || 0);
+                const driverId = row.getAttribute('data-driver-id');
+                const driverName = row.getAttribute('data-driver-name') || '';
+
+                let periodGross = 0;
+                let periodTripsCount = 0;
+                let allUnsettledGross = 0;
+                let allUnsettledTripsCount = 0;
+
+                tripsData.forEach(t => {
+                    if (t.paid === 0) {
+                        allUnsettledGross += t.pay;
+                        allUnsettledTripsCount++;
+                        if (isPayrollAllCycles || (!currentPayrollFrom || !currentPayrollTo) || (t.date >= currentPayrollFrom && t.date <= currentPayrollTo)) {
+                            periodGross += t.pay;
+                            periodTripsCount++;
+                        }
+                    }
+                });
+
+                if (totalAllGrossFallback > allUnsettledGross) {
+                    allUnsettledGross = totalAllGrossFallback;
+                }
+
+                const allUnsettledNet = Math.max(0, allUnsettledGross + remBal - advances);
+                const periodNet = isPayrollAllCycles ? allUnsettledNet : Math.max(0, periodGross + remBal - advances);
+
+                allDriversTotalNetSum += allUnsettledNet;
+
+                if (isPayrollAllCycles) {
+                    totalGrossSum += allUnsettledGross;
+                    totalNetSum += allUnsettledNet;
+                    totalTripsSum += allUnsettledTripsCount;
+                    if (allUnsettledNet > 0) payableDriversCount++;
+                } else {
+                    totalGrossSum += periodGross;
+                    totalNetSum += periodNet;
+                    totalTripsSum += periodTripsCount;
+                    if (periodNet > 0) payableDriversCount++;
+                }
+
+                // Update driver table cells
+                const grossEl = row.querySelector('.driver-gross-val');
+                const tripsEl = row.querySelector('.driver-trips-val');
+                const netEl = row.querySelector('.driver-net-val');
+                const allPendingEl = row.querySelector('.driver-all-pending-val');
+                const btnContainer = row.querySelector('.driver-settle-btn-container');
+
+                if (grossEl) {
+                    const displayGross = isPayrollAllCycles ? allUnsettledGross : periodGross;
+                    grossEl.textContent = `₱${displayGross.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                }
+
+                if (tripsEl) {
+                    if (isPayrollAllCycles) {
+                        tripsEl.textContent = `${allUnsettledTripsCount} pending trip${allUnsettledTripsCount !== 1 ? 's' : ''}`;
+                    } else {
+                        if (allUnsettledTripsCount > periodTripsCount) {
+                            tripsEl.innerHTML = `${periodTripsCount} trip${periodTripsCount !== 1 ? 's' : ''} <span class="text-amber-500 font-semibold" title="Total unsettled trips across all past weeks">(${allUnsettledTripsCount} total)</span>`;
+                        } else {
+                            tripsEl.textContent = `${periodTripsCount} trip${periodTripsCount !== 1 ? 's' : ''}`;
+                        }
+                    }
+                }
+
+                if (netEl) {
+                    const displayNet = isPayrollAllCycles ? allUnsettledNet : periodNet;
+                    netEl.textContent = `₱${displayNet.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    netEl.className = `text-sm font-black driver-net-val ${displayNet > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'}`;
+                }
+
+                if (allPendingEl) {
+                    if (isPayrollAllCycles) {
+                        allPendingEl.innerHTML = allUnsettledNet > 0 ?
+                            `<span class="text-emerald-600 dark:text-emerald-400 font-bold">All periods pending</span>` :
+                            `<span class="text-gray-400 font-normal">No pending balance</span>`;
+                    } else {
+                        if (allUnsettledNet > periodNet && periodNet > 0) {
+                            allPendingEl.innerHTML = `<span class="text-emerald-700 dark:text-emerald-300 font-bold" title="Total net payable across all past weeks"><i class="fa-solid fa-coins mr-0.5"></i>All Periods: ₱${allUnsettledNet.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
+                        } else if (periodNet === 0 && allUnsettledNet > 0) {
+                            allPendingEl.innerHTML = `<span class="text-amber-600 dark:text-amber-400 font-extrabold" title="Has pending payroll from previous weeks"><i class="fa-solid fa-clock-rotate-left mr-0.5"></i>Past Pending: ₱${allUnsettledNet.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
+                        } else if (allUnsettledNet > 0) {
+                            allPendingEl.innerHTML = `<span class="text-gray-400">All Periods: ₱${allUnsettledNet.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
+                        } else {
+                            allPendingEl.innerHTML = `<span class="text-gray-400 font-normal">No pending balance</span>`;
+                        }
+                    }
+                }
+
+                if (btnContainer) {
+                    if (isPayrollAllCycles) {
+                        if (allUnsettledNet > 0) {
+                            btnContainer.innerHTML = `
+                                <button type="button" onclick="openSettlePayrollModal(${driverId}, '${escapeJsQuotes(driverName)}', ${allUnsettledGross}, ${advances}, ${allUnsettledNet}, ${remBal}, '', '', 1, 'All Pending Delivery Cycles (All Weeks)')"
+                                    class="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                                    title="Generate ticket and settle all pending payroll for this driver">
+                                    <i class="fa-solid fa-money-bill-transfer"></i>
+                                    <span>Settle</span>
+                                </button>
+                            `;
+                        } else {
+                            btnContainer.innerHTML = `
+                                <button type="button" disabled class="px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 transition flex items-center gap-1.5 cursor-not-allowed">
+                                    <i class="fa-solid fa-circle-check text-emerald-500"></i>
+                                    <span>Settled</span>
+                                </button>
+                            `;
+                        }
+                    } else {
+                        // Filtered week view
+                        if (allUnsettledNet > 0) {
+                            if (allUnsettledNet > periodNet && periodNet > 0) {
+                                btnContainer.innerHTML = `
+                                    <div class="flex flex-col items-end gap-1">
+                                        <button type="button" onclick="openSettlePayrollModal(${driverId}, '${escapeJsQuotes(driverName)}', ${allUnsettledGross}, ${advances}, ${allUnsettledNet}, ${remBal}, '', '', 1, 'All Pending Delivery Cycles (All Weeks)')"
+                                            class="px-2.5 py-1 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition flex items-center gap-1 active:scale-95 cursor-pointer"
+                                            title="Generate ticket for all pending payroll across all past weeks (₱${allUnsettledNet.toFixed(2)})">
+                                            <i class="fa-solid fa-money-bill-transfer"></i>
+                                            <span>Settle All (₱${allUnsettledNet.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})})</span>
+                                        </button>
+                                        <button type="button" onclick="openSettlePayrollModal(${driverId}, '${escapeJsQuotes(driverName)}', ${periodGross}, ${advances}, ${periodNet}, ${remBal}, '${currentPayrollFrom}', '${currentPayrollTo}', 0, '${escapeJsQuotes(activePeriodLabel)}')"
+                                            class="px-2.5 py-1 rounded-xl text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 shadow-sm transition flex items-center gap-1 active:scale-95 cursor-pointer">
+                                            Settle Week Only (₱${periodNet.toFixed(2)})
+                                        </button>
+                                    </div>
+                                `;
+                            } else if (periodNet === 0 && allUnsettledNet > 0) {
+                                btnContainer.innerHTML = `
+                                    <button type="button" onclick="openSettlePayrollModal(${driverId}, '${escapeJsQuotes(driverName)}', ${allUnsettledGross}, ${advances}, ${allUnsettledNet}, ${remBal}, '', '', 1, 'All Pending Delivery Cycles (All Weeks)')"
+                                        class="px-2.5 py-1.5 rounded-xl text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 shadow-sm transition flex items-center gap-1 active:scale-95 cursor-pointer"
+                                        title="Generate ticket for pending payroll from past weeks">
+                                        <i class="fa-solid fa-clock-rotate-left"></i>
+                                        <span>Settle Past (₱${allUnsettledNet.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})})</span>
+                                    </button>
+                                `;
+                            } else {
+                                btnContainer.innerHTML = `
+                                    <button type="button" onclick="openSettlePayrollModal(${driverId}, '${escapeJsQuotes(driverName)}', ${periodGross}, ${advances}, ${periodNet}, ${remBal}, '${currentPayrollFrom}', '${currentPayrollTo}', 0, '${escapeJsQuotes(activePeriodLabel)}')"
+                                        class="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
+                                        <i class="fa-solid fa-money-bill-transfer"></i>
+                                        <span>Settle</span>
+                                    </button>
+                                `;
+                            }
+                        } else {
+                            btnContainer.innerHTML = `
+                                <button type="button" disabled class="px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 transition flex items-center gap-1.5 cursor-not-allowed">
+                                    <i class="fa-solid fa-circle-check text-emerald-500"></i>
+                                    <span>Settled</span>
+                                </button>
+                            `;
+                        }
+                    }
+                }
+            });
+
+            // Update KPI Displays
+            const kpiNetEl = document.getElementById('kpiPeriodNetPayable');
+            const kpiNetLabel = document.getElementById('kpiNetPayableLabel');
+            const kpiGrossEl = document.getElementById('kpiPeriodGross');
+            const kpiDriversCountEl = document.getElementById('kpiDriversCount');
+            const kpiTripsCountEl = document.getElementById('kpiTripsCount');
+
+            const formattedNet = `₱${totalNetSum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            const formattedAllNet = `₱${allDriversTotalNetSum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+            if (kpiNetEl) {
+                if (isPayrollAllCycles) {
+                    kpiNetEl.textContent = formattedAllNet;
+                } else {
+                    kpiNetEl.innerHTML = `${formattedNet} <span class="text-xs font-normal text-gray-400 block mt-0.5">All-Periods: ${formattedAllNet}</span>`;
+                }
+            }
+            if (kpiNetLabel) {
+                kpiNetLabel.textContent = isPayrollAllCycles ? 'Total Net Payable (All Periods)' : 'Selected Period Net Payable';
+            }
+            if (kpiGrossEl) kpiGrossEl.textContent = `₱${totalGrossSum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            if (kpiDriversCountEl) kpiDriversCountEl.textContent = `${payableDriversCount} driver${payableDriversCount !== 1 ? 's' : ''} awaiting payout`;
+            if (kpiTripsCountEl) kpiTripsCountEl.textContent = `${totalTripsSum} trips ${isPayrollAllCycles ? 'unsettled (all time)' : 'completed in period'}`;
+
+            // Sub-tab bar display
+            const tabBarNet = document.getElementById('tabBarTotalNetPayable');
+            const tabBarScope = document.getElementById('tabBarScopeBadge');
+            if (tabBarNet) {
+                tabBarNet.textContent = isPayrollAllCycles ? formattedAllNet : `${formattedNet} (All-Periods: ${formattedAllNet})`;
+            }
+            if (tabBarScope) {
+                tabBarScope.textContent = isPayrollAllCycles ? 'All Periods' : 'Filtered Period';
+                tabBarScope.className = isPayrollAllCycles ?
+                    "text-[10px] text-emerald-600 dark:text-emerald-400 font-bold ml-0.5 px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40" :
+                    "text-[10px] text-blue-600 dark:text-blue-400 font-bold ml-0.5 px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40";
+            }
+
+            // Table header scope
+            const thNetScope = document.getElementById('thNetScopeLabel');
+            if (thNetScope) {
+                thNetScope.textContent = isPayrollAllCycles ? 'All periods pending' : 'Selected period net';
+            }
+
+            // Table footer display
+            const tableFooterNet = document.getElementById('tableFooterTotalNetPayable');
+            const tableFooterScope = document.getElementById('tableFooterScopeLabel');
+            if (tableFooterNet) {
+                tableFooterNet.textContent = isPayrollAllCycles ? formattedAllNet : `${formattedNet} (All-Periods: ${formattedAllNet})`;
+            }
+            if (tableFooterScope) {
+                tableFooterScope.textContent = isPayrollAllCycles ? 'All Periods' : 'Selected Period';
+            }
+
+            // Filter History rows to match pay period
+            filterHistoryTableForPeriod();
+        }
+
+        function filterHistoryTableForPeriod() {
+            const historyRows = document.querySelectorAll('#payrollHistoryTableBody .payroll-history-row');
+            const badge = document.getElementById('payrollHistoryCountBadge');
+            let visibleCount = 0;
+
+            historyRows.forEach(row => {
+                const date = row.getAttribute('data-date');
+                const pFrom = row.getAttribute('data-period-from');
+                const pTo = row.getAttribute('data-period-to');
+
+                if (isPayrollAllCycles || !currentPayrollFrom || !currentPayrollTo) {
+                    row.classList.remove('hidden');
+                    visibleCount++;
+                } else if (pFrom && pTo) {
+                    if ((pFrom >= currentPayrollFrom && pFrom <= currentPayrollTo) ||
+                        (pTo >= currentPayrollFrom && pTo <= currentPayrollTo) ||
+                        (pFrom <= currentPayrollFrom && pTo >= currentPayrollTo)) {
+                        row.classList.remove('hidden');
+                        visibleCount++;
+                    } else {
+                        row.classList.add('hidden');
+                    }
+                } else if (date >= currentPayrollFrom && date <= currentPayrollTo) {
+                    row.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+
+            if (badge) badge.textContent = visibleCount;
+        }
+
+        function escapeJsQuotes(str) {
+            return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        }
+
+        function switchPayrollSubTab(tab) {
+            const btnActive = document.getElementById('btnPayrollSubActive');
+            const btnHistory = document.getElementById('btnPayrollSubHistory');
+            const tabActive = document.getElementById('payrollSubTabActive');
+            const tabHistory = document.getElementById('payrollSubTabHistory');
+
+            if (tab === 'active') {
+                tabActive.classList.remove('hidden');
+                tabHistory.classList.add('hidden');
+                btnActive.className = "pb-3 border-b-2 border-emerald-600 text-emerald-600 dark:text-emerald-400 transition flex items-center gap-2 font-bold";
+                btnHistory.className = "pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition flex items-center gap-2";
             } else {
-                btnContainer.innerHTML = `
-                    <button type="button" disabled class="px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 transition flex items-center gap-1.5 cursor-not-allowed">
-                        <i class="fa-solid fa-circle-check text-emerald-500"></i>
-                        <span>Settled</span>
-                    </button>
-                `;
+                tabActive.classList.add('hidden');
+                tabHistory.classList.remove('hidden');
+                btnHistory.className = "pb-3 border-b-2 border-emerald-600 text-emerald-600 dark:text-emerald-400 transition flex items-center gap-2 font-bold";
+                btnActive.className = "pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition flex items-center gap-2";
             }
         }
-    });
 
-    // Update Top Financial KPI Cards
-    const kpiNetEl = document.getElementById('kpiPeriodNetPayable');
-    const kpiGrossEl = document.getElementById('kpiPeriodGross');
-    const kpiDriversCountEl = document.getElementById('kpiDriversCount');
-    const kpiTripsCountEl = document.getElementById('kpiTripsCount');
+        function filterPayrollTable() {
+            const input = document.getElementById('payrollDriverSearchInput');
+            const clearBtn = document.getElementById('payrollSearchClear');
+            const query = input ? input.value.toLowerCase().trim() : '';
+            const rows = document.querySelectorAll('#payrollTableBody .payroll-driver-row');
+            const noResults = document.getElementById('noPayrollSearchResults');
+            const noResultsText = document.getElementById('noPayrollSearchText');
 
-    if (kpiNetEl) kpiNetEl.textContent = `₱${totalNetSum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-    if (kpiGrossEl) kpiGrossEl.textContent = `₱${totalGrossSum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-    if (kpiDriversCountEl) kpiDriversCountEl.textContent = `${payableDriversCount} driver${payableDriversCount !== 1 ? 's' : ''} awaiting payout`;
-    if (kpiTripsCountEl) kpiTripsCountEl.textContent = `${totalTripsSum} trips completed in period`;
-
-    // Filter History rows to match pay period
-    filterHistoryTableForPeriod();
-}
-
-function filterHistoryTableForPeriod() {
-    const historyRows = document.querySelectorAll('#payrollHistoryTableBody .payroll-history-row');
-    const badge = document.getElementById('payrollHistoryCountBadge');
-    let visibleCount = 0;
-
-    historyRows.forEach(row => {
-        const date = row.getAttribute('data-date');
-        const pFrom = row.getAttribute('data-period-from');
-        const pTo   = row.getAttribute('data-period-to');
-
-        if (isPayrollAllCycles || !currentPayrollFrom || !currentPayrollTo) {
-            row.classList.remove('hidden');
-            visibleCount++;
-        } else if (pFrom && pTo) {
-            if ((pFrom >= currentPayrollFrom && pFrom <= currentPayrollTo) || 
-                (pTo >= currentPayrollFrom && pTo <= currentPayrollTo) ||
-                (pFrom <= currentPayrollFrom && pTo >= currentPayrollTo)) {
-                row.classList.remove('hidden');
-                visibleCount++;
-            } else {
-                row.classList.add('hidden');
+            if (clearBtn) {
+                clearBtn.classList.toggle('hidden', query.length === 0);
             }
-        } else if (date >= currentPayrollFrom && date <= currentPayrollTo) {
-            row.classList.remove('hidden');
-            visibleCount++;
-        } else {
-            row.classList.add('hidden');
+
+            let matchCount = 0;
+            rows.forEach(row => {
+                const meta = row.getAttribute('data-search') || '';
+                if (!query || meta.includes(query)) {
+                    row.classList.remove('hidden');
+                    matchCount++;
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+
+            if (noResults) {
+                if (matchCount === 0 && rows.length > 0) {
+                    noResults.classList.remove('hidden');
+                    if (noResultsText) noResultsText.textContent = `No drivers match "${query}".`;
+                } else {
+                    noResults.classList.add('hidden');
+                }
+            }
         }
-    });
 
-    if (badge) badge.textContent = visibleCount;
-}
-
-function escapeJsQuotes(str) {
-    return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-}
-
-function switchPayrollSubTab(tab) {
-    const btnActive = document.getElementById('btnPayrollSubActive');
-    const btnHistory = document.getElementById('btnPayrollSubHistory');
-    const tabActive = document.getElementById('payrollSubTabActive');
-    const tabHistory = document.getElementById('payrollSubTabHistory');
-
-    if (tab === 'active') {
-        tabActive.classList.remove('hidden');
-        tabHistory.classList.add('hidden');
-        btnActive.className = "pb-3 border-b-2 border-emerald-600 text-emerald-600 dark:text-emerald-400 transition flex items-center gap-2 font-bold";
-        btnHistory.className = "pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition flex items-center gap-2";
-    } else {
-        tabActive.classList.add('hidden');
-        tabHistory.classList.remove('hidden');
-        btnHistory.className = "pb-3 border-b-2 border-emerald-600 text-emerald-600 dark:text-emerald-400 transition flex items-center gap-2 font-bold";
-        btnActive.className = "pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition flex items-center gap-2";
-    }
-}
-
-function filterPayrollTable() {
-    const input = document.getElementById('payrollDriverSearchInput');
-    const clearBtn = document.getElementById('payrollSearchClear');
-    const query = input ? input.value.toLowerCase().trim() : '';
-    const rows = document.querySelectorAll('#payrollTableBody .payroll-driver-row');
-    const noResults = document.getElementById('noPayrollSearchResults');
-    const noResultsText = document.getElementById('noPayrollSearchText');
-
-    if (clearBtn) {
-        clearBtn.classList.toggle('hidden', query.length === 0);
-    }
-
-    let matchCount = 0;
-    rows.forEach(row => {
-        const meta = row.getAttribute('data-search') || '';
-        if (!query || meta.includes(query)) {
-            row.classList.remove('hidden');
-            matchCount++;
-        } else {
-            row.classList.add('hidden');
+        function clearPayrollSearch() {
+            const input = document.getElementById('payrollDriverSearchInput');
+            if (input) {
+                input.value = '';
+                filterPayrollTable();
+                input.focus();
+            }
         }
-    });
 
-    if (noResults) {
-        if (matchCount === 0 && rows.length > 0) {
-            noResults.classList.remove('hidden');
-            if (noResultsText) noResultsText.textContent = `No drivers match "${query}".`;
-        } else {
-            noResults.classList.add('hidden');
+        // ── Driver Week Trips Modal ────────────────────────────────────────────
+        function openDriverWeekTripsModal(row) {
+            const driverName = row.getAttribute('data-driver-name') || 'Driver';
+            const driverId = row.getAttribute('data-driver-id');
+            const remBal = parseFloat(row.getAttribute('data-rembal') || 0);
+            const advances = parseFloat(row.getAttribute('data-advances') || 0);
+            const periodBadge = document.getElementById('activePayPeriodBadge');
+            const periodLabel = periodBadge ? periodBadge.textContent.trim() : (isPayrollAllCycles ? 'All Delivery Cycles (All Pending)' : 'This Week');
+
+            let tripsData = [];
+            try {
+                tripsData = JSON.parse(row.getAttribute('data-trips') || '[]');
+            } catch (e) {}
+
+            // Filter trips to the current pay period
+            const periodTrips = tripsData.filter(t => {
+                if (isPayrollAllCycles) return true;
+                if (!currentPayrollFrom || !currentPayrollTo) return true;
+                return t.date >= currentPayrollFrom && t.date <= currentPayrollTo;
+            });
+
+            // Populate header
+            const nameEl = document.getElementById('dwtm-driver-name');
+            const labelEl = document.getElementById('dwtm-period-label');
+            if (nameEl) nameEl.textContent = driverName;
+            if (labelEl) labelEl.textContent = periodLabel;
+
+            // Compute summary
+            let totalPay = 0;
+            let unpaidCnt = 0;
+            periodTrips.forEach(t => {
+                totalPay += t.pay;
+                if (t.paid === 0) unpaidCnt++;
+            });
+
+            // Compute all-unsettled totals across all trips
+            let allUnsettledGross = 0;
+            tripsData.forEach(t => {
+                if (t.paid === 0) allUnsettledGross += t.pay;
+            });
+            const allUnsettledNet = Math.max(0, allUnsettledGross + remBal - advances);
+
+            document.getElementById('dwtm-trip-count').textContent = `${periodTrips.length} trip${periodTrips.length !== 1 ? 's' : ''}`;
+            document.getElementById('dwtm-total-pay').textContent = `₱${totalPay.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+            document.getElementById('dwtm-unpaid-count').textContent = `${unpaidCnt} unpaid`;
+            const unpaidBadge = document.getElementById('dwtm-unpaid-badge');
+            if (unpaidBadge) unpaidBadge.classList.toggle('hidden', unpaidCnt === 0);
+
+            // Update modal footer
+            const unpaidSumEl = document.getElementById('dwtm-unpaid-sum');
+            if (unpaidSumEl) {
+                unpaidSumEl.textContent = `₱${allUnsettledNet.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+            }
+
+            const settleBtnContainer = document.getElementById('dwtm-settle-btn-container');
+            if (settleBtnContainer) {
+                if (allUnsettledNet > 0) {
+                    settleBtnContainer.innerHTML = `
+                        <button type="button" onclick="closeDriverWeekTripsModal(); openSettlePayrollModal(${driverId}, '${escapeJsQuotes(driverName)}', ${allUnsettledGross}, ${advances}, ${allUnsettledNet}, ${remBal}, '', '', 1, 'All Pending Delivery Cycles (All Weeks)')"
+                            class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
+                            <i class="fa-solid fa-money-bill-transfer"></i>
+                            <span>Settle All Pending (₱${allUnsettledNet.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})})</span>
+                        </button>
+                    `;
+                } else {
+                    settleBtnContainer.innerHTML = `
+                        <span class="text-xs font-semibold text-gray-400 flex items-center gap-1">
+                            <i class="fa-solid fa-circle-check text-emerald-500"></i>
+                            <span>All Trips Settled</span>
+                        </span>
+                    `;
+                }
+            }
+
+            // Build trip list
+            const listEl = document.getElementById('dwtm-trip-list');
+            const emptyEl = document.getElementById('dwtm-empty-state');
+
+            if (periodTrips.length === 0) {
+                if (emptyEl) emptyEl.classList.remove('hidden');
+                if (listEl) listEl.innerHTML = '';
+                listEl.appendChild(emptyEl);
+            } else {
+                listEl.innerHTML = '';
+                if (emptyEl) emptyEl.classList.add('hidden');
+
+                periodTrips.forEach((t, idx) => {
+                    const paidBadge = t.paid ?
+                        `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"><i class="fa-solid fa-check mr-1"></i>Paid</span>` :
+                        `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"><i class="fa-solid fa-hourglass-half mr-1"></i>Unpaid</span>`;
+
+                    const dest = t.destination || 'N/A';
+                    const ticket = t.ticket ? `<span class="font-mono text-[10px] text-gray-400">#${t.ticket}</span>` : '';
+                    const dateStr = t.date || '';
+                    const fmtDate = dateStr ? (() => {
+                        const d = new Date(dateStr + 'T00:00:00');
+                        return d.toLocaleDateString('en-PH', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                        });
+                    })() : '—';
+                    const payFmt = `₱${t.pay.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+
+                    const card = document.createElement('div');
+                    card.className = `flex items-center gap-3 p-3 rounded-xl border ${t.paid ? 'border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/40 dark:bg-emerald-900/10' : 'border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50'} hover:shadow-sm transition`;
+                    card.innerHTML = `
+                        <div class="w-7 h-7 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 flex items-center justify-center text-xs font-bold text-gray-500 flex-shrink-0 shadow-sm">${idx + 1}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">${dest}</span>
+                                ${ticket}
+                            </div>
+                            <div class="text-[11px] text-gray-400 mt-0.5 flex items-center gap-2">
+                                <i class="fa-regular fa-calendar"></i>
+                                <span>${fmtDate}</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                            <span class="font-bold text-sm ${t.paid ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-300'}">${payFmt}</span>
+                            ${paidBadge}
+                        </div>
+                    `;
+                    listEl.appendChild(card);
+                });
+            }
+
+            const modal = document.getElementById('driverWeekTripsModal');
+            if (modal) modal.classList.remove('hidden');
         }
-    }
-}
 
-function clearPayrollSearch() {
-    const input = document.getElementById('payrollDriverSearchInput');
-    if (input) {
-        input.value = '';
-        filterPayrollTable();
-        input.focus();
-    }
-}
+        function closeDriverWeekTripsModal() {
+            const modal = document.getElementById('driverWeekTripsModal');
+            if (modal) modal.classList.add('hidden');
+        }
 
-// ── Driver Week Trips Modal ────────────────────────────────────────────
-function openDriverWeekTripsModal(row) {
-    const driverName  = row.getAttribute('data-driver-name') || 'Driver';
-    const periodBadge = document.getElementById('activePayPeriodBadge');
-    const periodLabel = periodBadge ? periodBadge.textContent.trim() : 'This Week';
-
-    let tripsData = [];
-    try { tripsData = JSON.parse(row.getAttribute('data-trips') || '[]'); } catch(e) {}
-
-    // Filter trips to the current pay period
-    const periodTrips = tripsData.filter(t => {
-        if (isPayrollAllCycles) return true;
-        if (!currentPayrollFrom || !currentPayrollTo) return true;
-        return t.date >= currentPayrollFrom && t.date <= currentPayrollTo;
-    });
-
-    // Populate header
-    const nameEl   = document.getElementById('dwtm-driver-name');
-    const labelEl  = document.getElementById('dwtm-period-label');
-    if (nameEl)  nameEl.textContent  = driverName;
-    if (labelEl) labelEl.textContent = periodLabel;
-
-    // Compute summary
-    let totalPay  = 0;
-    let unpaidCnt = 0;
-    periodTrips.forEach(t => {
-        totalPay  += t.pay;
-        if (t.paid === 0) unpaidCnt++;
-    });
-
-    document.getElementById('dwtm-trip-count').textContent  = `${periodTrips.length} trip${periodTrips.length !== 1 ? 's' : ''}`;
-    document.getElementById('dwtm-total-pay').textContent   = `₱${totalPay.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
-    document.getElementById('dwtm-unpaid-count').textContent= `${unpaidCnt} unpaid`;
-    const unpaidBadge = document.getElementById('dwtm-unpaid-badge');
-    if (unpaidBadge) unpaidBadge.classList.toggle('hidden', unpaidCnt === 0);
-
-    // Build trip list
-    const listEl   = document.getElementById('dwtm-trip-list');
-    const emptyEl  = document.getElementById('dwtm-empty-state');
-
-    if (periodTrips.length === 0) {
-        if (emptyEl)  emptyEl.classList.remove('hidden');
-        if (listEl)   listEl.innerHTML = '';
-        listEl.appendChild(emptyEl);
-    } else {
-        listEl.innerHTML = '';
-        if (emptyEl) emptyEl.classList.add('hidden');
-
-        periodTrips.forEach((t, idx) => {
-            const paidBadge = t.paid
-                ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"><i class="fa-solid fa-check mr-1"></i>Paid</span>`
-                : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"><i class="fa-solid fa-hourglass-half mr-1"></i>Unpaid</span>`;
-
-            const dest = t.destination || 'N/A';
-            const ticket = t.ticket ? `<span class="font-mono text-[10px] text-gray-400">#${t.ticket}</span>` : '';
-            const dateStr = t.date || '';
-            const fmtDate = dateStr ? (() => { const d = new Date(dateStr + 'T00:00:00'); return d.toLocaleDateString('en-PH', {month:'short', day:'numeric', year:'numeric'}); })() : '—';
-            const payFmt  = `₱${t.pay.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
-
-            const card = document.createElement('div');
-            card.className = `flex items-center gap-3 p-3 rounded-xl border ${t.paid ? 'border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/40 dark:bg-emerald-900/10' : 'border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50'} hover:shadow-sm transition`;
-            card.innerHTML = `
-                <div class="w-7 h-7 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 flex items-center justify-center text-xs font-bold text-gray-500 flex-shrink-0 shadow-sm">${idx + 1}</div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">${dest}</span>
-                        ${ticket}
-                    </div>
-                    <div class="text-[11px] text-gray-400 mt-0.5 flex items-center gap-2">
-                        <i class="fa-regular fa-calendar"></i>
-                        <span>${fmtDate}</span>
-                    </div>
-                </div>
-                <div class="flex flex-col items-end gap-1 flex-shrink-0">
-                    <span class="font-bold text-sm ${t.paid ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-300'}">${payFmt}</span>
-                    ${paidBadge}
-                </div>
-            `;
-            listEl.appendChild(card);
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeDriverWeekTripsModal();
         });
-    }
 
-    const modal = document.getElementById('driverWeekTripsModal');
-    if (modal) modal.classList.remove('hidden');
-}
-
-function closeDriverWeekTripsModal() {
-    const modal = document.getElementById('driverWeekTripsModal');
-    if (modal) modal.classList.add('hidden');
-}
-
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeDriverWeekTripsModal();
-});
-
-// Initial calculation for current period
-document.addEventListener('DOMContentLoaded', function() {
-    if (document.getElementById('view-payroll')) {
-        recalculatePayrollForPeriod();
-    }
-});
-</script>
+        // Initial calculation for current period
+        document.addEventListener('DOMContentLoaded', function() {
+            if (document.getElementById('view-payroll')) {
+                recalculatePayrollForPeriod();
+            }
+        });
+    </script>
 
 </div>

@@ -1402,9 +1402,9 @@
             const badgeEl  = document.getElementById('sp-period-badge');
             const tripIdsEl = document.getElementById('sp-trip-ids');
 
-            if (fromEl) fromEl.value = pFrom;
-            if (toEl) toEl.value = pTo;
-            if (allEl) allEl.value = isAll;
+            if (fromEl) fromEl.value = isAll ? '' : pFrom;
+            if (toEl) toEl.value = isAll ? '' : pTo;
+            if (allEl) allEl.value = isAll ? 1 : 0;
             if (labelEl) labelEl.value = pLabel;
             if (badgeEl) badgeEl.textContent = pLabel;
 
@@ -2781,6 +2781,7 @@
             const singleContainer = document.getElementById('singleDriverContainer');
             const multiContainer = document.getElementById('multiDriverContainer');
             const hiddenDriverId = document.getElementById('hiddenDriverId');
+            const finalDriverId = document.getElementById('finalDriverId');
             const assignedDriverName = document.getElementById('assignedDriverName');
             const assignedDriverSelect = document.getElementById('assignedDriverSelect');
 
@@ -2789,18 +2790,18 @@
 
             if (hiddenDriverId) {
                 hiddenDriverId.disabled = false;
-                hiddenDriverId.name = 'driver_id';
-                hiddenDriverId.required = true;
                 hiddenDriverId.value = '';
+            }
+            if (finalDriverId) {
+                finalDriverId.value = '';
             }
             if (assignedDriverName) {
                 assignedDriverName.value = '';
             }
             if (assignedDriverSelect) {
                 assignedDriverSelect.disabled = true;
-                assignedDriverSelect.name = '';
-                assignedDriverSelect.required = false;
-                assignedDriverSelect.innerHTML = '<option value="">— Select Driver (2 Assigned) —</option>';
+                assignedDriverSelect.value = '';
+                assignedDriverSelect.innerHTML = '<option value="">— Select Which Driver is Driving —</option>';
             }
             const hiddenOffHours = document.getElementById('dispatchConfirmOffHours');
             if (hiddenOffHours) {
@@ -2819,6 +2820,19 @@
         function confirmAndSubmitOffHoursDispatch() {
             const hiddenOffHours = document.getElementById('dispatchConfirmOffHours');
             if (hiddenOffHours) hiddenOffHours.value = '1';
+
+            const multiContainer = document.getElementById('multiDriverContainer');
+            const sel = document.getElementById('assignedDriverSelect');
+            const finalDriver = document.getElementById('finalDriverId');
+            const hiddenDriver = document.getElementById('hiddenDriverId');
+
+            if (multiContainer && !multiContainer.classList.contains('hidden') && sel && sel.value) {
+                if (finalDriver) finalDriver.value = sel.value;
+                if (hiddenDriver) hiddenDriver.value = sel.value;
+            } else if (hiddenDriver && hiddenDriver.value) {
+                if (finalDriver) finalDriver.value = hiddenDriver.value;
+            }
+
             if (typeof toggleModal === 'function') {
                 toggleModal('offHoursConfirmModal', false);
             }
@@ -2840,16 +2854,18 @@
                         e.preventDefault();
                         return false;
                     }
-                    // Sync dropdown -> hidden field BEFORE any validation (covers keyboard/enter submit edge cases)
+                    // Sync dropdown -> hidden fields BEFORE any validation (covers keyboard/enter submit edge cases)
                     const multiContainer = document.getElementById('multiDriverContainer');
                     const hiddenDriverIdEl = document.getElementById('hiddenDriverId');
+                    const finalDriverIdEl = document.getElementById('finalDriverId');
+                    const sel = document.getElementById('assignedDriverSelect');
+
                     if (multiContainer && !multiContainer.classList.contains('hidden')) {
-                        const sel = document.getElementById('assignedDriverSelect');
-                        // Always sync from dropdown to hidden field on submit
-                        if (sel && sel.value && hiddenDriverIdEl) {
-                            hiddenDriverIdEl.value = sel.value;
-                        }
-                        if (!hiddenDriverIdEl || !hiddenDriverIdEl.value) {
+                        const chosenVal = (sel && sel.value) ? sel.value : '';
+                        if (finalDriverIdEl) finalDriverIdEl.value = chosenVal;
+                        if (hiddenDriverIdEl) hiddenDriverIdEl.value = chosenVal;
+
+                        if (!chosenVal) {
                             e.preventDefault();
                             if (sel) {
                                 sel.classList.add('ring-2', 'ring-red-500', 'border-red-500');
@@ -2857,6 +2873,10 @@
                             }
                             if (rfidFeedback) rfidFeedback.innerHTML = '<span class="text-red-500 font-bold"><i class="fa-solid fa-circle-exclamation"></i> Please select which driver is operating this truck.</span>';
                             return false;
+                        }
+                    } else {
+                        if (hiddenDriverIdEl && hiddenDriverIdEl.value && finalDriverIdEl) {
+                            finalDriverIdEl.value = hiddenDriverIdEl.value;
                         }
                     }
 
@@ -2959,23 +2979,21 @@
                                     const assignedDriverSelect = document.getElementById('assignedDriverSelect');
 
                                     if (driverCount >= 2 && data.drivers && data.drivers.length >= 2) {
-                                        
                                         if (singleContainer) singleContainer.classList.add('hidden');
                                         if (multiContainer) multiContainer.classList.remove('hidden');
 
-                                        // Keep hiddenDriverId always enabled so it always submits via POST.
-                                        // Sync the dropdown selection into it instead of disabling it.
+                                        const finalDriverId = document.getElementById('finalDriverId');
                                         if (hiddenDriverId) {
-                                            hiddenDriverId.disabled = false;
-                                            hiddenDriverId.name = 'driver_id';
-                                            hiddenDriverId.required = true;
-                                            hiddenDriverId.value = ''; // cleared until user picks
+                                            hiddenDriverId.disabled = true; // Disabled so single_driver_id is not submitted
+                                            hiddenDriverId.value = '';
+                                        }
+                                        if (finalDriverId) {
+                                            finalDriverId.value = '';
                                         }
 
                                         if (assignedDriverSelect) {
                                             assignedDriverSelect.disabled = false;
-                                            assignedDriverSelect.name = ''; // NOT submitted — hiddenDriverId carries the value
-                                            assignedDriverSelect.required = false;
+                                            assignedDriverSelect.required = true;
                                             assignedDriverSelect.innerHTML = '<option value="">— Select Which Driver is Driving —</option>';
                                             data.drivers.forEach(d => {
                                                 const opt = document.createElement('option');
@@ -2984,23 +3002,25 @@
                                                 assignedDriverSelect.appendChild(opt);
                                             });
                                             assignedDriverSelect.onchange = function() {
-                                                // Sync selected value into the hidden field that actually submits
-                                                if (hiddenDriverId) hiddenDriverId.value = this.value;
+                                                const finalEl = document.getElementById('finalDriverId');
+                                                if (finalEl) finalEl.value = this.value;
+                                                const hiddenEl = document.getElementById('hiddenDriverId');
+                                                if (hiddenEl) hiddenEl.value = this.value;
                                                 checkDriverActiveDispatch(this.value, this.options[this.selectedIndex]?.textContent);
                                             };
                                             assignedDriverSelect.focus();
                                         }
 
-                                        rfidFeedback.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-check"></i> Truck matched! Select which alternate driver is operating.</span>';
+                                        rfidFeedback.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-check"></i> Truck matched! Select which driver is operating.</span>';
                                     } else {
-                                        
                                         if (singleContainer) singleContainer.classList.remove('hidden');
                                         if (multiContainer) multiContainer.classList.add('hidden');
 
+                                        const finalDriverId = document.getElementById('finalDriverId');
                                         if (assignedDriverSelect) {
                                             assignedDriverSelect.disabled = true;
-                                            assignedDriverSelect.name = '';
                                             assignedDriverSelect.required = false;
+                                            assignedDriverSelect.value = '';
                                             assignedDriverSelect.innerHTML = '';
                                         }
 
@@ -3008,9 +3028,10 @@
 
                                         if (hiddenDriverId) {
                                             hiddenDriverId.disabled = false;
-                                            hiddenDriverId.name = 'driver_id';
-                                            hiddenDriverId.required = true;
                                             hiddenDriverId.value = driverObj.id || '';
+                                        }
+                                        if (finalDriverId) {
+                                            finalDriverId.value = driverObj.id || '';
                                         }
                                         if (assignedDriverName) {
                                             assignedDriverName.value = driverObj.name || 'No Driver Assigned';

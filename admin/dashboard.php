@@ -530,24 +530,44 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
 
 
     if ($_POST['action'] == 'create_dispatch') {
-        $truck_id = !empty($_POST['truck_id']) ? $_POST['truck_id'] : null;
-        $driver_id = !empty($_POST['driver_id']) ? $_POST['driver_id'] : null;
-        $rfid_tag = $_POST['rfid_tag'];
+        $truck_id = !empty($_POST['truck_id']) ? intval($_POST['truck_id']) : null;
 
-        // If truck is known but driver_id wasn't sent, fall back to the primary driver.
-        // If driver_id WAS sent, verify it actually belongs to this truck (prevents wrong-driver bugs).
+        // Retrieve driver_id from any submitted form field
+        $driver_id = null;
+        if (!empty($_POST['driver_id'])) {
+            $driver_id = intval($_POST['driver_id']);
+        } elseif (!empty($_POST['multi_driver_id'])) {
+            $driver_id = intval($_POST['multi_driver_id']);
+        } elseif (!empty($_POST['single_driver_id'])) {
+            $driver_id = intval($_POST['single_driver_id']);
+        }
+
+        $rfid_tag = trim($_POST['rfid_tag'] ?? '');
+
+        // If driver_id was sent, verify it actually belongs to this truck
         if ($truck_id && $driver_id) {
             $verifyStmt = $pdo->prepare("SELECT id FROM drivers WHERE id = ? AND truck_id = ? AND status != 'Resigned' LIMIT 1");
             $verifyStmt->execute([$driver_id, $truck_id]);
             if (!$verifyStmt->fetchColumn()) {
-                // Submitted driver_id doesn't belong to this truck — fall back to primary
                 $driver_id = null;
             }
         }
+
+        // If truck is known but driver_id wasn't provided, inspect assigned drivers
         if ($truck_id && !$driver_id) {
-            $fallbackStmt = $pdo->prepare("SELECT id FROM drivers WHERE truck_id = ? AND status != 'Resigned' ORDER BY id ASC LIMIT 1");
-            $fallbackStmt->execute([$truck_id]);
-            $driver_id = $fallbackStmt->fetchColumn() ?: null;
+            $assignedStmt = $pdo->prepare("SELECT id FROM drivers WHERE truck_id = ? AND status != 'Resigned' ORDER BY id ASC");
+            $assignedStmt->execute([$truck_id]);
+            $assignedDrivers = $assignedStmt->fetchAll(PDO::FETCH_COLUMN);
+
+            if (count($assignedDrivers) === 1) {
+                // Exactly 1 driver assigned -> safe to use
+                $driver_id = intval($assignedDrivers[0]);
+            } else if (count($assignedDrivers) > 1) {
+                // Multiple drivers share this truck -> must explicitly choose
+                $_SESSION['scan_err'] = "This truck is shared by 2 drivers. Please select which driver is operating this trip.";
+                header("Location: dashboard.php?tab=dispatches");
+                exit;
+            }
         }
 
         if (!$truck_id || !$driver_id) {
@@ -2101,7 +2121,8 @@ try {
         WHERE t.status IN ('In Transit', 'Loading', 'Unloading')
           AND d.id IS NULL
     ");
-} catch (Throwable $e) {}
+} catch (Throwable $e) {
+}
 
 try {
     $fleetData = $pdo->query("
@@ -3056,7 +3077,6 @@ include __DIR__ . '/../includes/header.php';
         include __DIR__ . '/views/orders.php';
         include __DIR__ . '/views/checkers.php';
         include __DIR__ . '/views/reports.php';
-        include __DIR__ . '/views/activity_logs.php';
         include __DIR__ . '/views/pwd_requests.php';
         include __DIR__ . '/views/settings.php';
         ?>
@@ -3093,7 +3113,7 @@ include __DIR__ . '/../includes/header.php';
         document.addEventListener("DOMContentLoaded", function() {
             try {
                 window.open('print_cash_advance.php?id=<?= $ca_print_id; ?>', '_blank', 'noopener,noreferrer');
-            } catch(e) {
+            } catch (e) {
                 console.warn('Popup blocked:', e);
             }
         });

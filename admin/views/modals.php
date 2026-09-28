@@ -79,21 +79,21 @@
                 <div class="flex items-center justify-between">
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
                         <i class="fa-solid fa-users text-blue-500"></i>
-                        <span>Assigned Drivers</span>
+                        <span>Assigned Drivers (Shared Truck)</span>
                     </label>
                     <span id="edit_truck_driver_count_badge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
                         0 / 2 Drivers
                     </span>
                 </div>
                 <p class="text-xs text-gray-500 dark:text-gray-400">
-                    Assign up to 2 drivers to this vehicle (Primary and Alternate / Co-driver).
+                    Assign up to 2 drivers who share this vehicle.
                 </p>
 
                 
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Driver 1 (Primary)</label>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Driver 1</label>
                     <select name="driver_id_1" id="edit_truck_driver_1" onchange="syncEditTruckDriverSelects()" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors">
-                        <option value="">— No Primary Driver —</option>
+                        <option value="">— No Driver 1 Assigned —</option>
                         <?php foreach ($assignableDrivers ?? [] as $drv): ?>
                             <option value="<?= $drv['id'] ?>"
                                     data-name="<?= htmlspecialchars($drv['name']) ?>"
@@ -107,9 +107,9 @@
 
                 
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Driver 2 (Alternate / Co-Driver)</label>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Driver 2 (Co-Driver)</label>
                     <select name="driver_id_2" id="edit_truck_driver_2" onchange="syncEditTruckDriverSelects()" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors">
-                        <option value="">— No Alternate Driver —</option>
+                        <option value="">— No Driver 2 Assigned —</option>
                         <?php foreach ($assignableDrivers ?? [] as $drv): ?>
                             <option value="<?= $drv['id'] ?>"
                                     data-name="<?= htmlspecialchars($drv['name']) ?>"
@@ -334,7 +334,7 @@
                                 driverTruckCodeDisplay.classList.add('text-green-600');
                                 if (driverTruckFeedback) {
                                     if (data.driver_count === 1) {
-                                        driverTruckFeedback.innerHTML = `<span class="text-blue-600 dark:text-blue-400 font-medium"><i class="fa-solid fa-users mr-1"></i> 1/2 drivers assigned (${data.drivers[0].name}). This driver will be the 2nd alternate driver.</span>`;
+                                        driverTruckFeedback.innerHTML = `<span class="text-blue-600 dark:text-blue-400 font-medium"><i class="fa-solid fa-users mr-1"></i> 1/2 drivers assigned (${data.drivers[0].name}). This driver will share this truck as co-driver.</span>`;
                                     } else {
                                         driverTruckFeedback.innerHTML = `<span class="text-green-600 dark:text-green-400 font-medium"><i class="fa-solid fa-circle-check mr-1"></i> Truck available (0/2 drivers assigned).</span>`;
                                     }
@@ -387,19 +387,20 @@
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5" id="assignedDriverLabel">Assigned Driver</label>
                     
                     <div id="singleDriverContainer">
-                        <input type="hidden" name="driver_id" id="hiddenDriverId" required>
+                        <input type="hidden" name="single_driver_id" id="hiddenDriverId">
                         <input type="text" id="assignedDriverName" readonly placeholder="Auto-filled after scan" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 focus:outline-none cursor-not-allowed text-sm">
                     </div>
                     
                     <div id="multiDriverContainer" class="hidden">
-                        <select id="assignedDriverSelect" class="w-full border border-blue-400 dark:border-blue-600 rounded-xl px-4 py-2.5 bg-blue-50/60 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                            <option value="">— Select Driver (2 Assigned) —</option>
+                        <select name="multi_driver_id" id="assignedDriverSelect" disabled class="w-full border border-blue-400 dark:border-blue-600 rounded-xl px-4 py-2.5 bg-blue-50/60 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            <option value="">— Select Which Driver is Driving —</option>
                         </select>
                         <p class="text-[11px] text-blue-600 dark:text-blue-400 mt-1 font-medium flex items-center gap-1">
                             <i class="fa-solid fa-users text-xs"></i>
-                            <span>2 alternate drivers assigned to this truck. Select who is driving.</span>
+                            <span>2 drivers share this truck. Select who is driving.</span>
                         </p>
                     </div>
+                    <input type="hidden" name="driver_id" id="finalDriverId" value="">
                 </div>
             </div>
             <div>

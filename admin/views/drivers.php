@@ -166,7 +166,7 @@
                             <div class="flex items-center justify-between p-2.5 bg-blue-50/70 dark:bg-blue-900/20 rounded-xl border border-blue-100/60 dark:border-blue-800/40">
                                 <span class="flex items-center space-x-2 text-blue-600 dark:text-blue-400 font-medium">
                                     <i class="fa-solid fa-user-group text-blue-500 w-4 text-center"></i>
-                                    <span>Alternate Driver</span>
+                                    <span>Co-Driver</span>
                                 </span>
                                 <span class="font-bold text-blue-700 dark:text-blue-300 truncate max-w-[140px]" title="<?= htmlspecialchars($driver['co_driver_name']); ?>">
                                     <?= htmlspecialchars($driver['co_driver_name']); ?>

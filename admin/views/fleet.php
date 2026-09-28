@@ -75,16 +75,12 @@
                         <div class="min-w-0">
                             <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base sm:text-lg truncate"><?= htmlspecialchars($truck['truck_code']); ?></h3>
                             <?php if (!empty($driverNames) && count($driverNames) >= 2): ?>
-                                <div class="flex flex-col gap-0.5 mt-0.5">
+                                <div class="flex flex-col gap-1 mt-1">
                                     <?php foreach ($driverNames as $index => $dName): ?>
-                                        <p class="text-xs <?= $index === 0 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'; ?> truncate flex items-center gap-1" title="<?= htmlspecialchars($dName); ?>">
-                                            <i class="fa-solid <?= $index === 0 ? 'fa-id-card-clip' : 'fa-user-clock'; ?> text-[10px] flex-shrink-0"></i>
+                                        <p class="text-xs text-gray-700 dark:text-gray-300 font-medium truncate flex items-center gap-1.5" title="<?= htmlspecialchars($dName); ?>">
+                                            <i class="fa-solid fa-user-check text-[10px] text-blue-500 flex-shrink-0"></i>
                                             <span class="truncate"><?= htmlspecialchars($dName); ?></span>
-                                            <?php if ($index === 0): ?>
-                                                <span class="text-[9px] bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold px-1.5 py-0.5 rounded flex-shrink-0">Main</span>
-                                            <?php else: ?>
-                                                <span class="text-[9px] bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-300 font-bold px-1.5 py-0.5 rounded flex-shrink-0">Alt</span>
-                                            <?php endif; ?>
+                                            <span class="text-[9px] bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold px-1.5 py-0.5 rounded flex-shrink-0">Driver <?= $index + 1; ?></span>
                                         </p>
                                     <?php endforeach; ?>
                                 </div>
