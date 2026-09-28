@@ -534,8 +534,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $driver_id = !empty($_POST['driver_id']) ? $_POST['driver_id'] : null;
         $rfid_tag = $_POST['rfid_tag'];
 
-        // If truck is known but driver_id wasn't sent (e.g. multi-driver dropdown skipped),
-        // fall back to the truck's primary assigned driver from the DB.
+        // If truck is known but driver_id wasn't sent, fall back to the primary driver.
+        // If driver_id WAS sent, verify it actually belongs to this truck (prevents wrong-driver bugs).
+        if ($truck_id && $driver_id) {
+            $verifyStmt = $pdo->prepare("SELECT id FROM drivers WHERE id = ? AND truck_id = ? AND status != 'Resigned' LIMIT 1");
+            $verifyStmt->execute([$driver_id, $truck_id]);
+            if (!$verifyStmt->fetchColumn()) {
+                // Submitted driver_id doesn't belong to this truck — fall back to primary
+                $driver_id = null;
+            }
+        }
         if ($truck_id && !$driver_id) {
             $fallbackStmt = $pdo->prepare("SELECT id FROM drivers WHERE truck_id = ? AND status != 'Resigned' ORDER BY id ASC LIMIT 1");
             $fallbackStmt->execute([$truck_id]);

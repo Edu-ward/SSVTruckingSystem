@@ -2840,13 +2840,17 @@
                         e.preventDefault();
                         return false;
                     }
-                    // Block submit if multi-driver dropdown is shown but user hasn't picked yet
+                    // Sync dropdown -> hidden field BEFORE any validation (covers keyboard/enter submit edge cases)
                     const multiContainer = document.getElementById('multiDriverContainer');
                     const hiddenDriverIdEl = document.getElementById('hiddenDriverId');
                     if (multiContainer && !multiContainer.classList.contains('hidden')) {
+                        const sel = document.getElementById('assignedDriverSelect');
+                        // Always sync from dropdown to hidden field on submit
+                        if (sel && sel.value && hiddenDriverIdEl) {
+                            hiddenDriverIdEl.value = sel.value;
+                        }
                         if (!hiddenDriverIdEl || !hiddenDriverIdEl.value) {
                             e.preventDefault();
-                            const sel = document.getElementById('assignedDriverSelect');
                             if (sel) {
                                 sel.classList.add('ring-2', 'ring-red-500', 'border-red-500');
                                 setTimeout(() => sel.classList.remove('ring-2', 'ring-red-500', 'border-red-500'), 3000);
