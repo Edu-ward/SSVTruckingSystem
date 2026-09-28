@@ -2342,9 +2342,13 @@ foreach ($allDrivers as &$dr) {
             COALESCE(dt.is_on_time, 1) AS is_on_time,
             IF(dt.payroll_id IS NOT NULL OR dt.is_payroll_paid = 1, 1, 0) AS is_payroll_paid,
             dt.payroll_id,
-            dt.created_at
+            dt.created_at,
+            d.ticket_number
         FROM driver_trips dt
         LEFT JOIN destinations dest ON dest.name = dt.destination
+        LEFT JOIN dispatches d ON d.driver_id = dt.driver_id AND d.destination = dt.destination
+            AND (d.status = 'Delivered' OR d.status NOT IN ('Pending','In Transit','Loading','Unloading'))
+            AND DATE(d.created_at) = dt.trip_date
         WHERE dt.driver_id = ? 
         ORDER BY dt.trip_date DESC, dt.id DESC
     ");

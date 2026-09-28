@@ -1,13 +1,5 @@
--- ============================================================
--- SSV Trucking System - Production Database Migration Patch
--- Safe to run on deployed database (InfinityFree / Live MySQL)
--- This script preserves existing users, trips, and live records.
--- Run this in phpMyAdmin > SQL tab on your live database.
--- ============================================================
-
 SET FOREIGN_KEY_CHECKS = 0;
 
--- 1. Ensure `users` role supports all modern roles
 ALTER TABLE `users` 
     MODIFY COLUMN `role` ENUM('Superadmin', 'Admin', 'Driver', 'Checker') NOT NULL DEFAULT 'Driver';
 

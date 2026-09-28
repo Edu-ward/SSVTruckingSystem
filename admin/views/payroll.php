@@ -261,10 +261,14 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                             $deliveredTripsList = array_values(array_filter($driver['all_trips'] ?? [], fn($t) => ($t['status'] ?? '') === 'Delivered'));
                             $driverTripsJson = htmlspecialchars(json_encode(array_map(function($t) {
                                 return [
-                                    'id'    => $t['id'] ?? 0,
-                                    'date'  => !empty($t['transit_end_time']) ? substr($t['transit_end_time'], 0, 10) : (!empty($t['trip_date']) ? substr($t['trip_date'], 0, 10) : substr($t['created_at'] ?? '', 0, 10)),
-                                    'pay'   => floatval($t['pay_amount'] ?? 0),
-                                    'paid'  => !empty($t['is_payroll_paid']) ? 1 : 0
+                                    'id'          => $t['id'] ?? 0,
+                                    'date'        => !empty($t['transit_end_time']) ? substr($t['transit_end_time'], 0, 10) : (!empty($t['trip_date']) ? substr($t['trip_date'], 0, 10) : substr($t['created_at'] ?? '', 0, 10)),
+                                    'pay'         => floatval($t['pay_amount'] ?? 0),
+                                    'paid'        => !empty($t['is_payroll_paid']) ? 1 : 0,
+                                    'destination' => $t['destination'] ?? '',
+                                    'ticket'      => $t['ticket_number'] ?? '',
+                                    'dispatch_at' => !empty($t['transit_start_time']) ? $t['transit_start_time'] : ($t['created_at'] ?? ''),
+                                    'end_at'      => $t['transit_end_time'] ?? ''
                                 ];
                             }, $deliveredTripsList), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8');
 
@@ -287,7 +291,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                 
                                 
                                 <td class="px-3 sm:px-4 py-3">
-                                    <div class="flex items-center space-x-3">
+                                    <div class="flex items-center space-x-3 group cursor-pointer" onclick="openDriverWeekTripsModal(this.closest('tr'))" title="View week trips">
                                         <?php if ($dPhotoUrl): ?>
                                             <img src="<?= $dPhotoUrl ?>" alt="<?= htmlspecialchars($driver['name']) ?>" class="w-10 h-10 rounded-xl object-cover shadow-sm flex-shrink-0 border border-gray-200 dark:border-gray-700">
                                         <?php else: ?>
@@ -296,8 +300,9 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                             </div>
                                         <?php endif; ?>
                                         <div class="min-w-0">
-                                            <div class="font-bold text-gray-900 dark:text-gray-100 text-sm truncate">
+                                            <div class="font-bold text-gray-900 dark:text-gray-100 text-sm truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors flex items-center gap-1.5">
                                                 <?= htmlspecialchars($driver['name']); ?>
+                                                <i class="fa-solid fa-calendar-week text-[10px] text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity"></i>
                                             </div>
                                             <div class="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-2">
                                                 <span>CDL: <?= htmlspecialchars($driver['cdl_number'] ?? 'N/A'); ?></span>
@@ -387,6 +392,50 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                 <h4 class="font-bold text-gray-800 dark:text-gray-200 text-sm">No drivers match your search</h4>
                 <p class="text-xs text-gray-400 mt-1" id="noPayrollSearchText"></p>
                 <button type="button" onclick="clearPayrollSearch()" class="mt-3 px-3 py-1.5 text-xs font-semibold text-emerald-600 hover:underline">Clear Search</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Driver Week Trips Modal -->
+    <div id="driverWeekTripsModal" class="fixed inset-0 z-[9990] flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeDriverWeekTripsModal()"></div>
+        <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700 bg-emerald-50 dark:bg-emerald-900/20 flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                        <i class="fa-solid fa-calendar-week text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-gray-100 text-sm" id="dwtm-driver-name">Driver Trips</h3>
+                        <p class="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold" id="dwtm-period-label">This Week</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeDriverWeekTripsModal()" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-gray-700 transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <!-- Summary bar -->
+            <div class="flex items-center gap-4 px-5 py-3 bg-gray-50 dark:bg-gray-900/30 border-b border-gray-100 dark:border-gray-700 text-xs flex-shrink-0">
+                <span class="flex items-center gap-1.5 font-semibold text-gray-700 dark:text-gray-300">
+                    <i class="fa-solid fa-route text-blue-500"></i>
+                    <span id="dwtm-trip-count">0 trips</span>
+                </span>
+                <span class="flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400">
+                    <i class="fa-solid fa-coins"></i>
+                    <span id="dwtm-total-pay">₱0.00</span>
+                </span>
+                <span class="ml-auto flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-semibold" id="dwtm-unpaid-badge">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                    <span id="dwtm-unpaid-count">0 unpaid</span>
+                </span>
+            </div>
+            <!-- Trip list -->
+            <div class="overflow-y-auto flex-1 p-4 space-y-2" id="dwtm-trip-list">
+                <div class="py-10 text-center text-gray-400 dark:text-gray-500" id="dwtm-empty-state">
+                    <i class="fa-solid fa-truck text-3xl mb-2 opacity-30 block"></i>
+                    <p class="text-sm font-medium">No trips for this period</p>
+                </div>
             </div>
         </div>
     </div>
@@ -798,6 +847,101 @@ function clearPayrollSearch() {
         input.focus();
     }
 }
+
+// ── Driver Week Trips Modal ────────────────────────────────────────────
+function openDriverWeekTripsModal(row) {
+    const driverName  = row.getAttribute('data-driver-name') || 'Driver';
+    const periodBadge = document.getElementById('activePayPeriodBadge');
+    const periodLabel = periodBadge ? periodBadge.textContent.trim() : 'This Week';
+
+    let tripsData = [];
+    try { tripsData = JSON.parse(row.getAttribute('data-trips') || '[]'); } catch(e) {}
+
+    // Filter trips to the current pay period
+    const periodTrips = tripsData.filter(t => {
+        if (isPayrollAllCycles) return true;
+        if (!currentPayrollFrom || !currentPayrollTo) return true;
+        return t.date >= currentPayrollFrom && t.date <= currentPayrollTo;
+    });
+
+    // Populate header
+    const nameEl   = document.getElementById('dwtm-driver-name');
+    const labelEl  = document.getElementById('dwtm-period-label');
+    if (nameEl)  nameEl.textContent  = driverName;
+    if (labelEl) labelEl.textContent = periodLabel;
+
+    // Compute summary
+    let totalPay  = 0;
+    let unpaidCnt = 0;
+    periodTrips.forEach(t => {
+        totalPay  += t.pay;
+        if (t.paid === 0) unpaidCnt++;
+    });
+
+    document.getElementById('dwtm-trip-count').textContent  = `${periodTrips.length} trip${periodTrips.length !== 1 ? 's' : ''}`;
+    document.getElementById('dwtm-total-pay').textContent   = `₱${totalPay.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+    document.getElementById('dwtm-unpaid-count').textContent= `${unpaidCnt} unpaid`;
+    const unpaidBadge = document.getElementById('dwtm-unpaid-badge');
+    if (unpaidBadge) unpaidBadge.classList.toggle('hidden', unpaidCnt === 0);
+
+    // Build trip list
+    const listEl   = document.getElementById('dwtm-trip-list');
+    const emptyEl  = document.getElementById('dwtm-empty-state');
+
+    if (periodTrips.length === 0) {
+        if (emptyEl)  emptyEl.classList.remove('hidden');
+        if (listEl)   listEl.innerHTML = '';
+        listEl.appendChild(emptyEl);
+    } else {
+        listEl.innerHTML = '';
+        if (emptyEl) emptyEl.classList.add('hidden');
+
+        periodTrips.forEach((t, idx) => {
+            const paidBadge = t.paid
+                ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"><i class="fa-solid fa-check mr-1"></i>Paid</span>`
+                : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"><i class="fa-solid fa-hourglass-half mr-1"></i>Unpaid</span>`;
+
+            const dest = t.destination || 'N/A';
+            const ticket = t.ticket ? `<span class="font-mono text-[10px] text-gray-400">#${t.ticket}</span>` : '';
+            const dateStr = t.date || '';
+            const fmtDate = dateStr ? (() => { const d = new Date(dateStr + 'T00:00:00'); return d.toLocaleDateString('en-PH', {month:'short', day:'numeric', year:'numeric'}); })() : '—';
+            const payFmt  = `₱${t.pay.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+
+            const card = document.createElement('div');
+            card.className = `flex items-center gap-3 p-3 rounded-xl border ${t.paid ? 'border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/40 dark:bg-emerald-900/10' : 'border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50'} hover:shadow-sm transition`;
+            card.innerHTML = `
+                <div class="w-7 h-7 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 flex items-center justify-center text-xs font-bold text-gray-500 flex-shrink-0 shadow-sm">${idx + 1}</div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">${dest}</span>
+                        ${ticket}
+                    </div>
+                    <div class="text-[11px] text-gray-400 mt-0.5 flex items-center gap-2">
+                        <i class="fa-regular fa-calendar"></i>
+                        <span>${fmtDate}</span>
+                    </div>
+                </div>
+                <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                    <span class="font-bold text-sm ${t.paid ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-300'}">${payFmt}</span>
+                    ${paidBadge}
+                </div>
+            `;
+            listEl.appendChild(card);
+        });
+    }
+
+    const modal = document.getElementById('driverWeekTripsModal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeDriverWeekTripsModal() {
+    const modal = document.getElementById('driverWeekTripsModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeDriverWeekTripsModal();
+});
 
 // Initial calculation for current period
 document.addEventListener('DOMContentLoaded', function() {

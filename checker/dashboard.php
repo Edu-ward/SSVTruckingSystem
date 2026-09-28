@@ -193,7 +193,8 @@ $activeOrders = array_filter($myOrders, fn($o) => in_array($o['status'], ['Pendi
 
 $dispatchedTrucks = $pdo->query("
     SELECT t.id AS truck_id, t.truck_code, d.id AS dispatch_id, d.ticket_number, d.cubic_meters, d.destination,
-           CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name
+           CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name,
+           d.order_id AS designated_order_id
     FROM trucks t
     LEFT JOIN dispatches d ON d.truck_id = t.id AND d.status IN ('Pending', 'In Transit', 'Loading', 'Unloading')
     LEFT JOIN drivers dr ON dr.id = d.driver_id
@@ -361,10 +362,13 @@ foreach ($_gravel_rows as $_g) {
                             Select Dispatched Truck <span class="text-red-500">*</span>
                         </label>
                         <select id="truckSelect"
-                            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                            onchange="onManualTruckChange(this)">
                             <option value="">— Select dispatched truck —</option>
                             <?php foreach ($dispatchedTrucks as $dt): ?>
-                                <option value="<?= $dt['truck_id'] ?>">
+                                <option value="<?= $dt['truck_id'] ?>"
+                                    data-order-id="<?= intval($dt['designated_order_id'] ?? 0) ?>"
+                                    data-has-dispatch="<?= !empty($dt['ticket_number']) ? '1' : '0' ?>">
                                     <?= htmlspecialchars($dt['truck_code']) ?>
                                     <?php if (!empty($dt['ticket_number'])): ?>
                                         · Ticket <?= htmlspecialchars($dt['ticket_number']) ?>
@@ -375,6 +379,10 @@ foreach ($_gravel_rows as $_g) {
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                        <div id="manualOrderLockNotice" class="hidden mt-2 rounded-lg px-3 py-2 text-xs flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700">
+                            <i class="fa-solid fa-lock"></i>
+                            <span id="manualOrderLockMsg">This truck is dispatched for a specific order.</span>
+                        </div>
                     </div>
 
                     <button type="submit" id="confirmBtn"
@@ -559,6 +567,47 @@ foreach ($_gravel_rows as $_g) {
         }
     }
 
+    // Build a lookup map: truck_id => designated_order_id
+    const truckOrderMap = {};
+    document.querySelectorAll('#truckSelect option[data-order-id]').forEach(opt => {
+        if (opt.value) truckOrderMap[opt.value] = parseInt(opt.getAttribute('data-order-id') || 0);
+    });
+
+    function lockOrderForTruck(truckId) {
+        const orderSel   = document.getElementById('scanOrderSelect');
+        const lockNotice = document.getElementById('manualOrderLockNotice');
+        const lockMsg    = document.getElementById('manualOrderLockMsg');
+        if (!orderSel) return;
+
+        const designatedOrderId = truckOrderMap[String(truckId)] || 0;
+        if (designatedOrderId > 0) {
+            let found = false;
+            for (let i = 0; i < orderSel.options.length; i++) {
+                if (parseInt(orderSel.options[i].value) === designatedOrderId) {
+                    orderSel.selectedIndex = i;
+                    orderSel.dispatchEvent(new Event('change'));
+                    found = true;
+                    break;
+                }
+            }
+            orderSel.disabled = true;
+            orderSel.classList.add('opacity-60', 'cursor-not-allowed');
+            if (lockNotice) lockNotice.classList.remove('hidden');
+            if (lockMsg) lockMsg.textContent = found
+                ? 'Order auto-selected \u2014 this truck is dispatched for this specific order.'
+                : 'This truck is dispatched for an order not in your active list.';
+        } else {
+            orderSel.disabled = false;
+            orderSel.classList.remove('opacity-60', 'cursor-not-allowed');
+            if (lockNotice) lockNotice.classList.add('hidden');
+        }
+    }
+
+    function onManualTruckChange(sel) {
+        updateConfirmBtn();
+        lockOrderForTruck(sel.value);
+    }
+
     
     let rfidDebounce = null;
 
@@ -592,6 +641,8 @@ foreach ($_gravel_rows as $_g) {
                     document.getElementById('hiddenTruckId').value = data.truck_id;
                     document.getElementById('rfidTruckCode').textContent = data.truck_code;
                     setRfidStatus('found');
+                    // Lock the order dropdown if this truck has a designated order
+                    lockOrderForTruck(data.truck_id);
                 } else {
                     document.getElementById('hiddenTruckId').value = '';
                     setRfidStatus('error', data.message || 'No truck found for this RFID tag.');
@@ -631,6 +682,7 @@ foreach ($_gravel_rows as $_g) {
         document.getElementById('rfidStatus').classList.add('hidden');
         document.getElementById('rfidScanning').classList.add('hidden');
         updateConfirmBtn();
+        lockOrderForTruck(''); // Unlock order dropdown when RFID is cleared
         document.getElementById('rfidInput').focus();
     }
 
