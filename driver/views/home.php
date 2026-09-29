@@ -2130,9 +2130,7 @@ if (!empty($driverFullName)) {
                 </div>
             `);
 
-        const startPoint = (driverCurrentLat && driverCurrentLng) ?
-            [driverCurrentLat, driverCurrentLng] :
-            [GARAGE_LOCATION.lat, GARAGE_LOCATION.lng];
+        const startPoint = (driverCurrentLat && driverCurrentLng) ? [driverCurrentLat, driverCurrentLng] : [GARAGE_LOCATION.lat, GARAGE_LOCATION.lng];
 
         try {
             const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startPoint[1]},${startPoint[0]};${coords.lng},${coords.lat}?overview=full&geometries=geojson`;
@@ -2291,10 +2289,10 @@ if (!empty($driverFullName)) {
                     .addTo(driverMap)
                     .bindPopup(`
                         <div class="p-2 min-w-[190px]">
-                            <div class="font-bold text-gray-900 text-xs flex items-center gap-1.5 border-b pb-1">
+                            <div class="font-bold text-white text-xs flex items-center gap-1.5 border-b pb-1">
                                 <i class="fa-solid fa-truck text-emerald-600"></i> Your Current Location
                             </div>
-                            <div class="text-xs font-semibold text-gray-100 mt-1.5 leading-snug" id="driverMarkerLocationText">${initialLocationText}</div>
+                            <div class="text-xs font-semibold text-white mt-1.5 leading-snug" id="driverMarkerLocationText">${initialLocationText}</div>
                             <div class="text-[10px] text-emerald-600 font-medium mt-1 flex items-center gap-1">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live GPS Active
                             </div>
