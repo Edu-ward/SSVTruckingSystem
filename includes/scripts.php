@@ -2847,6 +2847,15 @@
             const finalDriverId = document.getElementById('finalDriverId');
             const assignedDriverName = document.getElementById('assignedDriverName');
             const assignedDriverSelect = document.getElementById('assignedDriverSelect');
+            const rfidInput = document.getElementById('rfidInput');
+            const rfidFeedback = document.getElementById('rfidFeedback');
+            const truckPlate = document.getElementById('truckPlate');
+            const hiddenTruckId = document.getElementById('hiddenTruckId');
+
+            if (rfidInput) rfidInput.value = '';
+            if (rfidFeedback) rfidFeedback.innerHTML = 'Waiting for scan...';
+            if (truckPlate) truckPlate.value = '';
+            if (hiddenTruckId) hiddenTruckId.value = '';
 
             if (singleContainer) singleContainer.classList.remove('hidden');
             if (multiContainer) multiContainer.classList.add('hidden');
@@ -2871,11 +2880,14 @@
                 hiddenOffHours.value = '0';
             }
             const orderSel = document.getElementById('dispatchOrderSelect');
-            if (orderSel && orderSel.value) {
+            if (orderSel) {
                 orderSel.value = '';
-                if (typeof autoFillOrderDetails === 'function') {
-                    autoFillOrderDetails(orderSel);
-                }
+            }
+
+            if (typeof window.clearDispatchOrderPresetFields === 'function') {
+                window.clearDispatchOrderPresetFields();
+            } else if (typeof clearDispatchOrderPresetFields === 'function') {
+                clearDispatchOrderPresetFields();
             }
         }
 

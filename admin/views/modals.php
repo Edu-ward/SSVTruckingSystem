@@ -575,11 +575,9 @@
         </div>
     </div>
     <script>
-        async function autoFillOrderDetails(selectElem) {
-            const opt = selectElem.options[selectElem.selectedIndex];
+        function clearDispatchOrderPresetFields() {
             const customerInfo = document.getElementById('dispatchCustomerInfo');
             const customerNameEl = document.getElementById('dispatchCustomerName');
-
             const clientNameInput = document.getElementById('dispatchClientName');
             const contactInput = document.getElementById('dispatchContactNumber');
             const landmarkInput = document.getElementById('dispatchLandmark');
@@ -589,41 +587,86 @@
             const osmBtn = document.getElementById('dispatchOsmSearchBtn');
             const remainingNotice = document.getElementById('orderRemainingNotice');
             const lockBadges = document.querySelectorAll('.order-preset-badge');
+            const payPreview = document.getElementById('dispatchPayPreview');
+            const payAmountEl = document.getElementById('dispatchPayAmount');
+            const hiddenDist = document.getElementById('dispatchDistanceKm');
+            const hiddenPay = document.getElementById('dispatchDriverPay');
+            const etaInput = document.getElementById('dispatchEtaInput');
+            const etaBadge = document.getElementById('dispatchEtaBadge');
+
+            if (customerInfo) customerInfo.classList.add('hidden');
+            if (customerNameEl) customerNameEl.textContent = '';
+            if (remainingNotice) {
+                remainingNotice.classList.add('hidden');
+                remainingNotice.textContent = '';
+            }
+            lockBadges.forEach(b => b.classList.add('hidden'));
+
+            [clientNameInput, contactInput, landmarkInput].forEach(inp => {
+                if (!inp) return;
+                inp.readOnly = false;
+                inp.disabled = false;
+                inp.value = '';
+                inp.classList.remove('bg-gray-100', 'dark:bg-gray-800', 'text-gray-500', 'dark:text-gray-400', 'cursor-not-allowed', 'select-none');
+                inp.classList.add('bg-white', 'dark:bg-gray-700', 'dark:text-gray-100');
+            });
+
+            if (destSelect) {
+                destSelect.disabled = false;
+                delete destSelect.dataset.orderLocked;
+                destSelect.selectedIndex = 0;
+                destSelect.value = '';
+                destSelect.classList.remove('bg-gray-100', 'dark:bg-gray-800', 'text-gray-500', 'dark:text-gray-400', 'cursor-not-allowed');
+                destSelect.classList.add('bg-white', 'dark:bg-gray-700', 'dark:text-gray-100');
+            }
+
+            if (gravelSelect) {
+                gravelSelect.disabled = false;
+                delete gravelSelect.dataset.orderLocked;
+                gravelSelect.selectedIndex = 0;
+                gravelSelect.value = '';
+                gravelSelect.classList.remove('bg-gray-100', 'dark:bg-gray-800', 'text-gray-500', 'dark:text-gray-400', 'cursor-not-allowed');
+                gravelSelect.classList.add('bg-white', 'dark:bg-gray-700', 'dark:text-gray-100');
+            }
+
+            if (osmBtn) osmBtn.classList.remove('hidden');
+            if (payPreview) payPreview.classList.add('hidden');
+            if (payAmountEl) payAmountEl.innerHTML = '';
+            if (hiddenDist) hiddenDist.value = '0';
+            if (hiddenPay) hiddenPay.value = '0';
+            if (etaInput) etaInput.value = '';
+            if (etaBadge) {
+                etaBadge.classList.add('hidden');
+                etaBadge.textContent = '';
+            }
+            if (cubicInput) {
+                cubicInput.readOnly = false;
+                cubicInput.disabled = false;
+                cubicInput.value = '';
+                cubicInput.placeholder = 'e.g. 10.00';
+            }
+        }
+        window.clearDispatchOrderPresetFields = clearDispatchOrderPresetFields;
+
+        async function autoFillOrderDetails(selectElem) {
+            const opt = selectElem ? selectElem.options[selectElem.selectedIndex] : null;
 
             if (!opt || !opt.value) {
-                if (customerInfo) customerInfo.classList.add('hidden');
-                if (remainingNotice) remainingNotice.classList.add('hidden');
-                lockBadges.forEach(b => b.classList.add('hidden'));
-
-                [clientNameInput, contactInput, landmarkInput].forEach(inp => {
-                    if (!inp) return;
-                    inp.readOnly = false;
-                    inp.disabled = false;
-                    inp.value = '';
-                    inp.classList.remove('bg-gray-100', 'dark:bg-gray-800', 'text-gray-500', 'dark:text-gray-400', 'cursor-not-allowed', 'select-none');
-                    inp.classList.add('bg-white', 'dark:bg-gray-700', 'dark:text-gray-100');
-                });
-
-                [destSelect, gravelSelect].forEach(sel => {
-                    if (!sel) return;
-                    sel.disabled = false;
-                    delete sel.dataset.orderLocked;
-                    sel.classList.remove('bg-gray-100', 'dark:bg-gray-800', 'text-gray-500', 'dark:text-gray-400', 'cursor-not-allowed');
-                    sel.classList.add('bg-white', 'dark:bg-gray-700', 'dark:text-gray-100');
-                });
-
-                if (osmBtn) osmBtn.classList.remove('hidden');
-                if (destSelect) {
-                    destSelect.selectedIndex = 0;
-                    if (typeof handleDispatchDestinationChange === 'function') handleDispatchDestinationChange();
-                }
-                if (gravelSelect) gravelSelect.selectedIndex = 0;
-                if (cubicInput) {
-                    cubicInput.placeholder = 'e.g. 10.00';
-                    cubicInput.value = '';
-                }
+                clearDispatchOrderPresetFields();
                 return;
             }
+
+            const customerInfo = document.getElementById('dispatchCustomerInfo');
+            const customerNameEl = document.getElementById('dispatchCustomerName');
+            const clientNameInput = document.getElementById('dispatchClientName');
+            const contactInput = document.getElementById('dispatchContactNumber');
+            const landmarkInput = document.getElementById('dispatchLandmark');
+            const destSelect = document.getElementById('destinationSelect');
+            const gravelSelect = document.getElementById('gravelType');
+            const cubicInput = document.getElementById('dispatchCubicMeters');
+            const osmBtn = document.getElementById('dispatchOsmSearchBtn');
+            const remainingNotice = document.getElementById('orderRemainingNotice');
+            const lockBadges = document.querySelectorAll('.order-preset-badge');
 
             const dest = opt.dataset.destination;
             const gravel = opt.dataset.gravel;
@@ -2191,8 +2234,17 @@
             const destName = destSelect.value;
             if (!destName) {
                 document.getElementById('dispatchPayPreview')?.classList.add('hidden');
-                document.getElementById('dispatchDistanceKm').value = '0';
-                document.getElementById('dispatchDriverPay').value = '0';
+                const distEl = document.getElementById('dispatchDistanceKm');
+                if (distEl) distEl.value = '0';
+                const payEl = document.getElementById('dispatchDriverPay');
+                if (payEl) payEl.value = '0';
+                const etaInput = document.getElementById('dispatchEtaInput');
+                if (etaInput) etaInput.value = '';
+                const etaBadge = document.getElementById('dispatchEtaBadge');
+                if (etaBadge) {
+                    etaBadge.classList.add('hidden');
+                    etaBadge.textContent = '';
+                }
                 return;
             }
             const opt = destSelect.options[destSelect.selectedIndex];
