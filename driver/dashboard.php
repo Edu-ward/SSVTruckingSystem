@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         try {
             $pdo->prepare("INSERT INTO cash_advances (driver_id, amount, reason) VALUES (?, ?, ?)")
                 ->execute([$driver_id, $ca_amount, $ca_reason]);
-            
+
             $pdo->prepare("INSERT IGNORE INTO driver_payroll (driver_id, total_amount, amount_claimed) VALUES (?, 0, 0)")
                 ->execute([$driver_id]);
             $_SESSION['success'] = "Cash advance request of ₱" . number_format($ca_amount, 2) . " submitted. Awaiting Admin approval.";
@@ -177,7 +177,7 @@ $current_week = date('oW');
 $current_month = date('Y-m');
 
 
-$dayOfWeek = (int)date('N'); 
+$dayOfWeek = (int)date('N');
 $thisMonday = date('Y-m-d', strtotime('-' . ($dayOfWeek - 1) . ' days'));
 $thisSaturday = date('Y-m-d', strtotime('+' . (6 - $dayOfWeek) . ' days'));
 $thisSunday = date('Y-m-d', strtotime('+' . (7 - $dayOfWeek) . ' days'));
@@ -211,7 +211,7 @@ for ($w = 0; $w < 12; $w++) {
     ];
 }
 
-$selectableWeeks = $driverTripPayPeriods; 
+$selectableWeeks = $driverTripPayPeriods;
 
 $selectedFrom = $_GET['date_from'] ?? $thisMonday;
 $selectedTo   = $_GET['date_to']   ?? $thisSunday;
@@ -489,7 +489,7 @@ foreach ($payrollSettlements as $ps) {
 }
 
 
-usort($driverNotifications, function($a, $b) {
+usort($driverNotifications, function ($a, $b) {
     return $b['timestamp'] - $a['timestamp'];
 });
 

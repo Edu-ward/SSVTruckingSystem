@@ -1163,13 +1163,6 @@ if (!empty($driverFullName)) {
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Real-time alerts regarding trip dispatches, advance approvals, and payroll</p>
                 </div>
             </div>
-
-            <div class="flex items-center gap-2">
-                <button type="button" onclick="markAllNotificationsAsRead()"
-                    class="px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition active:scale-95 flex items-center gap-1.5">
-                    <i class="fa-solid fa-check-double text-blue-500"></i> Mark All as Read
-                </button>
-            </div>
         </div>
 
         <?php if (!empty($driverNotifications)): ?>
@@ -1675,19 +1668,15 @@ if (!empty($driverFullName)) {
     // -------------------------------------------------------------
     // Notifications Helpers
     // -------------------------------------------------------------
-    function markAllNotificationsAsRead() {
-        document.querySelectorAll('.driver-notif-item').forEach(el => {
-            el.classList.add('opacity-70');
-        });
-        const badge1 = document.querySelector('#nav-notifications span.bg-rose-500');
-        if (badge1) badge1.classList.add('hidden');
-        const badge2 = document.querySelector('#bottom-nav-notifications span.bg-rose-500');
-        if (badge2) badge2.classList.add('hidden');
-        const badge3 = document.querySelector('button[title="Notifications"] span.bg-rose-500');
-        if (badge3) badge3.classList.add('hidden');
-        if (typeof showToast === 'function') {
-            showToast('All notifications marked as read', 'info');
-        }
+    const badge1 = document.querySelector('#nav-notifications span.bg-rose-500');
+    if (badge1) badge1.classList.add('hidden');
+    const badge2 = document.querySelector('#bottom-nav-notifications span.bg-rose-500');
+    if (badge2) badge2.classList.add('hidden');
+    const badge3 = document.querySelector('button[title="Notifications"] span.bg-rose-500');
+    if (badge3) badge3.classList.add('hidden');
+    if (typeof showToast === 'function') {
+        showToast('All notifications marked as read', 'info');
+    }
     }
 
     // -------------------------------------------------------------
