@@ -366,9 +366,11 @@ if (!empty($driverFullName)) {
                 box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
                 padding: 0 !important;
             }
+
             #driverRouteMap .leaflet-popup-tip {
                 background-color: #ffffff !important;
             }
+
             html.dark #driverRouteMap .leaflet-popup-content-wrapper,
             .dark #driverRouteMap .leaflet-popup-content-wrapper {
                 background-color: #1e293b !important;
@@ -376,15 +378,18 @@ if (!empty($driverFullName)) {
                 border: 1px solid #334155 !important;
                 box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6) !important;
             }
+
             html.dark #driverRouteMap .leaflet-popup-tip,
             .dark #driverRouteMap .leaflet-popup-tip {
                 background-color: #1e293b !important;
             }
+
             #driverRouteMap .driver-popup-card {
                 padding: 10px 14px;
                 min-width: 200px;
                 max-width: 280px;
             }
+
             #driverRouteMap .driver-popup-title {
                 font-weight: 700;
                 font-size: 13px;
@@ -396,21 +401,25 @@ if (!empty($driverFullName)) {
                 align-items: center;
                 gap: 6px;
             }
+
             html.dark #driverRouteMap .driver-popup-title,
             .dark #driverRouteMap .driver-popup-title {
                 color: #f8fafc !important;
                 border-bottom-color: #334155 !important;
             }
+
             #driverRouteMap .driver-popup-loc {
                 font-weight: 600;
                 font-size: 12.5px;
                 color: #1f2937;
                 line-height: 1.4;
             }
+
             html.dark #driverRouteMap .driver-popup-loc,
             .dark #driverRouteMap .driver-popup-loc {
                 color: #f1f5f9 !important;
             }
+
             #driverRouteMap .driver-popup-sub {
                 font-size: 11px;
                 color: #059669;
@@ -420,23 +429,28 @@ if (!empty($driverFullName)) {
                 align-items: center;
                 gap: 6px;
             }
+
             html.dark #driverRouteMap .driver-popup-sub,
             .dark #driverRouteMap .driver-popup-sub {
                 color: #34d399 !important;
             }
+
             #driverRouteMap .driver-popup-hint {
                 font-size: 11px;
                 color: #6b7280;
                 margin-top: 3px;
             }
+
             html.dark #driverRouteMap .driver-popup-hint,
             .dark #driverRouteMap .driver-popup-hint {
                 color: #94a3b8 !important;
             }
+
             #driverRouteMap .leaflet-popup-close-button {
                 color: #64748b !important;
                 padding: 6px !important;
             }
+
             html.dark #driverRouteMap .leaflet-popup-close-button,
             .dark #driverRouteMap .leaflet-popup-close-button {
                 color: #94a3b8 !important;
@@ -1145,11 +1159,6 @@ if (!empty($driverFullName)) {
                 <div>
                     <h2 class="font-extrabold text-lg sm:text-xl text-gray-900 dark:text-gray-100 flex items-center gap-2">
                         Driver Notifications & Alerts
-                        <?php if (($unreadNotificationCount ?? 0) > 0): ?>
-                            <span class="text-xs px-2 py-0.5 rounded-full bg-rose-500 text-white font-bold">
-                                <?= $unreadNotificationCount; ?> New
-                            </span>
-                        <?php endif; ?>
                     </h2>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Real-time alerts regarding trip dispatches, advance approvals, and payroll</p>
                 </div>
