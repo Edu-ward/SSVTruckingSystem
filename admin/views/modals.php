@@ -432,14 +432,14 @@
                     <div>
                         <div class="flex justify-between items-center mb-1.5">
                             <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Client's Name</label>
-                            <span class="order-preset-badge text-[11px] font-medium text-blue-600 dark:text-blue-400 hidden"><i class="fa-solid fa-lock text-[10px] mr-1"></i>Preset by order</span>
+                            <span class="order-preset-badge text-[11px] font-medium text-blue-600 dark:text-blue-400 hidden"><i class="fa-solid fa-lock text-[10px] mr-1"></i>Preset</span>
                         </div>
                         <input type="text" name="client_name" id="dispatchClientName" placeholder="e.g. Juan dela Cruz" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm transition-colors">
                     </div>
                     <div>
                         <div class="flex justify-between items-center mb-1.5">
                             <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Contact Number</label>
-                            <span class="order-preset-badge text-[11px] font-medium text-blue-600 dark:text-blue-400 hidden"><i class="fa-solid fa-lock text-[10px] mr-1"></i>Preset by order</span>
+                            <span class="order-preset-badge text-[11px] font-medium text-blue-600 dark:text-blue-400 hidden"><i class="fa-solid fa-lock text-[10px] mr-1"></i>Preset</span>
                         </div>
                         <input type="text" name="contact_number" id="dispatchContactNumber" placeholder="e.g. 0912 345 6789" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm transition-colors">
                     </div>
@@ -484,7 +484,7 @@
                     <div>
                         <div class="flex justify-between items-center mb-1.5">
                             <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Landmark / Drop-off Note <span class="text-gray-400 font-normal">(optional)</span></label>
-                            <span class="order-preset-badge text-[11px] font-medium text-blue-600 dark:text-blue-400 hidden"><i class="fa-solid fa-lock text-[10px] mr-1"></i>Preset by order</span>
+                            <span class="order-preset-badge text-[11px] font-medium text-blue-600 dark:text-blue-400 hidden"><i class="fa-solid fa-lock text-[10px] mr-1"></i>Preset</span>
                         </div>
                         <input type="text" name="landmark" id="dispatchLandmark" placeholder="e.g. Near Brgy. Hall, White Gate, Beside Petron" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm transition-colors">
                     </div>
@@ -503,7 +503,7 @@
                     <div>
                         <div class="flex justify-between items-center mb-1.5">
                             <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Gravel Type <span class="text-red-500">*</span></label>
-                            <span class="order-preset-badge text-[11px] font-medium text-blue-600 dark:text-blue-400 hidden"><i class="fa-solid fa-lock text-[10px] mr-1"></i>Preset by order</span>
+                            <span class="order-preset-badge text-[11px] font-medium text-blue-600 dark:text-blue-400 hidden"><i class="fa-solid fa-lock text-[10px] mr-1"></i>Preset</span>
                         </div>
                         <select id="gravelType" name="gravel_type" required class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm transition-colors">
                             <option value="">Select gravel type</option>
