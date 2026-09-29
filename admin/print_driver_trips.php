@@ -31,21 +31,21 @@ $start_date = $_GET['start_date'] ?? null;
 $end_date = $_GET['end_date'] ?? null;
 $status_filter = $_GET['status'] ?? 'delivered';
 
-$where = "WHERE dt.driver_id = ?";
+$where = "WHERE d.driver_id = ?";
 $params = [$driver_id];
 $periodLabel = "This Month (" . date('F Y') . ")";
 
 if ($period === 'today') {
-    $where .= " AND DATE(COALESCE(dt.transit_start_time, dt.trip_date, dt.created_at)) = CURDATE()";
+    $where .= " AND DATE(COALESCE(d.transit_start_time, d.dispatch_date, d.created_at)) = CURDATE()";
     $periodLabel = "Today (" . date('M d, Y') . ")";
 } elseif ($period === 'weekly') {
-    $where .= " AND YEARWEEK(COALESCE(dt.transit_start_time, dt.trip_date, dt.created_at), 1) = YEARWEEK(CURDATE(), 1)";
+    $where .= " AND YEARWEEK(COALESCE(d.transit_start_time, d.dispatch_date, d.created_at), 1) = YEARWEEK(CURDATE(), 1)";
     $periodLabel = "This Week (" . date('M d', strtotime('monday this week')) . " – " . date('M d, Y', strtotime('sunday this week')) . ")";
 } elseif ($period === 'monthly') {
-    $where .= " AND MONTH(COALESCE(dt.transit_start_time, dt.trip_date, dt.created_at)) = MONTH(CURDATE()) AND YEAR(COALESCE(dt.transit_start_time, dt.trip_date, dt.created_at)) = YEAR(CURDATE())";
+    $where .= " AND MONTH(COALESCE(d.transit_start_time, d.dispatch_date, d.created_at)) = MONTH(CURDATE()) AND YEAR(COALESCE(d.transit_start_time, d.dispatch_date, d.created_at)) = YEAR(CURDATE())";
     $periodLabel = "Month of " . date('F Y');
 } elseif ($period === 'custom' && $start_date && $end_date) {
-    $where .= " AND DATE(COALESCE(dt.transit_start_time, dt.trip_date, dt.created_at)) BETWEEN ? AND ?";
+    $where .= " AND DATE(COALESCE(d.transit_start_time, d.dispatch_date, d.created_at)) BETWEEN ? AND ?";
     $params[] = $start_date;
     $params[] = $end_date;
     $periodLabel = date('M d, Y', strtotime($start_date)) . " to " . date('M d, Y', strtotime($end_date));
@@ -54,26 +54,26 @@ if ($period === 'today') {
 }
 
 if ($status_filter === 'delivered') {
-    $where .= " AND dt.status = 'Delivered'";
+    $where .= " AND d.status = 'Delivered'";
 }
 
 $sql = "
     SELECT 
-        dt.*,
-        COALESCE(NULLIF(dt.distance_km, 0), dest.distance_km, 0.00) AS distance_km,
-        COALESCE(NULLIF(dt.pay_amount, 0), d.pay_amount, IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
-        COALESCE(d.ticket_number, CONCAT('TRIP-', dt.id)) AS ticket_no,
+        d.*,
+        COALESCE(d.dispatch_date, DATE(d.created_at)) AS trip_date,
+        COALESCE(NULLIF(d.distance_km, 0), dest.distance_km, 0.00) AS distance_km,
+        COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
+        COALESCE(d.ticket_number, CONCAT('TKT-', d.id)) AS ticket_no,
         COALESCE(d.cubic_meters, 0.00) AS cubic_meters,
         t.truck_code AS dispatch_truck,
         o.order_number,
         COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name
-    FROM driver_trips dt
-    LEFT JOIN destinations dest ON dest.name = dt.destination
-    LEFT JOIN dispatches d ON d.driver_id = dt.driver_id AND d.destination = dt.destination AND DATE(COALESCE(d.dispatch_date, d.created_at)) = DATE(COALESCE(dt.trip_date, dt.created_at))
+    FROM dispatches d
+    LEFT JOIN destinations dest ON dest.name = d.destination
     LEFT JOIN trucks t ON d.truck_id = t.id
-    LEFT JOIN orders o ON dt.order_id = o.id
+    LEFT JOIN orders o ON d.order_id = o.id
     $where
-    ORDER BY COALESCE(dt.transit_start_time, dt.trip_date, dt.created_at) DESC, dt.id DESC
+    ORDER BY COALESCE(d.transit_start_time, d.dispatch_date, d.created_at) DESC, d.id DESC
 ";
 
 $stmtTrips = $pdo->prepare($sql);

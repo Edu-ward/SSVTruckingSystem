@@ -291,7 +291,14 @@ $payStmt->execute([$driver_id]);
 $driverPayroll = $payStmt->fetch(PDO::FETCH_ASSOC);
 $driverRemainingBalance = floatval($driverPayroll['remaining_balance'] ?? 0);
 
-$grossEarnStmt = $pdo->prepare("SELECT COALESCE(SUM(pay_amount), 0) FROM dispatches WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)");
+$grossEarnStmt = $pdo->prepare("
+    SELECT COALESCE(SUM(
+        COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00)
+    ), 0) 
+    FROM dispatches d
+    LEFT JOIN destinations dest ON dest.name = d.destination
+    WHERE d.driver_id = ? AND d.status = 'Delivered' AND (d.is_payroll_paid = 0 OR d.is_payroll_paid IS NULL) AND d.payroll_id IS NULL
+");
 $grossEarnStmt->execute([$driver_id]);
 $driverGrossEarnings = floatval($grossEarnStmt->fetchColumn());
 
@@ -322,7 +329,7 @@ $stmtPayrollTrips = $pdo->prepare("
         d.id,
         d.ticket_number,
         d.destination,
-        d.pay_amount,
+        COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
         d.cubic_meters,
         d.transit_end_time,
         d.created_at,

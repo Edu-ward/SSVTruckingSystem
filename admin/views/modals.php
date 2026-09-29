@@ -395,6 +395,7 @@
                         <select name="multi_driver_id" id="assignedDriverSelect" disabled class="w-full border border-blue-400 dark:border-blue-600 rounded-xl px-4 py-2.5 bg-blue-50/60 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                             <option value="">— Select Which Driver is Driving —</option>
                         </select>
+                        <input type="hidden" name="multi_driver_id_backup" id="multiDriverIdBackup" value="">
                         <p class="text-[11px] text-blue-600 dark:text-blue-400 mt-1 font-medium flex items-center gap-1">
                             <i class="fa-solid fa-users text-xs"></i>
                             <span>2 drivers share this truck. Select who is driving.</span>
@@ -2202,7 +2203,11 @@
         if (locTextEl) locTextEl.innerHTML = '<span class="text-blue-600 dark:text-blue-400 font-semibold"><i class="fa-solid fa-hand-pointer mr-1"></i> Tap anywhere on the map</span> or search above to select destination.';
         if (useBtn) useBtn.disabled = true;
 
-        if (activeParentModalId) toggleModal(activeParentModalId, false);
+        if (activeParentModalId) {
+            window._osmMapOpeningFromDispatch = (activeParentModalId === 'dispatchModal');
+            toggleModal(activeParentModalId, false);
+            window._osmMapOpeningFromDispatch = false;
+        }
         toggleModal('nominatimSearchModal', true);
 
         setTimeout(() => {

@@ -173,11 +173,17 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                                 </td>
                                 <td class="px-3 sm:px-3.5 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap"><?= htmlspecialchars($gravelLabel) ?></td>
                                 <td class="px-3 sm:px-3.5 py-3 text-gray-700 dark:text-gray-300 max-w-[180px]">
-                                    <div class="truncate" title="<?= htmlspecialchars($order['destination']) ?>"><?= htmlspecialchars($order['destination']) ?></div>
-                                    <?php if (!empty($order['landmark'])): ?>
-                                        <div class="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5 truncate" title="<?= htmlspecialchars($order['landmark']) ?>"><i class="fa-solid fa-location-dot text-[9px]"></i> <?= htmlspecialchars($order['landmark']) ?></div>
-                                    <?php endif; ?>
+                                    <button type="button"
+                                        onclick="openOrderRouteMap(<?= htmlspecialchars(json_encode($order['destination']), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($order['landmark'] ?? ''), ENT_QUOTES) ?>)"
+                                        class="text-left w-full group"
+                                        title="View route to destination on map">
+                                        <div class="truncate font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex items-center gap-1" title="<?= htmlspecialchars($order['destination']) ?>"><?= htmlspecialchars($order['destination']) ?> <i class="fa-solid fa-map-location-dot text-[10px] text-blue-400 dark:text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></i></div>
+                                        <?php if (!empty($order['landmark'])): ?>
+                                            <div class="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5 truncate" title="<?= htmlspecialchars($order['landmark']) ?>"><i class="fa-solid fa-location-dot text-[9px]"></i> <?= htmlspecialchars($order['landmark']) ?></div>
+                                        <?php endif; ?>
+                                    </button>
                                 </td>
+
                                 <td class="px-3 sm:px-3.5 py-3 whitespace-nowrap">
                                     <div class="flex flex-col items-center">
                                         <span class="font-bold text-gray-800 dark:text-gray-200 text-xs sm:text-sm mb-1"><?= number_format($doneCm, 2) ?>/<?= number_format($reqCm, 2) ?> cu.m</span>
@@ -270,7 +276,6 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                 clearBtn.classList.toggle('hidden', query.length === 0);
             }
 
-            // Filter matching rows
             const matchingRows = [];
             rows.forEach(row => {
                 const meta = row.getAttribute('data-search') || '';
@@ -296,7 +301,6 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                 currentOrderPage = 1;
             }
 
-            // Paginate matching rows (show 5 per page)
             const startIndex = (currentOrderPage - 1) * ORDERS_PER_PAGE;
             const endIndex = startIndex + ORDERS_PER_PAGE;
 
@@ -308,7 +312,6 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                 }
             });
 
-            // Update No Results display
             if (noResults) {
                 if (totalMatches === 0 && rows.length > 0) {
                     noResults.classList.remove('hidden');
@@ -326,7 +329,6 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                 }
             }
 
-            // Update Pagination UI
             if (paginationContainer) {
                 if (totalMatches === 0) {
                     paginationContainer.classList.add('hidden');
@@ -415,12 +417,223 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
             filterOrders(true);
         }
 
-        // Initialise pagination on page load
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => filterOrders(false));
         } else {
             filterOrders(false);
         }
+
+        // ── Order Route Map ──────────────────────────────────────────────────
+        let _orderRouteMap = null;
+        let _orderRouteOriginMarker = null;
+        let _orderRouteDestMarker   = null;
+        let _orderRouteLine         = null;
+
+        async function openOrderRouteMap(destination, landmark) {
+            const modal      = document.getElementById('orderRouteMapModal');
+            if (!modal) return;
+            const titleEl    = document.getElementById('ormDestTitle');
+            const landmarkEl = document.getElementById('ormLandmarkEl');
+            const landmarkRow= document.getElementById('ormLandmarkRow');
+            const infoEl     = document.getElementById('ormRouteInfo');
+            const statusEl   = document.getElementById('ormStatus');
+            const statusSpan = statusEl ? statusEl.querySelector('span') : null;
+            const statusIcon = statusEl ? statusEl.querySelector('i') : null;
+
+            if (titleEl)     titleEl.textContent = destination;
+            if (landmarkEl)  landmarkEl.textContent = landmark || '';
+            if (landmarkRow) landmarkRow.classList.toggle('hidden', !landmark);
+            if (infoEl)      infoEl.textContent = '';
+            if (statusSpan)  statusSpan.textContent = 'Searching for destination\u2026';
+            if (statusIcon)  statusIcon.className = 'fa-solid fa-spinner fa-spin text-blue-500';
+            if (statusEl)    statusEl.classList.remove('hidden');
+
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+
+            await new Promise(r => setTimeout(r, 200));
+            const mapEl = document.getElementById('orderRouteMapEl');
+            if (!mapEl) return;
+
+            const garageLat = 15.359042, garageLng = 120.965016;
+
+            if (!_orderRouteMap) {
+                _orderRouteMap = L.map('orderRouteMapEl', { minZoom: 6 }).setView([garageLat, garageLng], 11);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19, subdomains: ['a','b','c'],
+                    attribution: '\u00a9 <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
+                }).addTo(_orderRouteMap);
+            } else {
+                _orderRouteMap.invalidateSize();
+                [_orderRouteOriginMarker, _orderRouteDestMarker, _orderRouteLine].forEach(layer => {
+                    if (layer) _orderRouteMap.removeLayer(layer);
+                });
+                _orderRouteOriginMarker = _orderRouteDestMarker = _orderRouteLine = null;
+            }
+
+            const garageIcon = L.divIcon({ className: '',
+                html: '<div style="width:36px;height:36px;border-radius:10px;background:#4f46e5;border:2px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;box-shadow:0 3px 10px rgba(0,0,0,.35);"><i class=\'fa-solid fa-warehouse\'></i></div>',
+                iconSize: [36,36], iconAnchor: [18,18], popupAnchor: [0, -20]
+            });
+            const garagePopupHtml = `
+                <div class="p-3 min-w-[200px]">
+                    <div class="font-bold text-gray-900 dark:text-gray-100 text-sm pb-1 border-b border-gray-100 dark:border-gray-800 flex items-center gap-2">
+                        <i class="fa-solid fa-warehouse text-indigo-500"></i>
+                        <span>SSV Quarry Site</span>
+                    </div>
+                    <div class="text-xs text-gray-600 dark:text-gray-300 font-medium mt-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-location-dot text-rose-500"></i>
+                        <span>San Leonardo, Nueva Ecija</span>
+                    </div>
+                </div>
+            `;
+            _orderRouteOriginMarker = L.marker([garageLat, garageLng], { icon: garageIcon })
+                .addTo(_orderRouteMap)
+                .bindPopup(garagePopupHtml);
+
+            let destLat = null, destLng = null, resolvedName = destination;
+            try {
+                if (typeof NominatimService !== 'undefined') {
+                    const results = await NominatimService.searchAddress(destination + ', Nueva Ecija, Philippines');
+                    if (results && results.length > 0) {
+                        destLat = parseFloat(results[0].lat);
+                        destLng = parseFloat(results[0].lng);
+                        resolvedName = results[0].shortName || destination;
+                    }
+                }
+                if (destLat === null) {
+                    const enc = encodeURIComponent(destination + ', Nueva Ecija, Philippines');
+                    const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + enc + '&limit=1&countrycodes=ph', {
+                        headers: { 'Accept-Language': 'en' }
+                    });
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        destLat = parseFloat(data[0].lat);
+                        destLng = parseFloat(data[0].lon);
+                        resolvedName = data[0].display_name.split(',')[0].trim() || destination;
+                    }
+                }
+            } catch(e) { console.warn('Geocode error:', e); }
+
+            if (statusEl) statusEl.classList.add('hidden');
+
+            if (destLat === null) {
+                if (statusEl && statusSpan && statusIcon) {
+                    statusSpan.textContent = '⚠️ Destination not found on map. Showing garage location only.';
+                    statusIcon.className = 'fa-solid fa-triangle-exclamation text-amber-500';
+                    statusEl.classList.remove('hidden');
+                }
+                _orderRouteMap.setView([garageLat, garageLng], 12);
+                return;
+            }
+
+            const destIcon = L.divIcon({ className: '',
+                html: '<div style="width:36px;height:36px;border-radius:10px;background:#059669;border:2px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;box-shadow:0 3px 10px rgba(0,0,0,.35);"><i class=\'fa-solid fa-flag-checkered\'></i></div>',
+                iconSize: [36,36], iconAnchor: [18,36], popupAnchor: [0, -36]
+            });
+            const safeDestName = (resolvedName || destination || 'Destination').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const safeLandmark = (landmark || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const destSubLine = safeLandmark ?
+                `<div class="text-xs text-amber-600 dark:text-amber-400 font-medium mt-2 flex items-center gap-1.5">
+                    <i class="fa-solid fa-location-dot text-amber-500"></i>
+                    <span>${safeLandmark}</span>
+                </div>` :
+                `<div class="text-xs text-gray-600 dark:text-gray-300 font-medium mt-2 flex items-center gap-1.5">
+                    <i class="fa-solid fa-location-dot text-rose-500"></i>
+                    <span>Delivery Destination</span>
+                </div>`;
+
+            const destPopupHtml = `
+                <div class="p-3 min-w-[200px]">
+                    <div class="font-bold text-gray-900 dark:text-gray-100 text-sm pb-1 border-b border-gray-100 dark:border-gray-800 flex items-center gap-2">
+                        <i class="fa-solid fa-flag-checkered text-emerald-500"></i>
+                        <span>${safeDestName}</span>
+                    </div>
+                    ${destSubLine}
+                </div>
+            `;
+            _orderRouteDestMarker = L.marker([destLat, destLng], { icon: destIcon })
+                .addTo(_orderRouteMap).bindPopup(destPopupHtml).openPopup();
+
+            _orderRouteLine = L.polyline([[garageLat, garageLng],[destLat, destLng]], {
+                color: '#2563eb', weight: 4, opacity: 0.85, dashArray: '10, 8'
+            }).addTo(_orderRouteMap);
+
+            _orderRouteMap.fitBounds(L.latLngBounds([[garageLat, garageLng],[destLat, destLng]]), { padding: [48, 48] });
+
+            const straightKm = L.latLng(garageLat, garageLng).distanceTo(L.latLng(destLat, destLng)) / 1000;
+            const roundTrip  = Math.max(2, Math.round(straightKm * 1.25 * 2));
+            let payText = '';
+            if (typeof computeDriverTripPay === 'function') {
+                const calc = computeDriverTripPay(roundTrip, destination, destLat, destLng);
+                payText = ' \u00b7 \u20b1' + calc.pay.toFixed(2) + ' est. driver pay';
+            }
+            if (infoEl) infoEl.textContent = '~' + roundTrip + ' km round trip' + payText;
+        }
+
+        function closeOrderRouteMap() {
+            const modal = document.getElementById('orderRouteMapModal');
+            if (modal) modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
     </script>
+
+    <!-- Order Destination Route Map Modal -->
+    <div id="orderRouteMapModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-gray-900/70 backdrop-blur-sm hidden p-3 sm:p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-100 dark:border-gray-700 flex flex-col" style="max-height:90vh;">
+
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4 flex-shrink-0">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-route text-blue-200 text-sm"></i>
+                            <span class="text-[11px] font-bold text-blue-200 uppercase tracking-widest">Route Preview</span>
+                        </div>
+                        <h3 id="ormDestTitle" class="text-base sm:text-lg font-bold text-white leading-tight truncate"></h3>
+                        <div id="ormLandmarkRow" class="hidden mt-0.5">
+                            <p class="text-xs text-blue-200 flex items-center gap-1">
+                                <i class="fa-solid fa-location-dot text-[10px] text-amber-300"></i>
+                                <span id="ormLandmarkEl"></span>
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 text-xs text-white/90">
+                            <span class="flex items-center gap-1.5">
+                                <span class="inline-block w-3 h-3 rounded-sm" style="background:#4f46e5;"></span>
+                                SSV Quarry Garage
+                            </span>
+                            <i class="fa-solid fa-arrow-right text-[9px] text-white/40"></i>
+                            <span class="flex items-center gap-1.5">
+                                <span class="inline-block w-3 h-3 rounded-sm" style="background:#059669;"></span>
+                                Destination
+                            </span>
+                            <span id="ormRouteInfo" class="ml-1 text-blue-100 font-semibold"></span>
+                        </div>
+                    </div>
+                    <button type="button" onclick="closeOrderRouteMap()" title="Close"
+                        class="flex-shrink-0 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white flex items-center justify-center transition mt-0.5 cursor-pointer">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="ormStatus" class="px-4 py-2 bg-blue-50 dark:bg-blue-900/30 border-b border-blue-100 dark:border-blue-800/50 flex items-center gap-2 hidden">
+                <i class="fa-solid fa-spinner fa-spin text-blue-500"></i>
+                <span class="text-xs text-blue-700 dark:text-blue-300"></span>
+            </div>
+
+            <div id="orderRouteMapEl" class="w-full flex-1" style="min-height:380px;"></div>
+
+            <div class="px-4 py-3 bg-gray-50 dark:bg-gray-900/60 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-3 flex-shrink-0">
+                <span class="text-[11px] text-gray-400 dark:text-gray-500">
+                    <i class="fa-solid fa-circle-info mr-1"></i>
+                    Estimated: straight-line &times; 1.25 road factor &times; 2 (round trip).
+                </span>
+                <button type="button" onclick="closeOrderRouteMap()"
+                    class="px-4 py-2 rounded-xl bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold text-xs transition cursor-pointer">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
 
 </div>

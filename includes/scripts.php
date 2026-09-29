@@ -1,7 +1,7 @@
 <?php ?>
 
 <?php if (in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin'])): ?>
-    
+
     <script>
         // Expose CSRF token for JS-initiated admin API calls
         const _csrfToken = <?= json_encode($_SESSION['csrf_token'] ?? '') ?>;
@@ -182,7 +182,10 @@
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60 font-medium text-gray-700 dark:text-gray-300">
                     `;
                     activeDisps.forEach(d => {
-                        const etaFormatted = d.estimated_arrival_time ? new Date(d.estimated_arrival_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '—';
+                        const etaFormatted = d.estimated_arrival_time ? new Date(d.estimated_arrival_time).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }) : '—';
                         const dJson = escapeHtml(JSON.stringify(d));
                         html += `
                             <tr onclick='openViewDispatchModal(${JSON.stringify(d)})' class="hover:bg-blue-50/60 dark:hover:bg-gray-750 transition cursor-pointer" title="Click to view dispatch record">
@@ -220,7 +223,10 @@
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60 font-medium text-gray-700 dark:text-gray-300">
                     `;
                     comps.forEach(c => {
-                        const delivTime = c.transit_end_time ? new Date(c.transit_end_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Today';
+                        const delivTime = c.transit_end_time ? new Date(c.transit_end_time).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }) : 'Today';
                         html += `
                             <tr onclick='openViewDispatchModal(${JSON.stringify(c)})' class="hover:bg-amber-50/60 dark:hover:bg-gray-750 transition cursor-pointer" title="Click to view dispatch record">
                                 <td class="py-2.5 px-3 font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">${escapeHtml(c.ticket_number)} <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-60"></i></td>
@@ -320,7 +326,10 @@
 
             content.innerHTML = html;
             panel.classList.remove('hidden');
-            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            panel.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest'
+            });
         }
 
         function openCreateDispatchModalShortcut() {
@@ -546,7 +555,11 @@
         function openAuditInspectorModal(log) {
             if (!log) return;
             if (typeof log === 'string') {
-                try { log = JSON.parse(log); } catch (e) { return; }
+                try {
+                    log = JSON.parse(log);
+                } catch (e) {
+                    return;
+                }
             }
 
             const idEl = document.getElementById('ai_id');
@@ -712,7 +725,9 @@
                         }).observe(mapEl);
                     }
                 }
-                window.addEventListener('resize', () => { if (map) map.invalidateSize(); });
+                window.addEventListener('resize', () => {
+                    if (map) map.invalidateSize();
+                });
 
                 setTimeout(() => {
                     map.invalidateSize();
@@ -774,7 +789,10 @@
                         if (!isNaN(etaDate.getTime())) {
                             const now = new Date();
                             const diffMins = Math.round((etaDate.getTime() - now.getTime()) / 60000);
-                            const timeStr = etaDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                            const timeStr = etaDate.toLocaleTimeString([], {
+                                hour: 'numeric',
+                                minute: '2-digit'
+                            });
                             let relStr = '';
                             let badgeBg = 'background: rgba(16, 185, 129, 0.1); color: #059669; border-color: rgba(16, 185, 129, 0.3);';
                             if (diffMins > 0) {
@@ -946,7 +964,7 @@
             map.invalidateSize();
 
             const bounds = L.latLngBounds();
-            bounds.extend([15.359042, 120.965016]); 
+            bounds.extend([15.359042, 120.965016]);
 
             let validTruckCount = 0;
             if (typeof trackingData !== 'undefined' && Array.isArray(trackingData)) {
@@ -1032,7 +1050,7 @@
                 if (modalID === 'dispatchModal') {
                     const hiddenOffHours = document.getElementById('dispatchConfirmOffHours');
                     if (hiddenOffHours) hiddenOffHours.value = '0';
-                    if (typeof resetDispatchDriverInputs === 'function') {
+                    if (!window._osmMapOpeningFromDispatch && typeof resetDispatchDriverInputs === 'function') {
                         resetDispatchDriverInputs();
                     }
                 }
@@ -1050,7 +1068,11 @@
             const isoLike = cleanStr.replace(' ', 'T');
             const dt = new Date(isoLike);
             if (!isNaN(dt.getTime())) {
-                return dt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+                return dt.toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
             }
             const match = cleanStr.match(/(\d{1,2}):(\d{2})/);
             if (match) {
@@ -1099,7 +1121,7 @@
         function openViewDriverModal(driver) {
             currentViewingDriver = driver;
 
-            const photoEl    = document.getElementById('vd-photo');
+            const photoEl = document.getElementById('vd-photo');
             const initialsEl = document.getElementById('vd-initials');
             const zoomHintEl = document.getElementById('vd-photo-zoom-hint');
             if (driver.profile_photo) {
@@ -1310,7 +1332,10 @@
                     if (emptyEl) emptyEl.classList.add('hidden');
                     history.forEach(w => {
                         const kmVal = parseFloat(w.total_km || 0).toFixed(1);
-                        const payVal = parseFloat(w.total_pay || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                        const payVal = parseFloat(w.total_pay || 0).toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        });
                         const tripsCount = parseInt(w.dispatches || 0);
 
                         tableBody.innerHTML += `
@@ -1379,15 +1404,15 @@
             if (nameEl) nameEl.textContent = driverName;
 
             // Resolve Pay Period parameters
-            const pFrom = (typeof periodFrom !== 'undefined' && periodFrom !== null && periodFrom !== '') 
-                ? periodFrom 
-                : (typeof currentPayrollFrom !== 'undefined' ? currentPayrollFrom : '');
-            const pTo = (typeof periodTo !== 'undefined' && periodTo !== null && periodTo !== '') 
-                ? periodTo 
-                : (typeof currentPayrollTo !== 'undefined' ? currentPayrollTo : '');
-            const isAll = (typeof isAllCycles !== 'undefined') 
-                ? (isAllCycles ? 1 : 0) 
-                : (typeof isPayrollAllCycles !== 'undefined' && isPayrollAllCycles ? 1 : 0);
+            const pFrom = (typeof periodFrom !== 'undefined' && periodFrom !== null && periodFrom !== '') ?
+                periodFrom :
+                (typeof currentPayrollFrom !== 'undefined' ? currentPayrollFrom : '');
+            const pTo = (typeof periodTo !== 'undefined' && periodTo !== null && periodTo !== '') ?
+                periodTo :
+                (typeof currentPayrollTo !== 'undefined' ? currentPayrollTo : '');
+            const isAll = (typeof isAllCycles !== 'undefined') ?
+                (isAllCycles ? 1 : 0) :
+                (typeof isPayrollAllCycles !== 'undefined' && isPayrollAllCycles ? 1 : 0);
 
             let pLabel = periodLabel;
             if (!pLabel) {
@@ -1395,11 +1420,11 @@
                 pLabel = badge ? badge.textContent.trim() : (pFrom && pTo ? `${pFrom} – ${pTo}` : 'Current Week');
             }
 
-            const fromEl   = document.getElementById('sp-period-from');
-            const toEl     = document.getElementById('sp-period-to');
-            const allEl    = document.getElementById('sp-is-all-cycles');
-            const labelEl  = document.getElementById('sp-period-label');
-            const badgeEl  = document.getElementById('sp-period-badge');
+            const fromEl = document.getElementById('sp-period-from');
+            const toEl = document.getElementById('sp-period-to');
+            const allEl = document.getElementById('sp-is-all-cycles');
+            const labelEl = document.getElementById('sp-period-label');
+            const badgeEl = document.getElementById('sp-period-badge');
             const tripIdsEl = document.getElementById('sp-trip-ids');
 
             if (fromEl) fromEl.value = isAll ? '' : pFrom;
@@ -1419,7 +1444,7 @@
                                 relevantTripIds.push(t.id);
                             }
                         });
-                    } catch(e) {}
+                    } catch (e) {}
                 }
                 tripIdsEl.value = relevantTripIds.join(',');
             }
@@ -1510,7 +1535,10 @@
                 sortedMonths.forEach(ym => {
                     const [y, m] = ym.split('-');
                     const dateObj = new Date(parseInt(y), parseInt(m) - 1, 1);
-                    const label = dateObj.toLocaleString('default', { month: 'long', year: 'numeric' });
+                    const label = dateObj.toLocaleString('default', {
+                        month: 'long',
+                        year: 'numeric'
+                    });
                     optionsHtml += `<option value="${ym}">${label}</option>`;
                 });
                 monthSelect.innerHTML = optionsHtml;
@@ -1525,9 +1553,9 @@
             if (!currentViewingDriver) return;
             const allTrips = currentViewingDriver.all_trips || currentViewingDriver.recent_trips || [];
 
-            const filteredTrips = (selectedMonth === 'all')
-                ? allTrips
-                : allTrips.filter(t => {
+            const filteredTrips = (selectedMonth === 'all') ?
+                allTrips :
+                allTrips.filter(t => {
                     const dStr = t.trip_date || (t.transit_end_time ? t.transit_end_time.substring(0, 10) : (t.transit_start_time ? t.transit_start_time.substring(0, 10) : ''));
                     return dStr && dStr.startsWith(selectedMonth);
                 });
@@ -1621,7 +1649,10 @@
         }
 
         function openPrintDriverTripsModal(driverId, driverName) {
-            const dr = currentViewingDriver || { id: driverId, name: driverName || 'Driver' };
+            const dr = currentViewingDriver || {
+                id: driverId,
+                name: driverName || 'Driver'
+            };
             const modal = document.getElementById('printDriverTripsModal');
             if (!modal) return;
 
@@ -1703,6 +1734,7 @@
             if (idEl) idEl.value = id;
             toggleModal('resignDriverModal', true);
         }
+
         function openDeleteDriverModal(id, name) {
             openResignDriverModal(id, name);
         }
@@ -1727,6 +1759,7 @@
             if (idEl) idEl.value = truckId;
             toggleModal('decommissionTruckModal', true);
         }
+
         function openDeleteTruckModal(truckId, truckCode) {
             openDecommissionTruckModal(truckId, truckCode);
         }
@@ -2081,6 +2114,7 @@
             if (idEl) idEl.value = checkerId;
             toggleModal('resignCheckerModal', true);
         }
+
         function openDeleteCheckerModal(checkerId, checkerName) {
             openResignCheckerModal(checkerId, checkerName);
         }
@@ -2158,7 +2192,11 @@
                     const pct = reqCm > 0 ? Math.min(100, Math.round((doneCm / reqCm) * 100)) : 0;
                     const gravelLabel = (window.gravelTypeLabels && window.gravelTypeLabels[o.gravel_type]) ? window.gravelTypeLabels[o.gravel_type] : (o.gravel_type || 'Gravel');
                     const statusClass = statusConfig[o.status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600';
-                    const dateStr = o.created_at ? new Date(o.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+                    const dateStr = o.created_at ? new Date(o.created_at).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    }) : '';
 
                     html += `
                         <div class="py-4 first:pt-0 last:pb-0">
@@ -2274,10 +2312,18 @@
                 try {
                     const d = new Date(s.replace(/-/g, '/'));
                     if (!isNaN(d.getTime())) {
-                        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' • ' +
-                               d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                        return d.toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                            }) + ' • ' +
+                            d.toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                            });
                     }
-                } catch(e) {}
+                } catch (e) {}
                 return s;
             };
 
@@ -2286,9 +2332,13 @@
                 try {
                     const d = new Date(s.replace(/-/g, '/'));
                     if (!isNaN(d.getTime())) {
-                        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        return d.toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                        });
                     }
-                } catch(e) {}
+                } catch (e) {}
                 return s;
             };
 
@@ -2336,7 +2386,10 @@
             const payEl = document.getElementById('vd_trip_pay');
             if (payEl) {
                 const payVal = parseFloat(ticket.pay_amount || ticket.driver_trip_pay || 0);
-                payEl.innerText = '₱' + payVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                payEl.innerText = '₱' + payVal.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
             }
             const distNoteEl = document.getElementById('vd_distance_note');
             if (distNoteEl) {
@@ -2839,6 +2892,8 @@
             if (multiContainer && !multiContainer.classList.contains('hidden') && sel && sel.value) {
                 if (finalDriver) finalDriver.value = sel.value;
                 if (hiddenDriver) hiddenDriver.value = sel.value;
+                const backupEl = document.getElementById('multiDriverIdBackup');
+                if (backupEl) backupEl.value = sel.value;
             } else if (hiddenDriver && hiddenDriver.value) {
                 if (finalDriver) finalDriver.value = hiddenDriver.value;
             }
@@ -2874,6 +2929,8 @@
                         const chosenVal = (sel && sel.value) ? sel.value : '';
                         if (finalDriverIdEl) finalDriverIdEl.value = chosenVal;
                         if (hiddenDriverIdEl) hiddenDriverIdEl.value = chosenVal;
+                        const backupEl = document.getElementById('multiDriverIdBackup');
+                        if (backupEl) backupEl.value = chosenVal;
 
                         if (!chosenVal) {
                             e.preventDefault();
@@ -3016,6 +3073,8 @@
                                                 if (finalEl) finalEl.value = this.value;
                                                 const hiddenEl = document.getElementById('hiddenDriverId');
                                                 if (hiddenEl) hiddenEl.value = this.value;
+                                                const backupEl = document.getElementById('multiDriverIdBackup');
+                                                if (backupEl) backupEl.value = this.value;
                                                 checkDriverActiveDispatch(this.value, this.options[this.selectedIndex]?.textContent);
                                             };
                                             assignedDriverSelect.focus();
@@ -3034,7 +3093,10 @@
                                             assignedDriverSelect.innerHTML = '';
                                         }
 
-                                        const driverObj = (data.drivers && data.drivers[0]) ? data.drivers[0] : { id: data.driver_id, name: data.driver_name };
+                                        const driverObj = (data.drivers && data.drivers[0]) ? data.drivers[0] : {
+                                            id: data.driver_id,
+                                            name: data.driver_name
+                                        };
 
                                         if (hiddenDriverId) {
                                             hiddenDriverId.disabled = false;
@@ -3084,7 +3146,11 @@
             setInterval(() => {
                 const clk = document.getElementById('dispatchModalLiveClock');
                 if (clk) {
-                    clk.textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                    clk.textContent = new Date().toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
                 }
             }, 1000);
 
@@ -3238,7 +3304,7 @@
     </script>
 
 <?php elseif ($_SESSION['role'] === 'Driver' || $_SESSION['role'] === 'Checker'): ?>
-    
+
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const activeTab = urlParams.get('tab') || 'dashboard';
@@ -3284,7 +3350,7 @@
 
         <?php if ($_SESSION['role'] === 'Driver' && !empty($active_dispatch)): ?>
                 (function() {
-                    const PUSH_INTERVAL_MS = 10000; 
+                    const PUSH_INTERVAL_MS = 10000;
                     let lastPushTime = 0;
                     let watchId = null;
                     let simIntervalId = null;
@@ -3308,7 +3374,7 @@
                     }
 
                     async function pushLocation(lat, lng, speed) {
-                        if (!isTransit) return; 
+                        if (!isTransit) return;
                         // Enforce Philippine operational boundary (4.5°N - 21.5°N, 116.0°E - 127.0°E)
                         if (lat < 4.5 || lat > 21.5 || lng < 116.0 || lng > 127.0) {
                             console.warn('Location update rejected: Outside Philippine operational limits', lat, lng);
@@ -3426,7 +3492,7 @@
                                 pushLocation(curLat, curLng, curSpeed);
 
                                 if (progress < 1) {
-                                    progress += 0.05; 
+                                    progress += 0.05;
                                     if (progress > 1) progress = 1;
                                     localStorage.setItem('sim_progress_' + activeDest, progress);
                                 } else {
@@ -3570,8 +3636,13 @@
 
         function submitResetRequest() {
             const btn = document.getElementById('btnSendRequest');
-            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; }
-            fetch(prBasePath + 'request_pwd_reset.php', { method: 'POST' })
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            }
+            fetch(prBasePath + 'request_pwd_reset.php', {
+                    method: 'POST'
+                })
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
@@ -3584,11 +3655,17 @@
                         }
                     } else {
                         showToast(data.message || 'Failed to send request.', 'error');
-                        if (btn) { btn.disabled = false; btn.innerHTML = 'Send Request'; }
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = 'Send Request';
+                        }
                     }
                 }).catch(() => {
                     showToast('Network error. Please try again.', 'error');
-                    if (btn) { btn.disabled = false; btn.innerHTML = 'Send Request'; }
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = 'Send Request';
+                    }
                 });
         }
 
@@ -3612,11 +3689,14 @@
                         showToast('Your password reset request was rejected by the Admin.', 'warning', 6000);
                     }
                 });
-            }, 5000); 
+            }, 5000);
         }
 
         function stopPrPolling() {
-            if (prPollingInterval) { clearInterval(prPollingInterval); prPollingInterval = null; }
+            if (prPollingInterval) {
+                clearInterval(prPollingInterval);
+                prPollingInterval = null;
+            }
         }
 
         function submitNewPassword() {
@@ -3624,7 +3704,10 @@
             const msgEl = document.getElementById('prSetPwdMsg');
             const btn = document.getElementById('btnSetPwd');
 
-            if (!pwd.value) { showMsg(msgEl, 'Please enter a new password.', 'error'); return; }
+            if (!pwd.value) {
+                showMsg(msgEl, 'Please enter a new password.', 'error');
+                return;
+            }
 
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
@@ -3632,7 +3715,10 @@
             const fd = new FormData();
             fd.append('new_password', pwd.value);
 
-            fetch(prBasePath + 'set_new_password.php', { method: 'POST', body: fd })
+            fetch(prBasePath + 'set_new_password.php', {
+                    method: 'POST',
+                    body: fd
+                })
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
@@ -3654,14 +3740,19 @@
         function showMsg(el, msg, type) {
             if (!el) return;
             el.textContent = msg;
-            el.className = 'mb-3 text-sm rounded-lg px-3 py-2 ' + (type === 'error'
-                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-                : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400');
+            el.className = 'mb-3 text-sm rounded-lg px-3 py-2 ' + (type === 'error' ?
+                'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' :
+                'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400');
             el.classList.remove('hidden');
         }
 
-        function openChangePasswordModal() { openResetPasswordModal(); }
-        function closeOtpModal() { closePwdResetModal(); }
+        function openChangePasswordModal() {
+            openResetPasswordModal();
+        }
+
+        function closeOtpModal() {
+            closePwdResetModal();
+        }
 
         // ==========================================
         // Global Action Loading Controller

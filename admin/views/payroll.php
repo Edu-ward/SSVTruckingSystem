@@ -770,7 +770,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                     }
                 });
 
-                if (totalAllGrossFallback > allUnsettledGross) {
+                if (totalAllGrossFallback > allUnsettledGross && tripsData.length === 0) {
                     allUnsettledGross = totalAllGrossFallback;
                 }
 

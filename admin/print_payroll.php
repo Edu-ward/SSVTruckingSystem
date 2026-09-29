@@ -57,19 +57,18 @@ if ($settlement_id > 0) {
 
     $dtStmt = $pdo->prepare("
         SELECT 
-            dt.id, COALESCE(d.ticket_number, CONCAT('TRIP-', dt.id)) AS ticket_number, dt.destination, dt.trip_date AS dispatch_date, dt.created_at, dt.transit_end_time,
+            dt.id, COALESCE((SELECT d2.ticket_number FROM dispatches d2 WHERE d2.driver_id = dt.driver_id AND d2.destination = dt.destination AND DATE(d2.created_at) = dt.trip_date LIMIT 1), CONCAT('TRIP-', dt.id)) AS ticket_number, dt.destination, dt.trip_date AS dispatch_date, dt.created_at, dt.transit_end_time,
             COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
             COALESCE(NULLIF(dt.distance_km, 0), dest.distance_km, 0.00) AS distance_km
         FROM driver_trips dt
         LEFT JOIN destinations dest ON dest.name = dt.destination
-        LEFT JOIN dispatches d ON d.driver_id = dt.driver_id AND d.destination = dt.destination AND DATE(d.created_at) = dt.trip_date
         WHERE dt.payroll_id = ?
         ORDER BY dt.id ASC
     ");
     $dtStmt->execute([$settlement_id]);
     $dtSettledTrips = $dtStmt->fetchAll(PDO::FETCH_ASSOC);
 
-    if (empty($settledTrips) || count($dtSettledTrips) > count($settledTrips)) {
+    if (empty($settledTrips)) {
         $settledTrips = $dtSettledTrips;
     }
 
@@ -113,7 +112,14 @@ if ($settlement_id > 0) {
         $trips_count       = intval($lastSettle['trips_count']);
         $settled_date      = date('F d, Y - h:i A', strtotime($lastSettle['settled_at']));
     } else {
-        $earnStmt = $pdo->prepare("SELECT COALESCE(SUM(pay_amount), 0) FROM dispatches WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)");
+        $earnStmt = $pdo->prepare("
+            SELECT COALESCE(SUM(
+                COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00)
+            ), 0) 
+            FROM dispatches d
+            LEFT JOIN destinations dest ON dest.name = d.destination
+            WHERE d.driver_id = ? AND d.status = 'Delivered' AND (d.is_payroll_paid = 0 OR d.is_payroll_paid IS NULL) AND d.payroll_id IS NULL
+        ");
         $earnStmt->execute([$driver_id]);
         $gross_amount = floatval($earnStmt->fetchColumn());
 

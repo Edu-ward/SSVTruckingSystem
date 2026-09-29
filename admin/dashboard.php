@@ -533,23 +533,35 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $truck_id = !empty($_POST['truck_id']) ? intval($_POST['truck_id']) : null;
 
         // Retrieve driver_id from any submitted form field
+        // Priority: driver_id (hidden finalDriverId) > multi_driver_id (select) > multi_driver_id_backup > single_driver_id (hidden)
         $driver_id = null;
+        $driver_id_source = null;
         if (!empty($_POST['driver_id'])) {
             $driver_id = intval($_POST['driver_id']);
+            $driver_id_source = 'driver_id';
         } elseif (!empty($_POST['multi_driver_id'])) {
             $driver_id = intval($_POST['multi_driver_id']);
+            $driver_id_source = 'multi_driver_id';
+        } elseif (!empty($_POST['multi_driver_id_backup'])) {
+            $driver_id = intval($_POST['multi_driver_id_backup']);
+            $driver_id_source = 'multi_driver_id_backup';
         } elseif (!empty($_POST['single_driver_id'])) {
             $driver_id = intval($_POST['single_driver_id']);
+            $driver_id_source = 'single_driver_id';
         }
 
         $rfid_tag = trim($_POST['rfid_tag'] ?? '');
 
-        // If driver_id was sent, verify it actually belongs to this truck
+        // If driver_id was explicitly provided, verify it belongs to this truck
         if ($truck_id && $driver_id) {
             $verifyStmt = $pdo->prepare("SELECT id FROM drivers WHERE id = ? AND truck_id = ? AND status != 'Resigned' LIMIT 1");
             $verifyStmt->execute([$driver_id, $truck_id]);
             if (!$verifyStmt->fetchColumn()) {
-                $driver_id = null;
+                // Driver was explicitly selected but doesn't match this truck — show a specific error
+                error_log("[create_dispatch] Driver verification failed: driver_id=$driver_id truck_id=$truck_id source=$driver_id_source POST=" . json_encode($_POST));
+                $_SESSION['scan_err'] = "The selected driver (ID: $driver_id) is not assigned to this truck. Please try again.";
+                header("Location: dashboard.php?tab=dispatches");
+                exit;
             }
         }
 
@@ -1697,91 +1709,53 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
 
             if (!empty($submittedTripIds)) {
                 $inSubmitted = implode(',', array_fill(0, count($submittedTripIds), '?'));
-                $dtSubmittedStmt = $pdo->prepare("
-                    SELECT dt.id, 
-                           COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - 12) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount
-                    FROM driver_trips dt
-                    LEFT JOIN destinations dest ON dest.name = dt.destination
-                    WHERE dt.id IN ($inSubmitted) AND dt.driver_id = ? AND dt.status = 'Delivered' AND (dt.is_payroll_paid = 0 OR dt.is_payroll_paid IS NULL)
+                $dispSubmittedStmt = $pdo->prepare("
+                    SELECT d.id, 
+                           COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount
+                    FROM dispatches d
+                    LEFT JOIN destinations dest ON dest.name = d.destination
+                    WHERE d.id IN ($inSubmitted) AND d.driver_id = ? AND d.status = 'Delivered' AND (d.is_payroll_paid = 0 OR d.is_payroll_paid IS NULL)
                 ");
-                $dtSubmittedStmt->execute(array_merge($submittedTripIds, [$driver_id]));
-                $unclaimedDt = $dtSubmittedStmt->fetchAll(PDO::FETCH_ASSOC);
-                foreach ($unclaimedDt as $dtRow) {
-                    $grossAmount += floatval($dtRow['pay_amount']);
-                    $dtIds[] = $dtRow['id'];
+                $dispSubmittedStmt->execute(array_merge($submittedTripIds, [$driver_id]));
+                $unclaimedDisp = $dispSubmittedStmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($unclaimedDisp as $dRow) {
+                    $grossAmount += floatval($dRow['pay_amount']);
+                    $dispatchIds[] = $dRow['id'];
                 }
             }
 
-
-            if ($isAllCycles || empty($payPeriodFrom) || empty($payPeriodTo)) {
-                $unclaimedStmt = $pdo->prepare("
-                    SELECT id, pay_amount 
-                    FROM dispatches 
-                    WHERE driver_id = ? 
-                      AND status = 'Delivered' 
-                      AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)
-                    ORDER BY id ASC
-                ");
-                $unclaimedStmt->execute([$driver_id]);
-            } else {
-                $unclaimedStmt = $pdo->prepare("
-                    SELECT id, pay_amount 
-                    FROM dispatches 
-                    WHERE driver_id = ? 
-                      AND status = 'Delivered' 
-                      AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL)
-                      AND COALESCE(DATE(transit_end_time), DATE(dispatch_date), DATE(created_at)) >= ?
-                      AND COALESCE(DATE(transit_end_time), DATE(dispatch_date), DATE(created_at)) <= ?
-                    ORDER BY id ASC
-                ");
-                $unclaimedStmt->execute([$driver_id, $payPeriodFrom, $payPeriodTo]);
-            }
-            $unclaimedDispatches = $unclaimedStmt->fetchAll(PDO::FETCH_ASSOC);
-
-            if (empty($dtIds)) {
+            if (empty($dispatchIds)) {
+                if ($isAllCycles || empty($payPeriodFrom) || empty($payPeriodTo)) {
+                    $unclaimedStmt = $pdo->prepare("
+                        SELECT d.id, 
+                               COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount 
+                        FROM dispatches d 
+                        LEFT JOIN destinations dest ON dest.name = d.destination
+                        WHERE d.driver_id = ? 
+                          AND d.status = 'Delivered' 
+                          AND (d.is_payroll_paid = 0 OR d.is_payroll_paid IS NULL)
+                        ORDER BY d.id ASC
+                    ");
+                    $unclaimedStmt->execute([$driver_id]);
+                } else {
+                    $unclaimedStmt = $pdo->prepare("
+                        SELECT d.id, 
+                               COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount 
+                        FROM dispatches d 
+                        LEFT JOIN destinations dest ON dest.name = d.destination
+                        WHERE d.driver_id = ? 
+                          AND d.status = 'Delivered' 
+                          AND (d.is_payroll_paid = 0 OR d.is_payroll_paid IS NULL)
+                          AND COALESCE(DATE(d.transit_end_time), DATE(d.dispatch_date), DATE(d.created_at)) >= ?
+                          AND COALESCE(DATE(d.transit_end_time), DATE(d.dispatch_date), DATE(d.created_at)) <= ?
+                        ORDER BY d.id ASC
+                    ");
+                    $unclaimedStmt->execute([$driver_id, $payPeriodFrom, $payPeriodTo]);
+                }
+                $unclaimedDispatches = $unclaimedStmt->fetchAll(PDO::FETCH_ASSOC);
                 foreach ($unclaimedDispatches as $disp) {
                     $grossAmount += floatval($disp['pay_amount']);
                     $dispatchIds[] = $disp['id'];
-                }
-            } else {
-                foreach ($unclaimedDispatches as $disp) {
-                    $dispatchIds[] = $disp['id'];
-                }
-            }
-
-
-            if (empty($dtIds) && empty($dispatchIds)) {
-                if ($isAllCycles || empty($payPeriodFrom) || empty($payPeriodTo)) {
-                    $dtStmt = $pdo->prepare("
-                        SELECT dt.id, 
-                               COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - 12) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount
-                        FROM driver_trips dt
-                        LEFT JOIN destinations dest ON dest.name = dt.destination
-                        WHERE dt.driver_id = ? 
-                          AND dt.status = 'Delivered' 
-                          AND (dt.is_payroll_paid = 0 OR dt.is_payroll_paid IS NULL)
-                        ORDER BY dt.id ASC
-                    ");
-                    $dtStmt->execute([$driver_id]);
-                } else {
-                    $dtStmt = $pdo->prepare("
-                        SELECT dt.id, 
-                               COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - 12) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount
-                        FROM driver_trips dt
-                        LEFT JOIN destinations dest ON dest.name = dt.destination
-                        WHERE dt.driver_id = ? 
-                          AND dt.status = 'Delivered' 
-                          AND (dt.is_payroll_paid = 0 OR dt.is_payroll_paid IS NULL)
-                          AND COALESCE(DATE(dt.transit_end_time), DATE(dt.trip_date), DATE(dt.created_at)) >= ?
-                          AND COALESCE(DATE(dt.transit_end_time), DATE(dt.trip_date), DATE(dt.created_at)) <= ?
-                        ORDER BY dt.id ASC
-                    ");
-                    $dtStmt->execute([$driver_id, $payPeriodFrom, $payPeriodTo]);
-                }
-                $unclaimedDt = $dtStmt->fetchAll(PDO::FETCH_ASSOC);
-                foreach ($unclaimedDt as $dtRow) {
-                    $grossAmount += floatval($dtRow['pay_amount']);
-                    $dtIds[] = $dtRow['id'];
                 }
             }
 
@@ -2425,27 +2399,24 @@ try {
 foreach ($allDrivers as &$dr) {
     $stmt = $pdo->prepare("
         SELECT 
-            dt.id,
-            dt.destination, 
-            dt.trip_date, 
-            dt.status, 
-            dt.transit_start_time, 
-            dt.transit_end_time,
-            dt.estimated_arrival_time,
-            COALESCE(NULLIF(dt.distance_km, 0), dest.distance_km, 0.00) AS distance_km,
-            COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - 12) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
-            COALESCE(dt.is_on_time, 1) AS is_on_time,
-            IF(dt.payroll_id IS NOT NULL OR dt.is_payroll_paid = 1, 1, 0) AS is_payroll_paid,
-            dt.payroll_id,
-            dt.created_at,
-            d.ticket_number
-        FROM driver_trips dt
-        LEFT JOIN destinations dest ON dest.name = dt.destination
-        LEFT JOIN dispatches d ON d.driver_id = dt.driver_id AND d.destination = dt.destination
-            AND (d.status = 'Delivered' OR d.status NOT IN ('Pending','In Transit','Loading','Unloading'))
-            AND DATE(d.created_at) = dt.trip_date
-        WHERE dt.driver_id = ? 
-        ORDER BY dt.trip_date DESC, dt.id DESC
+            d.id,
+            d.ticket_number,
+            d.destination, 
+            COALESCE(d.dispatch_date, DATE(d.created_at)) AS trip_date, 
+            d.status, 
+            d.transit_start_time, 
+            d.transit_end_time,
+            d.estimated_arrival_time,
+            COALESCE(NULLIF(d.distance_km, 0), dest.distance_km, 0.00) AS distance_km,
+            COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
+            COALESCE(d.is_on_time, 1) AS is_on_time,
+            IF(d.payroll_id IS NOT NULL OR d.is_payroll_paid = 1, 1, 0) AS is_payroll_paid,
+            d.payroll_id,
+            d.created_at
+        FROM dispatches d
+        LEFT JOIN destinations dest ON dest.name = d.destination
+        WHERE d.driver_id = ? 
+        ORDER BY COALESCE(d.dispatch_date, DATE(d.created_at)) DESC, d.id DESC
     ");
     $stmt->execute([$dr['id']]);
     $allTrips = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -2494,15 +2465,18 @@ foreach ($allDrivers as &$dr) {
     $caSumStmt->execute([$dr['id']]);
     $dr['approved_cash_advances'] = floatval($caSumStmt->fetchColumn());
 
-    $earnStmt = $pdo->prepare("SELECT COALESCE(SUM(pay_amount), 0) AS gross FROM dispatches WHERE driver_id = ? AND status = 'Delivered' AND (is_payroll_paid = 0 OR is_payroll_paid IS NULL) AND payroll_id IS NULL");
+    $earnStmt = $pdo->prepare("
+        SELECT COALESCE(SUM(
+            COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00)
+        ), 0) AS gross 
+        FROM dispatches d 
+        LEFT JOIN destinations dest ON dest.name = d.destination
+        WHERE d.driver_id = ? AND d.status = 'Delivered' AND (d.is_payroll_paid = 0 OR d.is_payroll_paid IS NULL) AND d.payroll_id IS NULL
+    ");
     $earnStmt->execute([$dr['id']]);
     $dispGross = floatval($earnStmt->fetchColumn());
 
-    $dtGrossStmt = $pdo->prepare("SELECT COALESCE(SUM(COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - 12) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00)), 0) AS gross FROM driver_trips dt LEFT JOIN destinations dest ON dest.name = dt.destination WHERE dt.driver_id = ? AND dt.status = 'Delivered' AND (dt.is_payroll_paid = 0 OR dt.is_payroll_paid IS NULL) AND dt.payroll_id IS NULL");
-    $dtGrossStmt->execute([$dr['id']]);
-    $dtGross = floatval($dtGrossStmt->fetchColumn());
-
-    $dr['gross_earnings'] = max($dispGross, $dtGross);
+    $dr['gross_earnings'] = $dispGross;
     $dr['net_earnings']   = max(0, $dr['gross_earnings'] + $dr['remaining_balance'] - $dr['approved_cash_advances']);
 
     $caStmt = $pdo->prepare("SELECT id, amount, reason, status, is_settled, requested_at, resolved_at FROM cash_advances WHERE driver_id = ? ORDER BY requested_at DESC LIMIT 5");
