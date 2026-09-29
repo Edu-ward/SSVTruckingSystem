@@ -356,6 +356,93 @@ if (!empty($driverFullName)) {
         </div>
 
 
+        <style>
+            /* Live Route Map Marker Popup - Dark & Light Mode Theme Harmony */
+            #driverRouteMap .leaflet-popup-content-wrapper {
+                background-color: #ffffff !important;
+                color: #111827 !important;
+                border-radius: 12px !important;
+                border: 1px solid #e5e7eb !important;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+                padding: 0 !important;
+            }
+            #driverRouteMap .leaflet-popup-tip {
+                background-color: #ffffff !important;
+            }
+            html.dark #driverRouteMap .leaflet-popup-content-wrapper,
+            .dark #driverRouteMap .leaflet-popup-content-wrapper {
+                background-color: #1e293b !important;
+                color: #f8fafc !important;
+                border: 1px solid #334155 !important;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6) !important;
+            }
+            html.dark #driverRouteMap .leaflet-popup-tip,
+            .dark #driverRouteMap .leaflet-popup-tip {
+                background-color: #1e293b !important;
+            }
+            #driverRouteMap .driver-popup-card {
+                padding: 10px 14px;
+                min-width: 200px;
+                max-width: 280px;
+            }
+            #driverRouteMap .driver-popup-title {
+                font-weight: 700;
+                font-size: 13px;
+                color: #111827;
+                border-bottom: 1px solid #e5e7eb;
+                padding-bottom: 6px;
+                margin-bottom: 6px;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            html.dark #driverRouteMap .driver-popup-title,
+            .dark #driverRouteMap .driver-popup-title {
+                color: #f8fafc !important;
+                border-bottom-color: #334155 !important;
+            }
+            #driverRouteMap .driver-popup-loc {
+                font-weight: 600;
+                font-size: 12.5px;
+                color: #1f2937;
+                line-height: 1.4;
+            }
+            html.dark #driverRouteMap .driver-popup-loc,
+            .dark #driverRouteMap .driver-popup-loc {
+                color: #f1f5f9 !important;
+            }
+            #driverRouteMap .driver-popup-sub {
+                font-size: 11px;
+                color: #059669;
+                font-weight: 600;
+                margin-top: 6px;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            html.dark #driverRouteMap .driver-popup-sub,
+            .dark #driverRouteMap .driver-popup-sub {
+                color: #34d399 !important;
+            }
+            #driverRouteMap .driver-popup-hint {
+                font-size: 11px;
+                color: #6b7280;
+                margin-top: 3px;
+            }
+            html.dark #driverRouteMap .driver-popup-hint,
+            .dark #driverRouteMap .driver-popup-hint {
+                color: #94a3b8 !important;
+            }
+            #driverRouteMap .leaflet-popup-close-button {
+                color: #64748b !important;
+                padding: 6px !important;
+            }
+            html.dark #driverRouteMap .leaflet-popup-close-button,
+            .dark #driverRouteMap .leaflet-popup-close-button {
+                color: #94a3b8 !important;
+            }
+        </style>
+
         <div class="p-3 sm:p-5 relative z-0">
             <div class="relative w-full h-[400px] sm:h-[550px] rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-inner z-0">
                 <div id="driverRouteMap" class="w-full h-full relative z-0"></div>
@@ -1998,7 +2085,7 @@ if (!empty($driverFullName)) {
 
             const originIcon = L.divIcon({
                 className: 'custom-origin-icon',
-                html: `<div class="w-9 h-9 rounded-2xl bg-indigo-600 border-2 border-white text-white flex items-center justify-center shadow-lg transform -translate-x-1/2 -translate-y-1/2"><i class="fa-solid fa-warehouse text-sm"></i></div>`,
+                html: `<div class="w-9 h-9 rounded-none bg-indigo-600 border-2 border-white text-white flex items-center justify-center shadow-lg transform -translate-x-1/2 -translate-y-1/2"><i class="fa-solid fa-warehouse text-sm"></i></div>`,
                 iconSize: [0, 0]
             });
 
@@ -2007,12 +2094,12 @@ if (!empty($driverFullName)) {
                 })
                 .addTo(driverMap)
                 .bindPopup(`
-                    <div class="p-2 min-w-[180px]">
-                        <div class="font-bold text-gray-900 text-sm flex items-center gap-1.5 border-b pb-1">
+                    <div class="driver-popup-card">
+                        <div class="driver-popup-title">
                             <i class="fa-solid fa-warehouse text-indigo-500"></i> Quarry Origin
                         </div>
-                        <div class="text-xs text-gray-600 mt-1.5 font-medium">Brgy. Burgos San Leonardo</div>
-                        <div class="text-[11px] text-gray-400 mt-0.5">SSV Fleet Loading & Dispatch Site</div>
+                        <div class="driver-popup-loc">Brgy. Burgos San Leonardo</div>
+                        <div class="driver-popup-hint">SSV Fleet Loading & Dispatch Site</div>
                     </div>
                 `);
 
@@ -2107,8 +2194,8 @@ if (!empty($driverFullName)) {
             className: 'custom-dest-icon',
             html: `
                 <div class="relative flex items-center justify-center">
-                    <span class="absolute w-9 h-9 rounded-full bg-red-500 opacity-75 animate-ping"></span>
-                    <div class="w-9 h-9 rounded-2xl bg-red-600 border-2 border-white text-white flex items-center justify-center shadow-xl transform -translate-x-1/2 -translate-y-1/2">
+                    <span class="absolute w-9 h-9 rounded-none bg-red-500 opacity-75 animate-ping"></span>
+                    <div class="w-9 h-9 rounded-none bg-red-600 border-2 border-white text-white flex items-center justify-center shadow-xl transform -translate-x-1/2 -translate-y-1/2">
                         <i class="fa-solid fa-location-dot text-base"></i>
                     </div>
                 </div>
@@ -2121,12 +2208,12 @@ if (!empty($driverFullName)) {
             })
             .addTo(driverMap)
             .bindPopup(`
-                <div class="p-2 min-w-[180px]">
-                    <div class="font-bold text-gray-900 text-sm flex items-center gap-1.5 border-b pb-1">
+                <div class="driver-popup-card">
+                    <div class="driver-popup-title">
                         <i class="fa-solid fa-location-dot text-red-500"></i> Delivery Destination
                     </div>
-                    <div class="text-xs font-bold text-blue-600 mt-1.5">${destName}</div>
-                    <div class="text-[11px] text-gray-500 mt-0.5">Target Dispatch Site</div>
+                    <div class="driver-popup-loc text-blue-600 dark:text-blue-400 font-bold">${destName}</div>
+                    <div class="driver-popup-hint">Target Dispatch Site</div>
                 </div>
             `);
 
@@ -2156,7 +2243,7 @@ if (!empty($driverFullName)) {
                 const coordinates = primaryRoute.geometry.coordinates.map(c => [c[1], c[0]]);
                 drawRoutePolyline(coordinates);
 
-                if (statusEl) statusEl.textContent = `Route to ${destName} Ready (${distanceKm} km)`;
+                if (statusEl) statusEl.textContent = `Route to ${destName} (${distanceKm} km)`;
                 fitDriverRouteBounds();
                 return;
             }
@@ -2169,7 +2256,7 @@ if (!empty($driverFullName)) {
         const distKm = calculateDirectDistanceKm(startPoint[0], startPoint[1], coords.lat, coords.lng);
         if (distEl) distEl.textContent = '~' + distKm.toFixed(1) + ' km';
         if (durEl) durEl.textContent = '~' + Math.round((distKm / 45) * 60) + ' mins';
-        if (statusEl) statusEl.textContent = `Route Ready (${distKm.toFixed(1)} km)`;
+        if (statusEl) statusEl.textContent = `Route (${distKm.toFixed(1)} km)`;
         fitDriverRouteBounds();
     }
 
@@ -2272,8 +2359,8 @@ if (!empty($driverFullName)) {
                 className: 'custom-truck-icon',
                 html: `
                     <div class="relative flex items-center justify-center">
-                        <span class="absolute w-8 h-8 rounded-full bg-emerald-400 opacity-75 animate-ping"></span>
-                        <div class="w-8 h-8 rounded-2xl bg-emerald-600 border-2 border-white text-white flex items-center justify-center shadow-xl transform -translate-x-1/2 -translate-y-1/2">
+                        <span class="absolute w-8 h-8 rounded-none bg-emerald-400 opacity-75 animate-ping"></span>
+                        <div class="w-8 h-8 rounded-none bg-emerald-600 border-2 border-white text-white flex items-center justify-center shadow-xl transform -translate-x-1/2 -translate-y-1/2">
                             <i class="fa-solid fa-truck text-xs"></i>
                         </div>
                     </div>
@@ -2288,13 +2375,13 @@ if (!empty($driverFullName)) {
                     })
                     .addTo(driverMap)
                     .bindPopup(`
-                        <div class="p-2 min-w-[190px]">
-                            <div class="font-bold text-white text-xs flex items-center gap-1.5 border-b pb-1">
-                                <i class="fa-solid fa-truck text-emerald-600"></i> Your Current Location
+                        <div class="driver-popup-card">
+                            <div class="driver-popup-title">
+                                <i class="fa-solid fa-truck text-emerald-500"></i> Your Current Location
                             </div>
-                            <div class="text-xs font-semibold text-white mt-1.5 leading-snug" id="driverMarkerLocationText">${initialLocationText}</div>
-                            <div class="text-[10px] text-emerald-600 font-medium mt-1 flex items-center gap-1">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live GPS Active
+                            <div class="driver-popup-loc" id="driverMarkerLocationText">${initialLocationText}</div>
+                            <div class="driver-popup-sub">
+                                <span class="w-1.5 h-1.5 rounded-none bg-emerald-500 animate-pulse"></span> Live GPS Active
                             </div>
                         </div>
                     `);
@@ -2323,13 +2410,13 @@ if (!empty($driverFullName)) {
 
                 if (driverGpsMarker) {
                     driverGpsMarker.setPopupContent(`
-                        <div class="p-2 min-w-[190px]">
-                            <div class="font-bold text-gray-900 text-xs flex items-center gap-1.5 border-b pb-1">
-                                <i class="fa-solid fa-truck text-emerald-600"></i> Your Current Location
+                        <div class="driver-popup-card">
+                            <div class="driver-popup-title">
+                                <i class="fa-solid fa-truck text-emerald-500"></i> Your Current Location
                             </div>
-                            <div class="text-xs font-semibold text-gray-800 mt-1.5 leading-snug">${locName}</div>
-                            <div class="text-[10px] text-emerald-600 font-medium mt-1 flex items-center gap-1">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live GPS Active
+                            <div class="driver-popup-loc">${locName}</div>
+                            <div class="driver-popup-sub">
+                                <span class="w-1.5 h-1.5 rounded-none bg-emerald-500 animate-pulse"></span> Live GPS Active
                             </div>
                         </div>
                     `);
