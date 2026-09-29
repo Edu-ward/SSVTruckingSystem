@@ -2193,10 +2193,10 @@ if (!empty($driverFullName)) {
         const destIcon = L.divIcon({
             className: 'custom-dest-icon',
             html: `
-                <div class="relative flex items-center justify-center">
-                    <span class="absolute w-9 h-9 rounded-none bg-red-500 opacity-75 animate-ping"></span>
-                    <div class="w-9 h-9 rounded-none bg-red-600 border-2 border-white text-white flex items-center justify-center shadow-xl transform -translate-x-1/2 -translate-y-1/2">
-                        <i class="fa-solid fa-location-dot text-base"></i>
+                <div class="relative w-9 h-9 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2">
+                    <span class="absolute inset-0 rounded-none bg-red-500 opacity-60 animate-ping"></span>
+                    <div class="relative w-9 h-9 rounded-none bg-red-600 border-2 border-white text-white flex items-center justify-center shadow-xl">
+                        <i class="fa-solid fa-location-dot text-sm"></i>
                     </div>
                 </div>
             `,
@@ -2358,10 +2358,10 @@ if (!empty($driverFullName)) {
             const truckIcon = L.divIcon({
                 className: 'custom-truck-icon',
                 html: `
-                    <div class="relative flex items-center justify-center">
-                        <span class="absolute w-8 h-8 rounded-none bg-emerald-400 opacity-75 animate-ping"></span>
-                        <div class="w-8 h-8 rounded-none bg-emerald-600 border-2 border-white text-white flex items-center justify-center shadow-xl transform -translate-x-1/2 -translate-y-1/2">
-                            <i class="fa-solid fa-truck text-xs"></i>
+                    <div class="relative w-9 h-9 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2">
+                        <span class="absolute inset-0 rounded-none bg-emerald-400 opacity-60 animate-ping"></span>
+                        <div class="relative w-9 h-9 rounded-none bg-emerald-600 border-2 border-white text-white flex items-center justify-center shadow-xl">
+                            <i class="fa-solid fa-truck text-sm"></i>
                         </div>
                     </div>
                 `,

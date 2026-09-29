@@ -3363,13 +3363,43 @@
                         if (!badge) {
                             badge = document.createElement('div');
                             badge.id = 'gps-status-badge';
-                            badge.style.cssText = 'position:fixed;bottom:1.2rem;left:1.2rem;z-index:9999;display:flex;align-items:center;gap:0.5rem;background:rgba(0,0,0,0.85);color:#fff;font-size:0.78rem;font-weight:600;padding:0.5rem 1rem;border-radius:999px;backdrop-filter:blur(4px);box-shadow:0 4px 12px rgba(0,0,0,0.15);pointer-events:none;transition:all 0.3s;';
                             const style = document.createElement('style');
-                            style.textContent = '@keyframes gps-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(1.35)}}';
+                            style.textContent = `
+                                @keyframes gps-pulse {
+                                    0%, 100% { opacity: 1; transform: scale(1); }
+                                    50% { opacity: 0.35; transform: scale(1.35); }
+                                }
+                                #gps-status-badge {
+                                    position: fixed;
+                                    bottom: calc(env(safe-area-inset-bottom, 0px) + 4.75rem);
+                                    left: 1rem;
+                                    z-index: 9999;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 0.5rem;
+                                    background: rgba(15, 23, 42, 0.9);
+                                    color: #fff;
+                                    font-size: 0.76rem;
+                                    font-weight: 600;
+                                    padding: 0.45rem 0.95rem;
+                                    border-radius: 9999px;
+                                    border: 1px solid rgba(255, 255, 255, 0.15);
+                                    backdrop-filter: blur(8px);
+                                    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+                                    pointer-events: none;
+                                    transition: all 0.3s ease;
+                                }
+                                @media (min-width: 1024px) {
+                                    #gps-status-badge {
+                                        bottom: 1.25rem;
+                                        left: 1.25rem;
+                                    }
+                                }
+                            `;
                             document.head.appendChild(style);
                             document.body.appendChild(badge);
                         }
-                        badge.innerHTML = `<span style="width:8.5px;height:8.5px;border-radius:50%;background:${colorHex};display:inline-block;animation:gps-pulse 1.4s ease-in-out infinite;"></span> ${statusMsg}`;
+                        badge.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${colorHex};display:inline-block;animation:gps-pulse 1.4s ease-in-out infinite;box-shadow:0 0 6px ${colorHex};"></span> ${statusMsg}`;
                         gpsBadge = badge;
                     }
 
