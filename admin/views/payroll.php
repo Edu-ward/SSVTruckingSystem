@@ -293,6 +293,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                     'paid'        => !empty($t['is_payroll_paid']) ? 1 : 0,
                                     'destination' => $t['destination'] ?? '',
                                     'ticket'      => $t['ticket_number'] ?? '',
+                                    'distance'    => floatval($t['distance_km'] ?? 0),
                                     'dispatch_at' => !empty($t['transit_start_time']) ? $t['transit_start_time'] : ($t['created_at'] ?? ''),
                                     'end_at'      => $t['transit_end_time'] ?? ''
                                 ];
@@ -317,7 +318,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
 
 
                                 <td class="px-3 sm:px-4 py-3">
-                                    <div class="flex items-center space-x-3 group cursor-pointer" onclick="openDriverWeekTripsModal(this.closest('tr'))" title="View week trips">
+                                    <div class="flex items-center space-x-3 group cursor-pointer" onclick="openDriverWeekTripsModal(this.closest('tr'), 'pending')" title="View driver trips">
                                         <?php if ($dPhotoUrl): ?>
                                             <img src="<?= $dPhotoUrl ?>" alt="<?= htmlspecialchars($driver['name']) ?>" class="w-10 h-10 rounded-xl object-cover shadow-sm flex-shrink-0 border border-gray-200 dark:border-gray-700">
                                         <?php else: ?>
@@ -349,12 +350,17 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                 </td>
 
 
-                                <td class="px-2.5 sm:px-3 py-3 text-right whitespace-nowrap">
-                                    <div class="font-bold text-gray-900 dark:text-gray-100 driver-gross-val">
-                                        ₱<?= number_format($driver['gross_earnings'] ?? 0, 2); ?>
-                                    </div>
-                                    <div class="text-[11px] text-gray-400 driver-trips-val">
-                                        <?= $unclaimedTripsCount ?> trip<?= $unclaimedTripsCount !== 1 ? 's' : '' ?>
+                                <td class="px-2.5 sm:px-3 py-3 text-right whitespace-nowrap cursor-pointer group/trips"
+                                    onclick="openDriverWeekTripsModal(this.closest('tr'), 'pending')"
+                                    title="Click to view pending trips breakdown">
+                                    <div class="inline-flex flex-col items-end p-1.5 -mr-1.5 rounded-xl group-hover/trips:bg-emerald-50/80 dark:group-hover/trips:bg-emerald-950/40 transition-all border border-transparent group-hover/trips:border-emerald-200/60 dark:group-hover/trips:border-emerald-800/40">
+                                        <div class="font-bold text-gray-900 dark:text-gray-100 group-hover/trips:text-emerald-600 dark:group-hover/trips:text-emerald-400 transition-colors flex items-center justify-end gap-1.5">
+                                            <span class="driver-gross-val">₱<?= number_format($driver['gross_earnings'] ?? 0, 2); ?></span>
+                                            <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-emerald-500 opacity-0 group-hover/trips:opacity-100 transition-opacity"></i>
+                                        </div>
+                                        <div class="text-[11px] text-gray-400 group-hover/trips:text-emerald-600/90 dark:group-hover/trips:text-emerald-400/90 transition-colors driver-trips-val font-medium">
+                                            <?= $unclaimedTripsCount ?> trip<?= $unclaimedTripsCount !== 1 ? 's' : '' ?>
+                                        </div>
                                     </div>
                                 </td>
 
@@ -440,24 +446,48 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
     <!-- Driver Week Trips Modal -->
     <div id="driverWeekTripsModal" class="fixed inset-0 z-[9990] flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeDriverWeekTripsModal()"></div>
-        <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col border border-gray-200 dark:border-gray-700 overflow-hidden">
             <!-- Header -->
-            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700 bg-emerald-50 dark:bg-emerald-900/20 flex-shrink-0">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700 bg-emerald-50/80 dark:bg-emerald-950/30 flex-shrink-0">
                 <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                        <i class="fa-solid fa-calendar-week text-sm"></i>
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg shadow-sm">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-gray-900 dark:text-gray-100 text-sm" id="dwtm-driver-name">Driver Trips</h3>
-                        <p class="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold" id="dwtm-period-label">This Week</p>
+                        <h3 class="font-bold text-gray-900 dark:text-gray-100 text-sm sm:text-base flex items-center gap-2">
+                            <span id="dwtm-driver-name">Driver Trips</span>
+                        </h3>
+                        <p class="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5" id="dwtm-period-label">
+                            This Week
+                        </p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDriverWeekTripsModal()" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-gray-700 transition">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
+
+            <!-- Filter Tabs -->
+            <div class="px-4 py-2.5 bg-gray-50/80 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2 flex-shrink-0">
+                <button type="button" id="dwtm-tab-pending" onclick="setDriverTripsFilter('pending')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm border border-amber-200 dark:border-amber-700">
+                    <i class="fa-solid fa-hourglass-half text-[11px]"></i>
+                    <span>Pending Trips</span>
+                    <span id="dwtm-badge-pending" class="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">0</span>
+                </button>
+                <button type="button" id="dwtm-tab-all" onclick="setDriverTripsFilter('all')" class="px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <i class="fa-solid fa-list-check text-[11px]"></i>
+                    <span>All Trips</span>
+                    <span id="dwtm-badge-all" class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">0</span>
+                </button>
+                <button type="button" id="dwtm-tab-paid" onclick="setDriverTripsFilter('paid')" class="px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <i class="fa-solid fa-circle-check text-[11px]"></i>
+                    <span>Settled</span>
+                    <span id="dwtm-badge-paid" class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">0</span>
+                </button>
+            </div>
+
             <!-- Summary bar -->
-            <div class="flex items-center gap-4 px-5 py-3 bg-gray-50 dark:bg-gray-900/30 border-b border-gray-100 dark:border-gray-700 text-xs flex-shrink-0">
+            <div class="flex items-center gap-4 px-5 py-2.5 bg-gray-50/40 dark:bg-gray-900/30 border-b border-gray-100 dark:border-gray-700 text-xs flex-shrink-0">
                 <span class="flex items-center gap-1.5 font-semibold text-gray-700 dark:text-gray-300">
                     <i class="fa-solid fa-route text-blue-500"></i>
                     <span id="dwtm-trip-count">0 trips</span>
@@ -468,11 +498,12 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                 </span>
                 <span class="ml-auto flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-semibold" id="dwtm-unpaid-badge">
                     <i class="fa-solid fa-hourglass-half"></i>
-                    <span id="dwtm-unpaid-count">0 unpaid</span>
+                    <span id="dwtm-unpaid-count">0 pending</span>
                 </span>
             </div>
+
             <!-- Trip list -->
-            <div class="overflow-y-auto flex-1 p-4 space-y-2" id="dwtm-trip-list">
+            <div class="overflow-y-auto flex-1 p-4 space-y-2.5 min-h-[200px]" id="dwtm-trip-list">
                 <div class="py-10 text-center text-gray-400 dark:text-gray-500" id="dwtm-empty-state">
                     <i class="fa-solid fa-truck text-3xl mb-2 opacity-30 block"></i>
                     <p class="text-sm font-medium">No trips for this period</p>
@@ -480,12 +511,18 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
             </div>
 
             <!-- Footer Action Bar -->
-            <div id="dwtm-footer-bar" class="p-3.5 bg-gray-50 dark:bg-gray-900/60 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-3 flex-shrink-0">
+            <div id="dwtm-footer-bar" class="p-3.5 bg-gray-50 dark:bg-gray-900/60 border-t border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-shrink-0">
                 <div class="text-xs">
                     <span class="text-gray-500 dark:text-gray-400">Total Unsettled Payout:</span>
                     <strong class="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm ml-1" id="dwtm-unpaid-sum">₱0.00</strong>
+                    <div id="dwtm-ca-deduction-note" class="text-[10px] text-amber-600 dark:text-amber-400 font-medium"></div>
                 </div>
-                <div id="dwtm-settle-btn-container"></div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeDriverWeekTripsModal()" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition cursor-pointer">
+                        Close
+                    </button>
+                    <div id="dwtm-settle-btn-container"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -1062,7 +1099,16 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
         }
 
         // ── Driver Week Trips Modal ────────────────────────────────────────────
-        function openDriverWeekTripsModal(row) {
+        let currentDwtmContext = null;
+
+        function setDriverTripsFilter(filterType) {
+            if (!currentDwtmContext) return;
+            currentDwtmContext.filter = filterType;
+            renderDriverTripsModal();
+        }
+
+        function openDriverWeekTripsModal(row, initialFilter = 'pending') {
+            if (!row) return;
             const driverName = row.getAttribute('data-driver-name') || 'Driver';
             const driverId = row.getAttribute('data-driver-id');
             const remBal = parseFloat(row.getAttribute('data-rembal') || 0);
@@ -1075,12 +1121,25 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                 tripsData = JSON.parse(row.getAttribute('data-trips') || '[]');
             } catch (e) {}
 
-            // Filter trips to the current pay period
-            const periodTrips = tripsData.filter(t => {
-                if (isPayrollAllCycles) return true;
-                if (!currentPayrollFrom || !currentPayrollTo) return true;
-                return t.date >= currentPayrollFrom && t.date <= currentPayrollTo;
-            });
+            currentDwtmContext = {
+                driverName,
+                driverId,
+                remBal,
+                advances,
+                periodLabel,
+                tripsData,
+                filter: initialFilter
+            };
+
+            renderDriverTripsModal();
+
+            const modal = document.getElementById('driverWeekTripsModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function renderDriverTripsModal() {
+            if (!currentDwtmContext) return;
+            const { driverName, driverId, remBal, advances, periodLabel, tripsData, filter } = currentDwtmContext;
 
             // Populate header
             const nameEl = document.getElementById('dwtm-driver-name');
@@ -1088,31 +1147,89 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
             if (nameEl) nameEl.textContent = driverName;
             if (labelEl) labelEl.textContent = periodLabel;
 
-            // Compute summary
-            let totalPay = 0;
-            let unpaidCnt = 0;
-            periodTrips.forEach(t => {
-                totalPay += t.pay;
-                if (t.paid === 0) unpaidCnt++;
+            // Filter trips based on pay period scope
+            const periodTrips = tripsData.filter(t => {
+                if (isPayrollAllCycles) return true;
+                if (!currentPayrollFrom || !currentPayrollTo) return true;
+                return t.date >= currentPayrollFrom && t.date <= currentPayrollTo;
             });
 
-            // Compute all-unsettled totals across all trips
+            const pendingTrips = periodTrips.filter(t => Number(t.paid) === 0);
+            const paidTrips = periodTrips.filter(t => Number(t.paid) === 1);
+
+            // Update tab badges
+            const bPending = document.getElementById('dwtm-badge-pending');
+            const bAll = document.getElementById('dwtm-badge-all');
+            const bPaid = document.getElementById('dwtm-badge-paid');
+            if (bPending) bPending.textContent = pendingTrips.length;
+            if (bAll) bAll.textContent = periodTrips.length;
+            if (bPaid) bPaid.textContent = paidTrips.length;
+
+            // Tab button styles
+            const tabPending = document.getElementById('dwtm-tab-pending');
+            const tabAll = document.getElementById('dwtm-tab-all');
+            const tabPaid = document.getElementById('dwtm-tab-paid');
+
+            const activeCls = 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white dark:bg-gray-700 text-emerald-700 dark:text-emerald-300 shadow-sm border border-emerald-200 dark:border-emerald-600';
+            const inactiveCls = 'px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 border border-transparent';
+
+            if (tabPending) tabPending.className = filter === 'pending' ? activeCls : inactiveCls;
+            if (tabAll) tabAll.className = filter === 'all' ? activeCls : inactiveCls;
+            if (tabPaid) tabPaid.className = filter === 'paid' ? activeCls : inactiveCls;
+
+            // Determine visible trips
+            let displayList = periodTrips;
+            if (filter === 'pending') {
+                displayList = pendingTrips;
+            } else if (filter === 'paid') {
+                displayList = paidTrips;
+            }
+
+            // Summary values for visible subset
+            let listGross = 0;
+            displayList.forEach(t => {
+                listGross += (parseFloat(t.pay) || 0);
+            });
+
+            // Compute overall unsettled totals for settle action
             let allUnsettledGross = 0;
             tripsData.forEach(t => {
-                if (t.paid === 0) allUnsettledGross += t.pay;
+                if (Number(t.paid) === 0) allUnsettledGross += (parseFloat(t.pay) || 0);
             });
             const allUnsettledNet = Math.max(0, allUnsettledGross + remBal - advances);
 
-            document.getElementById('dwtm-trip-count').textContent = `${periodTrips.length} trip${periodTrips.length !== 1 ? 's' : ''}`;
-            document.getElementById('dwtm-total-pay').textContent = `₱${totalPay.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
-            document.getElementById('dwtm-unpaid-count').textContent = `${unpaidCnt} unpaid`;
+            // Summary bar
+            const tripCountEl = document.getElementById('dwtm-trip-count');
+            const totalPayEl = document.getElementById('dwtm-total-pay');
+            const unpaidCountEl = document.getElementById('dwtm-unpaid-count');
             const unpaidBadge = document.getElementById('dwtm-unpaid-badge');
-            if (unpaidBadge) unpaidBadge.classList.toggle('hidden', unpaidCnt === 0);
 
-            // Update modal footer
+            if (tripCountEl) {
+                const label = filter === 'pending' ? 'pending trip' : (filter === 'paid' ? 'settled trip' : 'trip');
+                tripCountEl.textContent = `${displayList.length} ${label}${displayList.length !== 1 ? 's' : ''}`;
+            }
+            if (totalPayEl) {
+                totalPayEl.textContent = `₱${listGross.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            }
+            if (unpaidCountEl) {
+                unpaidCountEl.textContent = `${pendingTrips.length} pending`;
+            }
+            if (unpaidBadge) {
+                unpaidBadge.classList.toggle('hidden', pendingTrips.length === 0);
+            }
+
+            // Modal footer
             const unpaidSumEl = document.getElementById('dwtm-unpaid-sum');
             if (unpaidSumEl) {
-                unpaidSumEl.textContent = `₱${allUnsettledNet.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+                unpaidSumEl.textContent = `₱${allUnsettledNet.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            }
+            const caNoteEl = document.getElementById('dwtm-ca-deduction-note');
+            if (caNoteEl) {
+                if (advances > 0) {
+                    caNoteEl.textContent = `Gross: ₱${allUnsettledGross.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} less ₱${advances.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} cash advances`;
+                } else {
+                    caNoteEl.textContent = '';
+                }
             }
 
             const settleBtnContainer = document.getElementById('dwtm-settle-btn-container');
@@ -1122,7 +1239,7 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                         <button type="button" onclick="closeDriverWeekTripsModal(); openSettlePayrollModal(${driverId}, '${escapeJsQuotes(driverName)}', ${allUnsettledGross}, ${advances}, ${allUnsettledNet}, ${remBal}, '', '', 1, 'All Pending Delivery Cycles (All Weeks)')"
                             class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
                             <i class="fa-solid fa-money-bill-transfer"></i>
-                            <span>Settle All Pending (₱${allUnsettledNet.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})})</span>
+                            <span>Settle All Pending (₱${allUnsettledNet.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})})</span>
                         </button>
                     `;
                 } else {
@@ -1137,23 +1254,36 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
 
             // Build trip list
             const listEl = document.getElementById('dwtm-trip-list');
-            const emptyEl = document.getElementById('dwtm-empty-state');
+            if (!listEl) return;
+            listEl.innerHTML = '';
 
-            if (periodTrips.length === 0) {
-                if (emptyEl) emptyEl.classList.remove('hidden');
-                if (listEl) listEl.innerHTML = '';
-                listEl.appendChild(emptyEl);
+            if (displayList.length === 0) {
+                let emptyMsg = 'No trips found for this view';
+                let emptySub = '';
+                if (filter === 'pending') {
+                    emptyMsg = 'All trips are settled';
+                    emptySub = 'This driver has no pending payroll deliveries awaiting settlement.';
+                } else if (filter === 'paid') {
+                    emptyMsg = 'No settled trips yet';
+                    emptySub = 'Completed deliveries will appear here once settled via disbursement vouchers.';
+                }
+                listEl.innerHTML = `
+                    <div class="py-12 text-center text-gray-400 dark:text-gray-500">
+                        <i class="fa-solid ${filter === 'pending' ? 'fa-circle-check text-emerald-500' : 'fa-truck text-gray-400'} text-3xl mb-2 opacity-60 block"></i>
+                        <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">${emptyMsg}</p>
+                        ${emptySub ? `<p class="text-xs text-gray-400 mt-1">${emptySub}</p>` : ''}
+                    </div>
+                `;
             } else {
-                listEl.innerHTML = '';
-                if (emptyEl) emptyEl.classList.add('hidden');
-
-                periodTrips.forEach((t, idx) => {
-                    const paidBadge = t.paid ?
-                        `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"><i class="fa-solid fa-check mr-1"></i>Paid</span>` :
-                        `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"><i class="fa-solid fa-hourglass-half mr-1"></i>Unpaid</span>`;
+                displayList.forEach((t, idx) => {
+                    const isPaid = Number(t.paid) === 1;
+                    const paidBadge = isPaid ?
+                        `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40"><i class="fa-solid fa-check mr-1"></i>Settled</span>` :
+                        `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40"><i class="fa-solid fa-hourglass-half mr-1"></i>Pending</span>`;
 
                     const dest = t.destination || 'N/A';
-                    const ticket = t.ticket ? `<span class="font-mono text-[10px] text-gray-400">#${t.ticket}</span>` : '';
+                    const ticket = t.ticket ? `<span class="font-mono text-[10px] text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/60 px-1.5 py-0.5 rounded">#${t.ticket}</span>` : '';
+                    const distBadge = (parseFloat(t.distance) > 0) ? `<span class="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded font-medium"><i class="fa-solid fa-route text-[9px] mr-0.5"></i>${t.distance} km</span>` : '';
                     const dateStr = t.date || '';
                     const fmtDate = dateStr ? (() => {
                         const d = new Date(dateStr + 'T00:00:00');
@@ -1163,33 +1293,34 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                             year: 'numeric'
                         });
                     })() : '—';
-                    const payFmt = `₱${t.pay.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+                    const payFmt = `₱${(parseFloat(t.pay) || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
                     const card = document.createElement('div');
-                    card.className = `flex items-center gap-3 p-3 rounded-xl border ${t.paid ? 'border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/40 dark:bg-emerald-900/10' : 'border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50'} hover:shadow-sm transition`;
+                    card.className = `flex items-center gap-3 p-3 rounded-xl border ${isPaid ? 'border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/20 dark:bg-emerald-900/10' : 'border-amber-100/90 dark:border-amber-900/30 bg-amber-50/30 dark:bg-amber-900/10'} hover:shadow-sm transition`;
                     card.innerHTML = `
-                        <div class="w-7 h-7 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 flex items-center justify-center text-xs font-bold text-gray-500 flex-shrink-0 shadow-sm">${idx + 1}</div>
+                        <div class="w-7 h-7 rounded-lg ${isPaid ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'} flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-sm">${idx + 1}</div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">
-                                <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">${dest}</span>
+                                <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate flex items-center gap-1.5">
+                                    <i class="fa-solid fa-location-dot text-rose-500 text-xs"></i>
+                                    <span>${dest}</span>
+                                </span>
                                 ${ticket}
+                                ${distBadge}
                             </div>
-                            <div class="text-[11px] text-gray-400 mt-0.5 flex items-center gap-2">
+                            <div class="text-[11px] text-gray-400 mt-1 flex items-center gap-2">
                                 <i class="fa-regular fa-calendar"></i>
                                 <span>${fmtDate}</span>
                             </div>
                         </div>
                         <div class="flex flex-col items-end gap-1 flex-shrink-0">
-                            <span class="font-bold text-sm ${t.paid ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-300'}">${payFmt}</span>
+                            <span class="font-bold text-sm ${isPaid ? 'text-gray-700 dark:text-gray-300' : 'text-emerald-600 dark:text-emerald-400'}">${payFmt}</span>
                             ${paidBadge}
                         </div>
                     `;
                     listEl.appendChild(card);
                 });
             }
-
-            const modal = document.getElementById('driverWeekTripsModal');
-            if (modal) modal.classList.remove('hidden');
         }
 
         function closeDriverWeekTripsModal() {
