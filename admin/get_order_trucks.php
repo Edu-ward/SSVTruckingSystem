@@ -1,4 +1,7 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/../includes/security_headers.php';
 require_once __DIR__ . '/../db.php';
 
@@ -54,7 +57,7 @@ try {
                 d.ticket_number,
                 d.truck_id,
                 t.truck_code,
-                t.plate_number,
+                t.rfid_tag,
                 d.driver_id,
                 CONCAT(dr.first_name, ' ', dr.last_name) AS driver_name,
                 d.cubic_meters,
@@ -64,7 +67,7 @@ try {
             FROM dispatches d
             LEFT JOIN trucks t ON t.id = d.truck_id
             LEFT JOIN drivers dr ON dr.id = d.driver_id
-            WHERE (d.order_id = ? OR (d.order_id IS NULL AND d.destination = ? AND d.client_name = ? AND d.created_at >= ?))
+            WHERE (d.order_id = ? OR ((d.order_id IS NULL OR d.order_id = 0) AND d.destination = ? AND (d.client_name = ? OR ? = '') AND d.created_at >= ?))
               AND d.status NOT IN ('Cancelled')
             ORDER BY delivery_time ASC, d.id ASC
         ");
@@ -72,10 +75,13 @@ try {
             $order_id, 
             $order['destination'], 
             $order['client_name'], 
+            $order['client_name'],
             date('Y-m-d 00:00:00', strtotime($order['created_at']))
         ]);
         $orderDispatches = $dispStmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (Throwable $e) {}
+    } catch (Throwable $e) {
+        error_log("[get_order_trucks] Error fetching dispatches: " . $e->getMessage());
+    }
 
     // 4. Query order_scans for this order
     $orderScans = [];
@@ -85,7 +91,7 @@ try {
                 os.id AS scan_id,
                 os.truck_id,
                 t.truck_code,
-                t.plate_number,
+                t.rfid_tag,
                 os.checker_id,
                 COALESCE(NULLIF(TRIM(CONCAT(c.first_name, ' ', c.last_name)), ''), u.username) AS checker_name,
                 os.scanned_at,
@@ -100,7 +106,9 @@ try {
         ");
         $scanStmt->execute([$order_id]);
         $orderScans = $scanStmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (Throwable $e) {}
+    } catch (Throwable $e) {
+        error_log("[get_order_trucks] Error fetching order_scans: " . $e->getMessage());
+    }
 
     // 5. Unify delivery logs (match dispatches & scans)
     $deliveryLogs = [];
@@ -147,7 +155,8 @@ try {
             'ticket_number' => $disp['ticket_number'] ?: ('TKT-' . $disp['dispatch_id']),
             'truck_id'      => $disp['truck_id'],
             'truck_code'    => $disp['truck_code'] ?: ('Truck #' . $disp['truck_id']),
-            'plate_number'  => $disp['plate_number'] ?: '',
+            'plate_number'  => $disp['rfid_tag'] ?? '',
+            'rfid_tag'      => $disp['rfid_tag'] ?? '',
             'driver_name'   => trim($disp['driver_name'] ?? '') ?: 'Assigned Driver',
             'checker_name'  => $matchedScan['checker_name'] ?? $orderCheckerName,
             'cubic_meters'  => $cMeters,
@@ -168,7 +177,8 @@ try {
                 'ticket_number' => !empty($sc['dispatch_id']) ? ('TKT-' . $sc['dispatch_id']) : 'RFID-SCAN',
                 'truck_id'      => $sc['truck_id'],
                 'truck_code'    => $sc['truck_code'] ?: ('Truck #' . $sc['truck_id']),
-                'plate_number'  => $sc['plate_number'] ?: '',
+                'plate_number'  => $sc['rfid_tag'] ?? '',
+                'rfid_tag'      => $sc['rfid_tag'] ?? '',
                 'driver_name'   => 'Assigned Driver',
                 'checker_name'  => $sc['checker_name'] ?: $orderCheckerName,
                 'cubic_meters'  => $cMeters,
@@ -194,6 +204,7 @@ try {
                 'truck_id'           => $log['truck_id'],
                 'truck_code'         => $log['truck_code'],
                 'plate_number'       => $log['plate_number'],
+                'rfid_tag'           => $log['rfid_tag'] ?? '',
                 'trips_count'        => 0,
                 'total_cubic_meters' => 0.0,
                 'drivers'            => [],
