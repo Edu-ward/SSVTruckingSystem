@@ -108,7 +108,6 @@ $decommissionedFleetList = !empty($decommissionedTrucks) ? $decommissionedTrucks
                                             <p class="text-xs text-gray-700 dark:text-gray-300 font-medium truncate flex items-center gap-1.5" title="<?= htmlspecialchars($dName); ?>">
                                                 <i class="fa-solid fa-user-check text-[10px] text-blue-500 flex-shrink-0"></i>
                                                 <span class="truncate"><?= htmlspecialchars($dName); ?></span>
-                                                <span class="text-[9px] bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold px-1.5 py-0.5 rounded flex-shrink-0">Driver <?= $index + 1; ?></span>
                                             </p>
                                         <?php endforeach; ?>
                                     </div>

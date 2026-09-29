@@ -453,7 +453,7 @@
                         <div class="flex justify-between items-center mb-1.5">
                             <div class="flex items-center gap-2">
                                 <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Destination <span class="text-red-500">*</span></label>
-                                <span class="order-preset-badge text-[11px] font-medium text-blue-600 dark:text-blue-400 hidden"><i class="fa-solid fa-lock text-[10px] mr-1"></i>Preset by order</span>
+                                <span class="order-preset-badge text-[11px] font-medium text-blue-600 dark:text-blue-400 hidden"><i class="fa-solid fa-lock text-[10px] mr-1"></i>Preset</span>
                             </div>
                             <button type="button" id="dispatchOsmSearchBtn" onclick="openNominatimSearch('dispatch')" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1">
                                 <i class="fa-solid fa-map-location-dot"></i> Search OSM Map
