@@ -2345,12 +2345,6 @@
                             <td class="px-3.5 py-2.5 font-black text-gray-900 dark:text-gray-100 text-right whitespace-nowrap">
                                 ${parseFloat(d.cubic_meters).toFixed(2)} cu.m
                             </td>
-                            <td class="px-3.5 py-2.5 text-gray-600 dark:text-gray-400 truncate max-w-[130px]" title="${escapeHtml(d.checker_name)}">
-                                <span class="flex items-center gap-1">
-                                    <i class="fa-solid fa-user-shield text-[10px] text-blue-500"></i>
-                                    <span class="truncate">${escapeHtml(d.checker_name)}</span>
-                                </span>
-                            </td>
                             <td class="px-3.5 py-2.5 text-gray-500 dark:text-gray-400 whitespace-nowrap">${escapeHtml(dateStr)}</td>
                             <td class="px-3.5 py-2.5 text-center whitespace-nowrap">
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${bClass}">${escapeHtml(d.status)}</span>
