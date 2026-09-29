@@ -430,27 +430,36 @@
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Client's Name</label>
-                        <input type="text" name="client_name" id="dispatchClientName" placeholder="e.g. Juan dela Cruz" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Client's Name</label>
+                            <span class="order-preset-badge text-[11px] font-medium text-blue-600 dark:text-blue-400 hidden"><i class="fa-solid fa-lock text-[10px] mr-1"></i>Preset by order</span>
+                        </div>
+                        <input type="text" name="client_name" id="dispatchClientName" placeholder="e.g. Juan dela Cruz" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm transition-colors">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Contact Number</label>
-                        <input type="text" name="contact_number" id="dispatchContactNumber" placeholder="e.g. 0912 345 6789" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Contact Number</label>
+                            <span class="order-preset-badge text-[11px] font-medium text-blue-600 dark:text-blue-400 hidden"><i class="fa-solid fa-lock text-[10px] mr-1"></i>Preset by order</span>
+                        </div>
+                        <input type="text" name="contact_number" id="dispatchContactNumber" placeholder="e.g. 0912 345 6789" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm transition-colors">
                     </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Origin</label>
-                        <input type="text" name="origin" id="dispatchOrigin" value="Brgy. Burgos San Leonardo, Nueva Ecija" disabled class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100 text-sm">
+                        <input type="text" name="origin" id="dispatchOrigin" value="Brgy. Burgos San Leonardo, Nueva Ecija" readonly tabindex="-1" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none bg-gray-50 dark:bg-gray-700 dark:text-gray-300 text-sm cursor-not-allowed">
                     </div>
                     <div>
                         <div class="flex justify-between items-center mb-1.5">
-                            <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Destination <span class="text-red-500">*</span></label>
-                            <button type="button" onclick="openNominatimSearch('dispatch')" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1">
+                            <div class="flex items-center gap-2">
+                                <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Destination <span class="text-red-500">*</span></label>
+                                <span class="order-preset-badge text-[11px] font-medium text-blue-600 dark:text-blue-400 hidden"><i class="fa-solid fa-lock text-[10px] mr-1"></i>Preset by order</span>
+                            </div>
+                            <button type="button" id="dispatchOsmSearchBtn" onclick="openNominatimSearch('dispatch')" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1">
                                 <i class="fa-solid fa-map-location-dot"></i> Search OSM Map
                             </button>
                         </div>
-                        <select name="destination" id="destinationSelect" onchange="handleDispatchDestinationChange()" required class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
+                        <select name="destination" id="destinationSelect" onchange="handleDispatchDestinationChange()" required class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm transition-colors">
                             <option value="">Select Destination</option>
                             <?php foreach ($destinations as $_dest): ?>
                                 <?php
@@ -473,8 +482,11 @@
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Landmark / Drop-off Note <span class="text-gray-400 font-normal">(optional)</span></label>
-                        <input type="text" name="landmark" id="dispatchLandmark" placeholder="e.g. Near Brgy. Hall, White Gate, Beside Petron" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Landmark / Drop-off Note <span class="text-gray-400 font-normal">(optional)</span></label>
+                            <span class="order-preset-badge text-[11px] font-medium text-blue-600 dark:text-blue-400 hidden"><i class="fa-solid fa-lock text-[10px] mr-1"></i>Preset by order</span>
+                        </div>
+                        <input type="text" name="landmark" id="dispatchLandmark" placeholder="e.g. Near Brgy. Hall, White Gate, Beside Petron" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm transition-colors">
                     </div>
                     <div>
                         <div class="flex justify-between items-center mb-1.5">
@@ -489,8 +501,11 @@
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Gravel Type <span class="text-red-500">*</span></label>
-                        <select id="gravelType" name="gravel_type" required class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Gravel Type <span class="text-red-500">*</span></label>
+                            <span class="order-preset-badge text-[11px] font-medium text-blue-600 dark:text-blue-400 hidden"><i class="fa-solid fa-lock text-[10px] mr-1"></i>Preset by order</span>
+                        </div>
+                        <select id="gravelType" name="gravel_type" required class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm transition-colors">
                             <option value="">Select gravel type</option>
                             <?php foreach ($gravelTypes as $value => $label): ?>
                                 <option value="<?= $value; ?>"><?= htmlspecialchars($label); ?></option>
@@ -498,8 +513,11 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Cubic Meter (cu.m) <span class="text-red-500">*</span></label>
-                        <input type="number" step="0.01" min="0.1" name="cubic_meters" required placeholder="e.g. 10.00" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">Cubic Meter (cu.m) <span class="text-red-500">*</span></label>
+                            <span id="orderRemainingNotice" class="text-[11px] font-bold text-blue-600 dark:text-blue-400 hidden"></span>
+                        </div>
+                        <input type="number" step="0.01" min="0.1" name="cubic_meters" id="dispatchCubicMeters" required placeholder="e.g. 10.00" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
                     </div>
                 </div>
                 <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
@@ -565,9 +583,45 @@
             const clientNameInput = document.getElementById('dispatchClientName');
             const contactInput = document.getElementById('dispatchContactNumber');
             const landmarkInput = document.getElementById('dispatchLandmark');
+            const destSelect = document.getElementById('destinationSelect');
+            const gravelSelect = document.getElementById('gravelType');
+            const cubicInput = document.getElementById('dispatchCubicMeters');
+            const osmBtn = document.getElementById('dispatchOsmSearchBtn');
+            const remainingNotice = document.getElementById('orderRemainingNotice');
+            const lockBadges = document.querySelectorAll('.order-preset-badge');
 
             if (!opt || !opt.value) {
                 if (customerInfo) customerInfo.classList.add('hidden');
+                if (remainingNotice) remainingNotice.classList.add('hidden');
+                lockBadges.forEach(b => b.classList.add('hidden'));
+
+                [clientNameInput, contactInput, landmarkInput].forEach(inp => {
+                    if (!inp) return;
+                    inp.readOnly = false;
+                    inp.disabled = false;
+                    inp.value = '';
+                    inp.classList.remove('bg-gray-100', 'dark:bg-gray-800', 'text-gray-500', 'dark:text-gray-400', 'cursor-not-allowed', 'select-none');
+                    inp.classList.add('bg-white', 'dark:bg-gray-700', 'dark:text-gray-100');
+                });
+
+                [destSelect, gravelSelect].forEach(sel => {
+                    if (!sel) return;
+                    sel.disabled = false;
+                    delete sel.dataset.orderLocked;
+                    sel.classList.remove('bg-gray-100', 'dark:bg-gray-800', 'text-gray-500', 'dark:text-gray-400', 'cursor-not-allowed');
+                    sel.classList.add('bg-white', 'dark:bg-gray-700', 'dark:text-gray-100');
+                });
+
+                if (osmBtn) osmBtn.classList.remove('hidden');
+                if (destSelect) {
+                    destSelect.selectedIndex = 0;
+                    if (typeof handleDispatchDestinationChange === 'function') handleDispatchDestinationChange();
+                }
+                if (gravelSelect) gravelSelect.selectedIndex = 0;
+                if (cubicInput) {
+                    cubicInput.placeholder = 'e.g. 10.00';
+                    cubicInput.value = '';
+                }
                 return;
             }
 
@@ -576,12 +630,13 @@
             const customer = opt.dataset.customer;
             const contact = opt.dataset.contact;
             const landmark = opt.dataset.landmark;
+            const rem = parseFloat(opt.dataset.remaining || 0);
 
-            if (clientNameInput && customer) clientNameInput.value = customer;
-            if (contactInput && contact !== undefined) contactInput.value = contact;
-            if (landmarkInput && landmark !== undefined) landmarkInput.value = landmark;
+            if (clientNameInput) clientNameInput.value = customer || '';
+            if (contactInput) contactInput.value = (contact !== undefined && contact !== null) ? contact : '';
+            if (landmarkInput) landmarkInput.value = (landmark !== undefined && landmark !== null) ? landmark : '';
 
-            const destSelect = document.getElementById('destinationSelect');
+            if (destSelect) destSelect.disabled = false;
             if (destSelect && dest) {
                 let foundIndex = -1;
                 for (let i = 0; i < destSelect.options.length; i++) {
@@ -599,8 +654,10 @@
                 await calculateAndSetDispatchPay(dest, destSelect.options[destSelect.selectedIndex]);
             }
 
-            const gravelSelect = document.getElementById('gravelType');
-            if (gravelSelect && gravel) gravelSelect.value = gravel;
+            if (gravelSelect) {
+                gravelSelect.disabled = false;
+                if (gravel) gravelSelect.value = gravel;
+            }
 
             if (customerInfo && customerNameEl && customer) {
                 customerNameEl.textContent = 'Customer: ' + customer + (contact ? ' (' + contact + ')' : '');
@@ -608,7 +665,52 @@
             } else if (customerInfo) {
                 customerInfo.classList.add('hidden');
             }
+
+            // Lock all preset inputs below fulfill existing order (except cubic meters)
+            [clientNameInput, contactInput, landmarkInput].forEach(inp => {
+                if (!inp) return;
+                inp.readOnly = true;
+                inp.disabled = false;
+                inp.classList.add('bg-gray-100', 'dark:bg-gray-800', 'text-gray-500', 'dark:text-gray-400', 'cursor-not-allowed', 'select-none');
+                inp.classList.remove('bg-white', 'dark:bg-gray-700', 'dark:text-gray-100');
+            });
+
+            [destSelect, gravelSelect].forEach(sel => {
+                if (!sel) return;
+                sel.disabled = true;
+                sel.dataset.orderLocked = 'true';
+                sel.classList.add('bg-gray-100', 'dark:bg-gray-800', 'text-gray-500', 'dark:text-gray-400', 'cursor-not-allowed');
+                sel.classList.remove('bg-white', 'dark:bg-gray-700', 'dark:text-gray-100');
+            });
+
+            if (osmBtn) osmBtn.classList.add('hidden');
+            lockBadges.forEach(b => b.classList.remove('hidden'));
+
+            // Cubic meters input remains editable and active
+            if (cubicInput) {
+                cubicInput.readOnly = false;
+                cubicInput.disabled = false;
+                if (rem > 0) {
+                    cubicInput.placeholder = 'e.g. ' + Math.min(10, rem).toFixed(2);
+                    if (remainingNotice) {
+                        remainingNotice.textContent = '(' + rem.toFixed(2) + ' cu.m remaining)';
+                        remainingNotice.classList.remove('hidden');
+                    }
+                }
+                setTimeout(() => cubicInput.focus(), 100);
+            }
         }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const dispatchForm = document.getElementById('dispatchForm');
+            if (dispatchForm) {
+                dispatchForm.addEventListener('submit', function() {
+                    dispatchForm.querySelectorAll('[data-order-locked]').forEach(function(el) {
+                        el.disabled = false;
+                    });
+                });
+            }
+        });
     </script>
 
     <style>

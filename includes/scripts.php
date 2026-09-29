@@ -2870,6 +2870,13 @@
             if (hiddenOffHours) {
                 hiddenOffHours.value = '0';
             }
+            const orderSel = document.getElementById('dispatchOrderSelect');
+            if (orderSel && orderSel.value) {
+                orderSel.value = '';
+                if (typeof autoFillOrderDetails === 'function') {
+                    autoFillOrderDetails(orderSel);
+                }
+            }
         }
 
         function closeOffHoursModal() {
@@ -2903,6 +2910,9 @@
             }
             const dispatchForm = document.getElementById('dispatchForm');
             if (dispatchForm) {
+                dispatchForm.querySelectorAll('[data-order-locked]').forEach(function(el) {
+                    el.disabled = false;
+                });
                 dispatchForm.submit();
             }
         }
@@ -2989,6 +2999,11 @@
                             return false;
                         }
                     }
+
+                    // Ensure preset locked fields submit their values cleanly
+                    dispatchForm.querySelectorAll('[data-order-locked]').forEach(function(el) {
+                        el.disabled = false;
+                    });
                 });
                 rfidInput.addEventListener('change', function() {
                     const rfidValue = this.value.trim();

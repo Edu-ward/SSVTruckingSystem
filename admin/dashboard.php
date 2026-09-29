@@ -626,8 +626,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         }
 
 
-        $origin = $_POST['origin'];
-        $destination = $_POST['destination'];
+        $origin = !empty($_POST['origin']) ? trim($_POST['origin']) : 'Brgy. Burgos San Leonardo, Nueva Ecija';
+        $destination = trim($_POST['destination'] ?? '');
         $cubic_meters = !empty($_POST['cubic_meters']) ? floatval($_POST['cubic_meters']) : 0.00;
         $order_id = !empty($_POST['order_id']) ? intval($_POST['order_id']) : null;
         $client_name = !empty($_POST['client_name']) ? trim($_POST['client_name']) : null;
@@ -635,13 +635,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $landmark = !empty($_POST['landmark']) ? trim($_POST['landmark']) : null;
 
         if ($order_id) {
-            $ordStmt = $pdo->prepare("SELECT client_name, contact_number, landmark FROM orders WHERE id = ?");
+            $ordStmt = $pdo->prepare("SELECT client_name, contact_number, landmark, destination, gravel_type FROM orders WHERE id = ?");
             $ordStmt->execute([$order_id]);
             $ordData = $ordStmt->fetch(PDO::FETCH_ASSOC);
             if ($ordData) {
                 if (empty($client_name)) $client_name = $ordData['client_name'] ?? null;
                 if (empty($contact_number)) $contact_number = $ordData['contact_number'] ?? null;
                 if (empty($landmark)) $landmark = $ordData['landmark'] ?? null;
+                if (empty($destination)) $destination = $ordData['destination'] ?? '';
             }
         }
 
