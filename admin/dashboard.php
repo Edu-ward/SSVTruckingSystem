@@ -988,11 +988,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                         $scannedCm = floatval(($dispatch['cubic_meters'] ?? 0) > 0 ? $dispatch['cubic_meters'] : 10.00);
                         $admin_id = $_SESSION['user_id'];
 
-                        $dupScan = $pdo->prepare("SELECT id FROM order_scans WHERE order_id = ? AND truck_id = ?");
-                        $dupScan->execute([$order_id, $truck['id']]);
-                        if (!$dupScan->fetch()) {
-                            $pdo->prepare("INSERT INTO order_scans (order_id, truck_id, checker_id) VALUES (?, ?, ?)")
-                                ->execute([$order_id, $truck['id'], $admin_id]);
+                        $isDup = false;
+                        if (!empty($dispatch['id'])) {
+                            $dupChk = $pdo->prepare("SELECT id FROM order_scans WHERE dispatch_id = ?");
+                            $dupChk->execute([$dispatch['id']]);
+                            $isDup = (bool)$dupChk->fetch();
+                        }
+                        if (!$isDup) {
+                            $dupChkRecent = $pdo->prepare("SELECT id FROM order_scans WHERE order_id = ? AND truck_id = ? AND scanned_at > (NOW() - INTERVAL 2 MINUTE)");
+                            $dupChkRecent->execute([$order_id, $truck['id']]);
+                            $isDup = (bool)$dupChkRecent->fetch();
+                        }
+                        if (!$isDup) {
+                            $pdo->prepare("INSERT INTO order_scans (order_id, truck_id, checker_id, dispatch_id, cubic_meters) VALUES (?, ?, ?, ?, ?)")
+                                ->execute([$order_id, $truck['id'], $admin_id, $dispatch['id'] ?? null, $scannedCm]);
                         }
 
                         $pdo->prepare("UPDATE orders SET trucks_fulfilled = trucks_fulfilled + 1, cubic_meters_fulfilled = cubic_meters_fulfilled + ? WHERE id = ?")
@@ -1066,11 +1075,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 $scannedCm = floatval(($dispatch['cubic_meters'] ?? 0) > 0 ? $dispatch['cubic_meters'] : 10.00);
                 $admin_id = $_SESSION['user_id'];
 
-                $dupScan = $pdo->prepare("SELECT id FROM order_scans WHERE order_id = ? AND truck_id = ?");
-                $dupScan->execute([$order_id, $dispatch['truck_id']]);
-                if (!$dupScan->fetch()) {
-                    $pdo->prepare("INSERT INTO order_scans (order_id, truck_id, checker_id) VALUES (?, ?, ?)")
-                        ->execute([$order_id, $dispatch['truck_id'], $admin_id]);
+                $isDup = false;
+                if (!empty($dispatch['id'])) {
+                    $dupChk = $pdo->prepare("SELECT id FROM order_scans WHERE dispatch_id = ?");
+                    $dupChk->execute([$dispatch['id']]);
+                    $isDup = (bool)$dupChk->fetch();
+                }
+                if (!$isDup) {
+                    $dupChkRecent = $pdo->prepare("SELECT id FROM order_scans WHERE order_id = ? AND truck_id = ? AND scanned_at > (NOW() - INTERVAL 2 MINUTE)");
+                    $dupChkRecent->execute([$order_id, $dispatch['truck_id']]);
+                    $isDup = (bool)$dupChkRecent->fetch();
+                }
+                if (!$isDup) {
+                    $pdo->prepare("INSERT INTO order_scans (order_id, truck_id, checker_id, dispatch_id, cubic_meters) VALUES (?, ?, ?, ?, ?)")
+                        ->execute([$order_id, $dispatch['truck_id'], $admin_id, $dispatch['id'] ?? null, $scannedCm]);
                 }
 
                 $pdo->prepare("UPDATE orders SET trucks_fulfilled = trucks_fulfilled + 1, cubic_meters_fulfilled = cubic_meters_fulfilled + ? WHERE id = ?")

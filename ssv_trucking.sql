@@ -190,6 +190,8 @@ CREATE TABLE IF NOT EXISTS `order_scans` (
     `order_id` INT NOT NULL,
     `truck_id` INT NOT NULL,
     `checker_id` INT NOT NULL,
+    `dispatch_id` INT DEFAULT NULL,
+    `cubic_meters` DECIMAL(10, 2) DEFAULT 0.00,
     `scanned_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`order_id`) REFERENCES `orders`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`truck_id`) REFERENCES `trucks`(`id`) ON DELETE CASCADE,

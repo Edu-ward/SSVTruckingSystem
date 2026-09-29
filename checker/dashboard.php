@@ -95,28 +95,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             } elseif ($order['checker_id'] && $order['checker_id'] != $checker_id) {
                 $_SESSION['error'] = "❌ You are not the assigned checker for this order.";
             } else {
-                $dup = $pdo->prepare("SELECT id FROM order_scans WHERE order_id = ? AND truck_id = ?");
-                $dup->execute([$order_id, $truck['id']]);
-                if ($dup->fetch()) {
-                    $_SESSION['error'] = "⚠️ Truck <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> has already been scanned for this order.";
-                } else {
-                    $dispStmt = $pdo->prepare("SELECT cubic_meters FROM dispatches WHERE truck_id = ? ORDER BY id DESC LIMIT 1");
-                    $dispStmt->execute([$truck['id']]);
-                    $dispRow = $dispStmt->fetch();
-                    $scannedCm = ($dispRow && floatval($dispRow['cubic_meters']) > 0) ? floatval($dispRow['cubic_meters']) : 10.00;
+                $activeDispatchStmt = $pdo->prepare("SELECT id, driver_id, cubic_meters, destination FROM dispatches WHERE truck_id = ? AND status IN ('In Transit', 'Loading', 'Unloading') ORDER BY id DESC LIMIT 1");
+                $activeDispatchStmt->execute([$truck['id']]);
+                $activeDispatch = $activeDispatchStmt->fetch();
 
-                    $pdo->prepare("INSERT INTO order_scans (order_id, truck_id, checker_id) VALUES (?, ?, ?)")
-                        ->execute([$order_id, $truck['id'], $checker_id]);
+                $isDup = false;
+                if ($activeDispatch) {
+                    $dupChk = $pdo->prepare("SELECT id FROM order_scans WHERE dispatch_id = ?");
+                    $dupChk->execute([$activeDispatch['id']]);
+                    $isDup = (bool)$dupChk->fetch();
+                }
+                if (!$isDup) {
+                    $dupChkRecent = $pdo->prepare("SELECT id FROM order_scans WHERE order_id = ? AND truck_id = ? AND scanned_at > (NOW() - INTERVAL 2 MINUTE)");
+                    $dupChkRecent->execute([$order_id, $truck['id']]);
+                    $isDup = (bool)$dupChkRecent->fetch();
+                }
+
+                if ($isDup) {
+                    $_SESSION['error'] = "⚠️ Truck <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> delivery trip has already been confirmed/scanned.";
+                } else {
+                    $scannedCm = ($activeDispatch && floatval($activeDispatch['cubic_meters']) > 0) ? floatval($activeDispatch['cubic_meters']) : 0;
+                    if ($scannedCm <= 0) {
+                        $dispStmt = $pdo->prepare("SELECT cubic_meters FROM dispatches WHERE truck_id = ? ORDER BY id DESC LIMIT 1");
+                        $dispStmt->execute([$truck['id']]);
+                        $dispRow = $dispStmt->fetch();
+                        $scannedCm = ($dispRow && floatval($dispRow['cubic_meters']) > 0) ? floatval($dispRow['cubic_meters']) : 10.00;
+                    }
+
+                    $pdo->prepare("INSERT INTO order_scans (order_id, truck_id, checker_id, dispatch_id, cubic_meters) VALUES (?, ?, ?, ?, ?)")
+                        ->execute([$order_id, $truck['id'], $checker_id, $activeDispatch ? $activeDispatch['id'] : null, $scannedCm]);
+
+                    if ($activeDispatch) {
+                        $pdo->prepare("UPDATE dispatches SET order_id = ? WHERE id = ? AND (order_id IS NULL OR order_id = 0)")
+                            ->execute([$order_id, $activeDispatch['id']]);
+                    }
 
                     $pdo->prepare("UPDATE orders SET trucks_fulfilled = trucks_fulfilled + 1, cubic_meters_fulfilled = cubic_meters_fulfilled + ? WHERE id = ?")
                         ->execute([$scannedCm, $order_id]);
 
                     $pdo->prepare("UPDATE orders SET status = 'In Progress' WHERE id = ? AND status = 'Pending'")
                         ->execute([$order_id]);
-
-                    $activeDispatchStmt = $pdo->prepare("SELECT id, driver_id FROM dispatches WHERE truck_id = ? AND status IN ('In Transit', 'Loading', 'Unloading') ORDER BY id DESC LIMIT 1");
-                    $activeDispatchStmt->execute([$truck['id']]);
-                    $activeDispatch = $activeDispatchStmt->fetch();
 
                     $dispatchedDriverId = $activeDispatch ? $activeDispatch['driver_id'] : null;
 

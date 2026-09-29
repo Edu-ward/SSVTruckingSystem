@@ -8,8 +8,8 @@ ALTER TABLE `trucks`
     ADD COLUMN IF NOT EXISTS `rfid_tag` VARCHAR(100) DEFAULT NULL,
     ADD COLUMN IF NOT EXISTS `rfid_active` TINYINT(1) DEFAULT 1,
     ADD COLUMN IF NOT EXISTS `current_location` VARCHAR(100) DEFAULT 'San Leonardo (Garage)',
-    ADD COLUMN IF NOT EXISTS `latitude` DECIMAL(10, 8) DEFAULT 15.362100,
-    ADD COLUMN IF NOT EXISTS `longitude` DECIMAL(11, 8) DEFAULT 120.963200,
+    ADD COLUMN IF NOT EXISTS `latitude` DECIMAL(10, 8) DEFAULT '15.362100',
+    ADD COLUMN IF NOT EXISTS `longitude` DECIMAL(11, 8) DEFAULT '120.963200',
     ADD COLUMN IF NOT EXISTS `speed` INT(11) DEFAULT 0;
 
 -- 3. Ensure `drivers` has profile photo
@@ -33,16 +33,16 @@ ALTER TABLE `checkers`
 -- 5. Ensure `orders` has quantity types and dimension tracking
 ALTER TABLE `orders`
     ADD COLUMN IF NOT EXISTS `quantity_type` ENUM('sqm','hectare','truck_count') NOT NULL DEFAULT 'truck_count',
-    ADD COLUMN IF NOT EXISTS `quantity_value` DECIMAL(10,2) NOT NULL DEFAULT 1.00,
-    ADD COLUMN IF NOT EXISTS `cubic_meters_required` DECIMAL(10,2) DEFAULT 0.00,
-    ADD COLUMN IF NOT EXISTS `cubic_meters_fulfilled` DECIMAL(10,2) DEFAULT 0.00,
+    ADD COLUMN IF NOT EXISTS `quantity_value` DECIMAL(10,2) NOT NULL DEFAULT '1.00',
+    ADD COLUMN IF NOT EXISTS `cubic_meters_required` DECIMAL(10,2) DEFAULT '0.00',
+    ADD COLUMN IF NOT EXISTS `cubic_meters_fulfilled` DECIMAL(10,2) DEFAULT '0.00',
     ADD COLUMN IF NOT EXISTS `checker_id` INT DEFAULT NULL,
     ADD COLUMN IF NOT EXISTS `contact_number` VARCHAR(50) DEFAULT NULL,
     ADD COLUMN IF NOT EXISTS `landmark` VARCHAR(255) DEFAULT NULL;
 
 -- 6. Ensure `dispatches` has distance and tracking columns
 ALTER TABLE `dispatches`
-    ADD COLUMN IF NOT EXISTS `distance_km` DECIMAL(10,2) DEFAULT 0.00,
+    ADD COLUMN IF NOT EXISTS `distance_km` DECIMAL(10,2) DEFAULT '0.00',
     ADD COLUMN IF NOT EXISTS `cancellation_reason` VARCHAR(255) DEFAULT NULL,
     ADD COLUMN IF NOT EXISTS `cancellation_photo` VARCHAR(255) DEFAULT NULL,
     ADD COLUMN IF NOT EXISTS `landmark` VARCHAR(255) DEFAULT NULL,
@@ -52,8 +52,8 @@ ALTER TABLE `dispatches`
 
 -- 7. Ensure `driver_trips` has distance, payroll, and transit timing
 ALTER TABLE `driver_trips`
-    ADD COLUMN IF NOT EXISTS `distance_km` DECIMAL(8,2) DEFAULT 0.00,
-    ADD COLUMN IF NOT EXISTS `pay_amount` DECIMAL(10,2) DEFAULT 0.00,
+    ADD COLUMN IF NOT EXISTS `distance_km` DECIMAL(8,2) DEFAULT '0.00',
+    ADD COLUMN IF NOT EXISTS `pay_amount` DECIMAL(10,2) DEFAULT '0.00',
     ADD COLUMN IF NOT EXISTS `is_on_time` TINYINT(1) DEFAULT 1,
     ADD COLUMN IF NOT EXISTS `transit_start_time` DATETIME DEFAULT NULL,
     ADD COLUMN IF NOT EXISTS `estimated_arrival_time` DATETIME DEFAULT NULL,
@@ -66,9 +66,9 @@ ALTER TABLE `driver_trips`
 CREATE TABLE IF NOT EXISTS `driver_payroll` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `driver_id` INT NOT NULL UNIQUE,
-    `total_amount` DECIMAL(12, 2) DEFAULT 0.00,
-    `amount_claimed` DECIMAL(12, 2) DEFAULT 0.00,
-    `remaining_balance` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+    `total_amount` DECIMAL(12, 2) DEFAULT '0.00',
+    `amount_claimed` DECIMAL(12, 2) DEFAULT '0.00',
+    `remaining_balance` DECIMAL(12, 2) NOT NULL DEFAULT '0.00',
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`driver_id`) REFERENCES `drivers`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -78,12 +78,12 @@ CREATE TABLE IF NOT EXISTS `driver_payroll_settlements` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `settlement_ticket` VARCHAR(50) NOT NULL UNIQUE,
     `driver_id` INT NOT NULL,
-    `gross_amount` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    `previous_balance` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    `cash_advance_deduction` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    `net_pay` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    `amount_claimed` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    `remaining_balance` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    `gross_amount` DECIMAL(12,2) NOT NULL DEFAULT '0.00',
+    `previous_balance` DECIMAL(12,2) NOT NULL DEFAULT '0.00',
+    `cash_advance_deduction` DECIMAL(12,2) NOT NULL DEFAULT '0.00',
+    `net_pay` DECIMAL(12,2) NOT NULL DEFAULT '0.00',
+    `amount_claimed` DECIMAL(12,2) NOT NULL DEFAULT '0.00',
+    `remaining_balance` DECIMAL(12,2) NOT NULL DEFAULT '0.00',
     `trips_count` INT NOT NULL DEFAULT 0,
     `settled_by` INT DEFAULT NULL,
     `settled_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -134,5 +134,10 @@ INSERT INTO `system_settings` (`setting_key`, `setting_value`, `description`) VA
 ('base_trip_rate', '300.00',            'Base flat rate for trips within San Leonardo (PHP)'),
 ('rate_per_km', '10.00',                'Rate per kilometer for distance outside San Leonardo boundary (PHP)')
 ON DUPLICATE KEY UPDATE `description` = VALUES(`description`);
+
+-- 13. Ensure `order_scans` has dispatch_id and cubic_meters columns
+ALTER TABLE `order_scans`
+    ADD COLUMN IF NOT EXISTS `dispatch_id` INT DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS `cubic_meters` DECIMAL(10,2) DEFAULT '0.00';
 
 SET FOREIGN_KEY_CHECKS = 1;
