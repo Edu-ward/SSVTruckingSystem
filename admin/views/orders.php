@@ -123,8 +123,11 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
     </div>
 
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div class="p-6 border-b border-gray-100 dark:border-gray-700">
-            <h3 class="font-semibold text-gray-800 dark:text-gray-200">All Orders</h3>
+        <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+                <h3 class="font-semibold text-gray-800 dark:text-gray-200">All Orders</h3>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5"><i class="fa-solid fa-circle-info text-blue-500 mr-1"></i>Click any order row to view contributing trucks & delivery logs</p>
+            </div>
         </div>
         <?php if (empty($allOrders)): ?>
             <div class="p-12 text-center text-gray-400 dark:text-gray-500">
@@ -161,10 +164,17 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                             $pct = $reqCm > 0 ? round(($doneCm / $reqCm) * 100) : 0;
                             $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type'];
                         ?>
-                            <tr class="order-row hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors"
+                            <tr class="order-row hover:bg-blue-50/60 dark:hover:bg-blue-900/20 transition-colors cursor-pointer group/row"
+                                onclick="openOrderTrucksModal(<?= $order['id'] ?>)"
+                                title="Click to view contributing trucks & delivery records for <?= htmlspecialchars($order['order_number']) ?>"
                                 data-checker-id="<?= htmlspecialchars($order['checker_id'] ?? '') ?>"
                                 data-search="<?= htmlspecialchars(strtolower(($order['order_number'] ?? '') . ' ' . ($order['client_name'] ?? '') . ' ' . ($order['contact_number'] ?? '') . ' ' . $gravelLabel . ' ' . ($order['destination'] ?? '') . ' ' . ($order['landmark'] ?? '') . ' ' . ($order['checker_name'] ?? '') . ' ' . ($order['status'] ?? '') . ' ' . ($order['notes'] ?? ''))) ?>">
-                                <td class="px-3 sm:px-3.5 py-3 font-mono font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap"><?= htmlspecialchars($order['order_number']) ?></td>
+                                <td class="px-3 sm:px-3.5 py-3 font-mono font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap">
+                                    <div class="flex items-center gap-1.5">
+                                        <span><?= htmlspecialchars($order['order_number']) ?></span>
+                                        <i class="fa-solid fa-truck-ramp-box text-[10px] text-blue-500 opacity-0 group-hover/row:opacity-100 transition-opacity" title="View contributing trucks"></i>
+                                    </div>
+                                </td>
                                 <td class="px-3 sm:px-3.5 py-3 text-gray-700 dark:text-gray-300 max-w-[150px]">
                                     <div class="font-medium truncate"><?= htmlspecialchars($order['client_name']) ?></div>
                                     <?php if (!empty($order['contact_number'])): ?>
@@ -174,7 +184,7 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                                 <td class="px-3 sm:px-3.5 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap"><?= htmlspecialchars($gravelLabel) ?></td>
                                 <td class="px-3 sm:px-3.5 py-3 text-gray-700 dark:text-gray-300 max-w-[180px]">
                                     <button type="button"
-                                        onclick="openOrderRouteMap(<?= htmlspecialchars(json_encode($order['destination']), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($order['landmark'] ?? ''), ENT_QUOTES) ?>)"
+                                        onclick="event.stopPropagation(); openOrderRouteMap(<?= htmlspecialchars(json_encode($order['destination']), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($order['landmark'] ?? ''), ENT_QUOTES) ?>)"
                                         class="text-left w-full group"
                                         title="View route to destination on map">
                                         <div class="truncate font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex items-center gap-1" title="<?= htmlspecialchars($order['destination']) ?>"><?= htmlspecialchars($order['destination']) ?> <i class="fa-solid fa-map-location-dot text-[10px] text-blue-400 dark:text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></i></div>
@@ -201,20 +211,20 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                                 <td class="px-3 sm:px-3.5 py-3 text-center whitespace-nowrap min-w-[110px]">
                                     <div class="flex items-center justify-center space-x-2 sm:space-x-2.5">
                                         <?php if ($order['status'] !== 'Cancelled' && $order['status'] !== 'Fulfilled'): ?>
-                                            <button type="button" onclick="openEditOrderModal(<?= htmlspecialchars(json_encode($order), ENT_QUOTES, 'UTF-8') ?>)" title="Edit Order & Pinned Location" class="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-1 transition cursor-pointer">
+                                            <button type="button" onclick="event.stopPropagation(); openEditOrderModal(<?= htmlspecialchars(json_encode($order), ENT_QUOTES, 'UTF-8') ?>)" title="Edit Order & Pinned Location" class="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-1 transition cursor-pointer">
                                                 <i class="fa-solid fa-pen-to-square"></i>
                                             </button>
-                                            <button type="button" onclick="openAssignCheckerModal(<?= $order['id'] ?>, '<?= addslashes($order['order_number']) ?>')" title="Assign Checker" class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1 transition cursor-pointer">
+                                            <button type="button" onclick="event.stopPropagation(); openAssignCheckerModal(<?= $order['id'] ?>, '<?= addslashes($order['order_number']) ?>')" title="Assign Checker" class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1 transition cursor-pointer">
                                                 <i class="fa-solid fa-user-shield"></i>
                                             </button>
-                                            <button type="button" onclick="window.open('print_order_ticket.php?id=<?= $order['id'] ?>', '_blank')" title="Print Order Ticket" class="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 p-1 transition cursor-pointer">
+                                            <button type="button" onclick="event.stopPropagation(); window.open('print_order_ticket.php?id=<?= $order['id'] ?>', '_blank')" title="Print Order Ticket" class="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 p-1 transition cursor-pointer">
                                                 <i class="fa-solid fa-print"></i>
                                             </button>
-                                            <button type="button" onclick="openCancelOrderModal(<?= $order['id'] ?>, '<?= addslashes($order['order_number']) ?>')" title="Cancel Order" class="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 p-1 transition cursor-pointer">
+                                            <button type="button" onclick="event.stopPropagation(); openCancelOrderModal(<?= $order['id'] ?>, '<?= addslashes($order['order_number']) ?>')" title="Cancel Order" class="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 p-1 transition cursor-pointer">
                                                 <i class="fa-solid fa-ban"></i>
                                             </button>
                                         <?php else: ?>
-                                            <button type="button" onclick="window.open('print_order_ticket.php?id=<?= $order['id'] ?>', '_blank')" title="Print Order Ticket" class="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 p-1 transition cursor-pointer">
+                                            <button type="button" onclick="event.stopPropagation(); window.open('print_order_ticket.php?id=<?= $order['id'] ?>', '_blank')" title="Print Order Ticket" class="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 p-1 transition cursor-pointer">
                                                 <i class="fa-solid fa-print"></i>
                                             </button>
                                         <?php endif; ?>

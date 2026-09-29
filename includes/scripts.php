@@ -2107,6 +2107,261 @@
             toggleModal('cancelOrderModal', true);
         }
 
+        async function openOrderTrucksModal(orderId) {
+            if (!orderId) return;
+
+            const loadingEl = document.getElementById('otm-loading');
+            const errorEl = document.getElementById('otm-error');
+            const contentEl = document.getElementById('otm-content');
+            const emptyEl = document.getElementById('otm-empty');
+
+            if (loadingEl) loadingEl.classList.remove('hidden');
+            if (errorEl) errorEl.classList.add('hidden');
+            if (contentEl) contentEl.classList.add('hidden');
+            if (emptyEl) emptyEl.classList.add('hidden');
+
+            const orderNumEl = document.getElementById('otm-order-number');
+            if (orderNumEl) orderNumEl.textContent = 'Order #' + orderId;
+
+            const statusBadge = document.getElementById('otm-order-status-badge');
+            if (statusBadge) {
+                statusBadge.textContent = '...';
+                statusBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+            }
+
+            const printBtn = document.getElementById('otm-print-ticket-btn');
+            if (printBtn) {
+                printBtn.onclick = function() {
+                    window.open('print_order_ticket.php?id=' + encodeURIComponent(orderId), '_blank');
+                };
+            }
+
+            if (typeof toggleModal === 'function') {
+                toggleModal('orderTrucksModal', true);
+            }
+
+            try {
+                const response = await fetch('get_order_trucks.php?order_id=' + encodeURIComponent(orderId));
+                if (!response.ok) {
+                    throw new Error('HTTP error ' + response.status);
+                }
+                const data = await response.json();
+                if (!data || !data.success) {
+                    throw new Error(data && data.message ? data.message : 'Failed to retrieve order data');
+                }
+
+                renderOrderTrucksModalData(data);
+            } catch (err) {
+                console.error('[openOrderTrucksModal] Error:', err);
+                if (loadingEl) loadingEl.classList.add('hidden');
+                if (errorEl) {
+                    errorEl.classList.remove('hidden');
+                    const msgEl = document.getElementById('otm-error-msg');
+                    if (msgEl) msgEl.textContent = err.message || 'Failed to load order delivery details. Please try again.';
+                }
+            }
+        }
+
+        function renderOrderTrucksModalData(data) {
+            const loadingEl = document.getElementById('otm-loading');
+            const contentEl = document.getElementById('otm-content');
+            const emptyEl = document.getElementById('otm-empty');
+
+            if (loadingEl) loadingEl.classList.add('hidden');
+
+            const order = data.order || {};
+            const summary = data.summary || {};
+            const trucks = data.trucks || [];
+            const deliveries = data.deliveries || [];
+
+            // Header Elements
+            const orderNumEl = document.getElementById('otm-order-number');
+            if (orderNumEl) orderNumEl.textContent = order.order_number || ('Order #' + order.id);
+
+            const clientEl = document.getElementById('otm-client-name');
+            if (clientEl) {
+                clientEl.textContent = order.client_name || 'Client';
+                if (order.contact_number) {
+                    clientEl.textContent += ' (' + order.contact_number + ')';
+                }
+            }
+
+            const destEl = document.getElementById('otm-destination');
+            if (destEl) {
+                destEl.textContent = order.destination || '---';
+                if (order.landmark) {
+                    destEl.textContent += ' • ' + order.landmark;
+                }
+            }
+
+            const gravelEl = document.getElementById('otm-gravel-type');
+            if (gravelEl) gravelEl.textContent = order.gravel_label || order.gravel_type || 'Gravel';
+
+            const statusBadge = document.getElementById('otm-order-status-badge');
+            if (statusBadge) {
+                const statusColors = {
+                    'Pending': 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-200 dark:border-amber-800',
+                    'In Progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200 border border-blue-200 dark:border-blue-800',
+                    'Fulfilled': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800',
+                    'Cancelled': 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-200 border border-rose-200 dark:border-rose-800'
+                };
+                statusBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold ' + (statusColors[order.status] || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300');
+                statusBadge.textContent = order.status || 'Pending';
+            }
+
+            // Progress stats
+            const reqCm = parseFloat(order.cubic_meters_required || 0);
+            const doneCm = parseFloat(order.cubic_meters_fulfilled || 0);
+            const remCm = parseFloat(order.remaining_cubic_meters || Math.max(0, reqCm - doneCm));
+            const pct = parseFloat(order.percent_fulfilled || (reqCm > 0 ? (doneCm / reqCm) * 100 : 0));
+
+            const progHeadline = document.getElementById('otm-progress-headline');
+            if (progHeadline) progHeadline.textContent = doneCm.toFixed(2) + ' / ' + reqCm.toFixed(2) + ' cu.m';
+
+            const progPct = document.getElementById('otm-progress-pct');
+            if (progPct) {
+                progPct.textContent = pct.toFixed(1) + '% Fulfilled';
+                if (pct >= 100) {
+                    progPct.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300';
+                } else {
+                    progPct.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300';
+                }
+            }
+
+            const remLabel = document.getElementById('otm-remaining-label');
+            if (remLabel) {
+                remLabel.textContent = remCm > 0 ? (remCm.toFixed(2) + ' cu.m remaining') : 'Order volume fully delivered';
+            }
+
+            const progressBar = document.getElementById('otm-progress-bar');
+            if (progressBar) {
+                progressBar.style.width = Math.min(100, Math.max(0, pct)) + '%';
+                if (pct >= 100) {
+                    progressBar.className = 'h-2.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500';
+                } else {
+                    progressBar.className = 'h-2.5 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-500';
+                }
+            }
+
+            // Stat Cards
+            const statTrucks = document.getElementById('otm-stat-trucks');
+            if (statTrucks) statTrucks.textContent = summary.total_trucks || trucks.length || '0';
+
+            const statTrips = document.getElementById('otm-stat-trips');
+            if (statTrips) statTrips.textContent = summary.total_trips || deliveries.length || '0';
+
+            const statVolume = document.getElementById('otm-stat-volume');
+            if (statVolume) statVolume.textContent = (summary.total_cubic_meters || doneCm).toFixed(2) + ' cu.m';
+
+            // Check if there are no trucks or deliveries
+            if (trucks.length === 0 && deliveries.length === 0) {
+                if (emptyEl) emptyEl.classList.remove('hidden');
+                if (contentEl) contentEl.classList.add('hidden');
+                return;
+            }
+
+            if (emptyEl) emptyEl.classList.add('hidden');
+            if (contentEl) contentEl.classList.remove('hidden');
+
+            // Render Contributing Trucks
+            const trucksListEl = document.getElementById('otm-trucks-list');
+            const trucksBadge = document.getElementById('otm-trucks-count-badge');
+            if (trucksBadge) trucksBadge.textContent = trucks.length + ' truck' + (trucks.length !== 1 ? 's' : '');
+
+            if (trucksListEl) {
+                let tHtml = '';
+                const totalFulfilled = (summary.total_cubic_meters > 0 ? summary.total_cubic_meters : doneCm) || 1;
+
+                trucks.forEach(function(t) {
+                    const truckPct = Math.round((t.total_cubic_meters / totalFulfilled) * 100);
+                    const driversStr = (t.drivers && t.drivers.length > 0) ? t.drivers.join(', ') : 'Assigned Driver';
+                    const dateFormatted = t.latest_timestamp ? new Date(t.latest_timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--';
+
+                    tHtml += `
+                        <div class="p-3.5 rounded-xl border border-gray-100 dark:border-gray-700/80 bg-gray-50/60 dark:bg-gray-900/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-blue-200 dark:hover:border-blue-800 transition">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0">
+                                    <i class="fa-solid fa-truck"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <strong class="font-bold text-gray-900 dark:text-gray-100 text-sm font-mono">${escapeHtml(t.truck_code)}</strong>
+                                        ${t.plate_number ? `<span class="text-[11px] font-mono px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">${escapeHtml(t.plate_number)}</span>` : ''}
+                                    </div>
+                                    <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                        <i class="fa-solid fa-user-check text-[10px] text-blue-500"></i>
+                                        <span class="truncate max-w-[200px]" title="${escapeHtml(driversStr)}">${escapeHtml(driversStr)}</span>
+                                        <span class="text-gray-300 dark:text-gray-600">&bull;</span>
+                                        <span>Latest: ${escapeHtml(dateFormatted)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-2 sm:pt-0 border-gray-100 dark:border-gray-700 flex-shrink-0">
+                                <div class="text-left sm:text-right">
+                                    <div class="text-xs font-semibold text-gray-500 dark:text-gray-400">${t.trips_count} trip${t.trips_count !== 1 ? 's' : ''}</div>
+                                    <div class="text-sm font-black text-gray-900 dark:text-gray-100">${parseFloat(t.total_cubic_meters).toFixed(2)} cu.m</div>
+                                </div>
+                                <div class="w-16 text-right">
+                                    <span class="text-xs font-bold text-blue-600 dark:text-blue-400">${truckPct}%</span>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1">
+                                        <div class="bg-blue-600 h-1.5 rounded-full" style="width: ${Math.min(100, Math.max(2, truckPct))}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                trucksListEl.innerHTML = tHtml;
+            }
+
+            // Render Detailed Delivery Logs
+            const logsTableEl = document.getElementById('otm-deliveries-table-body');
+            const logsBadge = document.getElementById('otm-logs-count-badge');
+            if (logsBadge) logsBadge.textContent = deliveries.length + ' record' + (deliveries.length !== 1 ? 's' : '');
+
+            if (logsTableEl) {
+                let dHtml = '';
+                const deliveryBadges = {
+                    'Delivered': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+                    'In Transit': 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+                    'Loading': 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+                    'Unloading': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
+                    'Pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800'
+                };
+
+                deliveries.forEach(function(d) {
+                    const bClass = deliveryBadges[d.status] || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600';
+                    const dateStr = d.timestamp ? new Date(d.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--';
+
+                    dHtml += `
+                        <tr class="hover:bg-gray-50/60 dark:hover:bg-gray-700/40 transition">
+                            <td class="px-3.5 py-2.5 font-mono font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap">${escapeHtml(d.ticket_number)}</td>
+                            <td class="px-3.5 py-2.5 font-mono font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                <span class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700">${escapeHtml(d.truck_code)}</span>
+                            </td>
+                            <td class="px-3.5 py-2.5 text-gray-700 dark:text-gray-300 truncate max-w-[140px]" title="${escapeHtml(d.driver_name)}">
+                                ${escapeHtml(d.driver_name)}
+                            </td>
+                            <td class="px-3.5 py-2.5 font-black text-gray-900 dark:text-gray-100 text-right whitespace-nowrap">
+                                ${parseFloat(d.cubic_meters).toFixed(2)} cu.m
+                            </td>
+                            <td class="px-3.5 py-2.5 text-gray-600 dark:text-gray-400 truncate max-w-[130px]" title="${escapeHtml(d.checker_name)}">
+                                <span class="flex items-center gap-1">
+                                    <i class="fa-solid fa-user-shield text-[10px] text-blue-500"></i>
+                                    <span class="truncate">${escapeHtml(d.checker_name)}</span>
+                                </span>
+                            </td>
+                            <td class="px-3.5 py-2.5 text-gray-500 dark:text-gray-400 whitespace-nowrap">${escapeHtml(dateStr)}</td>
+                            <td class="px-3.5 py-2.5 text-center whitespace-nowrap">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${bClass}">${escapeHtml(d.status)}</span>
+                            </td>
+                        </tr>
+                    `;
+                });
+                logsTableEl.innerHTML = dHtml;
+            }
+        }
+
         function openResignCheckerModal(checkerId, checkerName) {
             const nameEl = document.getElementById('dc-checker-name');
             if (nameEl) nameEl.innerText = checkerName;

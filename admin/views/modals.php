@@ -2162,6 +2162,170 @@
         </div>
     </div>
 
+    <!-- Contributing Trucks for Order Modal -->
+    <div id="orderTrucksModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-60 hidden p-3 sm:p-4 backdrop-blur-xs">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden relative max-h-[92vh] flex flex-col border border-gray-100 dark:border-gray-700 animate-in fade-in zoom-in-95 duration-150">
+            <!-- Modal Header -->
+            <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex items-start justify-between gap-4 flex-shrink-0 bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-white dark:from-gray-800 dark:via-gray-800 dark:to-gray-800">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center text-xl shadow-lg shadow-blue-500/25 flex-shrink-0">
+                        <i class="fa-solid fa-truck-ramp-box"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100" id="otm-order-number">Order Details</h3>
+                            <span id="otm-order-status-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold">---</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-2 sm:gap-3 flex-wrap">
+                            <span><i class="fa-solid fa-user text-xs mr-1 text-gray-400"></i><strong id="otm-client-name" class="text-gray-700 dark:text-gray-200">---</strong></span>
+                            <span class="text-gray-300 dark:text-gray-600">&bull;</span>
+                            <span><i class="fa-solid fa-location-dot text-xs mr-1 text-gray-400"></i><span id="otm-destination">---</span></span>
+                            <span class="text-gray-300 dark:text-gray-600">&bull;</span>
+                            <span><i class="fa-solid fa-layer-group text-xs mr-1 text-gray-400"></i><span id="otm-gravel-type">---</span></span>
+                        </p>
+                    </div>
+                </div>
+                <button type="button" onclick="toggleModal('orderTrucksModal', false)" class="text-gray-400 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div class="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1 bg-white dark:bg-gray-800">
+                <!-- Loading State -->
+                <div id="otm-loading" class="py-16 text-center text-gray-400 dark:text-gray-500 space-y-3">
+                    <i class="fa-solid fa-circle-notch fa-spin text-3xl text-blue-500"></i>
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Loading contributing trucks &amp; delivery records...</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="otm-error" class="hidden py-12 text-center text-red-500 space-y-2">
+                    <i class="fa-solid fa-circle-exclamation text-3xl"></i>
+                    <p class="text-sm font-semibold" id="otm-error-msg">Failed to load order information.</p>
+                </div>
+
+                <!-- Main Content -->
+                <div id="otm-content" class="hidden space-y-6">
+                    <!-- Progress Card -->
+                    <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-gray-50 to-blue-50/40 dark:from-gray-900/60 dark:to-gray-800/80 border border-gray-100 dark:border-gray-700/80 shadow-xs">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
+                            <div>
+                                <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fulfillment Progress</span>
+                                <div class="text-lg font-black text-gray-900 dark:text-gray-100 mt-0.5" id="otm-progress-headline">0.00 / 0.00 cu.m</div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300" id="otm-progress-pct">0% Fulfilled</span>
+                                <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1" id="otm-remaining-label">0.00 cu.m remaining</div>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                            <div id="otm-progress-bar" class="h-2.5 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- 3 Stat KPI Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="p-4 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 flex items-center gap-3.5">
+                            <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 flex items-center justify-center text-lg flex-shrink-0">
+                                <i class="fa-solid fa-truck"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-semibold text-gray-500 dark:text-gray-400">Contributing Trucks</div>
+                                <div class="text-xl font-black text-gray-900 dark:text-gray-100 mt-0.5" id="otm-stat-trucks">0</div>
+                            </div>
+                        </div>
+                        <div class="p-4 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 flex items-center gap-3.5">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-lg flex-shrink-0">
+                                <i class="fa-solid fa-route"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-semibold text-gray-500 dark:text-gray-400">Total Trips / Dispatches</div>
+                                <div class="text-xl font-black text-gray-900 dark:text-gray-100 mt-0.5" id="otm-stat-trips">0</div>
+                            </div>
+                        </div>
+                        <div class="p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 flex items-center gap-3.5">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg flex-shrink-0">
+                                <i class="fa-solid fa-cubes"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-semibold text-gray-500 dark:text-gray-400">Total Volume Delivered</div>
+                                <div class="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5" id="otm-stat-volume">0.00 cu.m</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 1: Contributing Trucks -->
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                <i class="fa-solid fa-truck-moving text-blue-600 dark:text-blue-400"></i>
+                                <span>Contributing Trucks</span>
+                                <span id="otm-trucks-count-badge" class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">0 trucks</span>
+                            </h4>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Ranked by volume hauled</span>
+                        </div>
+                        <div id="otm-trucks-list" class="space-y-2.5">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Detailed Delivery & Trip History -->
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                <i class="fa-solid fa-clock-rotate-left text-indigo-600 dark:text-indigo-400"></i>
+                                <span>Delivery &amp; Trip Logs</span>
+                                <span id="otm-logs-count-badge" class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">0 records</span>
+                            </h4>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Newest first</span>
+                        </div>
+                        <div class="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+                            <div class="overflow-x-auto max-h-72">
+                                <table class="w-full text-xs text-left">
+                                    <thead class="bg-gray-50 dark:bg-gray-700/80 text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700">
+                                        <tr>
+                                            <th class="px-3.5 py-2.5 font-semibold">Ticket #</th>
+                                            <th class="px-3.5 py-2.5 font-semibold">Truck</th>
+                                            <th class="px-3.5 py-2.5 font-semibold">Driver</th>
+                                            <th class="px-3.5 py-2.5 font-semibold text-right">Volume</th>
+                                            <th class="px-3.5 py-2.5 font-semibold">Verified By</th>
+                                            <th class="px-3.5 py-2.5 font-semibold">Time</th>
+                                            <th class="px-3.5 py-2.5 font-semibold text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="otm-deliveries-table-body" class="divide-y divide-gray-100 dark:divide-gray-700/60 bg-white dark:bg-gray-800">
+                                        <!-- Injected by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State (No trucks yet) -->
+                <div id="otm-empty" class="hidden py-12 px-4 text-center">
+                    <div class="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center text-3xl mx-auto mb-3 shadow-inner">
+                        <i class="fa-solid fa-truck-clock"></i>
+                    </div>
+                    <h4 class="text-base font-bold text-gray-800 dark:text-gray-200">No Trucks Contributed Yet</h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-md mx-auto leading-relaxed">
+                        This order does not have any recorded truck deliveries or active dispatches yet. When trucks are dispatched and haul gravel to the destination, their contributions and trips will appear here automatically.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 sm:px-6 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/80 dark:bg-gray-800/80 flex-shrink-0">
+                <button type="button" id="otm-print-ticket-btn" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition shadow-xs cursor-pointer">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Print Order Ticket</span>
+                </button>
+                <button type="button" onclick="toggleModal('orderTrucksModal', false)" class="px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-gray-900 hover:bg-black dark:bg-gray-700 dark:hover:bg-gray-600 transition shadow-xs cursor-pointer">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
 
     <div id="nominatimSearchModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-gray-900 bg-opacity-60 hidden p-3 sm:p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
