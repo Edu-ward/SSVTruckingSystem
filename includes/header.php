@@ -922,16 +922,9 @@
                                 </span>
                             <?php endif; ?>
                         </button>
-                        <button type="button" onclick="switchTab('notifications')" id="nav-notifications" class="sidebar-nav-item <?= $activeDriverTabNav === 'notifications' ? 'active' : ''; ?> w-full text-left flex items-center justify-between">
-                            <span class="flex items-center space-x-3">
-                                <i class="fa-solid fa-bell nav-icon"></i>
-                                <span>Notifications</span>
-                            </span>
-                            <?php if (($unreadNotificationCount ?? 0) > 0): ?>
-                                <span class="text-[10px] font-extrabold min-w-[18px] h-4 px-1 rounded-full bg-rose-500 text-white flex items-center justify-center">
-                                    <?= $unreadNotificationCount; ?>
-                                </span>
-                            <?php endif; ?>
+                        <button type="button" onclick="switchTab('notifications')" id="nav-notifications" class="sidebar-nav-item <?= $activeDriverTabNav === 'notifications' ? 'active' : ''; ?> w-full text-left">
+                            <i class="fa-solid fa-bell nav-icon"></i>
+                            <span>Notifications</span>
                         </button>
                         <button type="button" onclick="switchTab('profile')" id="nav-profile" class="sidebar-nav-item <?= $activeDriverTabNav === 'profile' ? 'active' : ''; ?> w-full text-left">
                             <i class="fa-solid fa-id-card nav-icon"></i>
@@ -963,13 +956,8 @@
                         </div>
                     </div>
                     <div class="flex items-center space-x-2 flex-shrink-0">
-                        <button type="button" onclick="switchTab('notifications')" class="relative w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all active:scale-95" aria-label="Notifications" title="Notifications">
+                        <button type="button" onclick="switchTab('notifications')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all active:scale-95" aria-label="Notifications" title="Notifications">
                             <i class="fa-solid fa-bell text-sm"></i>
-                            <?php if (($unreadNotificationCount ?? 0) > 0): ?>
-                                <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-extrabold flex items-center justify-center border-2 border-white dark:border-gray-900">
-                                    <?= min(9, $unreadNotificationCount); ?>
-                                </span>
-                            <?php endif; ?>
                         </button>
                         <button onclick="toggleTheme(event)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all active:scale-95" aria-label="Toggle theme">
                             <i class="themeIconMobile fa-solid fa-moon text-sm"></i>
@@ -1011,12 +999,9 @@
                             <span class="absolute top-1 right-1/4 w-2 h-2 rounded-full bg-emerald-500"></span>
                         <?php endif; ?>
                     </button>
-                    <button type="button" onclick="switchTab('notifications')" id="bottom-nav-notifications" class="bottom-nav-item <?= $activeDriverTabNav === 'notifications' ? 'active' : ''; ?> flex-1 relative">
+                    <button type="button" onclick="switchTab('notifications')" id="bottom-nav-notifications" class="bottom-nav-item <?= $activeDriverTabNav === 'notifications' ? 'active' : ''; ?> flex-1">
                         <i class="fa-solid fa-bell text-base mb-0.5"></i>
                         <span class="text-[9px] font-semibold">Alerts</span>
-                        <?php if (($unreadNotificationCount ?? 0) > 0): ?>
-                            <span class="absolute top-1 right-1/4 w-2 h-2 rounded-full bg-rose-500"></span>
-                        <?php endif; ?>
                     </button>
                     <button type="button" onclick="switchTab('profile')" id="bottom-nav-profile" class="bottom-nav-item <?= $activeDriverTabNav === 'profile' ? 'active' : ''; ?> flex-1">
                         <i class="fa-solid fa-id-card text-base mb-0.5"></i>

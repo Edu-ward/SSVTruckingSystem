@@ -1665,19 +1665,6 @@ if (!empty($driverFullName)) {
         applyDriverTripCustomDateRange();
     }
 
-    // -------------------------------------------------------------
-    // Notifications Helpers
-    // -------------------------------------------------------------
-    const badge1 = document.querySelector('#nav-notifications span.bg-rose-500');
-    if (badge1) badge1.classList.add('hidden');
-    const badge2 = document.querySelector('#bottom-nav-notifications span.bg-rose-500');
-    if (badge2) badge2.classList.add('hidden');
-    const badge3 = document.querySelector('button[title="Notifications"] span.bg-rose-500');
-    if (badge3) badge3.classList.add('hidden');
-    if (typeof showToast === 'function') {
-        showToast('All notifications marked as read', 'info');
-    }
-    }
 
     // -------------------------------------------------------------
     // Profile Photo Cropper

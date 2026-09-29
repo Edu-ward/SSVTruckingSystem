@@ -495,15 +495,6 @@ usort($driverNotifications, function ($a, $b) {
 
 
 $unreadNotificationCount = 0;
-$recentThreshold = time() - (72 * 3600);
-foreach ($driverNotifications as $n) {
-    if ($n['timestamp'] > $recentThreshold) {
-        $unreadNotificationCount++;
-    }
-}
-if ($unreadNotificationCount === 0 && count($driverNotifications) > 0) {
-    $unreadNotificationCount = min(2, count($driverNotifications));
-}
 
 include __DIR__ . '/../includes/header.php';
 ?>
