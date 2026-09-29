@@ -2287,7 +2287,7 @@
                                             <th class="px-3.5 py-2.5 font-semibold">Ticket #</th>
                                             <th class="px-3.5 py-2.5 font-semibold">Truck</th>
                                             <th class="px-3.5 py-2.5 font-semibold">Driver</th>
-                                            <th class="px-3.5 py-2.5 font-semibold text-right">Volume</th>
+                                            <th class="px-3.5 py-2.5 font-semibold">Volume</th>
                                             <th class="px-3.5 py-2.5 font-semibold">Time</th>
                                             <th class="px-3.5 py-2.5 font-semibold text-center">Status</th>
                                         </tr>

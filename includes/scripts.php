@@ -2275,7 +2275,12 @@
                 trucks.forEach(function(t) {
                     const truckPct = Math.round((t.total_cubic_meters / totalFulfilled) * 100);
                     const driversStr = (t.drivers && t.drivers.length > 0) ? t.drivers.join(', ') : 'Assigned Driver';
-                    const dateFormatted = t.latest_timestamp ? new Date(t.latest_timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--';
+                    const dateFormatted = t.latest_timestamp ? new Date(t.latest_timestamp).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) : '--';
 
                     tHtml += `
                         <div class="p-3.5 rounded-xl border border-gray-100 dark:border-gray-700/80 bg-gray-50/60 dark:bg-gray-900/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-blue-200 dark:hover:border-blue-800 transition">
@@ -2331,7 +2336,12 @@
 
                 deliveries.forEach(function(d) {
                     const bClass = deliveryBadges[d.status] || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600';
-                    const dateStr = d.timestamp ? new Date(d.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--';
+                    const dateStr = d.timestamp ? new Date(d.timestamp).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) : '--';
 
                     dHtml += `
                         <tr class="hover:bg-gray-50/60 dark:hover:bg-gray-700/40 transition">
@@ -2342,7 +2352,7 @@
                             <td class="px-3.5 py-2.5 text-gray-700 dark:text-gray-300 truncate max-w-[140px]" title="${escapeHtml(d.driver_name)}">
                                 ${escapeHtml(d.driver_name)}
                             </td>
-                            <td class="px-3.5 py-2.5 font-black text-gray-900 dark:text-gray-100 text-right whitespace-nowrap">
+                            <td class="px-3.5 py-2.5 font-black text-gray-900 dark:text-gray-100 whitespace-nowrap">
                                 ${parseFloat(d.cubic_meters).toFixed(2)} cu.m
                             </td>
                             <td class="px-3.5 py-2.5 text-gray-500 dark:text-gray-400 whitespace-nowrap">${escapeHtml(dateStr)}</td>
