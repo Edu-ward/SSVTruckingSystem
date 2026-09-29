@@ -2044,8 +2044,16 @@ if (!empty($driverFullName)) {
         return null;
     }
 
+    let driverGpsWatchId = null;
+    let driverGpsConsecutiveTimeouts = 0;
+
     function startDriverLiveLocation() {
         if (!navigator.geolocation || !driverMap) return;
+
+        if (driverGpsWatchId !== null) {
+            navigator.geolocation.clearWatch(driverGpsWatchId);
+            driverGpsWatchId = null;
+        }
 
         const updateGpsUI = (lat, lng, accuracy) => {
             // Enforce Philippine operational limits
@@ -2100,17 +2108,50 @@ if (!empty($driverFullName)) {
             }
         };
 
+        // Phase 1: Rapid instant fix using cached / network location
         navigator.geolocation.getCurrentPosition(
             pos => updateGpsUI(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy),
-            err => console.log('Driver initial GPS location pending:', err.message),
-            { enableHighAccuracy: true, timeout: 10000 }
+            err => console.log('Driver rapid GPS check:', err.message),
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 120000 }
         );
 
-        navigator.geolocation.watchPosition(
-            pos => updateGpsUI(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy),
-            err => console.log('Driver GPS watch pending:', err.message),
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
-        );
+        // Phase 2: Continuous watch with adaptive high-accuracy to network fallback
+        function watchDriverMap(highAccuracy = true) {
+            if (driverGpsWatchId !== null) {
+                navigator.geolocation.clearWatch(driverGpsWatchId);
+                driverGpsWatchId = null;
+            }
+
+            const opts = highAccuracy ? {
+                enableHighAccuracy: true,
+                timeout: 30000,
+                maximumAge: 10000
+            } : {
+                enableHighAccuracy: false,
+                timeout: 30000,
+                maximumAge: 30000
+            };
+
+            driverGpsWatchId = navigator.geolocation.watchPosition(
+                pos => {
+                    driverGpsConsecutiveTimeouts = 0;
+                    updateGpsUI(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+                },
+                err => {
+                    console.log('Driver map GPS watch (' + (highAccuracy ? 'high' : 'low') + '):', err.message);
+                    if (err.code === 3 /* TIMEOUT */ && highAccuracy) {
+                        driverGpsConsecutiveTimeouts++;
+                        if (driverGpsConsecutiveTimeouts >= 2) {
+                            console.log('Switching driver map GPS to standard network accuracy.');
+                            watchDriverMap(false);
+                        }
+                    }
+                },
+                opts
+            );
+        }
+
+        watchDriverMap(true);
     }
 
     function fitDriverRouteBounds() {

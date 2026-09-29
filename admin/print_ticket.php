@@ -590,14 +590,22 @@ if (!$ticket) {
     </div>
 
     <script>
+        let _ticketPrintTriggered = false;
+        window.triggerTicketPrint = function() {
+            if (_ticketPrintTriggered) return;
+            _ticketPrintTriggered = true;
+            try {
+                window.focus();
+                window.print();
+            } catch(e) {
+                console.warn('Print trigger error:', e);
+            }
+        };
+
         window.addEventListener('load', function() {
             setTimeout(function() {
-                try {
-                    window.print();
-                } catch(e) {
-                    console.warn(e);
-                }
-            }, 600);
+                window.triggerTicketPrint();
+            }, 500);
         });
     </script>
 </body>

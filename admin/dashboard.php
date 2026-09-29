@@ -3128,15 +3128,42 @@ include __DIR__ . '/../includes/header.php';
     $print_id = intval($_SESSION['auto_print_id']);
     unset($_SESSION['auto_print_id']);
 ?>
+    <iframe id="autoPrintWaybillFrame" src="print_ticket.php?id=<?= $print_id; ?>" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:-9999;opacity:0;pointer-events:none;border:none;"></iframe>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            try {
-                // noopener and noreferrer are critical so the print window runs in an isolated process
-                // preventing Chromium from blocking/freezing the main dashboard event loop
-                window.open('print_ticket.php?id=<?= $print_id; ?>', '_blank', 'noopener,noreferrer');
-            } catch (e) {
-                console.warn('Popup blocked:', e);
+            const printFrame = document.getElementById('autoPrintWaybillFrame');
+            let hasPrinted = false;
+
+            function triggerWaybillPrint() {
+                if (hasPrinted) return;
+                hasPrinted = true;
+                try {
+                    if (printFrame && printFrame.contentWindow) {
+                        if (typeof printFrame.contentWindow.triggerTicketPrint === 'function') {
+                            printFrame.contentWindow.triggerTicketPrint();
+                        } else {
+                            printFrame.contentWindow.focus();
+                            printFrame.contentWindow.print();
+                        }
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('Iframe print error, trying fallback:', e);
+                }
+                try {
+                    window.open('print_ticket.php?id=<?= $print_id; ?>', '_blank', 'noopener,noreferrer');
+                } catch(e) {}
             }
+
+            if (printFrame) {
+                printFrame.addEventListener('load', function() {
+                    setTimeout(triggerWaybillPrint, 400);
+                });
+                setTimeout(triggerWaybillPrint, 1200);
+            } else {
+                setTimeout(triggerWaybillPrint, 300);
+            }
+
             const scannerInput = document.getElementById('dispatchScannerRfidInput');
             if (scannerInput) {
                 scannerInput.focus();
@@ -3149,12 +3176,36 @@ include __DIR__ . '/../includes/header.php';
     $ca_print_id = intval($_SESSION['auto_print_cash_advance_id']);
     unset($_SESSION['auto_print_cash_advance_id']);
 ?>
+    <iframe id="autoPrintCashAdvanceFrame" src="print_cash_advance.php?id=<?= $ca_print_id; ?>" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:-9999;opacity:0;pointer-events:none;border:none;"></iframe>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            try {
-                window.open('print_cash_advance.php?id=<?= $ca_print_id; ?>', '_blank', 'noopener,noreferrer');
-            } catch (e) {
-                console.warn('Popup blocked:', e);
+            const caFrame = document.getElementById('autoPrintCashAdvanceFrame');
+            let caPrinted = false;
+
+            function triggerCaPrint() {
+                if (caPrinted) return;
+                caPrinted = true;
+                try {
+                    if (caFrame && caFrame.contentWindow) {
+                        caFrame.contentWindow.focus();
+                        caFrame.contentWindow.print();
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('CA Iframe print error, trying fallback:', e);
+                }
+                try {
+                    window.open('print_cash_advance.php?id=<?= $ca_print_id; ?>', '_blank', 'noopener,noreferrer');
+                } catch(e) {}
+            }
+
+            if (caFrame) {
+                caFrame.addEventListener('load', function() {
+                    setTimeout(triggerCaPrint, 400);
+                });
+                setTimeout(triggerCaPrint, 1200);
+            } else {
+                setTimeout(triggerCaPrint, 300);
             }
         });
     </script>

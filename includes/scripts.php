@@ -3516,53 +3516,102 @@
                             return;
                         }
 
-                        createGpsBadge('Requesting GPS Permission...', '#f59e0b');
+                        createGpsBadge('Acquiring GPS Signal...', '#f59e0b');
 
+                        let consecutiveTimeouts = 0;
+                        let hasRealGps = false;
+
+                        // Phase 1: Rapid instant fix using cached / network location (no timeout failure)
                         navigator.geolocation.getCurrentPosition(
                             function(pos) {
+                                hasRealGps = true;
                                 if (isTransit) {
                                     createGpsBadge('GPS Active — Sharing Location', '#22c55e');
                                     pushLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.speed ? pos.coords.speed * 3.6 : 0);
                                 } else {
-                                    createGpsBadge('GPS Authorized — Ready for Trip', '#3b82f6');
+                                    createGpsBadge('GPS Ready', '#3b82f6');
                                 }
                             },
                             function(err) {
-                                let msg = "GPS Status: ";
-                                let badgeColor = '#ef4444';
-                                if (err.code === err.PERMISSION_DENIED) {
-                                    msg = "Location Access Denied. Activating simulated fallback...";
-                                    showToast("⚠️ " + msg, "warning", 10000);
-                                } else {
-                                    msg = "GPS Error: " + err.message + ". Activating simulated fallback...";
-                                    showToast("⚠️ " + msg, "warning", 10000);
-                                }
-                                startSimulatedGps();
+                                // Silent check - watchPosition will handle persistent tracking
+                                console.log('Initial quick GPS check:', err.message);
                             }, {
-                                enableHighAccuracy: true,
-                                timeout: 10000
+                                enableHighAccuracy: false,
+                                timeout: 10000,
+                                maximumAge: 120000
                             }
                         );
 
-                        watchId = navigator.geolocation.watchPosition(
-                            function(pos) {
-                                if (isTransit) {
-                                    pushLocation(
-                                        pos.coords.latitude,
-                                        pos.coords.longitude,
-                                        pos.coords.speed ? pos.coords.speed * 3.6 : 0
-                                    );
-                                }
-                            },
-                            function(err) {
-                                console.warn('GPS watch error:', err.message);
-                                startSimulatedGps();
-                            }, {
-                                enableHighAccuracy: true,
-                                timeout: 15000,
-                                maximumAge: 5000
+                        // Phase 2: Continuous tracking with adaptive high-accuracy to network fallback
+                        function setupWatch(highAccuracy = true) {
+                            if (watchId !== null) {
+                                navigator.geolocation.clearWatch(watchId);
+                                watchId = null;
                             }
-                        );
+
+                            const watchOpts = highAccuracy ? {
+                                enableHighAccuracy: true,
+                                timeout: 30000,
+                                maximumAge: 10000
+                            } : {
+                                enableHighAccuracy: false,
+                                timeout: 30000,
+                                maximumAge: 30000
+                            };
+
+                            watchId = navigator.geolocation.watchPosition(
+                                function(pos) {
+                                    consecutiveTimeouts = 0;
+                                    hasRealGps = true;
+
+                                    // Deactivate simulated GPS if active since real GPS fix is obtained
+                                    if (simIntervalId !== null) {
+                                        clearInterval(simIntervalId);
+                                        simIntervalId = null;
+                                        console.log('Real GPS fix established. Deactivated simulated transit.');
+                                        showToast("✅ Real GPS signal connected.", "success", 4000);
+                                    }
+
+                                    if (isTransit) {
+                                        createGpsBadge('GPS Active — Sharing Location', '#22c55e');
+                                        pushLocation(
+                                            pos.coords.latitude,
+                                            pos.coords.longitude,
+                                            pos.coords.speed ? pos.coords.speed * 3.6 : 0
+                                        );
+                                    } else {
+                                        createGpsBadge('GPS Ready', '#3b82f6');
+                                    }
+                                },
+                                function(err) {
+                                    console.warn('GPS watch status (' + (highAccuracy ? 'high-acc' : 'standard') + '):', err.message);
+
+                                    if (err.code === err.PERMISSION_DENIED) {
+                                        showToast("⚠️ Location access denied. Activating simulated fallback...", "warning", 8000);
+                                        startSimulatedGps();
+                                        return;
+                                    }
+
+                                    // Timeout handling: gracefully degrade from satellite GPS to network GPS without spamming toasts
+                                    if (err.code === err.TIMEOUT) {
+                                        consecutiveTimeouts++;
+                                        if (highAccuracy && consecutiveTimeouts >= 2) {
+                                            console.log('Switching to standard accuracy network GPS provider after satellite timeout.');
+                                            setupWatch(false);
+                                            return;
+                                        }
+                                    }
+
+                                    // If no real GPS has ever succeeded and errors persist, start simulated fallback quietly
+                                    if (!hasRealGps && consecutiveTimeouts >= 3 && simIntervalId === null) {
+                                        startSimulatedGps();
+                                    }
+                                },
+                                watchOpts
+                            );
+                        }
+
+                        setupWatch(true);
                     }
 
                     if (document.readyState === 'loading') {
