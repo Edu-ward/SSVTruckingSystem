@@ -17,7 +17,7 @@ if (!empty($driverFullName)) {
 
 <div id="view-dashboard" class="tab-content <?= $currentDriverTab === 'dashboard' ? '' : 'hidden'; ?> space-y-6">
 
-    
+
     <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
         <div class="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
             <i class="fa-solid fa-truck-moving text-9xl"></i>
@@ -52,49 +52,49 @@ if (!empty($driverFullName)) {
 
         <div class="flex items-center gap-2 relative z-10 flex-wrap">
             <button type="button" onclick="switchTab('route')"
-                    class="px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-blue-700 hover:bg-blue-50 active:scale-95 shadow-md transition flex items-center gap-1.5">
+                class="px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-blue-700 hover:bg-blue-50 active:scale-95 shadow-md transition flex items-center gap-1.5">
                 <i class="fa-solid fa-map-location-dot text-blue-600"></i>
                 <span>Live Route</span>
             </button>
             <button type="button" onclick="switchTab('trips')"
-                    class="px-3.5 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 active:scale-95 transition flex items-center gap-1.5">
+                class="px-3.5 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 active:scale-95 transition flex items-center gap-1.5">
                 <i class="fa-solid fa-route text-cyan-300"></i>
                 <span>Trips</span>
             </button>
             <button type="button" onclick="switchTab('cash_advance')"
-                    class="px-3.5 py-2 rounded-xl text-xs font-bold bg-orange-500/80 hover:bg-orange-500 text-white border border-orange-400/40 active:scale-95 transition flex items-center gap-1.5">
+                class="px-3.5 py-2 rounded-xl text-xs font-bold bg-orange-500/80 hover:bg-orange-500 text-white border border-orange-400/40 active:scale-95 transition flex items-center gap-1.5">
                 <i class="fa-solid fa-hand-holding-dollar"></i>
                 <span>Advance</span>
             </button>
         </div>
     </div>
 
-    
+
     <div>
         <?php if ($active_dispatch): ?>
-            <?php 
-                $status = $active_dispatch['status'];
-                $statusColor = 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
-                $statusIcon = 'fa-circle-info';
-                $statusDesc = 'Your dispatch is pending.';
+            <?php
+            $status = $active_dispatch['status'];
+            $statusColor = 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
+            $statusIcon = 'fa-circle-info';
+            $statusDesc = 'Your dispatch is pending.';
 
-                if ($status === 'Loading') {
-                    $statusColor = 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300';
-                    $statusIcon = 'fa-spinner fa-spin';
-                    $statusDesc = 'Your truck is currently loading gravel at the quarry site.';
-                } elseif ($status === 'In Transit') {
-                    $statusColor = 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
-                    $statusIcon = 'fa-truck-fast animate-bounce';
-                    $statusDesc = 'You are on the road. Live GPS location is broadcasting to dispatch.';
-                } elseif ($status === 'Unloading') {
-                    $statusColor = 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300';
-                    $statusIcon = 'fa-dumpster';
-                    $statusDesc = 'You have arrived at the destination. Unloading cargo.';
-                } elseif ($status === 'Cancellation Requested') {
-                    $statusColor = 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 animate-pulse';
-                    $statusIcon = 'fa-triangle-exclamation';
-                    $statusDesc = 'Trip cancellation requested. Awaiting Admin confirmation.';
-                }
+            if ($status === 'Loading') {
+                $statusColor = 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300';
+                $statusIcon = 'fa-spinner fa-spin';
+                $statusDesc = 'Your truck is currently loading gravel at the quarry site.';
+            } elseif ($status === 'In Transit') {
+                $statusColor = 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
+                $statusIcon = 'fa-truck-fast animate-bounce';
+                $statusDesc = 'You are on the road. Live GPS location is broadcasting to dispatch.';
+            } elseif ($status === 'Unloading') {
+                $statusColor = 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300';
+                $statusIcon = 'fa-dumpster';
+                $statusDesc = 'You have arrived at the destination. Unloading cargo.';
+            } elseif ($status === 'Cancellation Requested') {
+                $statusColor = 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 animate-pulse';
+                $statusIcon = 'fa-triangle-exclamation';
+                $statusDesc = 'Trip cancellation requested. Awaiting Admin confirmation.';
+            }
             ?>
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-blue-100 dark:border-gray-700 overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-600 to-indigo-700 px-5 sm:px-6 py-4 text-white flex justify-between items-center flex-wrap gap-2">
@@ -182,16 +182,16 @@ if (!empty($driverFullName)) {
                         </div>
                     </div>
 
-                    
+
                     <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                         <button type="button" onclick="switchTab('route')"
-                                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 active:scale-95 transition">
+                            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 active:scale-95 transition">
                             <i class="fa-solid fa-location-arrow"></i> Open Full Route & GPS Map
                         </button>
 
                         <?php if ($status !== 'Cancellation Requested' && $status !== 'Delivered'): ?>
                             <button type="button" onclick="openCancelTripModal()"
-                                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-orange-700 dark:text-orange-400 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 transition">
+                                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-orange-700 dark:text-orange-400 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 transition">
                                 <i class="fa-solid fa-ban"></i> Request Cancellation (Breakdown)
                             </button>
                         <?php endif; ?>
@@ -221,7 +221,7 @@ if (!empty($driverFullName)) {
         <?php endif; ?>
     </div>
 
-    
+
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-5 text-white relative overflow-hidden shadow-md transition transform hover:-translate-y-0.5">
             <div class="relative z-10">
@@ -261,7 +261,7 @@ if (!empty($driverFullName)) {
 <div id="view-route" class="tab-content <?= $currentDriverTab === 'route' ? '' : 'hidden'; ?> space-y-6">
 
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden transition-all relative z-0">
-        
+
         <div class="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 p-5 sm:p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="flex items-center space-x-3.5">
                 <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-blue-300 text-2xl flex-shrink-0 shadow-inner">
@@ -294,20 +294,20 @@ if (!empty($driverFullName)) {
                 </div>
             </div>
 
-            
+
             <div class="flex flex-wrap items-center gap-2">
                 <button type="button" onclick="launchGoogleMapsNav()"
-                        class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-gray-800 hover:bg-gray-100 active:scale-95 shadow transition">
+                    class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-gray-800 hover:bg-gray-100 active:scale-95 shadow transition">
                     <i class="fa-brands fa-google text-blue-600"></i> Google Maps
                 </button>
                 <button type="button" onclick="launchWazeNav()"
-                        class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 active:scale-95 text-white shadow transition">
+                    class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 active:scale-95 text-white shadow transition">
                     <i class="fa-brands fa-waze"></i> Waze
                 </button>
             </div>
         </div>
 
-        
+
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 p-4 sm:p-5 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700 text-xs sm:text-sm">
             <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200/80 dark:border-gray-700/80">
                 <div class="text-gray-400 dark:text-gray-500 text-[11px] font-semibold uppercase flex items-center gap-1">
@@ -355,24 +355,24 @@ if (!empty($driverFullName)) {
             </div>
         </div>
 
-        
+
         <div class="p-3 sm:p-5 relative z-0">
             <div class="relative w-full h-[400px] sm:h-[550px] rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-inner z-0">
                 <div id="driverRouteMap" class="w-full h-full relative z-0"></div>
 
-                
+
                 <div class="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
                     <button type="button" onclick="fitDriverRouteBounds()" title="Fit full route in view"
-                            class="w-11 h-11 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl shadow-lg hover:bg-blue-50 dark:hover:bg-gray-700 flex items-center justify-center transition active:scale-90">
+                        class="w-11 h-11 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl shadow-lg hover:bg-blue-50 dark:hover:bg-gray-700 flex items-center justify-center transition active:scale-90">
                         <i class="fa-solid fa-maximize text-base text-blue-600 dark:text-blue-400"></i>
                     </button>
                     <button type="button" onclick="centerOnDriverLiveLocation()" title="Snap to my current GPS location"
-                            class="w-11 h-11 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl shadow-lg hover:bg-blue-50 dark:hover:bg-gray-700 flex items-center justify-center transition active:scale-90">
+                        class="w-11 h-11 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl shadow-lg hover:bg-blue-50 dark:hover:bg-gray-700 flex items-center justify-center transition active:scale-90">
                         <i class="fa-solid fa-crosshairs text-base text-emerald-600 dark:text-emerald-400"></i>
                     </button>
                 </div>
 
-                
+
                 <div class="absolute top-4 left-4 z-10 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2 shadow-md flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span id="driverMapStatusText">Live GPS Route Active</span>
@@ -397,7 +397,7 @@ if (!empty($driverFullName)) {
 
 <div id="view-trips" class="tab-content <?= $currentDriverTab === 'trips' ? '' : 'hidden'; ?> space-y-6">
 
-    
+
     <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div class="flex items-center space-x-3.5">
             <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-lg font-bold shadow-sm">
@@ -412,7 +412,7 @@ if (!empty($driverFullName)) {
         </div>
 
         <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            
+
             <div class="relative flex-1 md:w-72">
                 <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
                 <input type="text" id="driverTripSearchInput" placeholder="Search destination, status..." oninput="filterDriverTrips()" class="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
@@ -423,7 +423,7 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    
+
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-5 mb-6">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div class="flex items-center space-x-3.5">
@@ -444,17 +444,17 @@ if (!empty($driverFullName)) {
             </div>
 
             <div class="flex flex-wrap items-center gap-2.5">
-                
+
                 <div class="relative min-w-[270px] sm:min-w-[320px]">
                     <select id="driverTripPeriodSelector" onchange="onDriverTripPeriodChange(this.value)"
-                            class="w-full text-xs font-semibold py-2.5 px-3.5 pr-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none shadow-xs">
-                        <?php foreach ($driverTripPayPeriods as $p): 
+                        class="w-full text-xs font-semibold py-2.5 px-3.5 pr-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none shadow-xs">
+                        <?php foreach ($driverTripPayPeriods as $p):
                             $isSelected = ($p['from'] === $selectedFrom && $p['to'] === $selectedTo);
                         ?>
-                            <option value="<?= $p['from'] . '|' . $p['to']; ?>" 
-                                    data-label="<?= htmlspecialchars($p['clean_dates']); ?>" 
-                                    data-short="<?= htmlspecialchars($p['short_label']); ?>"
-                                    <?= $isSelected ? 'selected' : ''; ?>>
+                            <option value="<?= $p['from'] . '|' . $p['to']; ?>"
+                                data-label="<?= htmlspecialchars($p['clean_dates']); ?>"
+                                data-short="<?= htmlspecialchars($p['short_label']); ?>"
+                                <?= $isSelected ? 'selected' : ''; ?>>
                                 <?= htmlspecialchars($p['label']); ?>
                             </option>
                         <?php endforeach; ?>
@@ -466,25 +466,25 @@ if (!empty($driverFullName)) {
                     </div>
                 </div>
 
-                
+
                 <div class="flex items-center gap-1">
                     <button type="button" onclick="shiftDriverTripWeek(1)" title="Previous Week"
-                            class="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-xs active:scale-95 transition cursor-pointer">
+                        class="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-xs active:scale-95 transition cursor-pointer">
                         <i class="fa-solid fa-chevron-left"></i>
                     </button>
                     <button type="button" id="driverTripCurrentWeekBtn" onclick="shiftDriverTripWeek(0)" title="Current Week (This Week)"
-                            class="px-3 h-9 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/40 text-xs font-bold active:scale-95 transition cursor-pointer whitespace-nowrap">
+                        class="px-3 h-9 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/40 text-xs font-bold active:scale-95 transition cursor-pointer whitespace-nowrap">
                         <span id="driverTripCurrentWeekBtnText"><?= htmlspecialchars($activeTripPeriodShortLabel ?? 'This Week'); ?></span>
                     </button>
                     <button type="button" onclick="shiftDriverTripWeek(-1)" title="Next Week"
-                            class="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-xs active:scale-95 transition cursor-pointer">
+                        class="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-xs active:scale-95 transition cursor-pointer">
                         <i class="fa-solid fa-chevron-right"></i>
                     </button>
                 </div>
             </div>
         </div>
 
-        
+
         <div id="driverTripCustomDateBar" class="hidden mt-4 pt-4 border-t border-gray-100 dark:border-gray-700/80 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div class="flex items-center gap-2 flex-wrap">
                 <span class="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
@@ -492,20 +492,20 @@ if (!empty($driverFullName)) {
                 </span>
                 <div class="flex items-center gap-1.5">
                     <input type="date" id="driverTripCustomDateFrom" value="<?= htmlspecialchars($selectedFrom); ?>"
-                           class="px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs">
+                        class="px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs">
                     <span class="text-gray-400 font-bold">to</span>
                     <input type="date" id="driverTripCustomDateTo" value="<?= htmlspecialchars($selectedTo); ?>"
-                           class="px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs">
+                        class="px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs">
                 </div>
                 <button type="button" onclick="applyDriverTripCustomDateRange()"
-                        class="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition active:scale-95 cursor-pointer">
+                    class="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition active:scale-95 cursor-pointer">
                     Apply Filter
                 </button>
             </div>
         </div>
     </div>
 
-    
+
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         <div class="bg-blue-50/70 dark:bg-blue-950/20 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 flex items-center justify-between">
             <div>
@@ -544,32 +544,32 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    
+
     <div class="block sm:hidden space-y-3" id="driverTripsMobileList">
         <?php if (!empty($trips)): ?>
             <?php foreach ($trips as $trip): ?>
                 <?php
-                    $duration = 'N/A';
-                    if (!empty($trip['transit_start_time']) && !empty($trip['transit_end_time'])) {
-                        $start = new DateTime($trip['transit_start_time']);
-                        $end = new DateTime($trip['transit_end_time']);
-                        $diff = $start->diff($end);
-                        $duration = '';
-                        if ($diff->h > 0) $duration .= $diff->h . 'h ';
-                        $duration .= $diff->i . 'm';
-                    }
-                    $tDate = date('Y-m-d', strtotime($trip['trip_date'] ?: $trip['created_at']));
-                    $dispTimeStr = !empty($trip['transit_start_time']) ? date('M d, Y h:i A', strtotime($trip['transit_start_time'])) : (!empty($trip['created_at']) ? date('M d, Y h:i A', strtotime($trip['created_at'])) : date('M d, Y', strtotime($trip['trip_date'])));
-                    $arrTimeStr = !empty($trip['transit_end_time']) ? date('M d, Y h:i A', strtotime($trip['transit_end_time'])) : ($trip['status'] === 'Delivered' ? 'Delivered' : 'N/A');
-                    $searchMeta = strtolower(($trip['destination'] ?? '') . ' ' . ($trip['status'] ?? ''));
-                    $isInInitial = ($tDate >= $selectedFrom && $tDate <= $selectedTo);
+                $duration = 'N/A';
+                if (!empty($trip['transit_start_time']) && !empty($trip['transit_end_time'])) {
+                    $start = new DateTime($trip['transit_start_time']);
+                    $end = new DateTime($trip['transit_end_time']);
+                    $diff = $start->diff($end);
+                    $duration = '';
+                    if ($diff->h > 0) $duration .= $diff->h . 'h ';
+                    $duration .= $diff->i . 'm';
+                }
+                $tDate = date('Y-m-d', strtotime($trip['trip_date'] ?: $trip['created_at']));
+                $dispTimeStr = !empty($trip['transit_start_time']) ? date('M d, Y h:i A', strtotime($trip['transit_start_time'])) : (!empty($trip['created_at']) ? date('M d, Y h:i A', strtotime($trip['created_at'])) : date('M d, Y', strtotime($trip['trip_date'])));
+                $arrTimeStr = !empty($trip['transit_end_time']) ? date('M d, Y h:i A', strtotime($trip['transit_end_time'])) : ($trip['status'] === 'Delivered' ? 'Delivered' : 'N/A');
+                $searchMeta = strtolower(($trip['destination'] ?? '') . ' ' . ($trip['status'] ?? ''));
+                $isInInitial = ($tDate >= $selectedFrom && $tDate <= $selectedTo);
                 ?>
                 <div class="driver-trip-card bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-200/80 dark:border-gray-800 shadow-sm space-y-2.5"
-                     data-date="<?= $tDate; ?>"
-                     data-distance="<?= (float)($trip['distance_km'] ?? 0); ?>"
-                     data-pay="<?= (float)($trip['pay_amount'] ?? 0); ?>"
-                     data-search="<?= htmlspecialchars($searchMeta); ?>"
-                     style="<?= $isInInitial ? '' : 'display: none;'; ?>">
+                    data-date="<?= $tDate; ?>"
+                    data-distance="<?= (float)($trip['distance_km'] ?? 0); ?>"
+                    data-pay="<?= (float)($trip['pay_amount'] ?? 0); ?>"
+                    data-search="<?= htmlspecialchars($searchMeta); ?>"
+                    style="<?= $isInInitial ? '' : 'display: none;'; ?>">
                     <div class="flex justify-between items-center text-xs">
                         <span class="text-gray-400 dark:text-gray-500 font-mono">Dispatch: <?= $dispTimeStr; ?></span>
                         <span class="text-gray-400 dark:text-gray-500 font-mono">Duration: <?= $duration; ?></span>
@@ -583,9 +583,9 @@ if (!empty($driverFullName)) {
                             <span class="font-bold text-gray-800 dark:text-gray-200 text-sm"><?= htmlspecialchars($trip['destination']); ?></span>
                         </div>
                         <div class="text-right">
-                            <?php 
+                            <?php
                             $s = isset($trip['status']) ? trim($trip['status']) : '';
-                            if (empty($s) || strtolower($s) === 'delivered' || strtolower($s) === 'completed'): 
+                            if (empty($s) || strtolower($s) === 'delivered' || strtolower($s) === 'completed'):
                             ?>
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-150 text-green-800 dark:bg-green-900/20 dark:text-green-400">
                                     <i class="fa-solid fa-check mr-1 text-[8px]"></i> Delivered
@@ -625,7 +625,7 @@ if (!empty($driverFullName)) {
             <?php endforeach; ?>
         <?php endif; ?>
 
-        
+
         <div id="driverTripsMobileEmpty" class="py-12 text-center text-gray-400" style="<?= count($weeklyFilteredTrips) === 0 ? '' : 'display: none;'; ?>">
             <i class="fa-solid fa-road text-4xl mb-2 opacity-30"></i>
             <p class="text-sm font-medium">No trips recorded for this selected period.</p>
@@ -633,7 +633,7 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    
+
     <div class="hidden sm:block overflow-x-auto">
         <table class="w-full text-left border-collapse" id="driverTripsTable">
             <thead>
@@ -651,20 +651,20 @@ if (!empty($driverFullName)) {
                 <?php if (!empty($trips)): ?>
                     <?php foreach ($trips as $trip): ?>
                         <?php
-                            $duration = 'N/A';
-                            if (!empty($trip['transit_start_time']) && !empty($trip['transit_end_time'])) {
-                                $start = new DateTime($trip['transit_start_time']);
-                                $end = new DateTime($trip['transit_end_time']);
-                                $diff = $start->diff($end);
-                                $duration = '';
-                                if ($diff->h > 0) $duration .= $diff->h . 'h ';
-                                $duration .= $diff->i . 'm';
-                            }
-                            $tDate = date('Y-m-d', strtotime($trip['trip_date'] ?: $trip['created_at']));
-                            $dispTimeStr = !empty($trip['transit_start_time']) ? date('M d, Y h:i A', strtotime($trip['transit_start_time'])) : (!empty($trip['created_at']) ? date('M d, Y h:i A', strtotime($trip['created_at'])) : date('M d, Y', strtotime($trip['trip_date'])));
-                            $arrTimeStr = !empty($trip['transit_end_time']) ? date('M d, Y h:i A', strtotime($trip['transit_end_time'])) : ($trip['status'] === 'Delivered' ? 'Delivered' : '—');
-                            $searchMeta = strtolower(($trip['destination'] ?? '') . ' ' . ($trip['status'] ?? ''));
-                            $isInInitial = ($tDate >= $selectedFrom && $tDate <= $selectedTo);
+                        $duration = 'N/A';
+                        if (!empty($trip['transit_start_time']) && !empty($trip['transit_end_time'])) {
+                            $start = new DateTime($trip['transit_start_time']);
+                            $end = new DateTime($trip['transit_end_time']);
+                            $diff = $start->diff($end);
+                            $duration = '';
+                            if ($diff->h > 0) $duration .= $diff->h . 'h ';
+                            $duration .= $diff->i . 'm';
+                        }
+                        $tDate = date('Y-m-d', strtotime($trip['trip_date'] ?: $trip['created_at']));
+                        $dispTimeStr = !empty($trip['transit_start_time']) ? date('M d, Y h:i A', strtotime($trip['transit_start_time'])) : (!empty($trip['created_at']) ? date('M d, Y h:i A', strtotime($trip['created_at'])) : date('M d, Y', strtotime($trip['trip_date'])));
+                        $arrTimeStr = !empty($trip['transit_end_time']) ? date('M d, Y h:i A', strtotime($trip['transit_end_time'])) : ($trip['status'] === 'Delivered' ? 'Delivered' : '—');
+                        $searchMeta = strtolower(($trip['destination'] ?? '') . ' ' . ($trip['status'] ?? ''));
+                        $isInInitial = ($tDate >= $selectedFrom && $tDate <= $selectedTo);
                         ?>
                         <tr class="driver-trip-row hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors"
                             data-date="<?= $tDate; ?>"
@@ -683,9 +683,9 @@ if (!empty($driverFullName)) {
                             </td>
                             <td class="py-3.5 px-3 text-gray-500 dark:text-gray-400 font-mono text-xs"><?= $duration; ?></td>
                             <td class="py-3.5 px-3">
-                                <?php 
+                                <?php
                                 $s = isset($trip['status']) ? trim($trip['status']) : '';
-                                if (empty($s) || strtolower($s) === 'delivered' || strtolower($s) === 'completed'): 
+                                if (empty($s) || strtolower($s) === 'delivered' || strtolower($s) === 'completed'):
                                 ?>
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
                                         <i class="fa-solid fa-check mr-1 text-[10px]"></i> Delivered
@@ -708,7 +708,7 @@ if (!empty($driverFullName)) {
                     <?php endforeach; ?>
                 <?php endif; ?>
 
-                
+
                 <tr id="driverTripsDesktopEmpty" style="<?= count($weeklyFilteredTrips) === 0 ? '' : 'display: none;'; ?>">
                     <td colspan="7" class="py-12 px-3 text-center text-gray-400">
                         <i class="fa-solid fa-road text-4xl mb-3 text-gray-300 block"></i>
@@ -723,7 +723,7 @@ if (!empty($driverFullName)) {
 
 <div id="view-cash_advance" class="tab-content <?= $currentDriverTab === 'cash_advance' ? '' : 'hidden'; ?> space-y-6">
 
-    
+
     <div class="bg-gradient-to-r from-amber-600 via-orange-600 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex items-center space-x-3.5">
             <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-amber-200 text-2xl flex-shrink-0 shadow-inner">
@@ -739,14 +739,14 @@ if (!empty($driverFullName)) {
 
         <div>
             <button type="button" onclick="openCashAdvanceModal()"
-                    class="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold bg-white text-orange-700 hover:bg-orange-50 active:scale-95 shadow-lg transition flex items-center gap-2">
+                class="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold bg-white text-orange-700 hover:bg-orange-50 active:scale-95 shadow-lg transition flex items-center gap-2">
                 <i class="fa-solid fa-plus-circle text-orange-600 text-base"></i>
                 <span>Request Cash Advance</span>
             </button>
         </div>
     </div>
 
-    
+
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div class="flex items-center justify-between mb-2">
@@ -782,7 +782,7 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    
+
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between flex-wrap gap-2">
             <div>
@@ -804,44 +804,44 @@ if (!empty($driverFullName)) {
                     if ($caStatus === 'Approved') $chipClass = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300';
                     if ($caStatus === 'Rejected') $chipClass = 'bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-300';
                 ?>
-                <div class="p-4 sm:px-6 flex items-center justify-between gap-4 hover:bg-gray-50/70 dark:hover:bg-gray-700/40 transition">
-                    <div class="flex items-center space-x-3.5 min-w-0">
-                        <div class="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 flex items-center justify-center text-base flex-shrink-0">
-                            <i class="fa-solid fa-hand-holding-dollar"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="font-extrabold text-sm sm:text-base text-gray-900 dark:text-gray-100">
-                                ₱<?= number_format($ca['amount'], 2); ?>
+                    <div class="p-4 sm:px-6 flex items-center justify-between gap-4 hover:bg-gray-50/70 dark:hover:bg-gray-700/40 transition">
+                        <div class="flex items-center space-x-3.5 min-w-0">
+                            <div class="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 flex items-center justify-center text-base flex-shrink-0">
+                                <i class="fa-solid fa-hand-holding-dollar"></i>
                             </div>
-                            <?php if (!empty($ca['reason'])): ?>
-                                <p class="text-xs text-gray-600 dark:text-gray-300 truncate mt-0.5"><?= htmlspecialchars($ca['reason']); ?></p>
-                            <?php endif; ?>
-                            <div class="text-[11px] text-gray-400 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
-                                <i class="fa-regular fa-clock text-[10px]"></i>
-                                <span>Requested: <?= date('M d, Y h:i A', strtotime($ca['requested_at'])); ?></span>
-                                <?php if (!empty($ca['resolved_at'])): ?>
-                                    <span class="text-gray-300 dark:text-gray-600">&bull;</span>
-                                    <span>Resolved: <?= date('M d, Y', strtotime($ca['resolved_at'])); ?></span>
+                            <div class="min-w-0">
+                                <div class="font-extrabold text-sm sm:text-base text-gray-900 dark:text-gray-100">
+                                    ₱<?= number_format($ca['amount'], 2); ?>
+                                </div>
+                                <?php if (!empty($ca['reason'])): ?>
+                                    <p class="text-xs text-gray-600 dark:text-gray-300 truncate mt-0.5"><?= htmlspecialchars($ca['reason']); ?></p>
                                 <?php endif; ?>
+                                <div class="text-[11px] text-gray-400 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                    <i class="fa-regular fa-clock text-[10px]"></i>
+                                    <span>Requested: <?= date('M d, Y h:i A', strtotime($ca['requested_at'])); ?></span>
+                                    <?php if (!empty($ca['resolved_at'])): ?>
+                                        <span class="text-gray-300 dark:text-gray-600">&bull;</span>
+                                        <span>Resolved: <?= date('M d, Y', strtotime($ca['resolved_at'])); ?></span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="flex items-center gap-2 flex-shrink-0">
-                        <span class="px-2.5 py-1 rounded-full text-xs font-bold uppercase <?= $chipClass; ?>">
-                            <?= htmlspecialchars($caStatus); ?>
-                        </span>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold uppercase <?= $chipClass; ?>">
+                                <?= htmlspecialchars($caStatus); ?>
+                            </span>
 
-                        <?php if ($caStatus === 'Approved'): ?>
-                            <button type="button" onclick="window.open('../admin/print_cash_advance.php?id=<?= $ca['id']; ?>', '_blank')"
+                            <?php if ($caStatus === 'Approved'): ?>
+                                <button type="button" onclick="window.open('../admin/print_cash_advance.php?id=<?= $ca['id']; ?>', '_blank')"
                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 transition shadow-sm"
                                     title="View / Print Cash Advance Voucher">
-                                <i class="fa-solid fa-print"></i>
-                                <span class="hidden sm:inline">Print Voucher</span>
-                            </button>
-                        <?php endif; ?>
+                                    <i class="fa-solid fa-print"></i>
+                                    <span class="hidden sm:inline">Print Voucher</span>
+                                </button>
+                            <?php endif; ?>
+                        </div>
                     </div>
-                </div>
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
@@ -859,7 +859,7 @@ if (!empty($driverFullName)) {
 
 <div id="view-payroll" class="tab-content <?= $currentDriverTab === 'payroll' ? '' : 'hidden'; ?> space-y-6">
 
-    
+
     <div class="bg-gradient-to-r from-emerald-700 via-teal-700 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex items-center space-x-3.5">
             <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-emerald-300 text-2xl flex-shrink-0 shadow-inner">
@@ -875,16 +875,16 @@ if (!empty($driverFullName)) {
 
         <div class="flex items-center gap-2">
             <button type="button" onclick="switchTab('cash_advance')"
-                    class="px-4 py-2.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition active:scale-95 flex items-center gap-1.5">
+                class="px-4 py-2.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition active:scale-95 flex items-center gap-1.5">
                 <i class="fa-solid fa-hand-holding-dollar text-amber-300"></i>
                 <span>Cash Advances</span>
             </button>
         </div>
     </div>
 
-    
+
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
+
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Gross Trip Earnings</span>
@@ -896,7 +896,7 @@ if (!empty($driverFullName)) {
             <p class="text-[11px] text-gray-400 mt-1">From delivered trips awaiting payout</p>
         </div>
 
-        
+
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Remaining Balance</span>
@@ -908,7 +908,7 @@ if (!empty($driverFullName)) {
             <p class="text-[11px] text-gray-400 mt-1">Carried forward from prior settlement</p>
         </div>
 
-        
+
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Advance Deductions</span>
@@ -920,7 +920,7 @@ if (!empty($driverFullName)) {
             <p class="text-[11px] text-gray-400 mt-1">Auto-deducted from gross</p>
         </div>
 
-        
+
         <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-md">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-semibold text-emerald-100 uppercase">Current Net Payable</span>
@@ -933,7 +933,7 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    
+
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
             <div>
@@ -1003,46 +1003,46 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    
-    <?php if (!empty($payrollSettlements)): ?>
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div class="p-5 border-b border-gray-100 dark:border-gray-700">
-            <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base flex items-center gap-2">
-                <i class="fa-solid fa-file-invoice-dollar text-indigo-600"></i> Past Payroll Settlement Releases
-            </h3>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Historical payout disbursement records for your account</p>
-        </div>
 
-        <div class="divide-y divide-gray-100 dark:divide-gray-700/60">
-            <?php foreach ($payrollSettlements as $ps): ?>
-            <div class="p-4 sm:px-6 flex items-center justify-between gap-4 hover:bg-gray-50/70 dark:hover:bg-gray-700/40 transition">
-                <div class="flex items-center space-x-3.5 min-w-0">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-base flex-shrink-0">
-                        <i class="fa-solid fa-money-bill-transfer"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <div class="font-extrabold text-sm text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                            <span>Settlement #<?= htmlspecialchars($ps['settlement_ticket']); ?></span>
-                            <span class="text-xs text-emerald-600 font-bold">₱<?= number_format($ps['amount_claimed'], 2); ?> Claimed</span>
-                        </div>
-                        <div class="text-[11px] text-gray-400 font-medium mt-0.5 flex items-center gap-2 flex-wrap">
-                            <span>Settled on <?= date('M d, Y h:i A', strtotime($ps['settled_at'])); ?></span>
-                            <span>&bull;</span>
-                            <span><?= $ps['trips_count']; ?> Trips</span>
-                            <?php if ($ps['remaining_balance'] > 0): ?>
-                                <span>&bull;</span>
-                                <span class="text-indigo-500">Bal. Carried: ₱<?= number_format($ps['remaining_balance'], 2); ?></span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-                <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">
-                    Disbursed
-                </span>
+    <?php if (!empty($payrollSettlements)): ?>
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div class="p-5 border-b border-gray-100 dark:border-gray-700">
+                <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-file-invoice-dollar text-indigo-600"></i> Past Payroll Settlement Releases
+                </h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Historical payout disbursement records for your account</p>
             </div>
-            <?php endforeach; ?>
+
+            <div class="divide-y divide-gray-100 dark:divide-gray-700/60">
+                <?php foreach ($payrollSettlements as $ps): ?>
+                    <div class="p-4 sm:px-6 flex items-center justify-between gap-4 hover:bg-gray-50/70 dark:hover:bg-gray-700/40 transition">
+                        <div class="flex items-center space-x-3.5 min-w-0">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-base flex-shrink-0">
+                                <i class="fa-solid fa-money-bill-transfer"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-extrabold text-sm text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                    <span>Settlement #<?= htmlspecialchars($ps['settlement_ticket']); ?></span>
+                                    <span class="text-xs text-emerald-600 font-bold">₱<?= number_format($ps['amount_claimed'], 2); ?> Claimed</span>
+                                </div>
+                                <div class="text-[11px] text-gray-400 font-medium mt-0.5 flex items-center gap-2 flex-wrap">
+                                    <span>Settled on <?= date('M d, Y h:i A', strtotime($ps['settled_at'])); ?></span>
+                                    <span>&bull;</span>
+                                    <span><?= $ps['trips_count']; ?> Trips</span>
+                                    <?php if ($ps['remaining_balance'] > 0): ?>
+                                        <span>&bull;</span>
+                                        <span class="text-indigo-500">Bal. Carried: ₱<?= number_format($ps['remaining_balance'], 2); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">
+                            Disbursed
+                        </span>
+                    </div>
+                <?php endforeach; ?>
+            </div>
         </div>
-    </div>
     <?php endif; ?>
 
 </div>
@@ -1070,7 +1070,7 @@ if (!empty($driverFullName)) {
 
             <div class="flex items-center gap-2">
                 <button type="button" onclick="markAllNotificationsAsRead()"
-                        class="px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition active:scale-95 flex items-center gap-1.5">
+                    class="px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition active:scale-95 flex items-center gap-1.5">
                     <i class="fa-solid fa-check-double text-blue-500"></i> Mark All as Read
                 </button>
             </div>
@@ -1078,7 +1078,7 @@ if (!empty($driverFullName)) {
 
         <?php if (!empty($driverNotifications)): ?>
             <div class="divide-y divide-gray-100 dark:divide-gray-800" id="driverNotificationList">
-                <?php foreach ($driverNotifications as $n): 
+                <?php foreach ($driverNotifications as $n):
                     $timeAgo = '';
                     $diffSec = time() - $n['timestamp'];
                     if ($diffSec < 60) $timeAgo = 'Just now';
@@ -1086,30 +1086,30 @@ if (!empty($driverFullName)) {
                     elseif ($diffSec < 86400) $timeAgo = floor($diffSec / 3600) . ' hours ago';
                     else $timeAgo = date('M d, Y', $n['timestamp']);
                 ?>
-                <div class="driver-notif-item p-4 sm:px-6 flex items-start justify-between gap-4 hover:bg-gray-50/80 dark:hover:bg-gray-700/40 transition cursor-pointer"
-                     onclick="switchTab('<?= htmlspecialchars($n['tab']); ?>')">
-                    <div class="flex items-start space-x-3.5 min-w-0">
-                        <div class="w-10 h-10 rounded-xl <?= $n['color']; ?> flex items-center justify-center text-base flex-shrink-0 mt-0.5">
-                            <i class="fa-solid <?= $n['icon']; ?>"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="font-bold text-sm text-gray-900 dark:text-gray-100"><?= htmlspecialchars($n['title']); ?></span>
-                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase">
-                                    <?= htmlspecialchars($n['badge'] ?? 'Notice'); ?>
+                    <div class="driver-notif-item p-4 sm:px-6 flex items-start justify-between gap-4 hover:bg-gray-50/80 dark:hover:bg-gray-700/40 transition cursor-pointer"
+                        onclick="switchTab('<?= htmlspecialchars($n['tab']); ?>')">
+                        <div class="flex items-start space-x-3.5 min-w-0">
+                            <div class="w-10 h-10 rounded-xl <?= $n['color']; ?> flex items-center justify-center text-base flex-shrink-0 mt-0.5">
+                                <i class="fa-solid <?= $n['icon']; ?>"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-bold text-sm text-gray-900 dark:text-gray-100"><?= htmlspecialchars($n['title']); ?></span>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase">
+                                        <?= htmlspecialchars($n['badge'] ?? 'Notice'); ?>
+                                    </span>
+                                </div>
+                                <p class="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-relaxed"><?= htmlspecialchars($n['message']); ?></p>
+                                <span class="text-[11px] text-gray-400 font-medium mt-1 inline-flex items-center gap-1">
+                                    <i class="fa-regular fa-clock text-[9px]"></i> <?= $timeAgo; ?>
                                 </span>
                             </div>
-                            <p class="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-relaxed"><?= htmlspecialchars($n['message']); ?></p>
-                            <span class="text-[11px] text-gray-400 font-medium mt-1 inline-flex items-center gap-1">
-                                <i class="fa-regular fa-clock text-[9px]"></i> <?= $timeAgo; ?>
-                            </span>
+                        </div>
+
+                        <div class="flex-shrink-0 text-gray-400 hover:text-blue-600 transition pt-1">
+                            <i class="fa-solid fa-chevron-right text-xs"></i>
                         </div>
                     </div>
-
-                    <div class="flex-shrink-0 text-gray-400 hover:text-blue-600 transition pt-1">
-                        <i class="fa-solid fa-chevron-right text-xs"></i>
-                    </div>
-                </div>
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
@@ -1125,7 +1125,7 @@ if (!empty($driverFullName)) {
 
 <div id="view-profile" class="tab-content <?= $currentDriverTab === 'profile' ? '' : 'hidden'; ?> space-y-6">
 
-    
+
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700/80 overflow-hidden">
         <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-900 h-24 relative">
             <div class="absolute inset-0 opacity-10" style="background-image: repeating-linear-gradient(45deg,transparent,transparent 8px,rgba(255,255,255,.1) 8px,rgba(255,255,255,.1) 16px)"></div>
@@ -1135,25 +1135,25 @@ if (!empty($driverFullName)) {
                 <div class="relative group">
                     <?php if ($driverPhotoUrl): ?>
                         <img src="<?= $driverPhotoUrl ?>" alt="Profile Photo"
-                             id="driverProfilePhotoPreview"
-                             class="w-24 h-24 rounded-2xl object-cover border-4 border-white dark:border-gray-800 shadow-xl">
+                            id="driverProfilePhotoPreview"
+                            class="w-24 h-24 rounded-2xl object-cover border-4 border-white dark:border-gray-800 shadow-xl">
                     <?php else: ?>
                         <div id="driverProfilePhotoPreview"
-                             class="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-3xl border-4 border-white dark:border-gray-800 shadow-xl">
+                            class="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-3xl border-4 border-white dark:border-gray-800 shadow-xl">
                             <?= htmlspecialchars($initials) ?>
                         </div>
                     <?php endif; ?>
-                    
+
                     <button type="button" onclick="document.getElementById('profilePhotoInput').click()"
-                            title="Change profile photo"
-                            class="absolute -bottom-1.5 -right-1.5 w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-gray-800 transition-transform active:scale-90">
+                        title="Change profile photo"
+                        class="absolute -bottom-1.5 -right-1.5 w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-gray-800 transition-transform active:scale-90">
                         <i class="fa-solid fa-camera text-xs"></i>
                     </button>
                 </div>
 
                 <div class="flex items-center gap-2">
                     <button type="button" onclick="document.getElementById('profilePhotoInput').click()"
-                            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 transition">
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 transition">
                         <i class="fa-solid fa-upload"></i> Upload New Photo
                     </button>
                 </div>
@@ -1178,9 +1178,9 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
+
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 p-5 sm:p-6">
             <h3 class="text-base font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <i class="fa-solid fa-id-card text-blue-600"></i> Driver Credentials
@@ -1211,7 +1211,7 @@ if (!empty($driverFullName)) {
             </div>
         </div>
 
-        
+
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 p-5 sm:p-6">
             <h3 class="text-base font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <i class="fa-solid fa-truck text-indigo-600"></i> Assigned Truck & Fleet
@@ -1243,14 +1243,14 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    
+
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 p-5 sm:p-6">
         <h3 class="text-base font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <i class="fa-solid fa-lock text-slate-600"></i> Account Security & Preferences
         </h3>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <button type="button" onclick="openResetPasswordModal()"
-                    class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-left transition flex items-center gap-3.5">
+                class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-left transition flex items-center gap-3.5">
                 <div class="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-base flex-shrink-0">
                     <i class="fa-solid fa-key"></i>
                 </div>
@@ -1261,7 +1261,7 @@ if (!empty($driverFullName)) {
             </button>
 
             <button type="button" onclick="toggleTheme()"
-                    class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-left transition flex items-center gap-3.5">
+                class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-left transition flex items-center gap-3.5">
                 <div class="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center text-base flex-shrink-0">
                     <i class="fa-solid fa-circle-half-stroke"></i>
                 </div>
@@ -1272,7 +1272,7 @@ if (!empty($driverFullName)) {
             </button>
 
             <a href="../logout.php"
-               class="p-4 rounded-xl border border-red-100 dark:border-red-900/30 bg-red-50/40 dark:bg-red-950/20 hover:bg-red-50 text-left transition flex items-center gap-3.5">
+                class="p-4 rounded-xl border border-red-100 dark:border-red-900/30 bg-red-50/40 dark:bg-red-950/20 hover:bg-red-50 text-left transition flex items-center gap-3.5">
                 <div class="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 flex items-center justify-center text-base flex-shrink-0">
                     <i class="fa-solid fa-arrow-right-from-bracket"></i>
                 </div>
@@ -1284,7 +1284,7 @@ if (!empty($driverFullName)) {
         </div>
     </div>
 
-    
+
     <form id="profilePhotoForm" method="POST" action="upload_profile_photo.php" enctype="multipart/form-data" class="hidden">
         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
         <input type="file" name="profile_photo" id="profilePhotoInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden">
@@ -1352,7 +1352,7 @@ if (!empty($driverFullName)) {
     // Trips Week Period Selector & Real-Time Filtering
     // -------------------------------------------------------------
     let currentDriverTripFrom = "<?= $selectedFrom; ?>";
-    let currentDriverTripTo   = "<?= $selectedTo; ?>";
+    let currentDriverTripTo = "<?= $selectedTo; ?>";
     let isDriverTripAllCycles = false;
 
     function updateDriverTripQuickBtn(shortText, isCurrent) {
@@ -1387,7 +1387,7 @@ if (!empty($driverFullName)) {
         if (val === 'ALL') {
             isDriverTripAllCycles = true;
             currentDriverTripFrom = null;
-            currentDriverTripTo   = null;
+            currentDriverTripTo = null;
             if (badge) badge.textContent = 'All Delivery Cycles (All Time)';
             updateDriverTripQuickBtn('All Weeks', false);
             filterAndRecalculateDriverTrips();
@@ -1398,7 +1398,7 @@ if (!empty($driverFullName)) {
         const parts = val.split('|');
         if (parts.length === 2) {
             currentDriverTripFrom = parts[0];
-            currentDriverTripTo   = parts[1];
+            currentDriverTripTo = parts[1];
 
             const selectedOpt = selector ? selector.options[selector.selectedIndex] : null;
             const label = selectedOpt ? (selectedOpt.getAttribute('data-label') || selectedOpt.text) : `${parts[0]} – ${parts[1]}`;
@@ -1435,12 +1435,12 @@ if (!empty($driverFullName)) {
 
     function applyDriverTripCustomDateRange() {
         const fromInput = document.getElementById('driverTripCustomDateFrom');
-        const toInput   = document.getElementById('driverTripCustomDateTo');
-        const badge     = document.getElementById('activeTripPeriodBadge');
+        const toInput = document.getElementById('driverTripCustomDateTo');
+        const badge = document.getElementById('activeTripPeriodBadge');
 
         if (!fromInput || !toInput) return;
         const from = fromInput.value;
-        const to   = toInput.value;
+        const to = toInput.value;
 
         if (!from || !to) {
             if (typeof showToast === 'function') showToast('Please select both from and to dates.', 'warning');
@@ -1455,7 +1455,7 @@ if (!empty($driverFullName)) {
 
         isDriverTripAllCycles = false;
         currentDriverTripFrom = from;
-        currentDriverTripTo   = to;
+        currentDriverTripTo = to;
 
         if (badge) {
             badge.textContent = `${from} – ${to}`;
@@ -1498,7 +1498,7 @@ if (!empty($driverFullName)) {
                 row.style.display = '';
                 matchedCount++;
                 totalDist += parseFloat(row.getAttribute('data-distance') || 0);
-                totalPay  += parseFloat(row.getAttribute('data-pay') || 0);
+                totalPay += parseFloat(row.getAttribute('data-pay') || 0);
             } else {
                 row.style.display = 'none';
             }
@@ -1528,19 +1528,25 @@ if (!empty($driverFullName)) {
 
         // Update KPI summary cards
         const kpiCountEl = document.getElementById('kpiTripCount');
-        const kpiDistEl  = document.getElementById('kpiTripDistance');
-        const kpiPayEl   = document.getElementById('kpiTripPay');
+        const kpiDistEl = document.getElementById('kpiTripDistance');
+        const kpiPayEl = document.getElementById('kpiTripPay');
 
         if (kpiCountEl) kpiCountEl.textContent = matchedCount;
-        if (kpiDistEl)  kpiDistEl.textContent = totalDist.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-        if (kpiPayEl)   kpiPayEl.textContent = totalPay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        if (kpiDistEl) kpiDistEl.textContent = totalDist.toLocaleString(undefined, {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1
+        });
+        if (kpiPayEl) kpiPayEl.textContent = totalPay.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
 
         // Toggle empty states
         const desktopEmpty = document.getElementById('driverTripsDesktopEmpty');
-        const mobileEmpty  = document.getElementById('driverTripsMobileEmpty');
+        const mobileEmpty = document.getElementById('driverTripsMobileEmpty');
 
         if (desktopEmpty) desktopEmpty.style.display = (matchedCount === 0) ? '' : 'none';
-        if (mobileEmpty)  mobileEmpty.style.display  = (matchedCount === 0) ? '' : 'none';
+        if (mobileEmpty) mobileEmpty.style.display = (matchedCount === 0) ? '' : 'none';
     }
 
     function filterDriverTrips() {
@@ -1558,9 +1564,17 @@ if (!empty($driverFullName)) {
     }
 
     // Backwards compatibility aliases
-    function onWeekSelectorChange(val) { onDriverTripPeriodChange(val); }
-    function shiftTripWeek(delta) { shiftDriverTripWeek(delta); }
-    function applyCustomDateRange() { applyDriverTripCustomDateRange(); }
+    function onWeekSelectorChange(val) {
+        onDriverTripPeriodChange(val);
+    }
+
+    function shiftTripWeek(delta) {
+        shiftDriverTripWeek(delta);
+    }
+
+    function applyCustomDateRange() {
+        applyDriverTripCustomDateRange();
+    }
 
     // -------------------------------------------------------------
     // Notifications Helpers
@@ -1587,7 +1601,7 @@ if (!empty($driverFullName)) {
 
     const photoInput = document.getElementById('profilePhotoInput');
     if (photoInput) {
-        photoInput.addEventListener('change', function () {
+        photoInput.addEventListener('change', function() {
             const file = this.files[0];
             if (!file) return;
 
@@ -1607,7 +1621,7 @@ if (!empty($driverFullName)) {
             }
 
             const reader = new FileReader();
-            reader.onload = function (e) {
+            reader.onload = function(e) {
                 openPhotoCropModal(e.target.result);
             };
             reader.readAsDataURL(file);
@@ -1700,7 +1714,7 @@ if (!empty($driverFullName)) {
             return;
         }
 
-        canvas.toBlob(function (blob) {
+        canvas.toBlob(function(blob) {
             if (!blob) {
                 if (btn) {
                     btn.disabled = false;
@@ -1712,7 +1726,9 @@ if (!empty($driverFullName)) {
             }
 
             try {
-                const croppedFile = new File([blob], 'profile_cropped.jpg', { type: 'image/jpeg' });
+                const croppedFile = new File([blob], 'profile_cropped.jpg', {
+                    type: 'image/jpeg'
+                });
                 const dt = new DataTransfer();
                 dt.items.add(croppedFile);
                 document.getElementById('profilePhotoInput').files = dt.files;
@@ -1754,46 +1770,166 @@ if (!empty($driverFullName)) {
     };
 
     const PRESET_DESTINATION_COORDS = {
-        "San Leonardo": { lat: 15.359042, lng: 120.965016 },
-        "Gapan": { lat: 15.3089, lng: 120.9464 },
-        "Gapan City": { lat: 15.3089, lng: 120.9464 },
-        "Cabanatuan": { lat: 15.4859, lng: 120.9673 },
-        "Cabanatuan City": { lat: 15.4859, lng: 120.9673 },
-        "San Isidro": { lat: 15.3114, lng: 120.9080 },
-        "Santa Rosa": { lat: 15.4247, lng: 120.9388 },
-        "Sta. Rosa": { lat: 15.4247, lng: 120.9388 },
-        "Peñaranda": { lat: 15.3533, lng: 120.9950 },
-        "General Tinio": { lat: 15.3486, lng: 121.0478 },
-        "Papaya": { lat: 15.3486, lng: 121.0478 },
-        "Palayan": { lat: 15.5414, lng: 121.0847 },
-        "Palayan City": { lat: 15.5414, lng: 121.0847 },
-        "Talavera": { lat: 15.5847, lng: 120.9197 },
-        "Guimba": { lat: 15.6586, lng: 120.7678 },
-        "San Jose": { lat: 15.7947, lng: 120.9956 },
-        "San Jose City": { lat: 15.7947, lng: 120.9956 },
-        "Muñoz": { lat: 15.7144, lng: 120.9056 },
-        "Science City of Muñoz": { lat: 15.7144, lng: 120.9056 },
-        "Zaragoza": { lat: 15.4503, lng: 120.7936 },
-        "Jaen": { lat: 15.3375, lng: 120.9058 },
-        "Aliaga": { lat: 15.5033, lng: 120.8592 },
-        "Licab": { lat: 15.5564, lng: 120.7611 },
-        "Quezon": { lat: 15.5683, lng: 120.8164 },
-        "Santo Domingo": { lat: 15.5833, lng: 120.8833 },
-        "Llanera": { lat: 15.6639, lng: 121.0189 },
-        "Rizal": { lat: 15.7114, lng: 121.1256 },
-        "Pantabangan": { lat: 15.8239, lng: 121.1506 },
-        "Carranglan": { lat: 15.9619, lng: 121.0664 },
-        "Laur": { lat: 15.4385, lng: 121.1895 },
-        "Gabaldon": { lat: 15.4533, lng: 121.3283 },
-        "Dingalan": { lat: 15.3944, lng: 121.3967 },
-        "Baler": { lat: 15.7594, lng: 121.5622 },
-        "San Miguel": { lat: 15.1450, lng: 120.9767 },
-        "San Ildefonso": { lat: 15.0806, lng: 120.9417 },
-        "San Rafael": { lat: 14.9983, lng: 120.9639 },
-        "Baliuag": { lat: 14.9547, lng: 120.9008 },
-        "Tarlac": { lat: 15.4828, lng: 120.5963 },
-        "Tarlac City": { lat: 15.4828, lng: 120.5963 },
-        "Arayat": { lat: 15.1506, lng: 120.7686 }
+        "San Leonardo": {
+            lat: 15.359042,
+            lng: 120.965016
+        },
+        "Gapan": {
+            lat: 15.3089,
+            lng: 120.9464
+        },
+        "Gapan City": {
+            lat: 15.3089,
+            lng: 120.9464
+        },
+        "Cabanatuan": {
+            lat: 15.4859,
+            lng: 120.9673
+        },
+        "Cabanatuan City": {
+            lat: 15.4859,
+            lng: 120.9673
+        },
+        "San Isidro": {
+            lat: 15.3114,
+            lng: 120.9080
+        },
+        "Santa Rosa": {
+            lat: 15.4247,
+            lng: 120.9388
+        },
+        "Sta. Rosa": {
+            lat: 15.4247,
+            lng: 120.9388
+        },
+        "Peñaranda": {
+            lat: 15.3533,
+            lng: 120.9950
+        },
+        "General Tinio": {
+            lat: 15.3486,
+            lng: 121.0478
+        },
+        "Papaya": {
+            lat: 15.3486,
+            lng: 121.0478
+        },
+        "Palayan": {
+            lat: 15.5414,
+            lng: 121.0847
+        },
+        "Palayan City": {
+            lat: 15.5414,
+            lng: 121.0847
+        },
+        "Talavera": {
+            lat: 15.5847,
+            lng: 120.9197
+        },
+        "Guimba": {
+            lat: 15.6586,
+            lng: 120.7678
+        },
+        "San Jose": {
+            lat: 15.7947,
+            lng: 120.9956
+        },
+        "San Jose City": {
+            lat: 15.7947,
+            lng: 120.9956
+        },
+        "Muñoz": {
+            lat: 15.7144,
+            lng: 120.9056
+        },
+        "Science City of Muñoz": {
+            lat: 15.7144,
+            lng: 120.9056
+        },
+        "Zaragoza": {
+            lat: 15.4503,
+            lng: 120.7936
+        },
+        "Jaen": {
+            lat: 15.3375,
+            lng: 120.9058
+        },
+        "Aliaga": {
+            lat: 15.5033,
+            lng: 120.8592
+        },
+        "Licab": {
+            lat: 15.5564,
+            lng: 120.7611
+        },
+        "Quezon": {
+            lat: 15.5683,
+            lng: 120.8164
+        },
+        "Santo Domingo": {
+            lat: 15.5833,
+            lng: 120.8833
+        },
+        "Llanera": {
+            lat: 15.6639,
+            lng: 121.0189
+        },
+        "Rizal": {
+            lat: 15.7114,
+            lng: 121.1256
+        },
+        "Pantabangan": {
+            lat: 15.8239,
+            lng: 121.1506
+        },
+        "Carranglan": {
+            lat: 15.9619,
+            lng: 121.0664
+        },
+        "Laur": {
+            lat: 15.4385,
+            lng: 121.1895
+        },
+        "Gabaldon": {
+            lat: 15.4533,
+            lng: 121.3283
+        },
+        "Dingalan": {
+            lat: 15.3944,
+            lng: 121.3967
+        },
+        "Baler": {
+            lat: 15.7594,
+            lng: 121.5622
+        },
+        "San Miguel": {
+            lat: 15.1450,
+            lng: 120.9767
+        },
+        "San Ildefonso": {
+            lat: 15.0806,
+            lng: 120.9417
+        },
+        "San Rafael": {
+            lat: 14.9983,
+            lng: 120.9639
+        },
+        "Baliuag": {
+            lat: 14.9547,
+            lng: 120.9008
+        },
+        "Tarlac": {
+            lat: 15.4828,
+            lng: 120.5963
+        },
+        "Tarlac City": {
+            lat: 15.4828,
+            lng: 120.5963
+        },
+        "Arayat": {
+            lat: 15.1506,
+            lng: 120.7686
+        }
     };
 
     let activeDestName = "<?= addslashes($active_dispatch['destination'] ?? 'San Leonardo') ?>";
@@ -1856,7 +1992,9 @@ if (!empty($driverFullName)) {
             L.control.layers({
                 "🗺️ OpenStreetMap": streetLayer,
                 "🛰️ Satellite (Hybrid)": satelliteLayer
-            }, null, { position: 'topright' }).addTo(driverMap);
+            }, null, {
+                position: 'topright'
+            }).addTo(driverMap);
 
             const originIcon = L.divIcon({
                 className: 'custom-origin-icon',
@@ -1864,7 +2002,9 @@ if (!empty($driverFullName)) {
                 iconSize: [0, 0]
             });
 
-            driverOriginMarker = L.marker([GARAGE_LOCATION.lat, GARAGE_LOCATION.lng], { icon: originIcon })
+            driverOriginMarker = L.marker([GARAGE_LOCATION.lat, GARAGE_LOCATION.lng], {
+                    icon: originIcon
+                })
                 .addTo(driverMap)
                 .bindPopup(`
                     <div class="p-2 min-w-[180px]">
@@ -1942,7 +2082,10 @@ if (!empty($driverFullName)) {
                 const resp = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + query + '&limit=1');
                 const results = await resp.json();
                 if (results && results.length > 0) {
-                    coords = { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
+                    coords = {
+                        lat: parseFloat(results[0].lat),
+                        lng: parseFloat(results[0].lon)
+                    };
                 }
             } catch (err) {
                 console.warn('Geocoding fallback failed:', err);
@@ -1950,7 +2093,10 @@ if (!empty($driverFullName)) {
         }
 
         if (!coords) {
-            coords = { lat: 15.4859, lng: 120.9673 };
+            coords = {
+                lat: 15.4859,
+                lng: 120.9673
+            };
         }
         activeDestCoords = coords;
 
@@ -1970,7 +2116,9 @@ if (!empty($driverFullName)) {
             iconSize: [0, 0]
         });
 
-        driverDestMarker = L.marker([coords.lat, coords.lng], { icon: destIcon })
+        driverDestMarker = L.marker([coords.lat, coords.lng], {
+                icon: destIcon
+            })
             .addTo(driverMap)
             .bindPopup(`
                 <div class="p-2 min-w-[180px]">
@@ -1982,9 +2130,9 @@ if (!empty($driverFullName)) {
                 </div>
             `);
 
-        const startPoint = (driverCurrentLat && driverCurrentLng) 
-            ? [driverCurrentLat, driverCurrentLng] 
-            : [GARAGE_LOCATION.lat, GARAGE_LOCATION.lng];
+        const startPoint = (driverCurrentLat && driverCurrentLng) ?
+            [driverCurrentLat, driverCurrentLng] :
+            [GARAGE_LOCATION.lat, GARAGE_LOCATION.lng];
 
         try {
             const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startPoint[1]},${startPoint[0]};${coords.lng},${coords.lat}?overview=full&geometries=geojson`;
@@ -2137,14 +2285,16 @@ if (!empty($driverFullName)) {
 
             const initialLocationText = driverResolvedLocationName || 'Locating address...';
             if (!driverGpsMarker) {
-                driverGpsMarker = L.marker([lat, lng], { icon: truckIcon })
+                driverGpsMarker = L.marker([lat, lng], {
+                        icon: truckIcon
+                    })
                     .addTo(driverMap)
                     .bindPopup(`
                         <div class="p-2 min-w-[190px]">
                             <div class="font-bold text-gray-900 text-xs flex items-center gap-1.5 border-b pb-1">
                                 <i class="fa-solid fa-truck text-emerald-600"></i> Your Current Location
                             </div>
-                            <div class="text-xs font-semibold text-gray-800 mt-1.5 leading-snug" id="driverMarkerLocationText">${initialLocationText}</div>
+                            <div class="text-xs font-semibold text-gray-100 mt-1.5 leading-snug" id="driverMarkerLocationText">${initialLocationText}</div>
                             <div class="text-[10px] text-emerald-600 font-medium mt-1 flex items-center gap-1">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live GPS Active
                             </div>
@@ -2207,8 +2357,11 @@ if (!empty($driverFullName)) {
         // Phase 1: Rapid instant fix using cached / network location
         navigator.geolocation.getCurrentPosition(
             pos => updateGpsUI(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy),
-            err => console.log('Driver rapid GPS check:', err.message),
-            { enableHighAccuracy: false, timeout: 10000, maximumAge: 120000 }
+            err => console.log('Driver rapid GPS check:', err.message), {
+                enableHighAccuracy: false,
+                timeout: 10000,
+                maximumAge: 120000
+            }
         );
 
         // Phase 2: Continuous watch with adaptive high-accuracy to network fallback
@@ -2264,7 +2417,10 @@ if (!empty($driverFullName)) {
 
         if (points.length >= 2) {
             const bounds = L.latLngBounds(points);
-            m.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+            m.fitBounds(bounds, {
+                padding: [50, 50],
+                maxZoom: 15
+            });
         } else {
             m.setView([GARAGE_LOCATION.lat, GARAGE_LOCATION.lng], 13);
         }
@@ -2275,7 +2431,10 @@ if (!empty($driverFullName)) {
         const m = driverMap || window.driverMap;
         if (!m) return;
         if (driverCurrentLat && driverCurrentLng) {
-            m.flyTo([driverCurrentLat, driverCurrentLng], 15, { animate: true, duration: 1 });
+            m.flyTo([driverCurrentLat, driverCurrentLng], 15, {
+                animate: true,
+                duration: 1
+            });
             if (driverGpsMarker) driverGpsMarker.openPopup();
         } else {
             if (typeof showToast === 'function') showToast('GPS location is still synchronizing...', 'info');
@@ -2300,12 +2459,12 @@ if (!empty($driverFullName)) {
     }
 
     function calculateDirectDistanceKm(lat1, lon1, lat2, lon2) {
-        const R = 6371; 
+        const R = 6371;
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLon = (lon2 - lon1) * Math.PI / 180;
         const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     }
