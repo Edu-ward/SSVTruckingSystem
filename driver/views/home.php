@@ -2085,7 +2085,7 @@ if (!empty($driverFullName)) {
 
             const originIcon = L.divIcon({
                 className: 'custom-origin-icon',
-                html: `<div class="w-9 h-9 rounded-none bg-indigo-600 border-2 border-white text-white flex items-center justify-center shadow-lg transform -translate-x-1/2 -translate-y-1/2"><i class="fa-solid fa-warehouse text-sm"></i></div>`,
+                html: `<div class="w-9 h-9 rounded-xl bg-indigo-600 border-2 border-white text-white flex items-center justify-center shadow-lg transform -translate-x-1/2 -translate-y-1/2"><i class="fa-solid fa-warehouse text-sm"></i></div>`,
                 iconSize: [0, 0]
             });
 
@@ -2194,8 +2194,8 @@ if (!empty($driverFullName)) {
             className: 'custom-dest-icon',
             html: `
                 <div class="relative w-9 h-9 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2">
-                    <span class="absolute inset-0 rounded-none bg-red-500 opacity-60 animate-ping"></span>
-                    <div class="relative w-9 h-9 rounded-none bg-red-600 border-2 border-white text-white flex items-center justify-center shadow-xl">
+                    <span class="absolute inset-0 rounded-xl bg-red-500 opacity-60 animate-ping"></span>
+                    <div class="relative w-9 h-9 rounded-xl bg-red-600 border-2 border-white text-white flex items-center justify-center shadow-xl">
                         <i class="fa-solid fa-location-dot text-sm"></i>
                     </div>
                 </div>
@@ -2359,8 +2359,8 @@ if (!empty($driverFullName)) {
                 className: 'custom-truck-icon',
                 html: `
                     <div class="relative w-9 h-9 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2">
-                        <span class="absolute inset-0 rounded-none bg-emerald-400 opacity-60 animate-ping"></span>
-                        <div class="relative w-9 h-9 rounded-none bg-emerald-600 border-2 border-white text-white flex items-center justify-center shadow-xl">
+                        <span class="absolute inset-0 rounded-xl bg-emerald-400 opacity-60 animate-ping"></span>
+                        <div class="relative w-9 h-9 rounded-xl bg-emerald-600 border-2 border-white text-white flex items-center justify-center shadow-xl">
                             <i class="fa-solid fa-truck text-sm"></i>
                         </div>
                     </div>
@@ -2381,7 +2381,7 @@ if (!empty($driverFullName)) {
                             </div>
                             <div class="driver-popup-loc" id="driverMarkerLocationText">${initialLocationText}</div>
                             <div class="driver-popup-sub">
-                                <span class="w-1.5 h-1.5 rounded-none bg-emerald-500 animate-pulse"></span> Live GPS Active
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live GPS Active
                             </div>
                         </div>
                     `);
@@ -2416,7 +2416,7 @@ if (!empty($driverFullName)) {
                             </div>
                             <div class="driver-popup-loc">${locName}</div>
                             <div class="driver-popup-sub">
-                                <span class="w-1.5 h-1.5 rounded-none bg-emerald-500 animate-pulse"></span> Live GPS Active
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live GPS Active
                             </div>
                         </div>
                     `);
