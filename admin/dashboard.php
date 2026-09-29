@@ -2883,8 +2883,15 @@ function getInitials($name)
 }
 
 try {
+    $chkCol = $pdo->query("SHOW COLUMNS FROM `checkers` LIKE 'profile_photo'")->fetch();
+    if (!$chkCol) {
+        $pdo->exec("ALTER TABLE `checkers` ADD COLUMN `profile_photo` VARCHAR(255) DEFAULT NULL");
+    }
+} catch (Throwable $e) {}
+
+try {
     $allCheckers = $pdo->query("
-        SELECT u.id, u.username, c.first_name, c.last_name, c.phone, COALESCE(c.status, 'Active') AS status, CONCAT(c.first_name, ' ', c.last_name) AS full_name 
+        SELECT u.id, u.username, c.first_name, c.last_name, c.phone, c.profile_photo, COALESCE(c.status, 'Active') AS status, CONCAT(c.first_name, ' ', c.last_name) AS full_name 
         FROM users u 
         LEFT JOIN checkers c ON u.id = c.id 
         WHERE u.role = 'Checker' 
@@ -2893,7 +2900,7 @@ try {
 } catch (Throwable $e) {
     try {
         $allCheckers = $pdo->query("
-            SELECT u.id, u.username, c.first_name, c.last_name, c.phone, 'Active' AS status, CONCAT(c.first_name, ' ', c.last_name) AS full_name 
+            SELECT u.id, u.username, c.first_name, c.last_name, c.phone, c.profile_photo, 'Active' AS status, CONCAT(c.first_name, ' ', c.last_name) AS full_name 
             FROM users u 
             LEFT JOIN checkers c ON u.id = c.id 
             WHERE u.role = 'Checker' 
@@ -2924,6 +2931,21 @@ try {
     }
 } catch (Throwable $e) {
     $checkerOrderCounts = [];
+}
+
+try {
+    $checkerScanCountsRaw = $pdo->query("
+        SELECT checker_id, COUNT(*) AS scan_count
+        FROM order_scans
+        WHERE checker_id IS NOT NULL
+        GROUP BY checker_id
+    ")->fetchAll(PDO::FETCH_ASSOC);
+    $checkerScanCounts = [];
+    foreach ($checkerScanCountsRaw as $_sc) {
+        $checkerScanCounts[$_sc['checker_id']] = (int)$_sc['scan_count'];
+    }
+} catch (Throwable $e) {
+    $checkerScanCounts = [];
 }
 
 try {

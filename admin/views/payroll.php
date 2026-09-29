@@ -350,15 +350,12 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                                 </td>
 
 
-                                <td class="px-2.5 sm:px-3 py-3 text-right whitespace-nowrap cursor-pointer group/trips"
-                                    onclick="openDriverWeekTripsModal(this.closest('tr'), 'pending')"
-                                    title="Click to view pending trips breakdown">
-                                    <div class="inline-flex flex-col items-end p-1.5 -mr-1.5 rounded-xl group-hover/trips:bg-emerald-50/80 dark:group-hover/trips:bg-emerald-950/40 transition-all border border-transparent group-hover/trips:border-emerald-200/60 dark:group-hover/trips:border-emerald-800/40">
-                                        <div class="font-bold text-gray-900 dark:text-gray-100 group-hover/trips:text-emerald-600 dark:group-hover/trips:text-emerald-400 transition-colors flex items-center justify-end gap-1.5">
+                                <td class="px-2.5 sm:px-3 py-3 text-right whitespace-nowrap cursor-pointer group/trips">
+                                    <div class="inline-flex flex-col items-end p-1.5 -mr-1.5 rounded-xl ">
+                                        <div class="font-bold text-gray-900 dark:text-gray-100 flex items-center justify-end gap-1.5">
                                             <span class="driver-gross-val">₱<?= number_format($driver['gross_earnings'] ?? 0, 2); ?></span>
-                                            <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-emerald-500 opacity-0 group-hover/trips:opacity-100 transition-opacity"></i>
                                         </div>
-                                        <div class="text-[11px] text-gray-400 group-hover/trips:text-emerald-600/90 dark:group-hover/trips:text-emerald-400/90 transition-colors driver-trips-val font-medium">
+                                        <div class="text-[11px] text-gray-400 driver-trips-val font-medium">
                                             <?= $unclaimedTripsCount ?> trip<?= $unclaimedTripsCount !== 1 ? 's' : '' ?>
                                         </div>
                                     </div>
@@ -1139,7 +1136,15 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
 
         function renderDriverTripsModal() {
             if (!currentDwtmContext) return;
-            const { driverName, driverId, remBal, advances, periodLabel, tripsData, filter } = currentDwtmContext;
+            const {
+                driverName,
+                driverId,
+                remBal,
+                advances,
+                periodLabel,
+                tripsData,
+                filter
+            } = currentDwtmContext;
 
             // Populate header
             const nameEl = document.getElementById('dwtm-driver-name');

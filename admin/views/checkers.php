@@ -130,18 +130,50 @@ $_unassignedActiveOrders = count(array_filter($allOrders ?? [], fn($o) => in_arr
                             $_initials   = strtoupper(substr($checker['first_name'] ?? $checker['username'] ?? '?', 0, 1) . substr($checker['last_name'] ?? '', 0, 1));
                             $_name       = trim(($checker['first_name'] ?? '') . ' ' . ($checker['last_name'] ?? '')) ?: ($checker['username'] ?? 'Checker');
                             $_orderCount = $checkerOrderCounts[$checker['id']] ?? 0;
+                            $_scanCount  = $checkerScanCounts[$checker['id']] ?? 0;
                             $_searchMeta = strtolower($_name . ' ' . ($checker['username'] ?? '') . ' ' . ($checker['phone'] ?? ''));
+
+                            $_photoPath = $checker['profile_photo'] ?? null;
+                            $_photoFull = $_photoPath ? (dirname(__DIR__, 2) . '/' . $_photoPath) : null;
+                            $_photoUrl  = ($_photoFull && file_exists($_photoFull))
+                                ? '../' . htmlspecialchars($_photoPath) . '?v=' . filemtime($_photoFull)
+                                : null;
+
+                            $checkerModalData = [
+                                'id'          => (int)$checker['id'],
+                                'username'    => $checker['username'] ?? '',
+                                'name'        => $_name,
+                                'phone'       => $checker['phone'] ?? '',
+                                'status'      => $checker['status'] ?? 'Active',
+                                'is_active'   => $_isActive,
+                                'order_count' => $_orderCount,
+                                'scan_count'  => $_scanCount,
+                                'photo_url'   => $_photoUrl,
+                                'initials'    => $_initials ?: 'CK'
+                            ];
+                            $checkerJson = htmlspecialchars(json_encode($checkerModalData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8');
                         ?>
-                        <tr class="checker-row hover:bg-gray-50/70 dark:hover:bg-gray-700/40 transition-colors" data-search="<?= htmlspecialchars($_searchMeta) ?>">
+                        <tr class="checker-row hover:bg-teal-50/50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors group"
+                            data-search="<?= htmlspecialchars($_searchMeta) ?>"
+                            onclick="openViewCheckerModal(<?= $checkerJson ?>)"
+                            title="Click to view checker profile">
                             
                             <td class="px-3.5 sm:px-4 py-3">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0
-                                        <?= $_isActive ? 'bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300' : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400' ?>">
-                                        <?= htmlspecialchars($_initials ?: '?') ?>
-                                    </div>
+                                    <?php if (!empty($_photoUrl)): ?>
+                                        <img src="<?= $_photoUrl ?>" alt="<?= htmlspecialchars($_name) ?>"
+                                             class="w-10 h-10 rounded-xl object-cover shadow-sm flex-shrink-0 border border-teal-200 dark:border-teal-700 group-hover:scale-105 group-hover:ring-2 group-hover:ring-teal-400 transition-all duration-200">
+                                    <?php else: ?>
+                                        <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0 group-hover:scale-105 transition-transform
+                                            <?= $_isActive ? 'bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300' : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400' ?>">
+                                            <?= htmlspecialchars($_initials ?: '?') ?>
+                                        </div>
+                                    <?php endif; ?>
                                     <div>
-                                        <div class="font-semibold text-gray-800 dark:text-gray-100 text-sm"><?= htmlspecialchars($_name) ?></div>
+                                        <div class="font-semibold text-gray-800 dark:text-gray-100 text-sm group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors flex items-center gap-1.5">
+                                            <span><?= htmlspecialchars($_name) ?></span>
+                                            <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-gray-400 group-hover:text-teal-500 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                                        </div>
                                         <div class="text-[11px] text-gray-400 dark:text-gray-500">
                                             @<?= htmlspecialchars($checker['username'] ?? '—') ?> &nbsp;·&nbsp; ID #<?= $checker['id'] ?>
                                         </div>
@@ -162,7 +194,7 @@ $_unassignedActiveOrders = count(array_filter($allOrders ?? [], fn($o) => in_arr
                             
                             <td class="px-3.5 sm:px-4 py-3">
                                 <?php if ($_orderCount > 0): ?>
-                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/40 border border-teal-200 dark:border-teal-700/50 px-2.5 py-1 rounded-full cursor-default select-none">
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/40 border border-teal-200 dark:border-teal-700/50 px-2.5 py-1 rounded-full select-none">
                                         <i class="fa-solid fa-clipboard-list text-[10px]"></i>
                                         <?= $_orderCount ?> active order<?= $_orderCount > 1 ? 's' : '' ?>
                                     </span>
@@ -183,7 +215,7 @@ $_unassignedActiveOrders = count(array_filter($allOrders ?? [], fn($o) => in_arr
                                 <?php endif; ?>
                             </td>
                             
-                            <td class="px-3.5 sm:px-4 py-3 text-right">
+                            <td class="px-3.5 sm:px-4 py-3 text-right" onclick="event.stopPropagation()">
                                 <div class="flex items-center justify-end gap-1.5">
                                     <button onclick="openCheckerOrdersModal(<?= $checker['id'] ?>, '<?= addslashes($_name) ?>')"
                                             title="View Orders assigned to <?= htmlspecialchars($_name) ?>"
@@ -377,4 +409,70 @@ function openCheckerOrdersModal(checkerId, checkerName) {
 
     toggleModal('checkerOrdersModal', true);
 }
+
+function openViewCheckerModal(data) {
+    if (!data) return;
+    const nameEl = document.getElementById('vc-full-name');
+    if (nameEl) nameEl.textContent = data.name || 'Checker';
+    
+    const userEl = document.getElementById('vc-username-id');
+    if (userEl) userEl.innerHTML = '@' + (data.username || '—') + ' &bull; ID #' + (data.id || '');
+    
+    const unEl = document.getElementById('vc-username');
+    if (unEl) unEl.textContent = '@' + (data.username || '—');
+    
+    const phoneEl = document.getElementById('vc-phone');
+    if (phoneEl) phoneEl.textContent = data.phone || 'No phone recorded';
+    
+    const ordEl = document.getElementById('vc-active-orders');
+    if (ordEl) ordEl.textContent = data.order_count || 0;
+    
+    const scanEl = document.getElementById('vc-total-scans');
+    if (scanEl) scanEl.textContent = data.scan_count || 0;
+
+    const statusBadge = document.getElementById('vc-status-badge');
+    if (statusBadge) {
+        if (data.is_active) {
+            statusBadge.className = 'text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1.5';
+            statusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Active';
+        } else {
+            statusBadge.className = 'text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-gray-500/20 text-gray-300 border border-gray-400/30 flex items-center gap-1.5';
+            statusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Resigned';
+        }
+    }
+
+    const imgContainer = document.getElementById('vc-avatar-img-container');
+    const imgEl = document.getElementById('vc-avatar-img');
+    const initialsContainer = document.getElementById('vc-avatar-initials-container');
+    const initialsEl = document.getElementById('vc-avatar-initials');
+
+    if (data.photo_url) {
+        if (imgEl) imgEl.src = data.photo_url;
+        if (imgContainer) imgContainer.classList.remove('hidden');
+        if (initialsContainer) initialsContainer.classList.add('hidden');
+    } else {
+        if (initialsEl) initialsEl.textContent = data.initials || 'CK';
+        if (imgContainer) imgContainer.classList.add('hidden');
+        if (initialsContainer) initialsContainer.classList.remove('hidden');
+    }
+
+    const viewOrdersBtn = document.getElementById('vc-view-orders-btn');
+    if (viewOrdersBtn) {
+        viewOrdersBtn.onclick = function() {
+            toggleModal('viewCheckerModal', false);
+            openCheckerOrdersModal(data.id, data.name);
+        };
+    }
+
+    const resetPwdBtn = document.getElementById('vc-reset-pwd-btn');
+    if (resetPwdBtn) {
+        resetPwdBtn.onclick = function() {
+            toggleModal('viewCheckerModal', false);
+            openResetCheckerPasswordModal(data.id, data.name, 'checkers');
+        };
+    }
+
+    toggleModal('viewCheckerModal', true);
+}
+window.openViewCheckerModal = openViewCheckerModal;
 </script>

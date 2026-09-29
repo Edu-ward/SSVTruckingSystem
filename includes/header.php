@@ -756,9 +756,18 @@
 
                 <div class="px-4 py-4 border-b border-gray-100 dark:border-gray-800">
                     <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-sm flex-shrink-0">
-                            <?= strtoupper(substr($checker_profile['first_name'] ?? 'C', 0, 1)) ?>
-                        </div>
+                        <?php
+                        $hdrCheckerPhoto = $checker_profile['profile_photo'] ?? $_SESSION['profile_photo'] ?? null;
+                        $hdrCPhotoFull = $hdrCheckerPhoto ? (dirname(__DIR__) . '/' . $hdrCheckerPhoto) : null;
+                        $hdrCPhotoUrl = ($hdrCPhotoFull && file_exists($hdrCPhotoFull)) ? ('../' . htmlspecialchars($hdrCheckerPhoto) . '?v=' . filemtime($hdrCPhotoFull)) : null;
+                        ?>
+                        <?php if ($hdrCPhotoUrl): ?>
+                            <img src="<?= $hdrCPhotoUrl ?>" alt="Checker Profile" class="w-10 h-10 rounded-xl object-cover shadow-sm flex-shrink-0 border border-indigo-200 dark:border-indigo-700">
+                        <?php else: ?>
+                            <div class="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/40 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-sm flex-shrink-0 border border-indigo-200/50 dark:border-indigo-700/50">
+                                <?= strtoupper(substr($checker_profile['first_name'] ?? $checker_profile['username'] ?? 'C', 0, 1)) ?>
+                            </div>
+                        <?php endif; ?>
                         <div class="min-w-0">
                             <p class="text-sm font-semibold text-gray-900 dark:text-white truncate"><?= htmlspecialchars($checker_full_name ?? $_SESSION['username'] ?? 'Checker') ?></p>
                             <p class="text-xs text-gray-400">Field Checker</p>
@@ -804,6 +813,9 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-2">
+                    <?php if (!empty($hdrCPhotoUrl)): ?>
+                        <img src="<?= $hdrCPhotoUrl ?>" alt="Profile" class="w-8 h-8 rounded-lg object-cover border border-indigo-200 dark:border-indigo-700 shadow-sm">
+                    <?php endif; ?>
                     <button onclick="toggleTheme(event)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all active:scale-95" aria-label="Toggle theme">
                         <i class="themeIconMobile fa-solid fa-moon text-sm"></i>
                     </button>

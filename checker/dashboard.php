@@ -25,7 +25,7 @@ try {
     )");
 } catch (Throwable $e) {}
 
-$stmt_profile = $pdo->prepare("SELECT u.username, c.first_name, c.last_name, c.phone FROM users u LEFT JOIN checkers c ON u.id = c.id WHERE u.id = ?");
+$stmt_profile = $pdo->prepare("SELECT u.username, c.first_name, c.last_name, c.phone, c.profile_photo, c.status FROM users u LEFT JOIN checkers c ON u.id = c.id WHERE u.id = ?");
 $stmt_profile->execute([$checker_id]);
 $checker_profile = $stmt_profile->fetch();
 if ($checker_profile && $checker_profile['first_name'] === null && $checker_profile['last_name'] === null) {
@@ -45,6 +45,8 @@ try {
             }
         } catch (Throwable $ex) {}
     };
+    $_ensureCol($pdo, 'checkers', 'profile_photo', 'VARCHAR(255) DEFAULT NULL');
+    $_ensureCol($pdo, 'checkers', 'status', "VARCHAR(50) DEFAULT 'Active'");
     $_ensureCol($pdo, 'dispatches', 'cubic_meters', 'DECIMAL(10,2) DEFAULT 0.00');
     $_ensureCol($pdo, 'orders', 'cubic_meters_required', 'DECIMAL(10,2) DEFAULT 0.00');
     $_ensureCol($pdo, 'orders', 'cubic_meters_fulfilled', 'DECIMAL(10,2) DEFAULT 0.00');
@@ -55,6 +57,14 @@ try {
 $checker_full_name = ($checker_profile && !empty($checker_profile['first_name']))
     ? ($checker_profile['first_name'] . ' ' . $checker_profile['last_name'])
     : $checker_profile['username'];
+
+$checkerPhotoPath = $checker_profile['profile_photo'] ?? $_SESSION['profile_photo'] ?? null;
+$checkerPhotoFull = $checkerPhotoPath ? (dirname(__DIR__) . '/' . $checkerPhotoPath) : null;
+$checkerPhotoUrl  = ($checkerPhotoFull && file_exists($checkerPhotoFull))
+    ? '../' . htmlspecialchars($checkerPhotoPath) . '?v=' . filemtime($checkerPhotoFull)
+    : null;
+$checkerInitials  = strtoupper(substr($checker_profile['first_name'] ?? $checker_profile['username'] ?? 'C', 0, 1) . substr($checker_profile['last_name'] ?? '', 0, 1));
+if (empty($checkerInitials)) $checkerInitials = 'CK';
 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -212,13 +222,75 @@ foreach ($_gravel_rows as $_g) {
 
 <div class="max-w-[1400px] mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-8">
 
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center space-x-2">
-            <i class="fa-solid fa-clipboard-check text-indigo-500"></i>
-            <span>Checker Dashboard</span>
-        </h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Scan truck RFID tags to confirm gravel deliveries against active orders.</p>
+    <form id="checkerPhotoForm" method="POST" action="upload_profile_photo.php" enctype="multipart/form-data" class="hidden">
+        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+        <input type="file" name="profile_photo" id="checkerPhotoInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden">
+    </form>
+
+    <div class="mb-6 bg-gradient-to-r from-indigo-700 via-indigo-800 to-slate-900 rounded-3xl p-5 sm:p-7 text-white shadow-xl relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+        <div class="absolute -right-10 -bottom-10 w-44 h-44 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="flex items-center gap-4 sm:gap-5 min-w-0 relative z-10">
+            <div class="relative group flex-shrink-0">
+                <?php if (!empty($checkerPhotoUrl)): ?>
+                    <img src="<?= $checkerPhotoUrl ?>" alt="Checker Profile"
+                        id="checkerProfilePhotoDisplay"
+                        class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-white/80 shadow-lg">
+                <?php else: ?>
+                    <div id="checkerProfilePhotoDisplay"
+                        class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-indigo-500/80 border-2 border-white/80 flex items-center justify-center text-white font-black text-2xl sm:text-3xl shadow-lg">
+                        <?= htmlspecialchars($checkerInitials) ?>
+                    </div>
+                <?php endif; ?>
+                <button type="button" onclick="document.getElementById('checkerPhotoInput').click()"
+                    title="Change profile photo"
+                    class="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-white text-indigo-700 hover:bg-indigo-50 rounded-full flex items-center justify-center shadow-md border-2 border-indigo-700 transition transform hover:scale-110 active:scale-95">
+                    <i class="fa-solid fa-camera text-xs"></i>
+                </button>
+            </div>
+            <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap mb-1">
+                    <h1 class="text-xl sm:text-2xl font-extrabold text-white truncate leading-tight">
+                        <?= htmlspecialchars($checker_full_name) ?>
+                    </h1>
+                    <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Active Checker
+                    </span>
+                </div>
+                <div class="flex items-center gap-3 text-xs text-indigo-200/90 font-medium flex-wrap">
+                    <span class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-user-tag text-indigo-300"></i>
+                        @<?= htmlspecialchars($checker_profile['username'] ?? 'checker') ?>
+                    </span>
+                    <?php if (!empty($checker_profile['phone'])): ?>
+                        <span>&bull;</span>
+                        <span class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-phone text-indigo-300 text-[10px]"></i>
+                            <?= htmlspecialchars($checker_profile['phone']) ?>
+                        </span>
+                    <?php endif; ?>
+                    <span>&bull;</span>
+                    <span class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-clipboard-check text-indigo-300"></i>
+                        Field Delivery Verification
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 relative z-10 flex-shrink-0">
+            <button type="button" onclick="document.getElementById('checkerPhotoInput').click()"
+                class="px-4 py-2.5 rounded-xl text-xs font-bold bg-white text-indigo-800 hover:bg-indigo-50 shadow-md transition active:scale-95 flex items-center gap-2">
+                <i class="fa-solid fa-camera text-indigo-600"></i>
+                <span>Change Photo</span>
+            </button>
+            <button type="button" onclick="openResetPasswordModal()"
+                class="px-3.5 py-2.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition active:scale-95 flex items-center gap-1.5">
+                <i class="fa-solid fa-key text-indigo-200"></i>
+                <span class="hidden sm:inline">Password</span>
+            </button>
+        </div>
     </div>
+
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-5 flex flex-col items-center justify-center">

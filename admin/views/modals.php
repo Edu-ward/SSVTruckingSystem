@@ -1895,6 +1895,109 @@
         </div>
     </div>
 
+    <!-- View Checker Information Modal -->
+    <div id="viewCheckerModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-60 hidden p-3 sm:p-4 backdrop-blur-xs">
+        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative max-h-[90vh] flex flex-col border border-gray-100 dark:border-gray-700 animate-scale-up">
+            <!-- Header with Gradient Banner -->
+            <div class="relative bg-gradient-to-r from-teal-700 via-teal-800 to-slate-900 p-6 text-white pb-16">
+                <button type="button" onclick="toggleModal('viewCheckerModal', false)" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition" aria-label="Close">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/15 text-teal-200 border border-white/10">
+                        Checker Profile
+                    </span>
+                    <span id="vc-status-badge" class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Active
+                    </span>
+                </div>
+                <h3 class="text-xl font-extrabold text-white mt-2" id="vc-full-name">Checker Name</h3>
+                <p class="text-xs text-teal-200/90 mt-0.5" id="vc-username-id">@username &bull; ID #0</p>
+            </div>
+
+            <!-- Avatar overlapping banner -->
+            <div class="px-6 -mt-12 flex items-end justify-between relative z-10">
+                <div class="relative">
+                    <div id="vc-avatar-img-container" class="hidden">
+                        <img id="vc-avatar-img" src="" alt="Checker Photo" class="w-24 h-24 rounded-2xl object-cover border-4 border-white dark:border-gray-800 shadow-xl bg-white dark:bg-gray-700">
+                    </div>
+                    <div id="vc-avatar-initials-container" class="w-24 h-24 rounded-2xl border-4 border-white dark:border-gray-800 shadow-xl flex items-center justify-center font-black text-3xl text-white bg-teal-600">
+                        <span id="vc-avatar-initials">CK</span>
+                    </div>
+                </div>
+                <div class="pb-2">
+                    <span class="text-xs font-semibold px-3 py-1 rounded-xl bg-teal-50 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-700/50 flex items-center gap-1.5 shadow-xs">
+                        <i class="fa-solid fa-clipboard-check text-xs"></i>
+                        Field Checker
+                    </span>
+                </div>
+            </div>
+
+            <!-- Body Details -->
+            <div class="p-6 overflow-y-auto space-y-4">
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-gray-50 dark:bg-gray-700/50 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700">
+                        <span class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Active Orders</span>
+                        <div class="text-xl font-black text-gray-900 dark:text-gray-100 mt-1 flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-list text-teal-500 text-base"></i>
+                            <span id="vc-active-orders">0</span>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700/50 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700">
+                        <span class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Total RFID Scans</span>
+                        <div class="text-xl font-black text-gray-900 dark:text-gray-100 mt-1 flex items-center gap-2">
+                            <i class="fa-solid fa-barcode text-indigo-500 text-base"></i>
+                            <span id="vc-total-scans">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact & Info List -->
+                <div class="bg-gray-50 dark:bg-gray-700/40 rounded-2xl p-4 border border-gray-100 dark:border-gray-700/80 space-y-3 text-xs">
+                    <div class="flex items-center justify-between py-1 border-b border-gray-200/60 dark:border-gray-700/60">
+                        <span class="text-gray-500 dark:text-gray-400 font-medium flex items-center gap-2">
+                            <i class="fa-solid fa-phone text-teal-500 w-4 text-center"></i> Phone Number
+                        </span>
+                        <span id="vc-phone" class="font-bold text-gray-800 dark:text-gray-200">—</span>
+                    </div>
+                    <div class="flex items-center justify-between py-1 border-b border-gray-200/60 dark:border-gray-700/60">
+                        <span class="text-gray-500 dark:text-gray-400 font-medium flex items-center gap-2">
+                            <i class="fa-solid fa-user text-indigo-500 w-4 text-center"></i> Username
+                        </span>
+                        <span id="vc-username" class="font-bold text-gray-800 dark:text-gray-200">—</span>
+                    </div>
+                    <div class="flex items-center justify-between py-1">
+                        <span class="text-gray-500 dark:text-gray-400 font-medium flex items-center gap-2">
+                            <i class="fa-solid fa-shield text-emerald-500 w-4 text-center"></i> System Role
+                        </span>
+                        <span class="font-bold text-gray-800 dark:text-gray-200">Delivery Checker</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="p-4 sm:p-5 bg-gray-50 dark:bg-gray-750 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2.5">
+                <div class="flex items-center gap-2">
+                    <button type="button" id="vc-view-orders-btn"
+                        class="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 transition active:scale-95 flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                        <span>View Orders</span>
+                    </button>
+                    <button type="button" id="vc-reset-pwd-btn"
+                        class="px-3 py-2 rounded-xl text-xs font-bold text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/30 hover:bg-orange-100 border border-orange-200 dark:border-orange-800 transition active:scale-95 flex items-center gap-1.5">
+                        <i class="fa-solid fa-key"></i>
+                        <span>Reset Pwd</span>
+                    </button>
+                </div>
+                <button type="button" onclick="toggleModal('viewCheckerModal', false)"
+                    class="px-4 py-2 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
 
     <div id="cancelOrderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden relative p-5 sm:p-6 text-center max-h-[90vh] overflow-y-auto">

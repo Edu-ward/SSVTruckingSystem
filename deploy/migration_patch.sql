@@ -22,9 +22,13 @@ CREATE TABLE IF NOT EXISTS `checkers` (
     `first_name` VARCHAR(100) DEFAULT '',
     `last_name` VARCHAR(100) DEFAULT '',
     `phone` VARCHAR(20) DEFAULT '',
+    `profile_photo` VARCHAR(255) DEFAULT NULL,
     `status` VARCHAR(50) DEFAULT 'Active',
     FOREIGN KEY (`id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE `checkers`
+    ADD COLUMN IF NOT EXISTS `profile_photo` VARCHAR(255) DEFAULT NULL;
 
 -- 5. Ensure `orders` has quantity types and dimension tracking
 ALTER TABLE `orders`
