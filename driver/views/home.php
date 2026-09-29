@@ -308,13 +308,22 @@ if (!empty($driverFullName)) {
         </div>
 
         
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 sm:p-5 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700 text-xs sm:text-sm">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 p-4 sm:p-5 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700 text-xs sm:text-sm">
             <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200/80 dark:border-gray-700/80">
                 <div class="text-gray-400 dark:text-gray-500 text-[11px] font-semibold uppercase flex items-center gap-1">
                     <i class="fa-solid fa-warehouse text-indigo-500"></i> Origin
                 </div>
                 <div class="font-bold text-gray-800 dark:text-gray-200 mt-0.5 truncate" title="Brgy. Burgos San Leonardo, Nueva Ecija">
                     San Leonardo (Quarry)
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200/80 dark:border-gray-700/80 col-span-2 sm:col-span-1">
+                <div class="text-gray-400 dark:text-gray-500 text-[11px] font-semibold uppercase flex items-center gap-1">
+                    <i class="fa-solid fa-location-crosshairs text-emerald-500"></i> Live Location
+                </div>
+                <div class="font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 truncate text-xs sm:text-sm" id="driverLiveLocationDisplay" title="Locating...">
+                    Locating...
                 </div>
             </div>
 
@@ -2046,6 +2055,55 @@ if (!empty($driverFullName)) {
 
     let driverGpsWatchId = null;
     let driverGpsConsecutiveTimeouts = 0;
+    let driverResolvedLocationName = '';
+    let lastReverseGeocodeLat = 0;
+    let lastReverseGeocodeLng = 0;
+
+    async function resolveDriverLocationName(lat, lng) {
+        // SSV Quarry Loading & Garage base station check (within ~350m)
+        const dGarage = calculateDirectDistanceKm(lat, lng, GARAGE_LOCATION.lat, GARAGE_LOCATION.lng);
+        if (dGarage <= 0.35) {
+            return "San Leonardo (SSV Quarry Garage)";
+        }
+
+        // Avoid repeated geocoding if moved less than 80 meters
+        if (driverResolvedLocationName && lastReverseGeocodeLat && lastReverseGeocodeLng) {
+            const dMoved = calculateDirectDistanceKm(lat, lng, lastReverseGeocodeLat, lastReverseGeocodeLng);
+            if (dMoved < 0.08) {
+                return driverResolvedLocationName;
+            }
+        }
+
+        if (typeof NominatimService !== 'undefined' && NominatimService.reverseGeocode) {
+            try {
+                const geo = await NominatimService.reverseGeocode(lat, lng);
+                if (geo && geo.formatted && !geo.formatted.startsWith('Point at')) {
+                    driverResolvedLocationName = geo.formatted;
+                    lastReverseGeocodeLat = lat;
+                    lastReverseGeocodeLng = lng;
+                    return geo.formatted;
+                }
+            } catch (e) {
+                console.warn('Driver reverse geocode error:', e);
+            }
+        }
+
+        // Closest town fallback in Central Luzon
+        let closestName = 'San Leonardo';
+        let minD = Infinity;
+        for (const [k, v] of Object.entries(PRESET_DESTINATION_COORDS)) {
+            const d = calculateDirectDistanceKm(lat, lng, v.lat, v.lng);
+            if (d < minD) {
+                minD = d;
+                closestName = k;
+            }
+        }
+        const fallback = minD <= 1.5 ? `${closestName}, Nueva Ecija` : `Near ${closestName}, Nueva Ecija`;
+        driverResolvedLocationName = fallback;
+        lastReverseGeocodeLat = lat;
+        lastReverseGeocodeLng = lng;
+        return fallback;
+    }
 
     function startDriverLiveLocation() {
         if (!navigator.geolocation || !driverMap) return;
@@ -2077,20 +2135,58 @@ if (!empty($driverFullName)) {
                 iconSize: [0, 0]
             });
 
+            const initialLocationText = driverResolvedLocationName || 'Locating address...';
             if (!driverGpsMarker) {
                 driverGpsMarker = L.marker([lat, lng], { icon: truckIcon })
                     .addTo(driverMap)
                     .bindPopup(`
-                        <div class="p-2">
-                            <div class="font-bold text-gray-900 text-xs flex items-center gap-1">
-                                <i class="fa-solid fa-truck text-emerald-600"></i> Your Current Position
+                        <div class="p-2 min-w-[190px]">
+                            <div class="font-bold text-gray-900 text-xs flex items-center gap-1.5 border-b pb-1">
+                                <i class="fa-solid fa-truck text-emerald-600"></i> Your Current Location
                             </div>
-                            <div class="text-[11px] text-gray-500 mt-1 font-mono">${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
+                            <div class="text-xs font-semibold text-gray-800 mt-1.5 leading-snug" id="driverMarkerLocationText">${initialLocationText}</div>
+                            <div class="text-[10px] text-emerald-600 font-medium mt-1 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live GPS Active
+                            </div>
                         </div>
                     `);
             } else {
                 driverGpsMarker.setLatLng([lat, lng]);
             }
+
+            // Resolve real human-readable address and update UI elements
+            resolveDriverLocationName(lat, lng).then(locName => {
+                const liveLocEl = document.getElementById('driverLiveLocationDisplay');
+                if (liveLocEl) {
+                    liveLocEl.textContent = locName;
+                    liveLocEl.title = locName;
+                }
+
+                const markerLocText = document.getElementById('driverMarkerLocationText');
+                if (markerLocText) {
+                    markerLocText.textContent = locName;
+                }
+
+                const mapStatusEl = document.getElementById('driverMapStatusText');
+                if (mapStatusEl && (!activeDestName || activeDestName === 'San Leonardo' || activeDestName === 'San Leonardo Garage')) {
+                    mapStatusEl.textContent = 'Live: ' + locName;
+                    mapStatusEl.title = locName;
+                }
+
+                if (driverGpsMarker) {
+                    driverGpsMarker.setPopupContent(`
+                        <div class="p-2 min-w-[190px]">
+                            <div class="font-bold text-gray-900 text-xs flex items-center gap-1.5 border-b pb-1">
+                                <i class="fa-solid fa-truck text-emerald-600"></i> Your Current Location
+                            </div>
+                            <div class="text-xs font-semibold text-gray-800 mt-1.5 leading-snug">${locName}</div>
+                            <div class="text-[10px] text-emerald-600 font-medium mt-1 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live GPS Active
+                            </div>
+                        </div>
+                    `);
+                }
+            });
 
             if (accuracy && accuracy < 2000) {
                 if (!driverGpsAccuracyCircle) {

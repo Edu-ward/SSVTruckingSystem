@@ -3388,12 +3388,15 @@
                         if (typeof NominatimService !== 'undefined') {
                             try {
                                 const geoRes = await NominatimService.reverseGeocode(lat, lng);
-                                if (geoRes && geoRes.formatted) {
+                                if (geoRes && geoRes.formatted && !geoRes.formatted.startsWith('Point at')) {
                                     locationName = geoRes.formatted;
                                 }
                             } catch (e) {
                                 console.warn('Reverse geocode error:', e);
                             }
+                        }
+                        if (!locationName) {
+                            locationName = 'In Transit';
                         }
 
                         const fd = new FormData();

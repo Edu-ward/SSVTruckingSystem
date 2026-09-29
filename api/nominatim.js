@@ -329,26 +329,65 @@ const NominatimService = (function () {
                 if (addr.city || addr.town || addr.municipality) parts.push(addr.city || addr.town || addr.municipality);
                 if (addr.province) parts.push(addr.province);
 
-                const formatted = parts.length > 0 ? parts.join(', ') : (data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-                const result = {
-                    formatted: formatted,
-                    displayName: formatted,
-                    lat: parseFloat(lat),
-                    lng: parseFloat(lng)
-                };
-                cache[cacheKey] = result;
-                return result;
+                const formatted = parts.length > 0 ? parts.join(', ') : (data.display_name || '');
+                if (formatted && formatted.trim().length > 1) {
+                    const result = {
+                        formatted: formatted,
+                        displayName: formatted,
+                        lat: parseFloat(lat),
+                        lng: parseFloat(lng)
+                    };
+                    cache[cacheKey] = result;
+                    return result;
+                }
             }
         } catch (err) {
             console.warn('OSM reverse geocode error:', err);
         }
 
-        return {
-            formatted: `Point at ${parseFloat(lat).toFixed(4)}, ${parseFloat(lng).toFixed(4)}`,
-            displayName: `Point at ${parseFloat(lat).toFixed(4)}, ${parseFloat(lng).toFixed(4)}`,
-            lat: parseFloat(lat),
-            lng: parseFloat(lng)
+        // Intelligent named fallback instead of raw coordinates
+        const nLat = parseFloat(lat);
+        const nLng = parseFloat(lng);
+        const dGarage = Math.hypot(nLat - GARAGE_COORDS.lat, nLng - GARAGE_COORDS.lng) * 111;
+        let fallbackName = 'In Transit';
+        if (dGarage <= 0.4) {
+            fallbackName = 'San Leonardo (SSV Quarry Garage)';
+        } else {
+            const knownTowns = [
+                { name: 'San Leonardo', lat: 15.3590, lng: 120.9650 },
+                { name: 'Gapan City', lat: 15.3089, lng: 120.9464 },
+                { name: 'Peñaranda', lat: 15.3533, lng: 120.9950 },
+                { name: 'Santa Rosa', lat: 15.4247, lng: 120.9388 },
+                { name: 'Cabanatuan City', lat: 15.4859, lng: 120.9673 },
+                { name: 'San Isidro', lat: 15.3114, lng: 120.9080 },
+                { name: 'General Tinio', lat: 15.3486, lng: 121.0478 },
+                { name: 'Jaen', lat: 15.3375, lng: 120.9058 },
+                { name: 'Palayan City', lat: 15.5414, lng: 121.0847 }
+            ];
+            let closestTown = 'San Leonardo';
+            let closestDist = Infinity;
+            for (const t of knownTowns) {
+                const dist = Math.hypot(nLat - t.lat, nLng - t.lng) * 111;
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closestTown = t.name;
+                }
+            }
+            if (closestDist <= 6.0) {
+                fallbackName = closestDist <= 1.2 ? `${closestTown}, Nueva Ecija` : `Near ${closestTown}, Nueva Ecija`;
+            } else {
+                fallbackName = 'In Transit, Nueva Ecija';
+            }
+        }
+
+        const fallbackResult = {
+            formatted: fallbackName,
+            displayName: fallbackName,
+            lat: nLat,
+            lng: nLng
         };
+        cache[cacheKey] = fallbackResult;
+        return fallbackResult;
     }
 
 
