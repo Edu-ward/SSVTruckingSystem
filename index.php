@@ -50,7 +50,7 @@ try {
 
             if (hasUserSession && isTabActive) {
                 
-                if (userRole === 'Superadmin') {
+                if (userRole === 'Superadmin')
                     window.location.replace('admin/dashboard.php?tab=admin_management');
                 } else if (userRole === 'Admin') {
                     window.location.replace('admin/dashboard.php');
@@ -413,7 +413,7 @@ try {
                     </div>
                     <div class="stat-card glass-panel rounded-2xl p-4 text-center cursor-default">
                         <div class="text-2xl font-bold text-white mb-0.5" id="statUptime">0<span class="text-lg">%</span></div>
-                        <div class="text-blue-200/50 text-xs font-medium uppercase tracking-wider">Uptime</div>
+                        <div class="text-blue-200/50 text-xs font-medium uppercase tracking-wider">On-Time Deliveries</div>
                     </div>
                 </div>
             </div>
