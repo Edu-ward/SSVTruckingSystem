@@ -19,7 +19,7 @@ $decommissionedFleetList = !empty($decommissionedTrucks) ? $decommissionedTrucks
             </div>
             <div>
                 <h2 class="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100" id="fleetHeaderTitle">Fleet Management</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400" id="fleetHeaderSubtitle">Manage registered vehicles, status, drivers, and RFID trackers</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400" id="fleetHeaderSubtitle">Manage registered trucks, status, drivers, and RFID trackers</p>
             </div>
         </div>
         <div class="flex flex-wrap items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
@@ -204,7 +204,7 @@ $decommissionedFleetList = !empty($decommissionedTrucks) ? $decommissionedTrucks
                         <i class="fa-solid fa-truck-ramp-box"></i>
                     </div>
                     <h4 class="font-bold text-gray-800 dark:text-gray-200 text-base">No active trucks in fleet</h4>
-                    <p class="text-xs text-gray-400 mt-1 max-w-sm mx-auto">All vehicles may be decommissioned or none registered yet.</p>
+                    <p class="text-xs text-gray-400 mt-1 max-w-sm mx-auto">All trucks may be decommissioned or none registered yet.</p>
                     <button type="button" onclick="toggleModal('addTruckModal', true)" class="mt-4 btn-primary text-xs">
                         <i class="fa-solid fa-plus mr-1"></i> Register New Truck
                     </button>
@@ -216,7 +216,7 @@ $decommissionedFleetList = !empty($decommissionedTrucks) ? $decommissionedTrucks
                     <i class="fa-solid fa-truck"></i>
                 </div>
                 <h4 class="font-bold text-gray-800 dark:text-gray-200 text-sm">No trucks found</h4>
-                <p class="text-xs text-gray-400 mt-1" id="noFleetSearchText">No fleet vehicles match your search filter.</p>
+                <p class="text-xs text-gray-400 mt-1" id="noFleetSearchText">No fleet trucks match your search filter.</p>
                 <button type="button" onclick="clearFleetSearch()" class="mt-3 px-3.5 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/60 transition cursor-pointer">
                     Clear search filter
                 </button>
@@ -240,7 +240,7 @@ $decommissionedFleetList = !empty($decommissionedTrucks) ? $decommissionedTrucks
                         </span>
                     </h3>
                     <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                        These vehicles are retired from fleet operations and prevented from taking orders. Past trip logs and maintenance records remain permanently intact. Click <strong>Commission Again</strong> on any vehicle to restore it to the active fleet.
+                        These trucks are retired from fleet operations and prevented from taking orders. Past trip logs and maintenance records remain permanently intact. Click <strong>Commission Again</strong> on any vehicle to restore it to the active fleet.
                     </p>
                 </div>
             </div>
@@ -327,7 +327,7 @@ $decommissionedFleetList = !empty($decommissionedTrucks) ? $decommissionedTrucks
                 <i class="fa-solid fa-circle-check"></i>
             </div>
             <h4 class="font-bold text-gray-800 dark:text-gray-200 text-base">No Decommissioned Trucks</h4>
-            <p class="text-xs text-gray-400 mt-1 max-w-sm mx-auto">All fleet vehicles are currently active and in service. When a truck is decommissioned, it will be safely archived here with options to recommission it back into service anytime.</p>
+            <p class="text-xs text-gray-400 mt-1 max-w-sm mx-auto">All fleet trucks are currently active and in service. When a truck is decommissioned, it will be safely archived here with options to recommission it back into service anytime.</p>
         </div>
 
         <div id="noDecomSearchResults" class="hidden py-12 text-center bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
@@ -335,7 +335,7 @@ $decommissionedFleetList = !empty($decommissionedTrucks) ? $decommissionedTrucks
                 <i class="fa-solid fa-ban"></i>
             </div>
             <h4 class="font-bold text-gray-800 dark:text-gray-200 text-sm">No decommissioned trucks found</h4>
-            <p class="text-xs text-gray-400 mt-1" id="noDecomSearchText">No decommissioned vehicles match your search filter.</p>
+            <p class="text-xs text-gray-400 mt-1" id="noDecomSearchText">No decommissioned trucks match your search filter.</p>
             <button type="button" onclick="clearFleetSearch()" class="mt-3 px-3.5 py-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/40 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/60 transition cursor-pointer">
                 Clear search filter
             </button>
@@ -592,7 +592,7 @@ $decommissionedFleetList = !empty($decommissionedTrucks) ? $decommissionedTrucks
                 if (noResults) {
                     if (matchCount === 0 && cards.length > 0) {
                         noResults.classList.remove('hidden');
-                        if (noResultsText) noResultsText.textContent = `No active fleet vehicles match "${query}".`;
+                        if (noResultsText) noResultsText.textContent = `No active fleet trucks match "${query}".`;
                     } else {
                         noResults.classList.add('hidden');
                     }
