@@ -633,7 +633,6 @@ $decommissionedFleetList = !empty($decommissionedTrucks) ? $decommissionedTrucks
             }
         }
 
-        // Reverse geocode cache keyed by rounded lat,lng to ~100m precision
         const _geoCache = {};
         const _geoPending = {};
 

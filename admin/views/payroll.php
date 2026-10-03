@@ -825,7 +825,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                     if (periodNet > 0) payableDriversCount++;
                 }
 
-                // Update driver table cells
                 const grossEl = row.querySelector('.driver-gross-val');
                 const tripsEl = row.querySelector('.driver-trips-val');
                 const netEl = row.querySelector('.driver-net-val');
@@ -893,7 +892,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                             `;
                         }
                     } else {
-                        // Filtered week view
                         if (allUnsettledNet > 0) {
                             if (allUnsettledNet > periodNet && periodNet > 0) {
                                 btnContainer.innerHTML = `
@@ -940,7 +938,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                 }
             });
 
-            // Update KPI Displays
             const kpiNetEl = document.getElementById('kpiPeriodNetPayable');
             const kpiNetLabel = document.getElementById('kpiNetPayableLabel');
             const kpiGrossEl = document.getElementById('kpiPeriodGross');
@@ -964,7 +961,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
             if (kpiDriversCountEl) kpiDriversCountEl.textContent = `${payableDriversCount} driver${payableDriversCount !== 1 ? 's' : ''} awaiting payout`;
             if (kpiTripsCountEl) kpiTripsCountEl.textContent = `${totalTripsSum} trips ${isPayrollAllCycles ? 'unsettled (all time)' : 'completed in period'}`;
 
-            // Sub-tab bar display
             const tabBarNet = document.getElementById('tabBarTotalNetPayable');
             const tabBarScope = document.getElementById('tabBarScopeBadge');
             if (tabBarNet) {
@@ -977,13 +973,11 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                     "text-[10px] text-blue-600 dark:text-blue-400 font-bold ml-0.5 px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40";
             }
 
-            // Table header scope
             const thNetScope = document.getElementById('thNetScopeLabel');
             if (thNetScope) {
                 thNetScope.textContent = isPayrollAllCycles ? 'All periods pending' : 'Selected period net';
             }
 
-            // Table footer display
             const tableFooterNet = document.getElementById('tableFooterTotalNetPayable');
             const tableFooterScope = document.getElementById('tableFooterScopeLabel');
             if (tableFooterNet) {
@@ -993,7 +987,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                 tableFooterScope.textContent = isPayrollAllCycles ? 'All Periods' : 'Selected Period';
             }
 
-            // Filter History rows to match pay period
             filterHistoryTableForPeriod();
         }
 
@@ -1095,7 +1088,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
             }
         }
 
-        // ── Driver Week Trips Modal ────────────────────────────────────────────
         let currentDwtmContext = null;
 
         function setDriverTripsFilter(filterType) {
@@ -1146,13 +1138,11 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                 filter
             } = currentDwtmContext;
 
-            // Populate header
             const nameEl = document.getElementById('dwtm-driver-name');
             const labelEl = document.getElementById('dwtm-period-label');
             if (nameEl) nameEl.textContent = driverName;
             if (labelEl) labelEl.textContent = periodLabel;
 
-            // Filter trips based on pay period scope
             const periodTrips = tripsData.filter(t => {
                 if (isPayrollAllCycles) return true;
                 if (!currentPayrollFrom || !currentPayrollTo) return true;
@@ -1162,7 +1152,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
             const pendingTrips = periodTrips.filter(t => Number(t.paid) === 0);
             const paidTrips = periodTrips.filter(t => Number(t.paid) === 1);
 
-            // Update tab badges
             const bPending = document.getElementById('dwtm-badge-pending');
             const bAll = document.getElementById('dwtm-badge-all');
             const bPaid = document.getElementById('dwtm-badge-paid');
@@ -1170,7 +1159,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
             if (bAll) bAll.textContent = periodTrips.length;
             if (bPaid) bPaid.textContent = paidTrips.length;
 
-            // Tab button styles
             const tabPending = document.getElementById('dwtm-tab-pending');
             const tabAll = document.getElementById('dwtm-tab-all');
             const tabPaid = document.getElementById('dwtm-tab-paid');
@@ -1182,7 +1170,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
             if (tabAll) tabAll.className = filter === 'all' ? activeCls : inactiveCls;
             if (tabPaid) tabPaid.className = filter === 'paid' ? activeCls : inactiveCls;
 
-            // Determine visible trips
             let displayList = periodTrips;
             if (filter === 'pending') {
                 displayList = pendingTrips;
@@ -1190,20 +1177,17 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                 displayList = paidTrips;
             }
 
-            // Summary values for visible subset
             let listGross = 0;
             displayList.forEach(t => {
                 listGross += (parseFloat(t.pay) || 0);
             });
 
-            // Compute overall unsettled totals for settle action
             let allUnsettledGross = 0;
             tripsData.forEach(t => {
                 if (Number(t.paid) === 0) allUnsettledGross += (parseFloat(t.pay) || 0);
             });
             const allUnsettledNet = Math.max(0, allUnsettledGross + remBal - advances);
 
-            // Summary bar
             const tripCountEl = document.getElementById('dwtm-trip-count');
             const totalPayEl = document.getElementById('dwtm-total-pay');
             const unpaidCountEl = document.getElementById('dwtm-unpaid-count');
@@ -1223,7 +1207,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                 unpaidBadge.classList.toggle('hidden', pendingTrips.length === 0);
             }
 
-            // Modal footer
             const unpaidSumEl = document.getElementById('dwtm-unpaid-sum');
             if (unpaidSumEl) {
                 unpaidSumEl.textContent = `₱${allUnsettledNet.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
@@ -1257,7 +1240,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
                 }
             }
 
-            // Build trip list
             const listEl = document.getElementById('dwtm-trip-list');
             if (!listEl) return;
             listEl.innerHTML = '';
@@ -1337,7 +1319,6 @@ $totalLifetimeDisbursed  = array_sum(array_column($payrollSettlements ?? [], 'am
             if (e.key === 'Escape') closeDriverWeekTripsModal();
         });
 
-        // Initial calculation for current period
         document.addEventListener('DOMContentLoaded', function() {
             if (document.getElementById('view-payroll')) {
                 recalculatePayrollForPeriod();

@@ -567,7 +567,9 @@
         } else if (diffDays === -1) {
             return `Yesterday, ${formatted}`;
         } else {
-            const weekday = targetDate.toLocaleDateString('en-US', { weekday: 'short' });
+            const weekday = targetDate.toLocaleDateString('en-US', {
+                weekday: 'short'
+            });
             return `${weekday}, ${formatted}`;
         }
     }
@@ -577,7 +579,6 @@
             completedAllDatesMode = false;
         }
         const todayStr = getTodayStr();
-        // If moving forward and already at today or later, prevent navigation
         if (delta > 0 && completedSelectedDate >= todayStr) {
             return;
         }
@@ -690,7 +691,6 @@
             clearBtn.classList.toggle('hidden', query.length === 0);
         }
 
-        // 1. Filter active grid
         const gridActive = document.getElementById('dispatch-grid-active');
         if (gridActive) {
             const cards = gridActive.querySelectorAll('.dispatch-card');
@@ -716,7 +716,6 @@
             }
         }
 
-        // 2. Filter requests grid
         const gridRequests = document.getElementById('dispatch-grid-requests');
         if (gridRequests) {
             const cards = gridRequests.querySelectorAll('.dispatch-card');
@@ -742,7 +741,6 @@
             }
         }
 
-        // 3. Filter completed grid (integrated with selected date)
         const gridCompleted = document.getElementById('dispatch-grid-completed');
         if (gridCompleted) {
             const cards = gridCompleted.querySelectorAll('.dispatch-card');
@@ -767,7 +765,6 @@
                 }
             });
 
-            // Update date count badge
             const badge = document.getElementById('completedDateCountBadge');
             if (badge) {
                 if (completedAllDatesMode) {
@@ -787,7 +784,6 @@
 
             if (finalMatchCount === 0) {
                 if (!completedAllDatesMode && dateMatchCount === 0 && !query) {
-                    // No tickets exist on this selected date
                     if (noDateEl) {
                         noDateEl.classList.remove('hidden');
                         if (noDateTextEl) {
@@ -795,7 +791,6 @@
                         }
                     }
                 } else if (cards.length > 0) {
-                    // Tickets exist on this date (or all dates mode), but query didn't match
                     if (noMatchEl) {
                         noMatchEl.classList.remove('hidden');
                         if (noMatchTextEl) {
@@ -820,7 +815,6 @@
         }
     }
 
-    // Initialize UI on load
     document.addEventListener('DOMContentLoaded', function() {
         updateCompletedDateUI();
         filterDispatches();

@@ -21,7 +21,6 @@ if ($order_id <= 0) {
 }
 
 try {
-    // 1. Fetch order details
     $stmt = $pdo->prepare("
         SELECT o.*, 
                u.username AS checker_username,
@@ -40,7 +39,6 @@ try {
         exit;
     }
 
-    // 2. Fetch gravel type labels
     $_gravel_rows = $pdo->query("SELECT type_key, label FROM gravel_types WHERE is_active = 1 ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
     $gravelTypeLabels = [];
     foreach ($_gravel_rows as $_g) {
@@ -48,7 +46,6 @@ try {
     }
     $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type'];
 
-    // 3. Query dispatches linked to this order
     $orderDispatches = [];
     try {
         $dispStmt = $pdo->prepare("
@@ -72,9 +69,9 @@ try {
             ORDER BY delivery_time ASC, d.id ASC
         ");
         $dispStmt->execute([
-            $order_id, 
-            $order['destination'], 
-            $order['client_name'], 
+            $order_id,
+            $order['destination'],
+            $order['client_name'],
             $order['client_name'],
             date('Y-m-d 00:00:00', strtotime($order['created_at']))
         ]);
@@ -83,7 +80,6 @@ try {
         error_log("[get_order_trucks] Error fetching dispatches: " . $e->getMessage());
     }
 
-    // 4. Query order_scans for this order
     $orderScans = [];
     try {
         $scanStmt = $pdo->prepare("
@@ -110,7 +106,6 @@ try {
         error_log("[get_order_trucks] Error fetching order_scans: " . $e->getMessage());
     }
 
-    // 5. Unify delivery logs (match dispatches & scans)
     $deliveryLogs = [];
     $usedScanIds = [];
 
@@ -118,7 +113,6 @@ try {
 
     foreach ($orderDispatches as $disp) {
         $matchedScan = null;
-        // Priority 1: Match by dispatch_id
         foreach ($orderScans as $sc) {
             if (!in_array($sc['scan_id'], $usedScanIds)) {
                 if (!empty($sc['dispatch_id']) && $sc['dispatch_id'] == $disp['dispatch_id']) {
@@ -127,7 +121,6 @@ try {
                 }
             }
         }
-        // Priority 2: Match by truck_id
         if (!$matchedScan) {
             foreach ($orderScans as $sc) {
                 if (!in_array($sc['scan_id'], $usedScanIds)) {
@@ -165,7 +158,6 @@ try {
         ];
     }
 
-    // Remaining scans without matching dispatch
     foreach ($orderScans as $sc) {
         if (!in_array($sc['scan_id'], $usedScanIds)) {
             $cMeters = floatval($sc['cubic_meters'] ?? 0);
@@ -188,12 +180,9 @@ try {
         }
     }
 
-    // Sort deliveries newest first for display
-    usort($deliveryLogs, function($a, $b) {
+    usort($deliveryLogs, function ($a, $b) {
         return strtotime($b['timestamp']) <=> strtotime($a['timestamp']);
     });
-
-    // 6. Aggregate by truck
     $truckMap = [];
     $totalContributedVol = 0.0;
 
@@ -226,7 +215,7 @@ try {
     }
 
     $trucksList = array_values($truckMap);
-    usort($trucksList, function($a, $b) {
+    usort($trucksList, function ($a, $b) {
         if ($b['total_cubic_meters'] !== $a['total_cubic_meters']) {
             return $b['total_cubic_meters'] <=> $a['total_cubic_meters'];
         }

@@ -1,6 +1,6 @@
 <?php  ?>
 <div id="view-settings" class="tab-content hidden space-y-6">
-    
+
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div class="flex items-center space-x-3">
             <div class="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
@@ -43,7 +43,7 @@
         </div>
     <?php endif; ?>
 
-    
+
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 sm:p-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-700">
             <div>
@@ -92,7 +92,7 @@
         </form>
     </div>
 
-    
+
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 sm:p-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-700">
             <div>
@@ -161,7 +161,7 @@
         </form>
     </div>
 
-    
+
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 sm:p-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100 dark:border-gray-700">
             <div>
@@ -180,7 +180,7 @@
             </div>
         </div>
 
-        
+
         <div class="mt-4 space-y-3">
             <div class="flex flex-col sm:flex-row gap-2">
                 <div class="relative flex-1">
@@ -199,7 +199,7 @@
                 </button>
             </div>
 
-            
+
             <div class="flex flex-wrap items-center gap-1.5 text-xs">
                 <span class="text-gray-400 font-medium mr-1">Quick test:</span>
                 <button type="button" onclick="testPresetDest('Gapan City, Nueva Ecija')" class="sim-chip px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/60 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium transition">Gapan (22 km RT)</button>
@@ -213,9 +213,9 @@
             </div>
         </div>
 
-        
+
         <div class="mt-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-            
+
             <div class="lg:col-span-7 flex flex-col">
                 <div id="settingsSimulatorMap" class="w-full h-80 sm:h-[400px] rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-inner relative z-0"></div>
                 <div class="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400 dark:text-gray-500 px-1">
@@ -225,10 +225,10 @@
                 </div>
             </div>
 
-            
+
             <div class="lg:col-span-5 flex flex-col justify-between space-y-4">
                 <div class="bg-gray-50/90 dark:bg-gray-700/40 rounded-2xl p-4 sm:p-5 border border-gray-100 dark:border-gray-700/70 space-y-4">
-                    
+
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0 flex-1">
                             <span class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Target Destination</span>
@@ -240,7 +240,7 @@
                         </span>
                     </div>
 
-                    
+
                     <div class="grid grid-cols-2 gap-3">
                         <div class="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/60 shadow-xs">
                             <span class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 block">Total Round-Trip</span>
@@ -264,7 +264,7 @@
                         </div>
                     </div>
 
-                    
+
                     <div class="p-4 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/30 border border-emerald-200/80 dark:border-emerald-700/60 shadow-xs">
                         <div class="flex items-center justify-between gap-2">
                             <span class="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">Driver Trip Pay</span>
@@ -287,9 +287,9 @@
         </div>
     </div>
 
-    
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        
+
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 flex flex-col justify-between">
             <div>
                 <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm mb-2">
@@ -308,7 +308,7 @@
             </div>
         </div>
 
-        
+
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 flex flex-col justify-between">
             <div>
                 <div class="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold text-sm mb-2">
@@ -327,7 +327,7 @@
             </div>
         </div>
 
-        
+
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 flex flex-col justify-between">
             <div>
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm mb-2">
@@ -347,7 +347,7 @@
         </div>
     </div>
 
-    
+
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 sm:p-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-700">
             <div>
@@ -394,7 +394,10 @@
                             $isGeoFlagged = !empty($dest['is_out_of_area']);
                             if (!$isGeoFlagged) {
                                 foreach ($geoTerms as $gt) {
-                                    if (strpos($dnLow, $gt) !== false) { $isGeoFlagged = true; break; }
+                                    if (strpos($dnLow, $gt) !== false) {
+                                        $isGeoFlagged = true;
+                                        break;
+                                    }
                                 }
                             }
                             ?>
@@ -443,7 +446,7 @@
         </div>
     </div>
 
-    
+
     <div id="editDestModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative">
             <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
@@ -489,7 +492,7 @@
         </div>
     </div>
 
-    
+
     <div id="deleteDestModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden relative">
             <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
@@ -675,7 +678,6 @@
     }
 
     async function simulateLocation(lat, lng, label = '') {
-        // Enforce Philippine operational boundaries
         if (lat < 4.5 || lat > 21.5 || lng < 116.0 || lng > 127.0) {
             if (typeof showToast === 'function') {
                 showToast('⚠️ Location must be within the Philippines operational area.', 'warning');
@@ -685,13 +687,18 @@
             return;
         }
 
-        // Operational limit: Cannot pin or simulate destination in the sea or open water
         if (typeof NominatimService !== 'undefined') {
             if (NominatimService.isKnownWaterBody) {
                 const fastWater = NominatimService.isKnownWaterBody(lat, lng);
                 if (fastWater && fastWater.isWater) {
-                    if (simDestMarker && settingsSimMap) { settingsSimMap.removeLayer(simDestMarker); simDestMarker = null; }
-                    if (simRouteLine && settingsSimMap) { settingsSimMap.removeLayer(simRouteLine); simRouteLine = null; }
+                    if (simDestMarker && settingsSimMap) {
+                        settingsSimMap.removeLayer(simDestMarker);
+                        simDestMarker = null;
+                    }
+                    if (simRouteLine && settingsSimMap) {
+                        settingsSimMap.removeLayer(simRouteLine);
+                        simRouteLine = null;
+                    }
                     if (typeof showToast === 'function') {
                         showToast(`⚠️ Cannot simulate trips into the sea or open water (${fastWater.name}). Dump trucks operate on land only.`, 'warning');
                     } else {
@@ -703,8 +710,14 @@
             if (NominatimService.checkIsWater) {
                 const waterCheck = await NominatimService.checkIsWater(lat, lng);
                 if (waterCheck && waterCheck.isWater) {
-                    if (simDestMarker && settingsSimMap) { settingsSimMap.removeLayer(simDestMarker); simDestMarker = null; }
-                    if (simRouteLine && settingsSimMap) { settingsSimMap.removeLayer(simRouteLine); simRouteLine = null; }
+                    if (simDestMarker && settingsSimMap) {
+                        settingsSimMap.removeLayer(simDestMarker);
+                        simDestMarker = null;
+                    }
+                    if (simRouteLine && settingsSimMap) {
+                        settingsSimMap.removeLayer(simRouteLine);
+                        simRouteLine = null;
+                    }
                     let wName = 'the sea or open water';
                     if (waterCheck.reason && !waterCheck.reason.toLowerCase().includes('no road') && !waterCheck.reason.toLowerCase().includes('unable to geocode')) {
                         wName = waterCheck.reason;
@@ -812,10 +825,10 @@
         const isDark = document.documentElement.classList.contains('dark');
         const titleColor = isDark ? '#f9fafb' : '#111827';
         const labelColor = isDark ? '#d1d5db' : '#4b5563';
-        const distColor  = isDark ? '#60a5fa' : '#2563eb';
-        const payColor   = isDark ? '#34d399' : '#16a34a';
+        const distColor = isDark ? '#60a5fa' : '#2563eb';
+        const payColor = isDark ? '#34d399' : '#16a34a';
         const borderColor = isDark ? '#374151' : '#e5e7eb';
-        const noteColor  = isDark ? '#9ca3af' : '#6b7280';
+        const noteColor = isDark ? '#9ca3af' : '#6b7280';
 
         const simPopupContent = `
             <div class="osm-popup-card" style="padding: 6px 8px; min-width: 210px; max-width: 285px; font-family: inherit;">

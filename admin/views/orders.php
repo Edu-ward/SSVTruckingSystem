@@ -433,30 +433,29 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
             filterOrders(false);
         }
 
-        // ── Order Route Map ──────────────────────────────────────────────────
         let _orderRouteMap = null;
         let _orderRouteOriginMarker = null;
-        let _orderRouteDestMarker   = null;
-        let _orderRouteLine         = null;
+        let _orderRouteDestMarker = null;
+        let _orderRouteLine = null;
 
         async function openOrderRouteMap(destination, landmark) {
-            const modal      = document.getElementById('orderRouteMapModal');
+            const modal = document.getElementById('orderRouteMapModal');
             if (!modal) return;
-            const titleEl    = document.getElementById('ormDestTitle');
+            const titleEl = document.getElementById('ormDestTitle');
             const landmarkEl = document.getElementById('ormLandmarkEl');
-            const landmarkRow= document.getElementById('ormLandmarkRow');
-            const infoEl     = document.getElementById('ormRouteInfo');
-            const statusEl   = document.getElementById('ormStatus');
+            const landmarkRow = document.getElementById('ormLandmarkRow');
+            const infoEl = document.getElementById('ormRouteInfo');
+            const statusEl = document.getElementById('ormStatus');
             const statusSpan = statusEl ? statusEl.querySelector('span') : null;
             const statusIcon = statusEl ? statusEl.querySelector('i') : null;
 
-            if (titleEl)     titleEl.textContent = destination;
-            if (landmarkEl)  landmarkEl.textContent = landmark || '';
+            if (titleEl) titleEl.textContent = destination;
+            if (landmarkEl) landmarkEl.textContent = landmark || '';
             if (landmarkRow) landmarkRow.classList.toggle('hidden', !landmark);
-            if (infoEl)      infoEl.textContent = '';
-            if (statusSpan)  statusSpan.textContent = 'Searching for destination\u2026';
-            if (statusIcon)  statusIcon.className = 'fa-solid fa-spinner fa-spin text-blue-500';
-            if (statusEl)    statusEl.classList.remove('hidden');
+            if (infoEl) infoEl.textContent = '';
+            if (statusSpan) statusSpan.textContent = 'Searching for destination\u2026';
+            if (statusIcon) statusIcon.className = 'fa-solid fa-spinner fa-spin text-blue-500';
+            if (statusEl) statusEl.classList.remove('hidden');
 
             modal.classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
@@ -465,12 +464,16 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
             const mapEl = document.getElementById('orderRouteMapEl');
             if (!mapEl) return;
 
-            const garageLat = 15.359042, garageLng = 120.965016;
+            const garageLat = 15.359042,
+                garageLng = 120.965016;
 
             if (!_orderRouteMap) {
-                _orderRouteMap = L.map('orderRouteMapEl', { minZoom: 6 }).setView([garageLat, garageLng], 11);
+                _orderRouteMap = L.map('orderRouteMapEl', {
+                    minZoom: 6
+                }).setView([garageLat, garageLng], 11);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19, subdomains: ['a','b','c'],
+                    maxZoom: 19,
+                    subdomains: ['a', 'b', 'c'],
                     attribution: '\u00a9 <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
                 }).addTo(_orderRouteMap);
             } else {
@@ -481,9 +484,12 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                 _orderRouteOriginMarker = _orderRouteDestMarker = _orderRouteLine = null;
             }
 
-            const garageIcon = L.divIcon({ className: '',
+            const garageIcon = L.divIcon({
+                className: '',
                 html: '<div style="width:36px;height:36px;border-radius:10px;background:#4f46e5;border:2px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;box-shadow:0 3px 10px rgba(0,0,0,.35);"><i class=\'fa-solid fa-warehouse\'></i></div>',
-                iconSize: [36,36], iconAnchor: [18,18], popupAnchor: [0, -20]
+                iconSize: [36, 36],
+                iconAnchor: [18, 18],
+                popupAnchor: [0, -20]
             });
             const garagePopupHtml = `
                 <div class="p-3 min-w-[200px]">
@@ -497,11 +503,15 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                     </div>
                 </div>
             `;
-            _orderRouteOriginMarker = L.marker([garageLat, garageLng], { icon: garageIcon })
+            _orderRouteOriginMarker = L.marker([garageLat, garageLng], {
+                    icon: garageIcon
+                })
                 .addTo(_orderRouteMap)
                 .bindPopup(garagePopupHtml);
 
-            let destLat = null, destLng = null, resolvedName = destination;
+            let destLat = null,
+                destLng = null,
+                resolvedName = destination;
             try {
                 if (typeof NominatimService !== 'undefined') {
                     const results = await NominatimService.searchAddress(destination + ', Nueva Ecija, Philippines');
@@ -514,7 +524,9 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                 if (destLat === null) {
                     const enc = encodeURIComponent(destination + ', Nueva Ecija, Philippines');
                     const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + enc + '&limit=1&countrycodes=ph', {
-                        headers: { 'Accept-Language': 'en' }
+                        headers: {
+                            'Accept-Language': 'en'
+                        }
                     });
                     const data = await res.json();
                     if (data && data.length > 0) {
@@ -523,7 +535,9 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                         resolvedName = data[0].display_name.split(',')[0].trim() || destination;
                     }
                 }
-            } catch(e) { console.warn('Geocode error:', e); }
+            } catch (e) {
+                console.warn('Geocode error:', e);
+            }
 
             if (statusEl) statusEl.classList.add('hidden');
 
@@ -537,9 +551,12 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                 return;
             }
 
-            const destIcon = L.divIcon({ className: '',
+            const destIcon = L.divIcon({
+                className: '',
                 html: '<div style="width:36px;height:36px;border-radius:10px;background:#059669;border:2px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;box-shadow:0 3px 10px rgba(0,0,0,.35);"><i class=\'fa-solid fa-flag-checkered\'></i></div>',
-                iconSize: [36,36], iconAnchor: [18,36], popupAnchor: [0, -36]
+                iconSize: [36, 36],
+                iconAnchor: [18, 36],
+                popupAnchor: [0, -36]
             });
             const safeDestName = (resolvedName || destination || 'Destination').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             const safeLandmark = (landmark || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -562,17 +579,30 @@ if (isset($gravelTypes) && is_array($gravelTypes)) {
                     ${destSubLine}
                 </div>
             `;
-            _orderRouteDestMarker = L.marker([destLat, destLng], { icon: destIcon })
+            _orderRouteDestMarker = L.marker([destLat, destLng], {
+                    icon: destIcon
+                })
                 .addTo(_orderRouteMap).bindPopup(destPopupHtml).openPopup();
 
-            _orderRouteLine = L.polyline([[garageLat, garageLng],[destLat, destLng]], {
-                color: '#2563eb', weight: 4, opacity: 0.85, dashArray: '10, 8'
+            _orderRouteLine = L.polyline([
+                [garageLat, garageLng],
+                [destLat, destLng]
+            ], {
+                color: '#2563eb',
+                weight: 4,
+                opacity: 0.85,
+                dashArray: '10, 8'
             }).addTo(_orderRouteMap);
 
-            _orderRouteMap.fitBounds(L.latLngBounds([[garageLat, garageLng],[destLat, destLng]]), { padding: [48, 48] });
+            _orderRouteMap.fitBounds(L.latLngBounds([
+                [garageLat, garageLng],
+                [destLat, destLng]
+            ]), {
+                padding: [48, 48]
+            });
 
             const straightKm = L.latLng(garageLat, garageLng).distanceTo(L.latLng(destLat, destLng)) / 1000;
-            const roundTrip  = Math.max(2, Math.round(straightKm * 1.25 * 2));
+            const roundTrip = Math.max(2, Math.round(straightKm * 1.25 * 2));
             let payText = '';
             if (typeof computeDriverTripPay === 'function') {
                 const calc = computeDriverTripPay(roundTrip, destination, destLat, destLng);

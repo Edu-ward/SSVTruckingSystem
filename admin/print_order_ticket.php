@@ -20,7 +20,6 @@ $stmt->execute([$order_id]);
 $order = $stmt->fetch();
 if (!$order) die("Order not found.");
 
-// Ensure columns exist on order_scans
 try {
     $chkCol = $pdo->query("SHOW COLUMNS FROM `order_scans` LIKE 'dispatch_id'")->fetch();
     if (!$chkCol) {
@@ -30,9 +29,9 @@ try {
     if (!$chkCol2) {
         $pdo->exec("ALTER TABLE `order_scans` ADD COLUMN `cubic_meters` DECIMAL(10,2) DEFAULT '0.00'");
     }
-} catch (Throwable $e) {}
+} catch (Throwable $e) {
+}
 
-// Gravel labels
 $_gravel_rows = $pdo->query("SELECT type_key, label FROM gravel_types WHERE is_active = 1 ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
 $gravelTypeLabels = [];
 foreach ($_gravel_rows as $_g) {
@@ -40,7 +39,6 @@ foreach ($_gravel_rows as $_g) {
 }
 $gravelLabel = $gravelTypeLabels[$order['gravel_type']] ?? $order['gravel_type'];
 
-// Query dispatches linked to this order
 $orderDispatches = [];
 try {
     $dispStmt = $pdo->prepare("
@@ -63,9 +61,9 @@ try {
     ");
     $dispStmt->execute([$order_id, $order['destination'], $order['client_name'], date('Y-m-d 00:00:00', strtotime($order['created_at']))]);
     $orderDispatches = $dispStmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Throwable $e) {}
+} catch (Throwable $e) {
+}
 
-// Query all order_scans for this order
 $orderScans = [];
 try {
     $scanStmt = $pdo->prepare("
@@ -87,9 +85,9 @@ try {
     ");
     $scanStmt->execute([$order_id]);
     $orderScans = $scanStmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Throwable $e) {}
+} catch (Throwable $e) {
+}
 
-// Build unified delivery log
 $deliveryLogs = [];
 $usedScanIds = [];
 
@@ -148,7 +146,6 @@ foreach ($orderScans as $sc) {
     }
 }
 
-// Calculate fulfilled volume
 $reqCm = floatval($order['cubic_meters_required'] ?? 0) > 0 ? floatval($order['cubic_meters_required']) : floatval($order['trucks_required'] ?? 1);
 $doneCm = floatval($order['cubic_meters_fulfilled'] ?? 0);
 $sumLoggedCm = 0;
@@ -163,7 +160,8 @@ if ($sumLoggedCm > $doneCm) {
     try {
         $pdo->prepare("UPDATE orders SET cubic_meters_fulfilled = ?, trucks_fulfilled = ? WHERE id = ?")
             ->execute([$doneCm, count($deliveryLogs), $order_id]);
-    } catch (Throwable $e) {}
+    } catch (Throwable $e) {
+    }
 } elseif ($doneCm <= 0 && $sumLoggedCm > 0) {
     $doneCm = $sumLoggedCm;
 }
@@ -225,7 +223,7 @@ $pctFulfilled = $reqCm > 0 ? min(100, round(($doneCm / $reqCm) * 100)) : 0;
     </div>
 
     <div class="ticket-container mt-20">
-        
+
         <div class="flex justify-between items-start border-b-2 border-gray-900 pb-6 mb-6">
             <div>
                 <div class="flex items-center mb-1">
@@ -245,7 +243,7 @@ $pctFulfilled = $reqCm > 0 ? min(100, round(($doneCm / $reqCm) * 100)) : 0;
             </div>
         </div>
 
-        
+
         <div class="grid grid-cols-2 gap-8 mb-8">
             <div class="bg-gray-50 p-4 border border-gray-200 rounded-lg">
                 <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-2">Client Details</p>
@@ -282,7 +280,7 @@ $pctFulfilled = $reqCm > 0 ? min(100, round(($doneCm / $reqCm) * 100)) : 0;
             </div>
         </div>
 
-        
+
         <?php if (!empty($order['notes'])): ?>
             <div class="border border-gray-300 rounded p-4 mb-8 bg-yellow-50">
                 <p class="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">Notes / Special Instructions</p>
@@ -290,7 +288,7 @@ $pctFulfilled = $reqCm > 0 ? min(100, round(($doneCm / $reqCm) * 100)) : 0;
             </div>
         <?php endif; ?>
 
-        
+
         <div class="border border-gray-300 rounded-lg overflow-hidden mb-10">
             <div class="bg-gray-100 px-4 py-2.5 border-b border-gray-300 flex justify-between items-center">
                 <div>
@@ -320,34 +318,35 @@ $pctFulfilled = $reqCm > 0 ? min(100, round(($doneCm / $reqCm) * 100)) : 0;
                         <tr>
                             <td colspan="8" class="px-4 py-8 text-center text-gray-400 italic">No delivery trips recorded yet.</td>
                         </tr>
-                    <?php else: foreach ($deliveryLogs as $i => $log): ?>
-                        <tr class="hover:bg-gray-50/50 transition-colors">
-                            <td class="px-3 py-2.5 text-center font-bold text-gray-400"><?= $i + 1 ?></td>
-                            <td class="px-3 py-2.5 font-bold text-gray-900 flex items-center gap-1.5">
-                                <i class="fa-solid fa-truck text-indigo-500 text-[10px]"></i>
-                                <span><?= htmlspecialchars($log['truck_code']) ?></span>
-                            </td>
-                            <td class="px-3 py-2.5 font-mono text-gray-700"><?= htmlspecialchars($log['ticket_number']) ?></td>
-                            <td class="px-3 py-2.5 text-right font-black text-gray-900 text-sm">
-                                <?= number_format($log['cubic_meters'], 2) ?> <span class="text-[10px] font-normal text-gray-500">cu.m</span>
-                            </td>
-                            <td class="px-3 py-2.5 text-gray-700"><?= htmlspecialchars($log['driver_name']) ?></td>
-                            <td class="px-3 py-2.5 text-gray-600"><?= htmlspecialchars($log['checker_name']) ?></td>
-                            <td class="px-3 py-2.5 text-gray-600 whitespace-nowrap">
-                                <?= !empty($log['timestamp']) ? date('M d, Y H:i', strtotime($log['timestamp'])) : '—' ?>
-                            </td>
-                            <td class="px-3 py-2.5 text-center">
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider <?= $log['status'] === 'Delivered' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800' ?>">
-                                    <?= htmlspecialchars($log['status']) ?>
-                                </span>
-                            </td>
-                        </tr>
-                    <?php endforeach; endif; ?>
-                    
+                        <?php else: foreach ($deliveryLogs as $i => $log): ?>
+                            <tr class="hover:bg-gray-50/50 transition-colors">
+                                <td class="px-3 py-2.5 text-center font-bold text-gray-400"><?= $i + 1 ?></td>
+                                <td class="px-3 py-2.5 font-bold text-gray-900 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-truck text-indigo-500 text-[10px]"></i>
+                                    <span><?= htmlspecialchars($log['truck_code']) ?></span>
+                                </td>
+                                <td class="px-3 py-2.5 font-mono text-gray-700"><?= htmlspecialchars($log['ticket_number']) ?></td>
+                                <td class="px-3 py-2.5 text-right font-black text-gray-900 text-sm">
+                                    <?= number_format($log['cubic_meters'], 2) ?> <span class="text-[10px] font-normal text-gray-500">cu.m</span>
+                                </td>
+                                <td class="px-3 py-2.5 text-gray-700"><?= htmlspecialchars($log['driver_name']) ?></td>
+                                <td class="px-3 py-2.5 text-gray-600"><?= htmlspecialchars($log['checker_name']) ?></td>
+                                <td class="px-3 py-2.5 text-gray-600 whitespace-nowrap">
+                                    <?= !empty($log['timestamp']) ? date('M d, Y H:i', strtotime($log['timestamp'])) : '—' ?>
+                                </td>
+                                <td class="px-3 py-2.5 text-center">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider <?= $log['status'] === 'Delivered' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800' ?>">
+                                        <?= htmlspecialchars($log['status']) ?>
+                                    </span>
+                                </td>
+                            </tr>
+                    <?php endforeach;
+                    endif; ?>
+
                     <?php if ($remainingCm > 0): ?>
-                        <?php 
+                        <?php
                         $remAccum = $remainingCm;
-                        for ($p = 0; $p < $pendingTripsCount; $p++): 
+                        for ($p = 0; $p < $pendingTripsCount; $p++):
                             $thisTripVol = min($avgVolume, $remAccum);
                             $remAccum = max(0, $remAccum - $thisTripVol);
                         ?>
@@ -401,7 +400,7 @@ $pctFulfilled = $reqCm > 0 ? min(100, round(($doneCm / $reqCm) * 100)) : 0;
             </table>
         </div>
 
-        
+
         <div class="grid grid-cols-3 gap-10 mt-12 pt-8 border-t border-gray-300">
             <div class="text-center">
                 <div class="border-b border-gray-900 w-full h-10 mb-2"></div>

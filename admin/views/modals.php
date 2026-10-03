@@ -709,7 +709,6 @@
                 customerInfo.classList.add('hidden');
             }
 
-            // Lock all preset inputs below fulfill existing order (except cubic meters)
             [clientNameInput, contactInput, landmarkInput].forEach(inp => {
                 if (!inp) return;
                 inp.readOnly = true;
@@ -729,7 +728,6 @@
             if (osmBtn) osmBtn.classList.add('hidden');
             lockBadges.forEach(b => b.classList.remove('hidden'));
 
-            // Cubic meters input remains editable and active
             if (cubicInput) {
                 cubicInput.readOnly = false;
                 cubicInput.disabled = false;
@@ -2683,7 +2681,6 @@
                             const lat = e.latlng.lat;
                             const lng = e.latlng.lng;
 
-                            // Geographic operational limit: Philippines only
                             if (lat < 4.5 || lat > 21.5 || lng < 116.0 || lng > 127.0) {
                                 if (typeof showToast === 'function') {
                                     showToast('⚠️ Location must be within the Philippines operational area.', 'warning');
@@ -2725,7 +2722,6 @@
                                 }
                             };
 
-                            // Fast water check (0ms)
                             if (typeof NominatimService !== 'undefined' && NominatimService.isKnownWaterBody) {
                                 const fast = NominatimService.isKnownWaterBody(lat, lng);
                                 if (fast && fast.isWater) {
@@ -2734,7 +2730,6 @@
                                 }
                             }
 
-                            // Asynchronous water verification (OSRM / Nominatim)
                             if (typeof NominatimService !== 'undefined' && NominatimService.checkIsWater) {
                                 if (textEl) {
                                     textEl.innerHTML = `<span class="text-gray-500 italic flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i> Checking road access &amp; feasibility...</span>`;

@@ -7,7 +7,7 @@ const NominatimService = (function () {
         lng: 120.965016
     };
 
-    
+
     const PH_BOUNDS = {
         minLat: 4.5,
         maxLat: 21.5,
@@ -15,23 +15,23 @@ const NominatimService = (function () {
         maxLng: 127.0
     };
 
-    
+
     const WATER_REGIONS = [
-        
+
         { name: "Manila Bay", minLat: 14.42, maxLat: 14.78, minLng: 120.60, maxLng: 120.88 },
-        
+
         { name: "Subic Bay", minLat: 14.74, maxLat: 14.85, minLng: 120.22, maxLng: 120.29 },
-        
+
         { name: "Lingayen Gulf", minLat: 16.08, maxLat: 16.35, minLng: 120.08, maxLng: 120.35 },
-        
+
         { name: "Laguna de Bay", minLat: 14.25, maxLat: 14.45, minLng: 121.14, maxLng: 121.35 },
-        
+
         { name: "Taal Lake", minLat: 13.97, maxLat: 14.07, minLng: 120.95, maxLng: 121.05 },
-        
+
         { name: "West Philippine Sea", minLat: 13.0, maxLat: 19.0, minLng: 116.0, maxLng: 119.70 },
-        
+
         { name: "Pacific Ocean", minLat: 14.5, maxLat: 18.5, minLng: 122.4, maxLng: 127.0 },
-        
+
         { name: "Pacific Ocean (Aurora Coast)", minLat: 15.2, maxLat: 16.3, minLng: 121.75, maxLng: 127.0 }
     ];
 
@@ -40,7 +40,7 @@ const NominatimService = (function () {
         const nLat = parseFloat(lat);
         const nLng = parseFloat(lng);
         return nLat >= PH_BOUNDS.minLat && nLat <= PH_BOUNDS.maxLat &&
-               nLng >= PH_BOUNDS.minLng && nLng <= PH_BOUNDS.maxLng;
+            nLng >= PH_BOUNDS.minLng && nLng <= PH_BOUNDS.maxLng;
     }
 
     function isKnownWaterBody(lat, lng) {
@@ -60,24 +60,24 @@ const NominatimService = (function () {
         const nLat = parseFloat(lat);
         const nLng = parseFloat(lng);
 
-        
+
         if (!isWithinPhilippines(nLat, nLng)) {
             return { isWater: true, reason: 'Outside Philippine operational boundaries' };
         }
 
-        
+
         const fast = isKnownWaterBody(nLat, nLng);
         if (fast) {
             return { isWater: true, reason: `Located in ${fast.name}` };
         }
 
-        
+
         const cacheKey = `water:${nLat.toFixed(4)},${nLng.toFixed(4)}`;
         if (typeof cache[cacheKey] !== 'undefined') {
             return cache[cacheKey];
         }
 
-        
+
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 2000);
@@ -89,7 +89,7 @@ const NominatimService = (function () {
                 const data = await resp.json();
                 if (data && data.code === 'Ok' && data.waypoints && data.waypoints.length > 0) {
                     const distM = parseFloat(data.waypoints[0].distance);
-                    
+
                     if (distM > 600) {
                         const result = { isWater: true, reason: `No road access (${Math.round(distM)}m from shore/road)` };
                         cache[cacheKey] = result;
@@ -105,7 +105,7 @@ const NominatimService = (function () {
             console.warn('OSM Nearest road check skipped:', e);
         }
 
-        
+
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 2000);
@@ -167,7 +167,7 @@ const NominatimService = (function () {
                 return 6;
             }
         }
-        return 12; 
+        return 12;
     }
 
     function calculateTripPay(km, name = '', destLat = null, destLng = null, customRate = null) {
@@ -210,12 +210,12 @@ const NominatimService = (function () {
     function calculateMapDistance(destLat, destLng, origLat = GARAGE_COORDS.lat, origLng = GARAGE_COORDS.lng, destName = '') {
         if (destLat == null || destLng == null || isNaN(destLat) || isNaN(destLng)) return null;
 
-        const R = 6371; 
+        const R = 6371;
         const dLat = (destLat - origLat) * Math.PI / 180;
         const dLon = (destLng - origLng) * Math.PI / 180;
         const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                  Math.cos(origLat * Math.PI / 180) * Math.cos(destLat * Math.PI / 180) *
-                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            Math.cos(origLat * Math.PI / 180) * Math.cos(destLat * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const straightLineKm = R * c;
 
@@ -345,7 +345,6 @@ const NominatimService = (function () {
             console.warn('OSM reverse geocode error:', err);
         }
 
-        // Intelligent named fallback instead of raw coordinates
         const nLat = parseFloat(lat);
         const nLng = parseFloat(lng);
         const dGarage = Math.hypot(nLat - GARAGE_COORDS.lat, nLng - GARAGE_COORDS.lng) * 111;
@@ -391,59 +390,52 @@ const NominatimService = (function () {
     }
 
 
-    // ++ Philippine Purok Address Pre-Processor ++
-    // "Purok" is a sub-barangay subdivision in Philippine addresses.
-    // OSM/Photon do not index purok-level data, so we resolve the barangay
-    // to a geocodable query and prepend the purok label to results.
-
     const SL_BARANGAY_ALIASES = {
-        'burgos':        'Barangay Burgos, San Leonardo, Nueva Ecija',
-        'bonifacio':     'Barangay Bonifacio, San Leonardo, Nueva Ecija',
-        'castillejos':   'Barangay Castillejos, San Leonardo, Nueva Ecija',
-        'diversion':     'Barangay Diversion, San Leonardo, Nueva Ecija',
-        'magpapalayoc':  'Barangay Magpapalayoc, San Leonardo, Nueva Ecija',
-        'mallorca':      'Barangay Mallorca, San Leonardo, Nueva Ecija',
-        'mambangnan':    'Barangay Mambangnan, San Leonardo, Nueva Ecija',
-        'nieves':        'Barangay Nieves, San Leonardo, Nueva Ecija',
-        'san anton':     'Barangay San Anton, San Leonardo, Nueva Ecija',
+        'burgos': 'Barangay Burgos, San Leonardo, Nueva Ecija',
+        'bonifacio': 'Barangay Bonifacio, San Leonardo, Nueva Ecija',
+        'castillejos': 'Barangay Castillejos, San Leonardo, Nueva Ecija',
+        'diversion': 'Barangay Diversion, San Leonardo, Nueva Ecija',
+        'magpapalayoc': 'Barangay Magpapalayoc, San Leonardo, Nueva Ecija',
+        'mallorca': 'Barangay Mallorca, San Leonardo, Nueva Ecija',
+        'mambangnan': 'Barangay Mambangnan, San Leonardo, Nueva Ecija',
+        'nieves': 'Barangay Nieves, San Leonardo, Nueva Ecija',
+        'san anton': 'Barangay San Anton, San Leonardo, Nueva Ecija',
         'san bartolome': 'Barangay San Bartolome, San Leonardo, Nueva Ecija',
         'san francisco': 'Barangay San Francisco, San Leonardo, Nueva Ecija',
-        'san roque':     'Barangay San Roque, San Leonardo, Nueva Ecija',
-        'santa cruz':    'Barangay Santa Cruz, San Leonardo, Nueva Ecija',
-        'sta cruz':      'Barangay Santa Cruz, San Leonardo, Nueva Ecija',
-        'sta. cruz':     'Barangay Santa Cruz, San Leonardo, Nueva Ecija',
-        'tabuating':     'Barangay Tabuating, San Leonardo, Nueva Ecija',
-        'tagumpay':      'Barangay Tagumpay, San Leonardo, Nueva Ecija',
-        'san leonardo':  'San Leonardo, Nueva Ecija',
+        'san roque': 'Barangay San Roque, San Leonardo, Nueva Ecija',
+        'santa cruz': 'Barangay Santa Cruz, San Leonardo, Nueva Ecija',
+        'sta cruz': 'Barangay Santa Cruz, San Leonardo, Nueva Ecija',
+        'sta. cruz': 'Barangay Santa Cruz, San Leonardo, Nueva Ecija',
+        'tabuating': 'Barangay Tabuating, San Leonardo, Nueva Ecija',
+        'tagumpay': 'Barangay Tagumpay, San Leonardo, Nueva Ecija',
+        'san leonardo': 'San Leonardo, Nueva Ecija',
     };
 
     function parsePurokQuery(query) {
-        // Matches: "purok 5 brgy burgos", "purok 3 barangay san roque", "purok 2 san roque"
         const m = query.match(/^purok\s+(\S+)\s+(?:brgy\.?\s*|barangay\s+)?(.+)$/i);
         if (!m) return null;
         const purokNum = m[1];
-        const brgyRaw  = m[2].trim().toLowerCase();
+        const brgyRaw = m[2].trim().toLowerCase();
         let resolvedQuery = null;
-        let displayBrgy   = null;
+        let displayBrgy = null;
         const sortedKeys = Object.keys(SL_BARANGAY_ALIASES).sort((a, b) => b.length - a.length);
         for (const key of sortedKeys) {
             if (brgyRaw === key || brgyRaw.startsWith(key)) {
                 resolvedQuery = SL_BARANGAY_ALIASES[key];
-                displayBrgy   = 'Brgy. ' + key.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                displayBrgy = 'Brgy. ' + key.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
                 break;
             }
         }
         if (!resolvedQuery) {
             resolvedQuery = brgyRaw + ', Nueva Ecija, Philippines';
-            displayBrgy   = brgyRaw.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            displayBrgy = brgyRaw.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         }
         return {
-            purokLabel:    'Purok ' + purokNum + ', ' + displayBrgy,
+            purokLabel: 'Purok ' + purokNum + ', ' + displayBrgy,
             resolvedQuery: resolvedQuery,
-            purokNum:      purokNum
+            purokNum: purokNum
         };
     }
-    // ++ End Purok Pre-Processor ++
 
     async function searchAddress(query) {
         if (!query || query.trim().length < 2) return [];
@@ -452,8 +444,7 @@ const NominatimService = (function () {
         const cacheKey = `search:${cleanQuery.toLowerCase()}`;
         if (cache[cacheKey]) return cache[cacheKey];
 
-        // Detect purok patterns and rewrite to a geocodable barangay query
-        const purokInfo   = parsePurokQuery(cleanQuery);
+        const purokInfo = parsePurokQuery(cleanQuery);
         const searchQuery = purokInfo ? purokInfo.resolvedQuery : cleanQuery;
 
         function decorateResults(results) {
@@ -461,14 +452,14 @@ const NominatimService = (function () {
             return results.map((r, i) => ({
                 ...r,
                 shortName: i === 0 ? (purokInfo.purokLabel + (r.shortName ? ', ' + r.shortName : '')) : r.shortName,
-                name:      i === 0 ? (purokInfo.purokLabel + ', ' + r.name) : r.name
+                name: i === 0 ? (purokInfo.purokLabel + ', ' + r.name) : r.name
             }));
         }
 
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 2000);
-            
+
             const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(searchQuery)}&limit=8&lat=15.359042&lon=120.965016&bbox=116.0,4.5,127.0,21.5`;
             const resp = await fetch(photonUrl, { signal: controller.signal });
             clearTimeout(timeout);
@@ -483,7 +474,7 @@ const NominatimService = (function () {
                             const lat = coords[1];
                             const lng = coords[0];
 
-                            
+
                             if (!isWithinPhilippines(lat, lng)) return null;
                             if (isKnownWaterBody(lat, lng)) return null;
                             if (p.osm_key === 'natural' && ['water', 'sea', 'ocean', 'bay', 'coastline', 'strait'].includes(p.osm_value)) return null;
@@ -640,7 +631,7 @@ const NominatimService = (function () {
         getSanLeonardoBoundaryDistance: getSanLeonardoBoundaryDistance,
         calculateTripPay: calculateTripPay,
         calculateMapDistance: calculateMapDistance,
-        calculateDirectRoadDistance: calculateMapDistance, 
+        calculateDirectRoadDistance: calculateMapDistance,
         calculateDrivingDistance: calculateDrivingDistance,
         reverseGeocode: reverseGeocode,
         searchAddress: searchAddress,

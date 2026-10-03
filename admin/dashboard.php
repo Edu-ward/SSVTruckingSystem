@@ -532,8 +532,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] == 'create_dispatch') {
         $truck_id = !empty($_POST['truck_id']) ? intval($_POST['truck_id']) : null;
 
-        // Retrieve driver_id from any submitted form field
-        // Priority: driver_id (hidden finalDriverId) > multi_driver_id (select) > multi_driver_id_backup > single_driver_id (hidden)
         $driver_id = null;
         $driver_id_source = null;
         if (!empty($_POST['driver_id'])) {
@@ -552,12 +550,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
 
         $rfid_tag = trim($_POST['rfid_tag'] ?? '');
 
-        // If driver_id was explicitly provided, verify it belongs to this truck
         if ($truck_id && $driver_id) {
             $verifyStmt = $pdo->prepare("SELECT id FROM drivers WHERE id = ? AND truck_id = ? AND status != 'Resigned' LIMIT 1");
             $verifyStmt->execute([$driver_id, $truck_id]);
             if (!$verifyStmt->fetchColumn()) {
-                // Driver was explicitly selected but doesn't match this truck — show a specific error
                 error_log("[create_dispatch] Driver verification failed: driver_id=$driver_id truck_id=$truck_id source=$driver_id_source POST=" . json_encode($_POST));
                 $_SESSION['scan_err'] = "The selected driver (ID: $driver_id) is not assigned to this truck. Please try again.";
                 header("Location: dashboard.php?tab=dispatches");
@@ -565,17 +561,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             }
         }
 
-        // If truck is known but driver_id wasn't provided, inspect assigned drivers
         if ($truck_id && !$driver_id) {
             $assignedStmt = $pdo->prepare("SELECT id FROM drivers WHERE truck_id = ? AND status != 'Resigned' ORDER BY id ASC");
             $assignedStmt->execute([$truck_id]);
             $assignedDrivers = $assignedStmt->fetchAll(PDO::FETCH_COLUMN);
 
             if (count($assignedDrivers) === 1) {
-                // Exactly 1 driver assigned -> safe to use
                 $driver_id = intval($assignedDrivers[0]);
             } else if (count($assignedDrivers) > 1) {
-                // Multiple drivers share this truck -> must explicitly choose
                 $_SESSION['scan_err'] = "This truck is shared by 2 drivers. Please select which driver is operating this trip.";
                 header("Location: dashboard.php?tab=dispatches");
                 exit;
@@ -2149,7 +2142,6 @@ $completedTickets = array_filter($allDispatches, function ($d) {
 });
 
 try {
-    // Self-healing: ensure trucks with no active dispatches are not stuck in In Transit / Loading / Unloading
     $pdo->query("
         UPDATE trucks t
         LEFT JOIN dispatches d ON t.id = d.truck_id AND d.status IN ('Pending', 'In Transit', 'Loading', 'Unloading', 'Cancellation Requested')
@@ -2854,6 +2846,28 @@ for ($i = 5; $i >= 1; $i--) {
         $payroll = 0;
         $deliv = 0;
     }
+
+    // Calculate actual on-time rate for this historical month
+    $mEfficiency = 0;
+    if (!empty($aggArchive[$mDate]) && $aggArchive[$mDate]['deliveries'] > 0) {
+        // Use the pre-aggregated archive data already computed above
+        $mEfficiency = $aggArchive[$mDate]['on_time_pct'] ?? 0;
+    } else {
+        try {
+            $mOnTimeStmt = $pdo->prepare("
+                SELECT (SUM(is_on_time) / NULLIF(COUNT(id), 0)) * 100 AS on_time_rate
+                FROM dispatches
+                WHERE status = 'Delivered'
+                  AND DATE_FORMAT(COALESCE(transit_end_time, dispatch_date, created_at), '%Y-%m') = ?
+            ");
+            $mOnTimeStmt->execute([$mDate]);
+            $mRawOnTime = $mOnTimeStmt->fetchColumn();
+            $mEfficiency = ($mRawOnTime !== false && $mRawOnTime !== null) ? round(floatval($mRawOnTime), 1) : 0;
+        } catch (PDOException $e) {
+            $mEfficiency = 0;
+        }
+    }
+
     $financeReports[] = [
         'month_name' => $mLabel,
         'payroll' => $payroll,
@@ -2861,7 +2875,7 @@ for ($i = 5; $i >= 1; $i--) {
     ];
     $efficiencyData[] = [
         'month_name' => $mLabel,
-        'efficiency_pct' => 100
+        'efficiency_pct' => $mEfficiency
     ];
 }
 $financeReports[] = [
@@ -2871,7 +2885,7 @@ $financeReports[] = [
 ];
 $efficiencyData[] = [
     'month_name' => date('M Y', $currMonthTimestamp),
-    'efficiency_pct' => $onTimeRate
+    'efficiency_pct' => ($onTimeRate !== null) ? round($onTimeRate, 1) : 0
 ];
 
 $weeklyData = [];
@@ -2881,8 +2895,8 @@ for ($i = 6; $i >= 0; $i--) {
         $dayQuery = $pdo->prepare("SELECT COUNT(id) AS total, SUM(IF(status='Delivered', 1, 0)) AS completed FROM dispatches WHERE dispatch_date = ?");
         $dayQuery->execute([$dateStr]);
         $realDayData = $dayQuery->fetch(PDO::FETCH_ASSOC);
-        $total = $realDayData['total'] > 0 ? $realDayData['total'] : rand(2, 8);
-        $comp = $realDayData['completed'] > 0 ? $realDayData['completed'] : rand(1, $total);
+        $total = (int)$realDayData['total'];
+        $comp  = (int)$realDayData['completed'];
     } catch (PDOException $e) {
         $total = rand(2, 8);
         $comp = rand(1, $total);
@@ -2906,7 +2920,8 @@ try {
     if (!$chkCol) {
         $pdo->exec("ALTER TABLE `checkers` ADD COLUMN `profile_photo` VARCHAR(255) DEFAULT NULL");
     }
-} catch (Throwable $e) {}
+} catch (Throwable $e) {
+}
 
 try {
     $allCheckers = $pdo->query("
@@ -3193,7 +3208,7 @@ include __DIR__ . '/../includes/header.php';
                 }
                 try {
                     window.open('print_ticket.php?id=<?= $print_id; ?>', '_blank', 'noopener,noreferrer');
-                } catch(e) {}
+                } catch (e) {}
             }
 
             if (printFrame) {
@@ -3237,7 +3252,7 @@ include __DIR__ . '/../includes/header.php';
                 }
                 try {
                     window.open('print_cash_advance.php?id=<?= $ca_print_id; ?>', '_blank', 'noopener,noreferrer');
-                } catch(e) {}
+                } catch (e) {}
             }
 
             if (caFrame) {
