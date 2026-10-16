@@ -2983,9 +2983,6 @@
                         <h4 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Weekly Performance Overview</h4>
                         <p class="text-[11px] text-gray-400 dark:text-gray-500">Live analytics aggregated by delivery week</p>
                     </div>
-                    <span class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-full border border-amber-200/50 dark:border-amber-800/40">
-                        <i class="fa-solid fa-gauge-high mr-1"></i>Rate: ₱10 / km
-                    </span>
                 </div>
 
 
