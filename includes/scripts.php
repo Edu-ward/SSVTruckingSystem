@@ -1735,6 +1735,14 @@
             toggleModal('resignDriverModal', true);
         }
 
+        function openReinstateDriverModal(id, name) {
+            const nameEl = document.getElementById('reinstate-driver-name');
+            if (nameEl) nameEl.innerText = name;
+            const idEl = document.getElementById('reinstate_driver_id');
+            if (idEl) idEl.value = id;
+            toggleModal('reinstateDriverModal', true);
+        }
+
         function openDeleteDriverModal(id, name) {
             openResignDriverModal(id, name);
         }

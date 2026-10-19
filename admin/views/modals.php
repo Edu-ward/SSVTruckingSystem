@@ -1401,6 +1401,26 @@
         </div>
     </div>
 
+    <!-- Reinstate Driver Modal -->
+    <div id="reinstateDriverModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative p-6 text-center">
+            <div class="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
+                <i class="fa-solid fa-user-check"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Reinstate Driver</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to reinstate <strong id="reinstate-driver-name" class="text-gray-800 dark:text-gray-200"></strong> back to <span class="text-emerald-600 dark:text-emerald-400 font-semibold">Active</span> status?<br><span class="text-xs text-gray-400 dark:text-gray-500 mt-2 block">The driver will be set to Off Duty and can be dispatched again.</span></p>
+            <form method="POST" action="dashboard.php">
+                <input type="hidden" name="action" value="reinstate_driver">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                <input type="hidden" name="driver_id" id="reinstate_driver_id" value="">
+                <div class="flex space-x-3">
+                    <button type="button" onclick="toggleModal('reinstateDriverModal', false)" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 transition dark:bg-gray-700 dark:hover:bg-gray-600">Cancel</button>
+                    <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition shadow-sm">Reinstate</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="resetPasswordModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative p-6 text-center">
             <button onclick="toggleModal('resetPasswordModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200"><i class="fa-solid fa-xmark fa-lg"></i></button>
