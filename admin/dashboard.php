@@ -13,6 +13,8 @@ set_exception_handler(function ($e) {
     exit;
 });
 
+// asdasdasdsad
+
 require_once __DIR__ . '/../includes/security_headers.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin'])) {

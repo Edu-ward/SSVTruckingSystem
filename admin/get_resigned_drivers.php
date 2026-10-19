@@ -30,6 +30,8 @@ try {
     ");
     $drivers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    echo "";
+
     echo json_encode([
         'success' => true,
         'count'   => count($drivers),
