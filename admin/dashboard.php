@@ -13,6 +13,8 @@ set_exception_handler(function ($e) {
     exit;
 });
 
+// asdasdasdsad
+
 require_once __DIR__ . '/../includes/security_headers.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin'])) {
@@ -1177,6 +1179,26 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         } catch (Exception $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
             $_SESSION['error'] = "Failed to update driver status. Please try again.";
+            header("Location: dashboard.php?tab=drivers");
+            exit;
+        }
+    }
+
+    if ($_POST['action'] == 'reinstate_driver') {
+        $driver_id = intval($_POST['driver_id'] ?? 0);
+        if (!$driver_id) {
+            http_response_code(400);
+            echo "Driver ID is missing";
+            exit;
+        }
+        try {
+            $pdo->prepare("UPDATE drivers SET status = 'Off Duty' WHERE id = ? AND status = 'Resigned'")->execute([$driver_id]);
+            $_SESSION['success'] = "Driver has been reinstated and is now active again.";
+            log_activity($pdo, 'Reinstated Driver', 'Reinstated driver ID ' . $driver_id . ' back to active status');
+            header("Location: dashboard.php?tab=drivers");
+            exit;
+        } catch (Exception $e) {
+            $_SESSION['error'] = "Failed to reinstate driver. Please try again.";
             header("Location: dashboard.php?tab=drivers");
             exit;
         }
