@@ -159,10 +159,34 @@ $stmt2 = $pdo->prepare("
         dt.created_at, 
         dt.transit_start_time, 
         dt.transit_end_time,
+        dt.estimated_arrival_time,
+        dt.order_id,
         COALESCE(NULLIF(dt.distance_km, 0), dest.distance_km, 0.00) AS distance_km,
-        COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount
+        COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
+        d.id AS dispatch_id,
+        d.ticket_number,
+        COALESCE(NULLIF(d.origin, ''), 'SSV Quarry Garage') AS origin,
+        d.cubic_meters,
+        d.dispatch_date,
+        COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name,
+        COALESCE(NULLIF(d.contact_number, ''), o.contact_number) AS contact_number,
+        COALESCE(NULLIF(d.landmark, ''), o.landmark) AS landmark,
+        d.cancellation_reason,
+        d.cancellation_photo,
+        t.truck_code,
+        t.rfid_tag,
+        o.order_number
     FROM driver_trips dt
     LEFT JOIN destinations dest ON dest.name = dt.destination
+    LEFT JOIN dispatches d ON d.id = (
+        SELECT d2.id FROM dispatches d2 
+        WHERE (dt.order_id IS NOT NULL AND d2.order_id = dt.order_id)
+           OR (dt.order_id IS NULL AND d2.driver_id = dt.driver_id AND d2.destination = dt.destination AND DATE(d2.created_at) = DATE(dt.created_at))
+        ORDER BY d2.id DESC 
+        LIMIT 1
+    )
+    LEFT JOIN trucks t ON d.truck_id = t.id
+    LEFT JOIN orders o ON COALESCE(d.order_id, dt.order_id) = o.id
     WHERE dt.driver_id = ? 
     ORDER BY dt.trip_date DESC, dt.id DESC
 ");
@@ -273,18 +297,53 @@ $has_pending_cancellation = $stmtCancel->fetch() ? true : false;
 
 $stmtActive = $pdo->prepare("
     SELECT 
-        d.id, d.ticket_number, d.origin, d.destination, d.status, d.cubic_meters, d.created_at, d.transit_start_time, d.transit_end_time, t.truck_code,
+        d.id, d.ticket_number, d.origin, d.destination, d.status, d.cubic_meters, d.created_at,
+        d.transit_start_time, d.transit_end_time, d.estimated_arrival_time, d.dispatch_date,
+        COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name,
+        COALESCE(NULLIF(d.contact_number, ''), o.contact_number) AS contact_number,
+        COALESCE(NULLIF(d.landmark, ''), o.landmark) AS landmark,
+        o.order_number,
+        t.truck_code, t.rfid_tag,
         d.cancellation_reason, d.cancellation_photo,
         COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
         COALESCE(dest.distance_km, ROUND(d.pay_amount / 10, 1), 0.00) AS distance_km
     FROM dispatches d 
     JOIN trucks t ON d.truck_id = t.id 
+    LEFT JOIN orders o ON d.order_id = o.id
     LEFT JOIN destinations dest ON dest.name = d.destination
-    WHERE d.driver_id = ? AND d.status IN ('Pending', 'Loading', 'In Transit', 'Unloading', 'Cancellation Requested')
+    WHERE d.driver_id = ? AND d.status IN ('Pending', 'Dispatched', 'Loading', 'In Transit', 'Unloading', 'Cancellation Requested')
     LIMIT 1
 ");
 $stmtActive->execute([$driver_id]);
 $active_dispatch = $stmtActive->fetch();
+
+// Fallback: if driver status is 'Dispatched' but no ticket found yet in dispatches table,
+// try fetching the most recent non-completed dispatch record for this driver.
+$driver_is_dispatched = ($driverProfile['status'] ?? '') === 'Dispatched';
+if (!$active_dispatch && $driver_is_dispatched) {
+    $stmtFallback = $pdo->prepare("
+        SELECT 
+            d.id, d.ticket_number, d.origin, d.destination, d.status, d.cubic_meters, d.created_at,
+            d.transit_start_time, d.transit_end_time, d.estimated_arrival_time, d.dispatch_date,
+            COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name,
+            COALESCE(NULLIF(d.contact_number, ''), o.contact_number) AS contact_number,
+            COALESCE(NULLIF(d.landmark, ''), o.landmark) AS landmark,
+            o.order_number,
+            t.truck_code, t.rfid_tag,
+            d.cancellation_reason, d.cancellation_photo,
+            COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
+            COALESCE(dest.distance_km, ROUND(d.pay_amount / 10, 1), 0.00) AS distance_km
+        FROM dispatches d 
+        JOIN trucks t ON d.truck_id = t.id 
+        LEFT JOIN orders o ON d.order_id = o.id
+        LEFT JOIN destinations dest ON dest.name = d.destination
+        WHERE d.driver_id = ? AND d.status NOT IN ('Delivered', 'Cancelled', 'Completed')
+        ORDER BY d.id DESC
+        LIMIT 1
+    ");
+    $stmtFallback->execute([$driver_id]);
+    $active_dispatch = $stmtFallback->fetch();
+}
 
 $payStmt = $pdo->prepare("SELECT total_amount, amount_claimed, remaining_balance FROM driver_payroll WHERE driver_id = ?");
 $payStmt->execute([$driver_id]);

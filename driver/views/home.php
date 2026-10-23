@@ -32,6 +32,10 @@ if (!empty($driverFullName)) {
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                         <?= htmlspecialchars($active_dispatch['status']); ?>
                     </span>
+                <?php elseif ($driver_is_dispatched): ?>
+                    <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-400/30 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-violet-400 animate-pulse"></span> Dispatched
+                    </span>
                 <?php else: ?>
                     <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 flex items-center gap-1.5">
                         <span class="w-2 h-2 rounded-full bg-amber-400"></span> Idle at Garage
@@ -44,6 +48,8 @@ if (!empty($driverFullName)) {
             <p class="text-xs sm:text-sm text-blue-100 mt-1 max-w-xl">
                 <?php if ($active_dispatch): ?>
                     Active dispatch ticket <strong><?= htmlspecialchars($active_dispatch['ticket_number']); ?></strong> en route to <strong><?= htmlspecialchars($active_dispatch['destination']); ?></strong>.
+                <?php elseif ($driver_is_dispatched): ?>
+                    You have been dispatched by Admin. Your dispatch ticket is being prepared — please stand by.
                 <?php else: ?>
                     Stationed at SSV Quarry Garage. You are ready for your next trip assignment.
                 <?php endif; ?>
@@ -73,128 +79,556 @@ if (!empty($driverFullName)) {
     <div>
         <?php if ($active_dispatch): ?>
             <?php
-            $status = $active_dispatch['status'];
-            $statusColor = 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
-            $statusIcon = 'fa-circle-info';
-            $statusDesc = 'Your dispatch is pending.';
+            $status = $active_dispatch['status'] ?? 'Pending';
 
-            if ($status === 'Loading') {
-                $statusColor = 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300';
-                $statusIcon = 'fa-spinner fa-spin';
-                $statusDesc = 'Your truck is currently loading gravel at the quarry site.';
-            } elseif ($status === 'In Transit') {
-                $statusColor = 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
-                $statusIcon = 'fa-truck-fast animate-bounce';
-                $statusDesc = 'You are on the road. Live GPS location is broadcasting to dispatch.';
-            } elseif ($status === 'Unloading') {
-                $statusColor = 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300';
-                $statusIcon = 'fa-dumpster';
-                $statusDesc = 'You have arrived at the destination. Unloading cargo.';
+            // Exit Time (Quarry Garage Departure)
+            $exitTimestamp = !empty($active_dispatch['transit_start_time'])
+                ? strtotime($active_dispatch['transit_start_time'])
+                : (!empty($active_dispatch['created_at']) && in_array($status, ['In Transit', 'Delivered']) ? strtotime($active_dispatch['created_at']) : null);
+            $hasExited = in_array($status, ['In Transit', 'Delivered']) || !empty($active_dispatch['transit_start_time']);
+            $timeOfExitStr = $exitTimestamp ? date('h:i A', $exitTimestamp) : 'Awaiting Exit';
+            $exitDateStr = $exitTimestamp ? date('F d, Y', $exitTimestamp) : (!empty($active_dispatch['dispatch_date']) ? date('F d, Y', strtotime($active_dispatch['dispatch_date'])) : date('F d, Y'));
+
+            // Arrival Time (Destination Drop-off)
+            $isDelivered = ($status === 'Delivered' || !empty($active_dispatch['transit_end_time']));
+            $arrivalTimestamp = !empty($active_dispatch['transit_end_time'])
+                ? strtotime($active_dispatch['transit_end_time'])
+                : (!empty($active_dispatch['estimated_arrival_time'])
+                    ? strtotime($active_dispatch['estimated_arrival_time'])
+                    : ($exitTimestamp && !empty($active_dispatch['distance_km'])
+                        ? ($exitTimestamp + max(1800, round(($active_dispatch['distance_km'] / 40) * 3600)))
+                        : null));
+            $timeOfArrivalStr = $arrivalTimestamp ? date('h:i A', $arrivalTimestamp) : 'Calculating...';
+            $arrivalDateStr = $arrivalTimestamp ? date('F d, Y', $arrivalTimestamp) : date('F d, Y');
+            $arrivalStatusLabel = $isDelivered ? 'Arrived at Site' : ($status === 'In Transit' ? 'Estimated Arrival' : 'Pending Departure');
+
+            // Status theme configs
+            $headerGradient = 'from-blue-700 via-indigo-700 to-slate-900';
+            $statusColor = 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/40';
+            $statusIcon = 'fa-circle-info';
+            $statusBadgeClass = 'bg-blue-500/20 text-blue-200 border-blue-400/30';
+            $ticketBorder = 'border-blue-200 dark:border-blue-900/60';
+            $pulseColor = 'bg-blue-400';
+            $statusDesc = 'Your dispatch ticket is active and awaiting next milestone.';
+
+            if ($status === 'In Transit') {
+                $headerGradient = 'from-emerald-800 via-teal-700 to-slate-900';
+                $statusColor = 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40';
+                $statusIcon = 'fa-truck-fast';
+                $statusBadgeClass = 'bg-emerald-500/20 text-emerald-200 border-emerald-400/30';
+                $ticketBorder = 'border-emerald-200 dark:border-emerald-900/60';
+                $pulseColor = 'bg-emerald-400';
+                $statusDesc = 'Truck has exited the quarry site and is currently in transit. Live GPS tracking is sharing your location with dispatch. Drive safely.';
+            } elseif ($status === 'Delivered') {
+                $headerGradient = 'from-teal-800 via-emerald-700 to-slate-900';
+                $statusColor = 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40';
+                $statusIcon = 'fa-circle-check';
+                $statusBadgeClass = 'bg-emerald-500/20 text-emerald-200 border-emerald-400/30';
+                $ticketBorder = 'border-emerald-200 dark:border-emerald-900/60';
+                $pulseColor = 'bg-emerald-400';
+                $statusDesc = 'Truck has arrived at the destination site and the dispatch delivery has been confirmed.';
             } elseif ($status === 'Cancellation Requested') {
-                $statusColor = 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 animate-pulse';
+                $headerGradient = 'from-rose-800 via-amber-700 to-slate-900';
+                $statusColor = 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/40';
                 $statusIcon = 'fa-triangle-exclamation';
-                $statusDesc = 'Trip cancellation requested. Awaiting Admin confirmation.';
+                $statusBadgeClass = 'bg-rose-500/20 text-rose-200 border-rose-400/30';
+                $ticketBorder = 'border-rose-200 dark:border-rose-900/60';
+                $pulseColor = 'bg-rose-400';
+                $statusDesc = 'Trip cancellation requested due to vehicle breakdown. Awaiting Admin review and decision.';
+            } else { // Pending or Dispatched
+                $headerGradient = 'from-violet-800 via-purple-700 to-slate-900';
+                $statusColor = 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800/40';
+                $statusIcon = 'fa-clock';
+                $statusBadgeClass = 'bg-violet-500/20 text-violet-200 border-violet-400/30';
+                $ticketBorder = 'border-violet-200 dark:border-violet-900/60';
+                $pulseColor = 'bg-violet-400';
+                $statusDesc = 'Dispatch ticket issued. Truck is stationed at the SSV Quarry Garage preparing for site exit.';
             }
+
+            $dispatchDateStr = !empty($active_dispatch['dispatch_date'])
+                ? date('F d, Y', strtotime($active_dispatch['dispatch_date']))
+                : date('F d, Y');
             ?>
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-blue-100 dark:border-gray-700 overflow-hidden">
-                <div class="bg-gradient-to-r from-blue-600 to-indigo-700 px-5 sm:px-6 py-4 text-white flex justify-between items-center flex-wrap gap-2">
-                    <div class="flex items-center space-x-3">
-                        <i class="fa-solid fa-route text-2xl opacity-90"></i>
+
+            <!-- ═══════════════════════════════════════════════════════ -->
+            <!-- DIGITAL DISPATCH TICKET                                -->
+            <!-- ═══════════════════════════════════════════════════════ -->
+            <div class="rounded-2xl overflow-hidden shadow-2xl border <?= $ticketBorder ?> bg-white dark:bg-gray-800 transition-all">
+
+                <!-- ── TICKET HEADER ── -->
+                <div class="bg-gradient-to-r <?= $headerGradient ?> px-5 sm:px-7 pt-6 pb-6 text-white relative overflow-hidden">
+                    <!-- Subtle watermark -->
+                    <div class="absolute -right-6 -bottom-8 opacity-10 pointer-events-none select-none">
+                        <i class="fa-solid fa-truck-moving text-[14rem]"></i>
+                    </div>
+
+                    <div class="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-4">
+                        <!-- Left: Company Brand & Ticket ID -->
                         <div>
-                            <h3 class="font-bold text-base sm:text-lg">Active Trip Dispatch</h3>
-                            <p class="text-blue-100 text-xs font-mono">Ticket: <?= htmlspecialchars($active_dispatch['ticket_number']); ?></p>
+                            <div class="flex items-center gap-2.5 mb-2.5">
+                                <div class="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center flex-shrink-0 border border-white/25 shadow-sm">
+                                    <i class="fa-solid fa-truck text-white text-lg"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/80">SSV Trucking System</span>
+                                        <span class="w-1 h-1 rounded-full bg-white/40"></span>
+                                        <span class="text-[10px] font-semibold text-white/70">San Leonardo, Nueva Ecija</span>
+                                    </div>
+                                    <p class="text-xs font-bold text-white tracking-wide uppercase flex items-center gap-1.5">
+                                        <i class="fa-solid fa-ticket text-cyan-300 text-[11px]"></i> Digital Dispatch Waybill
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-3 mt-2 flex-wrap">
+                                <h2 class="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white leading-none">
+                                    <?= htmlspecialchars($active_dispatch['ticket_number'] ?: ('DISP-' . $active_dispatch['id'])); ?>
+                                </h2>
+                                <button type="button"
+                                    onclick="copyDriverTicketNumber(this, '<?= htmlspecialchars($active_dispatch['ticket_number'] ?: ('DISP-' . $active_dispatch['id'])) ?>')"
+                                    title="Copy Ticket Number"
+                                    class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/15 hover:bg-white/25 active:scale-95 border border-white/20 transition flex items-center gap-1.5 text-white">
+                                    <i class="fa-regular fa-copy text-xs"></i>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <p class="text-white/60 text-xs mt-1.5 flex items-center gap-2">
+                                <span><i class="fa-regular fa-calendar text-[11px] mr-1"></i> Issued: <strong><?= $dispatchDateStr ?></strong></span>
+                                <span>&bull;</span>
+                                <span class="font-mono text-white/50">DISP #<?= $active_dispatch['id'] ?></span>
+                            </p>
+                        </div>
+
+                        <!-- Right: Status Badge & Quick Print Action -->
+                        <div class="flex flex-col items-start md:items-end gap-2.5">
+                            <span class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider backdrop-blur-md border shadow-lg <?= $statusBadgeClass ?>">
+                                <span class="w-2.5 h-2.5 rounded-full <?= $pulseColor ?> animate-pulse flex-shrink-0"></span>
+                                <i class="fa-solid <?= $statusIcon ?>"></i>
+                                <span><?= htmlspecialchars($status) ?></span>
+                            </span>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-white text-blue-700 shadow-sm flex items-center gap-1.5 uppercase">
-                            <i class="fa-solid <?= $statusIcon; ?>"></i> <?= htmlspecialchars($status); ?>
-                        </span>
-                    </div>
+
+                    <!-- ── DISPATCH MILESTONES: TIME OF EXIT & TIME OF ARRIVAL ── -->
+                    <?php if ($status !== 'Cancellation Requested'): ?>
+                        <div class="relative z-10 mt-6 pt-5 border-t border-white/20">
+                            <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                                <p class="text-[10px] font-extrabold uppercase tracking-widest text-white/80 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-route text-cyan-300"></i> Dispatch Milestones &bull; Site Exit &amp; Arrival Tracking
+                                </p>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/15 text-white/90 border border-white/20 font-mono">
+                                    <i class="fa-solid fa-road text-cyan-300 mr-1"></i> <?= number_format($active_dispatch['distance_km'] ?? 0, 1) ?> km
+                                </span>
+                            </div>
+
+                            <!-- 2 Milestone Cards: Time of Exit & Time of Arrival -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 relative">
+
+                                <!-- MILESTONE 1: TIME OF EXIT -->
+                                <div class="rounded-xl p-4 bg-white/10 backdrop-blur-md border border-white/20 shadow-sm flex flex-col justify-between">
+                                    <div class="flex items-center justify-between gap-2 mb-2">
+                                        <div class="flex items-center gap-2.5">
+                                            <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shadow-sm
+                                            <?= $hasExited ? 'bg-emerald-400 text-slate-900 ring-2 ring-emerald-300/40' : 'bg-white/20 text-white/70' ?>">
+                                                <i class="fa-solid <?= $hasExited ? 'fa-check' : 'fa-arrow-up-from-bracket' ?>"></i>
+                                            </div>
+                                            <div>
+                                                <span class="text-[10px] font-extrabold uppercase tracking-wider text-cyan-200 block">Milestone 1</span>
+                                                <h4 class="text-xs sm:text-sm font-black text-white tracking-wide uppercase">Time of Exit</h4>
+                                            </div>
+                                        </div>
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider
+                                        <?= $hasExited ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/40' : 'bg-white/15 text-white/60 border border-white/20' ?>">
+                                            <?= $hasExited ? 'Exited Site' : 'Pending Exit' ?>
+                                        </span>
+                                    </div>
+
+                                    <div class="mt-2 pt-2 border-t border-white/15 flex items-baseline justify-between flex-wrap gap-2">
+                                        <div>
+                                            <p class="text-2xl font-black font-mono tracking-tight text-white leading-none">
+                                                <?= $timeOfExitStr ?>
+                                            </p>
+                                            <p class="text-[11px] text-white/70 mt-1 flex items-center gap-1 truncate max-w-[220px]">
+                                                <i class="fa-solid fa-warehouse text-[10px] text-cyan-300"></i>
+                                                <span class="truncate"><?= htmlspecialchars($active_dispatch['origin'] ?: 'SSV Quarry Garage') ?></span>
+                                            </p>
+                                        </div>
+                                        <span class="text-[10px] text-white/60 font-mono"><?= $exitDateStr ?></span>
+                                    </div>
+                                </div>
+
+                                <!-- MILESTONE 2: TIME OF ARRIVAL -->
+                                <div class="rounded-xl p-4 bg-white/10 backdrop-blur-md border border-white/20 shadow-sm flex flex-col justify-between">
+                                    <div class="flex items-center justify-between gap-2 mb-2">
+                                        <div class="flex items-center gap-2.5">
+                                            <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shadow-sm
+                                            <?= $isDelivered ? 'bg-emerald-400 text-slate-900 ring-2 ring-emerald-300/40' : ($status === 'In Transit' ? 'bg-cyan-300 text-slate-900 ring-2 ring-cyan-200/50 animate-pulse' : 'bg-white/20 text-white/70') ?>">
+                                                <i class="fa-solid <?= $isDelivered ? 'fa-circle-check' : ($status === 'In Transit' ? 'fa-location-dot' : 'fa-flag-checkered') ?>"></i>
+                                            </div>
+                                            <div>
+                                                <span class="text-[10px] font-extrabold uppercase tracking-wider text-cyan-200 block">Milestone 2</span>
+                                                <h4 class="text-xs sm:text-sm font-black text-white tracking-wide uppercase">Time of Arrival</h4>
+                                            </div>
+                                        </div>
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider
+                                        <?= $isDelivered ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/40' : ($status === 'In Transit' ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400/40' : 'bg-white/15 text-white/60 border border-white/20') ?>">
+                                            <?= $arrivalStatusLabel ?>
+                                        </span>
+                                    </div>
+
+                                    <div class="mt-2 pt-2 border-t border-white/15 flex items-baseline justify-between flex-wrap gap-2">
+                                        <div>
+                                            <p class="text-2xl font-black font-mono tracking-tight text-white leading-none">
+                                                <?= $timeOfArrivalStr ?>
+                                            </p>
+                                            <p class="text-[11px] text-white/70 mt-1 flex items-center gap-1 truncate max-w-[220px]">
+                                                <i class="fa-solid fa-location-dot text-[10px] text-rose-300"></i>
+                                                <span class="truncate"><?= htmlspecialchars($active_dispatch['destination'] ?: '—') ?></span>
+                                            </p>
+                                        </div>
+                                        <span class="text-[10px] text-white/60 font-mono"><?= $arrivalDateStr ?></span>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <!-- 2-Point Visual Progress Bar -->
+                            <div class="mt-4 pt-3 border-t border-white/15 flex items-center justify-between relative px-2 sm:px-4">
+                                <!-- Background line -->
+                                <div class="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-1 bg-white/20 rounded-full overflow-hidden">
+                                    <div class="h-full <?= $isDelivered ? 'w-full bg-emerald-400' : ($status === 'In Transit' ? 'w-1/2 bg-cyan-300 animate-pulse' : 'w-0 bg-transparent') ?> transition-all duration-700"></div>
+                                </div>
+
+                                <!-- Point 1: Site Exit -->
+                                <div class="relative z-10 flex items-center gap-2 bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/25 shadow-sm">
+                                    <span class="w-2.5 h-2.5 rounded-full <?= $hasExited ? 'bg-emerald-400 shadow-sm shadow-emerald-400' : 'bg-white/40' ?>"></span>
+                                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-white">1. Time of Exit</span>
+                                </div>
+
+                                <!-- Middle Indicator -->
+                                <div class="relative z-10 hidden sm:flex items-center gap-1.5 bg-slate-900/95 backdrop-blur-md px-3.5 py-1 rounded-full border border-cyan-400/40 text-[10px] font-bold text-cyan-200 shadow-sm">
+                                    <i class="fa-solid fa-truck-fast <?= $status === 'In Transit' ? 'animate-bounce text-cyan-300' : '' ?>"></i>
+                                    <span><?= $status === 'In Transit' ? 'En Route' : ($isDelivered ? 'Trip Completed' : 'Awaiting Exit') ?></span>
+                                </div>
+
+                                <!-- Point 2: Site Arrival -->
+                                <div class="relative z-10 flex items-center gap-2 bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/25 shadow-sm">
+                                    <span class="w-2.5 h-2.5 rounded-full <?= $isDelivered ? 'bg-emerald-400 shadow-sm shadow-emerald-400' : ($status === 'In Transit' ? 'bg-cyan-300 animate-ping' : 'bg-white/40') ?>"></span>
+                                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-white">2. Estimated Time of Arrival</span>
+                                </div>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="relative z-10 mt-5 pt-4 border-t border-white/20 flex items-center gap-2 text-rose-200 text-xs font-semibold">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-300 text-base"></i>
+                            <span>Trip cancellation has been submitted and is pending Admin review. Please do not depart the site until advised.</span>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
-                <div class="p-5 sm:p-6">
-                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-                        <div class="bg-gray-50 dark:bg-gray-900 p-3.5 sm:p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                            <span class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Destination</span>
-                            <span class="text-sm sm:text-base font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 truncate">
-                                <i class="fa-solid fa-location-dot text-red-500 flex-shrink-0"></i>
-                                <span class="truncate"><?= htmlspecialchars($active_dispatch['destination']); ?></span>
-                            </span>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-gray-900 p-3.5 sm:p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                            <span class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Distance</span>
-                            <span class="text-sm sm:text-base font-extrabold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-                                <i class="fa-solid fa-route text-blue-500 flex-shrink-0"></i>
-                                <?= number_format($active_dispatch['distance_km'] ?? 0, 1); ?> km
-                            </span>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-gray-900 p-3.5 sm:p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                            <span class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Trip Pay</span>
-                            <span class="text-sm sm:text-base font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                                <i class="fa-solid fa-peso-sign text-emerald-500 flex-shrink-0"></i>
-                                ₱<?= number_format($active_dispatch['pay_amount'] ?? 0, 2); ?>
-                            </span>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-gray-900 p-3.5 sm:p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                            <span class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Assigned Truck</span>
-                            <span class="text-sm sm:text-base font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
-                                <i class="fa-solid fa-truck text-blue-500 flex-shrink-0"></i>
-                                <?= htmlspecialchars($active_dispatch['truck_code']); ?>
-                            </span>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-gray-900 p-3.5 sm:p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                            <span class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Load Volume</span>
-                            <span class="text-sm sm:text-base font-extrabold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
-                                <i class="fa-solid fa-cube text-indigo-500 flex-shrink-0"></i>
-                                <?= number_format($active_dispatch['cubic_meters'] ?? 0, 2); ?> cu.m
-                            </span>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-gray-900 p-3.5 sm:p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                            <span class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold block uppercase mb-1">Dispatch Time</span>
-                            <span class="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1 mt-1 truncate">
-                                <i class="fa-solid fa-clock text-blue-500 flex-shrink-0"></i>
-                                <?= !empty($active_dispatch['transit_start_time']) ? date('M d, h:i A', strtotime($active_dispatch['transit_start_time'])) : (!empty($active_dispatch['created_at']) ? date('M d, h:i A', strtotime($active_dispatch['created_at'])) : 'Pending') ?>
-                            </span>
-                        </div>
-                    </div>
+                <!-- ── TEAR-LINE NOTCH (REALISTIC PHYSICAL TICKET SEPARATION) ── -->
+                <div class="relative bg-white dark:bg-gray-800 flex items-center overflow-hidden" style="height:20px;">
+                    <div class="absolute -left-2.5 w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-inner"></div>
+                    <div class="flex-1 border-t-2 border-dashed border-gray-300 dark:border-gray-700 mx-5"></div>
+                    <div class="absolute -right-2.5 w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-inner"></div>
+                </div>
 
-                    <div class="flex items-start gap-3 p-4 rounded-xl <?= $statusColor; ?> mb-5">
-                        <i class="fa-solid fa-info-circle text-lg mt-0.5"></i>
-                        <div class="w-full">
-                            <span class="font-bold text-sm block">Current State</span>
-                            <p class="text-xs mt-1 leading-relaxed opacity-90"><?= $statusDesc; ?></p>
-                            <?php if ($status === 'Cancellation Requested'): ?>
-                                <div class="mt-2.5 pt-2.5 border-t border-amber-200/60 dark:border-amber-800/40 text-xs">
-                                    <div class="flex items-center gap-1.5 font-bold mb-1">
-                                        <i class="fa-solid fa-triangle-exclamation"></i> Submitted Reason:
-                                        <span class="font-normal"><?= htmlspecialchars($active_dispatch['cancellation_reason'] ?? 'Not specified'); ?></span>
-                                    </div>
-                                    <?php if (!empty($active_dispatch['cancellation_photo'])): ?>
-                                        <div class="mt-2">
-                                            <span class="block text-[11px] font-semibold mb-1 opacity-80">Photo Proof Attached:</span>
-                                            <a href="../<?= htmlspecialchars($active_dispatch['cancellation_photo']); ?>" target="_blank" class="inline-block">
-                                                <img src="../<?= htmlspecialchars($active_dispatch['cancellation_photo']); ?>" alt="Cancellation Attachment" class="w-32 h-20 object-cover rounded-lg border border-amber-300 dark:border-amber-700 shadow-sm hover:opacity-90 transition">
-                                            </a>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
+                <!-- ── TICKET BODY ── -->
+                <div class="bg-white dark:bg-gray-800 px-5 sm:px-7 pb-6 pt-3">
+
+                    <!-- Section: Routing & Logistics Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-4">
+                        <!-- Origin Card -->
+                        <div class="bg-gray-50 dark:bg-gray-900/60 rounded-xl p-4 border border-gray-100 dark:border-gray-700/80">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-warehouse text-blue-500"></i> Origin / Loading Facility
+                                </span>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">Point A</span>
+                            </div>
+                            <p class="font-extrabold text-gray-900 dark:text-white text-sm sm:text-base leading-tight">
+                                <?= htmlspecialchars($active_dispatch['origin'] ?: 'SSV Quarry Garage') ?>
+                            </p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">San Leonardo, Nueva Ecija</p>
+                        </div>
+
+                        <!-- Destination Card -->
+                        <div class="bg-gray-50 dark:bg-gray-900/60 rounded-xl p-4 border border-gray-100 dark:border-gray-700/80">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-location-dot text-rose-500"></i> Destination / Drop-off
+                                </span>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300">Point B</span>
+                            </div>
+                            <p class="font-extrabold text-gray-900 dark:text-white text-sm sm:text-base leading-tight underline decoration-rose-300 dark:decoration-rose-700 underline-offset-2">
+                                <?= htmlspecialchars($active_dispatch['destination'] ?: '—') ?>
+                            </p>
+                            <?php if (!empty($active_dispatch['landmark'])): ?>
+                                <p class="text-xs font-semibold text-amber-700 dark:text-amber-400 mt-1.5 flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-lg border border-amber-200/60 dark:border-amber-800/40">
+                                    <i class="fa-solid fa-map-pin text-[11px] text-amber-600"></i>
+                                    <span><strong>Landmark:</strong> <?= htmlspecialchars($active_dispatch['landmark']) ?></span>
+                                </p>
                             <?php endif; ?>
                         </div>
                     </div>
 
+                    <!-- Section: Vehicle, Driver, Client, Cargo Specs (4-column responsive) -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
 
-                    <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                        <button type="button" onclick="switchTab('route')"
-                            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 active:scale-95 transition">
-                            <i class="fa-solid fa-location-arrow"></i> Open Full Route & GPS Map
-                        </button>
+                        <!-- Assigned Truck -->
+                        <div class="bg-gray-50 dark:bg-gray-900/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-700/80">
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 block mb-1">
+                                <i class="fa-solid fa-truck text-blue-500 mr-1"></i> Assigned Truck
+                            </span>
+                            <p class="text-sm font-black text-gray-900 dark:text-white font-mono leading-tight">
+                                <?= htmlspecialchars($active_dispatch['truck_code'] ?: '—'); ?>
+                            </p>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                                RFID: <span class="font-mono"><?= htmlspecialchars($active_dispatch['rfid_tag'] ?? 'Standard') ?></span>
+                            </p>
+                        </div>
+
+                        <!-- Driver (You) -->
+                        <div class="bg-gray-50 dark:bg-gray-900/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-700/80">
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 block mb-1">
+                                <i class="fa-solid fa-id-card text-indigo-500 mr-1"></i> Driver
+                            </span>
+                            <p class="text-sm font-black text-gray-900 dark:text-white truncate leading-tight">
+                                <?= htmlspecialchars($driverFullName ?: $driverUsername); ?>
+                            </p>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                                CDL: <?= htmlspecialchars($driverProfile['cdl_number'] ?? 'On-Duty'); ?>
+                            </p>
+                        </div>
+
+                        <!-- Client / Consignee -->
+                        <div class="bg-gray-50 dark:bg-gray-900/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-700/80">
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 block mb-1">
+                                <i class="fa-solid fa-user-tie text-emerald-500 mr-1"></i> Client / Receiver
+                            </span>
+                            <p class="text-sm font-black text-gray-900 dark:text-white truncate leading-tight">
+                                <?= htmlspecialchars($active_dispatch['client_name'] ?: 'Direct Client'); ?>
+                            </p>
+                            <?php if (!empty($active_dispatch['contact_number'])): ?>
+                                <a href="tel:<?= htmlspecialchars($active_dispatch['contact_number']); ?>"
+                                    class="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline mt-0.5 inline-flex items-center gap-1">
+                                    <i class="fa-solid fa-phone text-[10px]"></i> <?= htmlspecialchars($active_dispatch['contact_number']); ?>
+                                </a>
+                            <?php else: ?>
+                                <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">No phone specified</p>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Cargo & Order -->
+                        <div class="bg-gray-50 dark:bg-gray-900/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-700/80">
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 block mb-1">
+                                <i class="fa-solid fa-cube text-violet-500 mr-1"></i> Cargo Volume
+                            </span>
+                            <p class="text-sm font-black text-violet-700 dark:text-violet-400 leading-tight">
+                                <?= number_format($active_dispatch['cubic_meters'] ?? 0, 2); ?> <span class="text-xs font-semibold text-gray-400">cu.m</span>
+                            </p>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                                <?= !empty($active_dispatch['order_number']) ? ('Order #' . htmlspecialchars($active_dispatch['order_number'])) : 'Quarry Aggregates'; ?>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Section: Time, Distance & Compensation Summary -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                        <!-- Time of Exit -->
+                        <div class="flex items-center gap-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-700/80">
+                            <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-arrow-up-from-bracket text-base"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <span class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 block">Time of Exit</span>
+                                <p class="text-xs font-black text-gray-800 dark:text-gray-200 truncate leading-tight mt-0.5"><?= $timeOfExitStr ?> &bull; <?= $exitDateStr ?></p>
+                            </div>
+                        </div>
+
+                        <!-- Time of Arrival -->
+                        <div class="flex items-center gap-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-700/80">
+                            <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-location-dot text-base"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <span class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 block"><?= $arrivalStatusLabel ?></span>
+                                <p class="text-xs font-black text-gray-800 dark:text-gray-200 truncate leading-tight mt-0.5">
+                                    <?= $timeOfArrivalStr ?> &bull; <?= number_format($active_dispatch['distance_km'] ?? 0, 1) ?> km
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Trip Earnings -->
+                        <div class="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3.5 border border-emerald-200/70 dark:border-emerald-800/50">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-peso-sign text-lg font-black"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block">Trip Pay Rate</span>
+                                <p class="text-xl font-black text-emerald-700 dark:text-emerald-300 leading-tight">
+                                    ₱<?= number_format($active_dispatch['pay_amount'] ?? 0, 2); ?>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Operational Directive Bar -->
+                    <div class="p-4 rounded-xl border <?= $statusColor ?> mb-5">
+                        <div class="flex items-start gap-3">
+                            <i class="fa-solid <?= $statusIcon ?> text-lg mt-0.5 flex-shrink-0"></i>
+                            <div class="w-full min-w-0">
+                                <div class="flex items-center justify-between gap-2 flex-wrap">
+                                    <span class="font-bold text-sm">Operational Status: <?= htmlspecialchars($status) ?></span>
+                                    <?php if ($status === 'In Transit'): ?>
+                                        <span class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Live GPS Active
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                                <p class="text-xs mt-1 leading-relaxed opacity-90"><?= $statusDesc ?></p>
+
+                                <?php if ($status === 'Cancellation Requested'): ?>
+                                    <div class="mt-3 pt-3 border-t border-rose-200 dark:border-rose-800/50 text-xs">
+                                        <p class="font-bold mb-1 text-rose-800 dark:text-rose-300">
+                                            Submitted Breakdown Reason:
+                                            <span class="font-normal"><?= htmlspecialchars($active_dispatch['cancellation_reason'] ?? 'Vehicle Breakdown / Mechanical Failure'); ?></span>
+                                        </p>
+                                        <?php if (!empty($active_dispatch['cancellation_photo'])): ?>
+                                            <div class="mt-2">
+                                                <span class="block text-[11px] font-semibold mb-1 text-gray-600 dark:text-gray-300">Attached Proof Photo:</span>
+                                                <a href="../<?= htmlspecialchars($active_dispatch['cancellation_photo']); ?>" target="_blank" class="inline-block group">
+                                                    <img src="../<?= htmlspecialchars($active_dispatch['cancellation_photo']); ?>" alt="Proof" class="w-32 h-20 object-cover rounded-lg border border-rose-300 dark:border-rose-700 shadow-sm group-hover:opacity-90 transition">
+                                                </a>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Action Controls -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" onclick="switchTab('route')"
+                                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 active:scale-95 transition cursor-pointer">
+                                <i class="fa-solid fa-location-arrow"></i>
+                                <span>Live Navigation & Route</span>
+                            </button>
+
+                            <button type="button" onclick="printDriverDispatchTicket(<?= $active_dispatch['id'] ?>)"
+                                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 active:scale-95 transition cursor-pointer">
+                                <i class="fa-solid fa-print"></i>
+                                <span>Print / Save Waybill</span>
+                            </button>
+
+                            <button type="button" onclick="location.reload()"
+                                class="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition"
+                                title="Refresh Dispatch Status">
+                                <i class="fa-solid fa-rotate-right"></i>
+                            </button>
+                        </div>
 
                         <?php if ($status !== 'Cancellation Requested' && $status !== 'Delivered'): ?>
-                            <button type="button" onclick="openCancelTripModal()"
-                                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-orange-700 dark:text-orange-400 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 transition">
-                                <i class="fa-solid fa-ban"></i> Request Cancellation (Breakdown)
-                            </button>
+                            <div>
+                                <button type="button" onclick="openCancelTripModal()"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-orange-700 dark:text-orange-400 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 transition active:scale-95 cursor-pointer">
+                                    <i class="fa-solid fa-ban"></i>
+                                    <span>Request Cancellation (Breakdown)</span>
+                                </button>
+                            </div>
                         <?php endif; ?>
+                    </div>
+
+                    <!-- Digital Barcode Security Strip -->
+                    <div class="mt-5 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px] text-gray-400 dark:text-gray-500 font-mono">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-barcode text-base text-gray-500 dark:text-gray-400"></i>
+                            <span>SSV-DIGITAL-DISPATCH-VERIFIED &bull; OFFICIAL DRIVER WAYBILL</span>
+                        </div>
+                        <div class="text-right">
+                            <span><?= htmlspecialchars($active_dispatch['ticket_number'] ?: ('TK-' . $active_dispatch['id'])) ?> &bull; <?= date('Y-m-d H:i') ?></span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <script>
+                function copyDriverTicketNumber(btn, text) {
+                    if (!text) return;
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(text).then(function() {
+                            const originalHTML = btn.innerHTML;
+                            btn.innerHTML = '<i class="fa-solid fa-check text-emerald-300"></i> <span>Copied!</span>';
+                            setTimeout(function() {
+                                btn.innerHTML = originalHTML;
+                            }, 2000);
+                        }).catch(function() {
+                            fallbackCopy(text);
+                        });
+                    } else {
+                        fallbackCopy(text);
+                    }
+
+                    function fallbackCopy(val) {
+                        const ta = document.createElement('textarea');
+                        ta.value = val;
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(ta);
+                        const originalHTML = btn.innerHTML;
+                        btn.innerHTML = '<i class="fa-solid fa-check text-emerald-300"></i> <span>Copied!</span>';
+                        setTimeout(function() {
+                            btn.innerHTML = originalHTML;
+                        }, 2000);
+                    }
+                }
+
+                function printDriverDispatchTicket(id) {
+                    if (!id) return;
+                    window.open('../admin/print_ticket.php?id=' + encodeURIComponent(id), '_blank', 'noopener,noreferrer');
+                }
+            </script>
+
+        <?php elseif ($driver_is_dispatched): ?>
+            <!-- Driver is Dispatched but no ticket created yet -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-violet-200 dark:border-violet-800/50 overflow-hidden">
+                <div class="bg-gradient-to-r from-violet-600 to-purple-700 px-5 sm:px-6 py-4 text-white flex justify-between items-center flex-wrap gap-2">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-truck-arrow-right text-2xl opacity-90"></i>
+                        <div>
+                            <h3 class="font-bold text-base sm:text-lg">You Have Been Dispatched</h3>
+                            <p class="text-violet-100 text-xs">Admin has assigned you to a trip &mdash; ticket is being prepared</p>
+                        </div>
+                    </div>
+                    <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-white text-violet-700 shadow-sm flex items-center gap-1.5 uppercase">
+                        <span class="w-2 h-2 rounded-full bg-violet-500 animate-pulse inline-block"></span> Dispatched
+                    </span>
+                </div>
+                <div class="p-5 sm:p-6">
+                    <div class="flex items-start gap-3 p-4 rounded-xl bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300">
+                        <i class="fa-solid fa-circle-info text-lg mt-0.5"></i>
+                        <div>
+                            <span class="font-bold text-sm block">Awaiting Dispatch Ticket</span>
+                            <p class="text-xs mt-1 leading-relaxed opacity-90">
+                                You have been marked as <strong>Dispatched</strong> by the Admin. Your formal dispatch ticket is being prepared.
+                                Please report to the SSV Quarry Garage and standby for further instructions. This page will update automatically once your ticket is issued.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex flex-wrap items-center gap-3">
+                        <button type="button" onclick="location.reload()"
+                            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white shadow-md active:scale-95 transition">
+                            <i class="fa-solid fa-rotate-right"></i> Refresh Page
+                        </button>
+                        <button type="button" onclick="switchTab('route')"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition">
+                            <i class="fa-solid fa-map-location-dot"></i> View Live Map
+                        </button>
                     </div>
                 </div>
             </div>
@@ -662,8 +1096,35 @@ if (!empty($driverFullName)) {
                 $tDate = date('Y-m-d', strtotime($trip['trip_date'] ?: $trip['created_at']));
                 $dispTimeStr = !empty($trip['transit_start_time']) ? date('M d, Y h:i A', strtotime($trip['transit_start_time'])) : (!empty($trip['created_at']) ? date('M d, Y h:i A', strtotime($trip['created_at'])) : date('M d, Y', strtotime($trip['trip_date'])));
                 $arrTimeStr = !empty($trip['transit_end_time']) ? date('M d, Y h:i A', strtotime($trip['transit_end_time'])) : ($trip['status'] === 'Delivered' ? 'Delivered' : 'N/A');
-                $searchMeta = strtolower(($trip['destination'] ?? '') . ' ' . ($trip['status'] ?? ''));
+                $searchMeta = strtolower(($trip['destination'] ?? '') . ' ' . ($trip['status'] ?? '') . ' ' . ($trip['ticket_number'] ?? '') . ' trip-' . $trip['id']);
                 $isInInitial = ($tDate >= $selectedFrom && $tDate <= $selectedTo);
+
+                $ticketModalData = [
+                    'trip_id' => (int)$trip['id'],
+                    'dispatch_id' => !empty($trip['dispatch_id']) ? (int)$trip['dispatch_id'] : null,
+                    'ticket_number' => !empty($trip['ticket_number']) ? $trip['ticket_number'] : ('TRIP-' . str_pad($trip['id'], 4, '0', STR_PAD_LEFT)),
+                    'status' => $trip['status'] ?: 'Delivered',
+                    'origin' => $trip['origin'] ?: 'SSV Quarry Garage',
+                    'destination' => $trip['destination'] ?: '—',
+                    'landmark' => $trip['landmark'] ?? '',
+                    'truck_code' => $trip['truck_code'] ?: ($assignedTruck['truck_code'] ?? 'SSV Fleet'),
+                    'rfid_tag' => $trip['rfid_tag'] ?? 'Standard',
+                    'driver_name' => trim(($driverProfile['first_name'] ?? '') . ' ' . ($driverProfile['last_name'] ?? '')) ?: 'SSV Driver',
+                    'client_name' => $trip['client_name'] ?: 'Direct Client',
+                    'contact_number' => $trip['contact_number'] ?? '',
+                    'cubic_meters' => (float)($trip['cubic_meters'] ?? 0),
+                    'order_number' => $trip['order_number'] ?? '',
+                    'distance_km' => (float)($trip['distance_km'] ?? 0),
+                    'pay_amount' => (float)($trip['pay_amount'] ?? 0),
+                    'transit_start_time' => $trip['transit_start_time'] ?? null,
+                    'transit_end_time' => $trip['transit_end_time'] ?? null,
+                    'estimated_arrival_time' => $trip['estimated_arrival_time'] ?? null,
+                    'created_at' => $trip['created_at'] ?? null,
+                    'trip_date' => $trip['trip_date'] ?? null,
+                    'cancellation_reason' => $trip['cancellation_reason'] ?? '',
+                    'cancellation_photo' => $trip['cancellation_photo'] ?? '',
+                ];
+                $jsonTicketData = htmlspecialchars(json_encode($ticketModalData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8');
                 ?>
                 <div class="driver-trip-card bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-200/80 dark:border-gray-800 shadow-sm space-y-2.5"
                     data-date="<?= $tDate; ?>"
@@ -722,6 +1183,18 @@ if (!empty($driverFullName)) {
                             ₱<?= number_format($trip['pay_amount'] ?? 0, 2); ?>
                         </span>
                     </div>
+                    <!-- Digital Ticket Action Button for Mobile -->
+                    <div class="pt-2 border-t border-gray-200/60 dark:border-gray-800 flex items-center justify-between gap-2">
+                        <span class="text-[11px] text-gray-400 dark:text-gray-500 font-mono">
+                            <?= !empty($trip['ticket_number']) ? htmlspecialchars($trip['ticket_number']) : ('Trip #' . $trip['id']) ?>
+                        </span>
+                        <button type="button"
+                            onclick='openTripTicketModal(<?= $jsonTicketData ?>)'
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 active:scale-95 transition shadow-sm">
+                            <i class="fa-solid fa-ticket text-[11px]"></i>
+                            <span>Digital Ticket</span>
+                        </button>
+                    </div>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
@@ -746,6 +1219,7 @@ if (!empty($driverFullName)) {
                     <th class="py-3 px-3 font-semibold">Trip Pay</th>
                     <th class="py-3 px-3 font-semibold">Duration</th>
                     <th class="py-3 px-3 font-semibold">Status</th>
+                    <th class="py-3 px-3 font-semibold text-center">Ticket</th>
                 </tr>
             </thead>
             <tbody id="driverTripsTableBody" class="text-gray-700 dark:text-gray-200 divide-y divide-gray-100 dark:divide-gray-800 text-sm">
@@ -764,8 +1238,35 @@ if (!empty($driverFullName)) {
                         $tDate = date('Y-m-d', strtotime($trip['trip_date'] ?: $trip['created_at']));
                         $dispTimeStr = !empty($trip['transit_start_time']) ? date('M d, Y h:i A', strtotime($trip['transit_start_time'])) : (!empty($trip['created_at']) ? date('M d, Y h:i A', strtotime($trip['created_at'])) : date('M d, Y', strtotime($trip['trip_date'])));
                         $arrTimeStr = !empty($trip['transit_end_time']) ? date('M d, Y h:i A', strtotime($trip['transit_end_time'])) : ($trip['status'] === 'Delivered' ? 'Delivered' : '—');
-                        $searchMeta = strtolower(($trip['destination'] ?? '') . ' ' . ($trip['status'] ?? ''));
+                        $searchMeta = strtolower(($trip['destination'] ?? '') . ' ' . ($trip['status'] ?? '') . ' ' . ($trip['ticket_number'] ?? '') . ' trip-' . $trip['id']);
                         $isInInitial = ($tDate >= $selectedFrom && $tDate <= $selectedTo);
+
+                        $ticketModalData = [
+                            'trip_id' => (int)$trip['id'],
+                            'dispatch_id' => !empty($trip['dispatch_id']) ? (int)$trip['dispatch_id'] : null,
+                            'ticket_number' => !empty($trip['ticket_number']) ? $trip['ticket_number'] : ('TRIP-' . str_pad($trip['id'], 4, '0', STR_PAD_LEFT)),
+                            'status' => $trip['status'] ?: 'Delivered',
+                            'origin' => $trip['origin'] ?: 'SSV Quarry Garage',
+                            'destination' => $trip['destination'] ?: '—',
+                            'landmark' => $trip['landmark'] ?? '',
+                            'truck_code' => $trip['truck_code'] ?: ($assignedTruck['truck_code'] ?? 'SSV Fleet'),
+                            'rfid_tag' => $trip['rfid_tag'] ?? 'Standard',
+                            'driver_name' => trim(($driverProfile['first_name'] ?? '') . ' ' . ($driverProfile['last_name'] ?? '')) ?: 'SSV Driver',
+                            'client_name' => $trip['client_name'] ?: 'Direct Client',
+                            'contact_number' => $trip['contact_number'] ?? '',
+                            'cubic_meters' => (float)($trip['cubic_meters'] ?? 0),
+                            'order_number' => $trip['order_number'] ?? '',
+                            'distance_km' => (float)($trip['distance_km'] ?? 0),
+                            'pay_amount' => (float)($trip['pay_amount'] ?? 0),
+                            'transit_start_time' => $trip['transit_start_time'] ?? null,
+                            'transit_end_time' => $trip['transit_end_time'] ?? null,
+                            'estimated_arrival_time' => $trip['estimated_arrival_time'] ?? null,
+                            'created_at' => $trip['created_at'] ?? null,
+                            'trip_date' => $trip['trip_date'] ?? null,
+                            'cancellation_reason' => $trip['cancellation_reason'] ?? '',
+                            'cancellation_photo' => $trip['cancellation_photo'] ?? '',
+                        ];
+                        $jsonTicketData = htmlspecialchars(json_encode($ticketModalData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8');
                         ?>
                         <tr class="driver-trip-row hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors"
                             data-date="<?= $tDate; ?>"
@@ -805,13 +1306,22 @@ if (!empty($driverFullName)) {
                                     </span>
                                 <?php endif; ?>
                             </td>
+                            <td class="py-3.5 px-3 text-center whitespace-nowrap">
+                                <button type="button"
+                                    onclick='openTripTicketModal(<?= $jsonTicketData ?>)'
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-500/20 hover:shadow-blue-500/30"
+                                    title="View Digital Ticket">
+                                    <i class="fa-solid fa-ticket text-[11px]"></i>
+                                    <span>Ticket</span>
+                                </button>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
 
 
                 <tr id="driverTripsDesktopEmpty" style="<?= count($weeklyFilteredTrips) === 0 ? '' : 'display: none;'; ?>">
-                    <td colspan="7" class="py-12 px-3 text-center text-gray-400">
+                    <td colspan="8" class="py-12 px-3 text-center text-gray-400">
                         <i class="fa-solid fa-road text-4xl mb-3 text-gray-300 block"></i>
                         No trips found for this week period.
                     </td>
@@ -2277,6 +2787,13 @@ if (!empty($driverFullName)) {
     let lastReverseGeocodeLat = 0;
     let lastReverseGeocodeLng = 0;
 
+    // Live route re-calculation tracking
+    let lastRouteCalcLat = null;
+    let lastRouteCalcLng = null;
+    let routeRefreshTimer = null;
+    const ROUTE_REFRESH_MIN_DISTANCE_KM = 0.05; // Re-calculate route after moving 50 meters
+    const ROUTE_REFRESH_DEBOUNCE_MS = 10000;    // Minimum 10s between route API calls
+
     async function resolveDriverLocationName(lat, lng) {
         // SSV Quarry Loading & Garage base station check (within ~350m)
         const dGarage = calculateDirectDistanceKm(lat, lng, GARAGE_LOCATION.lat, GARAGE_LOCATION.lng);
@@ -2422,6 +2939,67 @@ if (!empty($driverFullName)) {
                     driverGpsAccuracyCircle.setRadius(accuracy);
                 }
             }
+
+            // --- Live route refresh from driver's current position ---
+            // Only trigger if there is an active destination and driver has moved enough
+            if (activeDestCoords && activeDestName &&
+                activeDestName !== 'San Leonardo' && activeDestName !== 'San Leonardo Garage') {
+
+                const movedEnough = (lastRouteCalcLat === null) ||
+                    calculateDirectDistanceKm(lat, lng, lastRouteCalcLat, lastRouteCalcLng) >= ROUTE_REFRESH_MIN_DISTANCE_KM;
+
+                if (movedEnough) {
+                    // Debounce: clear any pending refresh before scheduling a new one
+                    if (routeRefreshTimer) clearTimeout(routeRefreshTimer);
+                    routeRefreshTimer = setTimeout(async () => {
+                        routeRefreshTimer = null;
+                        // Snap start point to driver's current GPS position
+                        const fromLat = driverCurrentLat;
+                        const fromLng = driverCurrentLng;
+                        lastRouteCalcLat = fromLat;
+                        lastRouteCalcLng = fromLng;
+
+                        const distEl = document.getElementById('routeDistanceText');
+                        const durEl = document.getElementById('routeDurationText');
+                        const statusEl = document.getElementById('driverMapStatusText');
+
+                        try {
+                            const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${activeDestCoords.lng},${activeDestCoords.lat}?overview=full&geometries=geojson`;
+                            const r = await fetch(osrmUrl);
+                            const routeData = await r.json();
+
+                            if (routeData.code === 'Ok' && routeData.routes && routeData.routes.length > 0) {
+                                const route = routeData.routes[0];
+                                const distKm = (route.distance / 1000).toFixed(1);
+                                const durMins = Math.round(route.duration / 60);
+
+                                if (distEl) distEl.textContent = distKm + ' km';
+                                if (durEl) {
+                                    if (durMins >= 60) {
+                                        const hrs = Math.floor(durMins / 60);
+                                        const rem = durMins % 60;
+                                        durEl.textContent = `${hrs} hr ${rem > 0 ? rem + ' min' : ''}`;
+                                    } else {
+                                        durEl.textContent = durMins + ' mins';
+                                    }
+                                }
+
+                                const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+                                drawRoutePolyline(coords);
+                                if (statusEl) statusEl.textContent = `Route to ${activeDestName} (${distKm} km remaining)`;
+                            }
+                        } catch (routeErr) {
+                            console.warn('Live route refresh failed:', routeErr);
+                            // Fallback: straight line from current position to destination
+                            drawRoutePolyline([[fromLat, fromLng], [activeDestCoords.lat, activeDestCoords.lng]]);
+                            const fallbackDist = calculateDirectDistanceKm(fromLat, fromLng, activeDestCoords.lat, activeDestCoords.lng);
+                            if (distEl) distEl.textContent = '~' + fallbackDist.toFixed(1) + ' km';
+                            if (durEl) durEl.textContent = '~' + Math.round((fallbackDist / 45) * 60) + ' mins';
+                        }
+                    }, ROUTE_REFRESH_DEBOUNCE_MS);
+                }
+            }
+            // ---------------------------------------------------------
         };
 
         // Phase 1: Rapid instant fix using cached / network location

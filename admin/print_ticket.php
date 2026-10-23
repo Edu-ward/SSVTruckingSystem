@@ -2,7 +2,12 @@
 require_once __DIR__ . '/../includes/security_headers.php';
 require_once __DIR__ . '/../db.php';
 
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin'])) {
+if (!isset($_SESSION['user_id'])) {
+    die("Unauthorized Access. Please log in.");
+}
+
+$userRole = $_SESSION['role'] ?? '';
+if (!in_array($userRole, ['Admin', 'Superadmin', 'Driver'])) {
     die("Unauthorized Access");
 }
 
@@ -32,6 +37,13 @@ $ticket = $stmt->fetch();
 
 if (!$ticket) {
     die("Ticket not found.");
+}
+
+if ($userRole === 'Driver') {
+    $currentDriverId = intval($_SESSION['user_id'] ?? 0);
+    if (intval($ticket['driver_id'] ?? 0) !== $currentDriverId) {
+        die("Unauthorized Access: You can only view your own dispatch tickets.");
+    }
 }
 ?>
 <!DOCTYPE html>
