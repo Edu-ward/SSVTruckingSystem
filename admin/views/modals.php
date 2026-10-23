@@ -138,7 +138,7 @@
                     <i class="fa-solid fa-xmark fa-lg"></i>
                 </button>
             </div>
-            <form action="dashboard.php" method="POST" class="p-5 sm:p-6 space-y-4 overflow-y-auto">
+            <form id="addDriverForm" action="dashboard.php" method="POST" class="p-5 sm:p-6 space-y-4 overflow-y-auto">
                 <input type="hidden" name="action" value="add_driver">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
 
@@ -161,31 +161,33 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Full Name</label>
+                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Full Name <span class="text-red-500">*</span></label>
                         <input type="text" name="name" required placeholder="Juan Dela Cruz" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Licence Number</label>
+                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Licence Number <span class="text-red-500">*</span></label>
                         <input type="text" name="cdl_number" required placeholder="N01-XX-XXXXXX" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
                     </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Phone</label>
-                        <input type="text" name="phone" required placeholder="0912-345-6789" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Phone Number <span class="text-red-500">*</span></label>
+                        <input type="tel" name="phone" id="addDriverPhoneInput" required placeholder="09123456789, 9123456789, or 639123456789" maxlength="16" autocomplete="tel" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm transition">
+                        <p id="addDriverPhoneFeedback" class="text-xs mt-1 min-h-[1.25rem] text-gray-400 dark:text-gray-500">Starts with 09, 9, or 639 (saved as +639000000000)</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Username</label>
+                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Username <span class="text-red-500">*</span></label>
                         <input type="text" name="username" required placeholder="juan.dela.cruz" class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Password</label>
+                    <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Password <span class="text-red-500">*</span></label>
                     <div class="flex">
-                        <input type="text" id="driverPasswordInput" name="password" required readonly placeholder="Click generate" class="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded-l-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm">
+                        <input type="text" id="driverPasswordInput" name="password" required placeholder="Enter password or click Generate" class="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded-l-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <button type="button" onclick="generateDriverPassword()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-r-lg transition font-medium">Generate</button>
                     </div>
+                    <p id="addDriverPasswordFeedback" class="text-xs mt-1 min-h-[1.25rem] text-gray-400 dark:text-gray-500">Enter a password (min. 8 characters) or click Generate</p>
                 </div>
 
                 <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
@@ -283,6 +285,176 @@
     </div>
 
     <script>
+        function sanitizeAndFormatPHPhone(val) {
+            if (!val) return {
+                valid: false,
+                formatted: '',
+                raw: '',
+                message: 'Phone number is required.'
+            };
+            let raw = String(val).trim();
+            // Disallow letters
+            if (/[a-zA-Z]/.test(raw)) {
+                return {
+                    valid: false,
+                    formatted: '',
+                    raw: raw,
+                    message: 'Invalid Phone Number. Letters are not allowed.'
+                };
+            }
+
+            let digits = raw.replace(/\D/g, '');
+            if (!digits) {
+                return {
+                    valid: false,
+                    formatted: '',
+                    raw: '',
+                    message: 'Phone number is required.'
+                };
+            }
+
+            // Must strictly start with 639, 09, or 9
+            if (digits.startsWith('6')) {
+                if (digits.length === 1) {
+                    return {
+                        valid: false,
+                        formatted: '',
+                        raw: digits,
+                        isIncomplete: true,
+                        message: 'Starting with 6... Must begin with 639 (e.g. 639123456789).'
+                    };
+                }
+                if (digits.length === 2) {
+                    if (digits !== '63') {
+                        return {
+                            valid: false,
+                            formatted: '',
+                            raw: digits,
+                            message: 'Invalid Phone Number. Numbers starting with 6 must begin with 639.'
+                        };
+                    }
+                    return {
+                        valid: false,
+                        formatted: '',
+                        raw: digits,
+                        isIncomplete: true,
+                        message: 'Starting with 63... Must begin with 639 (e.g. 639123456789).'
+                    };
+                }
+                if (!digits.startsWith('639')) {
+                    return {
+                        valid: false,
+                        formatted: '',
+                        raw: digits,
+                        message: 'Invalid Phone Number. Numbers starting with 6 must begin with 639 (e.g. 639XXXXXXXXX).'
+                    };
+                }
+                if (digits.length < 12) {
+                    return {
+                        valid: false,
+                        formatted: '',
+                        raw: digits,
+                        isIncomplete: true,
+                        message: digits.length + '/12 digits entered (format: 639XXXXXXXXX).'
+                    };
+                }
+                if (digits.length > 12) {
+                    return {
+                        valid: false,
+                        formatted: '',
+                        raw: digits,
+                        message: 'Invalid Phone Number. Exceeds 12 digits for 639 format.'
+                    };
+                }
+                let formatted = '+639' + digits.substring(3);
+                return {
+                    valid: true,
+                    formatted: formatted,
+                    raw: digits,
+                    message: 'Valid: ' + formatted
+                };
+            }
+
+            if (digits.startsWith('0')) {
+                if (digits.length === 1) {
+                    return {
+                        valid: false,
+                        formatted: '',
+                        raw: digits,
+                        isIncomplete: true,
+                        message: 'Starting with 0... Must begin with 09 (e.g. 09123456789).'
+                    };
+                }
+                if (!digits.startsWith('09')) {
+                    return {
+                        valid: false,
+                        formatted: '',
+                        raw: digits,
+                        message: 'Invalid Phone Number. Numbers starting with 0 must begin with 09 (e.g. 09XXXXXXXXX).'
+                    };
+                }
+                if (digits.length < 11) {
+                    return {
+                        valid: false,
+                        formatted: '',
+                        raw: digits,
+                        isIncomplete: true,
+                        message: digits.length + '/11 digits entered (format: 09XXXXXXXXX).'
+                    };
+                }
+                if (digits.length > 11) {
+                    return {
+                        valid: false,
+                        formatted: '',
+                        raw: digits,
+                        message: 'Invalid Phone Number. Exceeds 11 digits for 09 format.'
+                    };
+                }
+                let formatted = '+639' + digits.substring(2);
+                return {
+                    valid: true,
+                    formatted: formatted,
+                    raw: digits,
+                    message: 'Valid: ' + formatted
+                };
+            }
+
+            if (digits.startsWith('9')) {
+                if (digits.length < 10) {
+                    return {
+                        valid: false,
+                        formatted: '',
+                        raw: digits,
+                        isIncomplete: true,
+                        message: digits.length + '/10 digits entered (format: 9XXXXXXXXX).'
+                    };
+                }
+                if (digits.length > 10) {
+                    return {
+                        valid: false,
+                        formatted: '',
+                        raw: digits,
+                        message: 'Invalid Phone Number. Exceeds 10 digits for 9 format.'
+                    };
+                }
+                let formatted = '+639' + digits.substring(1);
+                return {
+                    valid: true,
+                    formatted: formatted,
+                    raw: digits,
+                    message: 'Valid: ' + formatted
+                };
+            }
+
+            // Any other starting digit (1, 2, 3, 4, 5, 7, 8)
+            return {
+                valid: false,
+                formatted: '',
+                raw: digits,
+                message: 'Invalid Phone Number. Must start with 09, 9, or 639.'
+            };
+        }
+
         function generateDriverPassword() {
             const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
             let pwd = "";
@@ -296,7 +468,167 @@
                 return 0.5 - Math.random()
             }).join('');
 
-            document.getElementById('driverPasswordInput').value = pwd;
+            const pwdInput = document.getElementById('driverPasswordInput');
+            if (pwdInput) {
+                pwdInput.value = pwd;
+                pwdInput.classList.remove('border-red-500');
+                pwdInput.classList.add('border-emerald-500');
+            }
+
+            const pwdFeedback = document.getElementById('addDriverPasswordFeedback');
+            if (pwdFeedback) {
+                pwdFeedback.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i> Strong password generated</span>';
+            }
+        }
+
+        // Real-time sanitization and validation on Add Driver Phone Input
+        const addDriverPhoneInput = document.getElementById('addDriverPhoneInput');
+        const addDriverPhoneFeedback = document.getElementById('addDriverPhoneFeedback');
+
+        if (addDriverPhoneInput) {
+            addDriverPhoneInput.addEventListener('input', function() {
+                // Remove any letters or unwanted characters except +, digits, spaces, and hyphens
+                let sanitizedInput = this.value.replace(/[^0-9+\s-]/g, '');
+                if (this.value !== sanitizedInput) {
+                    this.value = sanitizedInput;
+                }
+
+                if (!this.value.trim()) {
+                    this.classList.remove('border-emerald-500', 'border-red-500', 'dark:border-emerald-500', 'dark:border-red-500');
+                    if (addDriverPhoneFeedback) {
+                        addDriverPhoneFeedback.innerHTML = '<span class="text-gray-400 dark:text-gray-500">Starts with 09, 9, or 639 (saved as +639000000000)</span>';
+                    }
+                    return;
+                }
+
+                let check = sanitizeAndFormatPHPhone(this.value);
+
+                if (check.valid) {
+                    this.classList.remove('border-red-500', 'dark:border-red-500');
+                    this.classList.add('border-emerald-500', 'dark:border-emerald-500');
+                    if (addDriverPhoneFeedback) {
+                        addDriverPhoneFeedback.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i> ' + check.message + '</span>';
+                    }
+                } else if (check.isIncomplete) {
+                    this.classList.remove('border-emerald-500', 'dark:border-emerald-500', 'border-red-500', 'dark:border-red-500');
+                    if (addDriverPhoneFeedback) {
+                        addDriverPhoneFeedback.innerHTML = '<span class="text-blue-500 dark:text-blue-400 font-medium"><i class="fa-solid fa-pen mr-1"></i> ' + check.message + '</span>';
+                    }
+                } else {
+                    this.classList.remove('border-emerald-500', 'dark:border-emerald-500');
+                    this.classList.add('border-red-500', 'dark:border-red-500');
+                    if (addDriverPhoneFeedback) {
+                        addDriverPhoneFeedback.innerHTML = '<span class="text-red-500 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i> ' + check.message + '</span>';
+                    }
+                }
+            });
+        }
+
+        // Real-time password validation when typing manually
+        const driverPasswordInput = document.getElementById('driverPasswordInput');
+        const addDriverPasswordFeedback = document.getElementById('addDriverPasswordFeedback');
+        if (driverPasswordInput) {
+            driverPasswordInput.addEventListener('input', function() {
+                const val = this.value;
+                if (!val) {
+                    this.classList.remove('border-red-500', 'border-emerald-500');
+                    if (addDriverPasswordFeedback) {
+                        addDriverPasswordFeedback.innerHTML = '<span class="text-gray-400 dark:text-gray-500">Enter a password (min. 8 characters) or click Generate</span>';
+                    }
+                    return;
+                }
+                if (val.length >= 8 && /[A-Z]/.test(val) && /[a-z]/.test(val) && /[0-9]/.test(val)) {
+                    this.classList.remove('border-red-500');
+                    this.classList.add('border-emerald-500');
+                    if (addDriverPasswordFeedback) {
+                        addDriverPasswordFeedback.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i> Strong password</span>';
+                    }
+                } else {
+                    this.classList.remove('border-emerald-500');
+                    if (addDriverPasswordFeedback) {
+                        addDriverPasswordFeedback.innerHTML = '<span class="text-amber-500 dark:text-amber-400 font-medium"><i class="fa-solid fa-circle-info mr-1"></i> Must be at least 8 chars with uppercase, lowercase, and numbers</span>';
+                    }
+                }
+            });
+        }
+
+        // Add Driver Form Submit Handler
+        const addDriverForm = document.getElementById('addDriverForm');
+        if (addDriverForm) {
+            addDriverForm.addEventListener('submit', function(e) {
+                const rfidInput = document.getElementById('driverTruckRfidInput');
+                const rfidVal = (rfidInput?.value || '').trim();
+                const truckCodeVal = (document.getElementById('driverTruckCodeDisplay')?.value || '').trim();
+                const phoneInput = document.getElementById('addDriverPhoneInput');
+                const pwdInput = document.getElementById('driverPasswordInput');
+                const pwdVal = (pwdInput?.value || '').trim();
+
+                // 1. Truck RFID
+                if (!rfidVal) {
+                    e.preventDefault();
+                    if (typeof showToast === 'function') showToast('Please scan a truck RFID tag.', 'warning');
+                    if (rfidInput) rfidInput.focus();
+                    return;
+                }
+                if (truckCodeVal === 'Invalid' || !truckCodeVal || truckCodeVal === '---') {
+                    e.preventDefault();
+                    if (typeof showToast === 'function') showToast('Please scan a registered truck RFID tag.', 'warning');
+                    if (rfidInput) rfidInput.focus();
+                    return;
+                }
+
+                // 2. Phone validation & conversion to +639000000000
+                const phoneCheck = sanitizeAndFormatPHPhone(phoneInput?.value || '');
+                if (!phoneCheck.valid) {
+                    e.preventDefault();
+                    if (typeof showToast === 'function') {
+                        showToast('Invalid phone number: ' + phoneCheck.message, 'warning');
+                    }
+                    if (phoneInput) {
+                        phoneInput.focus();
+                        phoneInput.classList.add('border-red-500');
+                    }
+                    if (addDriverPhoneFeedback) {
+                        addDriverPhoneFeedback.innerHTML = '<span class="text-red-500 font-semibold"><i class="fa-solid fa-circle-exclamation mr-1"></i> ' + phoneCheck.message + '</span>';
+                    }
+                    return;
+                }
+                // Convert value to +639000000000 format before submission
+                if (phoneInput) {
+                    phoneInput.value = phoneCheck.formatted;
+                }
+
+                // 3. Password validation (manual entry or generated)
+                if (!pwdVal) {
+                    e.preventDefault();
+                    if (typeof showToast === 'function') {
+                        showToast('Please enter a password or click "Generate".', 'warning');
+                    }
+                    if (pwdInput) {
+                        pwdInput.focus();
+                        pwdInput.classList.add('border-red-500');
+                    }
+                    if (addDriverPasswordFeedback) {
+                        addDriverPasswordFeedback.innerHTML = '<span class="text-red-500 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i> Password is required.</span>';
+                    }
+                    return;
+                }
+
+                if (pwdVal.length < 8 || !/[A-Z]/.test(pwdVal) || !/[a-z]/.test(pwdVal) || !/[0-9]/.test(pwdVal)) {
+                    e.preventDefault();
+                    if (typeof showToast === 'function') {
+                        showToast('Password must be at least 8 characters and contain uppercase, lowercase, and numbers.', 'warning');
+                    }
+                    if (pwdInput) {
+                        pwdInput.focus();
+                        pwdInput.classList.add('border-red-500');
+                    }
+                    if (addDriverPasswordFeedback) {
+                        addDriverPasswordFeedback.innerHTML = '<span class="text-red-500 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i> Password must contain uppercase, lowercase, and numbers.</span>';
+                    }
+                    return;
+                }
+            });
         }
 
         const driverTruckRfidInput = document.getElementById('driverTruckRfidInput');

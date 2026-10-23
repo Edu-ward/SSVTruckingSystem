@@ -166,9 +166,11 @@ foreach ($_gravel_rows as $_g) {
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
 
-    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-        http_response_code(403);
-        die("CSRF token validation failed.");
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+        $_SESSION['error'] = "Security session expired or invalid. Please refresh the page and try again.";
+        $tab = $_GET['tab'] ?? '';
+        header("Location: dashboard.php" . ($tab ? "?tab=" . urlencode($tab) : ""));
+        exit;
     }
 
 
@@ -822,47 +824,116 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
     }
 
     if ($_POST['action'] == 'add_driver') {
-        $name = $_POST['name'];
-        $nameParts = explode(' ', trim($name), 2);
-        $firstName = $nameParts[0];
+        $name = trim($_POST['name'] ?? '');
+        $nameParts = explode(' ', $name, 2);
+        $firstName = $nameParts[0] ?? '';
         $lastName = isset($nameParts[1]) ? $nameParts[1] : '';
-        $cdl = $_POST['cdl_number'];
-        $phone = $_POST['phone'];
-        $username = trim($_POST['username']);
-        $password = $_POST['password'];
+        $cdl = trim($_POST['cdl_number'] ?? '');
+        $raw_phone = trim($_POST['phone'] ?? '');
+        $username = trim($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $truck_rfid = trim($_POST['truck_rfid'] ?? '');
 
-        if (strlen($password) < 8 || !preg_match('/[A-Z]/', $password) || !preg_match('/[a-z]/', $password) || !preg_match('/[0-9]/', $password)) {
-            die("Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number.");
+        if (empty($name) || empty($username)) {
+            $_SESSION['error'] = "Please provide both driver name and username.";
+            header("Location: dashboard.php?tab=drivers");
+            exit;
         }
 
-        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $user_insert = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'Driver')");
-        $user_insert->execute([$username, $hashed_password]);
+        // Phone sanitization and validation: must start with 9, 6, or 0 and saved as +639XXXXXXXXX (+639 + 9 digits)
+        $digits = preg_replace('/\D/', '', $raw_phone);
+        $formattedPhone = null;
 
-        $new_user_id = $pdo->lastInsertId();
-        $truck_rfid = trim($_POST['truck_rfid']);
+        if (str_starts_with($digits, '639') && strlen($digits) === 12) {
+            $formattedPhone = '+639' . substr($digits, 3);
+        } elseif (str_starts_with($digits, '09') && strlen($digits) === 11) {
+            $formattedPhone = '+639' . substr($digits, 2);
+        } elseif (str_starts_with($digits, '9') && strlen($digits) === 10) {
+            $formattedPhone = '+639' . substr($digits, 1);
+        }
+
+        if (!$formattedPhone || !preg_match('/^\+639\d{9}$/', $formattedPhone)) {
+            if (str_starts_with($digits, '6') && !str_starts_with($digits, '639')) {
+                $_SESSION['error'] = "Invalid Phone Number. Numbers starting with 6 must begin with 639 (e.g., 639123456789).";
+            } elseif (str_starts_with($digits, '0') && !str_starts_with($digits, '09')) {
+                $_SESSION['error'] = "Invalid Phone Number. Numbers starting with 0 must begin with 09 (e.g., 09123456789).";
+            } else {
+                $_SESSION['error'] = "Invalid Phone Number. Philippine mobile numbers must start with 09, 9, or 639 (e.g., 09123456789 or 9123456789).";
+            }
+            header("Location: dashboard.php?tab=drivers");
+            exit;
+        }
+        $phone = $formattedPhone;
+
+        // Password validation
+        if (empty($password)) {
+            $_SESSION['error'] = "Password is required. Please click 'Generate' to create a secure password for the new driver.";
+            header("Location: dashboard.php?tab=drivers");
+            exit;
+        }
+
+        if (strlen($password) < 8 || !preg_match('/[A-Z]/', $password) || !preg_match('/[a-z]/', $password) || !preg_match('/[0-9]/', $password)) {
+            $_SESSION['error'] = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number.";
+            header("Location: dashboard.php?tab=drivers");
+            exit;
+        }
+
+        // Truck RFID validation
+        if (empty($truck_rfid)) {
+            $_SESSION['error'] = "Please scan or enter a registered truck RFID tag.";
+            header("Location: dashboard.php?tab=drivers");
+            exit;
+        }
 
         $stmt_truck = $pdo->prepare("SELECT id, truck_code FROM trucks WHERE rfid_tag = ? LIMIT 1");
         $stmt_truck->execute([$truck_rfid]);
         $truck = $stmt_truck->fetch();
-        $truck_id = $truck ? $truck['id'] : null;
+        if (!$truck) {
+            $_SESSION['error'] = "The scanned RFID tag is not registered to any truck. Please register the truck first.";
+            header("Location: dashboard.php?tab=drivers");
+            exit;
+        }
+        $truck_id = $truck['id'];
 
-        if ($truck_id) {
-            $countStmt = $pdo->prepare("SELECT COUNT(*) FROM drivers WHERE truck_id = ? AND status != 'Resigned'");
-            $countStmt->execute([$truck_id]);
-            $currentDriverCount = (int)$countStmt->fetchColumn();
-            if ($currentDriverCount >= 2) {
-                $_SESSION['error'] = "Truck <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> already has two assigned drivers. A truck can only have up to 2 drivers.";
-                header("Location: dashboard.php?tab=drivers");
-                exit;
-            }
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM drivers WHERE truck_id = ? AND status != 'Resigned'");
+        $countStmt->execute([$truck_id]);
+        $currentDriverCount = (int)$countStmt->fetchColumn();
+        if ($currentDriverCount >= 2) {
+            $_SESSION['error'] = "Truck <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> already has two assigned drivers. A truck can only have up to 2 drivers.";
+            header("Location: dashboard.php?tab=drivers");
+            exit;
         }
 
-        $driver_insert = $pdo->prepare("INSERT INTO drivers (id, first_name, last_name, cdl_number, phone, status, truck_id) VALUES (?, ?, ?, ?, ?, 'Off Duty', ?)");
-        $driver_insert->execute([$new_user_id, $firstName, $lastName, $cdl, $phone, $truck_id]);
+        // Duplicate username check
+        $stmtU = $pdo->prepare("SELECT id FROM users WHERE username = ? LIMIT 1");
+        $stmtU->execute([$username]);
+        if ($stmtU->fetch()) {
+            $_SESSION['error'] = "Username <strong>" . htmlspecialchars($username) . "</strong> is already taken. Please choose another username.";
+            header("Location: dashboard.php?tab=drivers");
+            exit;
+        }
 
-        $_SESSION['success'] = "Driver <strong>" . htmlspecialchars($name) . "</strong> added successfully.";
-        log_activity($pdo, 'Registered Driver', 'Registered driver: ' . $name);
+        try {
+            $pdo->beginTransaction();
+
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+            $user_insert = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'Driver')");
+            $user_insert->execute([$username, $hashed_password]);
+            $new_user_id = $pdo->lastInsertId();
+
+            $driver_insert = $pdo->prepare("INSERT INTO drivers (id, first_name, last_name, cdl_number, phone, status, truck_id) VALUES (?, ?, ?, ?, ?, 'Off Duty', ?)");
+            $driver_insert->execute([$new_user_id, $firstName, $lastName, $cdl, $phone, $truck_id]);
+
+            $pdo->commit();
+            $_SESSION['success'] = "Driver <strong>" . htmlspecialchars($name) . "</strong> added successfully with phone <strong>" . htmlspecialchars($phone) . "</strong>.";
+            log_activity($pdo, 'Registered Driver', 'Registered driver: ' . $name);
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $_SESSION['error'] = "Failed to add driver: " . $e->getMessage();
+        }
+
         header("Location: dashboard.php?tab=drivers");
         exit;
     }
@@ -874,7 +945,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $firstName = $nameParts[0] ?? '';
         $lastName = $nameParts[1] ?? '';
         $cdl = trim($_POST['cdl_number'] ?? '');
-        $phone = trim($_POST['phone'] ?? '');
+        $raw_phone = trim($_POST['phone'] ?? '');
         $username = trim($_POST['username'] ?? '');
         $status = trim($_POST['status'] ?? 'Off Duty');
         $truck_id = !empty($_POST['truck_id']) ? intval($_POST['truck_id']) : null;
@@ -885,6 +956,32 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             exit;
         }
 
+        $phone = '';
+        if (!empty($raw_phone)) {
+            $digits = preg_replace('/\D/', '', $raw_phone);
+            $formattedPhone = null;
+
+            if (str_starts_with($digits, '639') && strlen($digits) === 12) {
+                $formattedPhone = '+639' . substr($digits, 3);
+            } elseif (str_starts_with($digits, '09') && strlen($digits) === 11) {
+                $formattedPhone = '+639' . substr($digits, 2);
+            } elseif (str_starts_with($digits, '9') && strlen($digits) === 10) {
+                $formattedPhone = '+639' . substr($digits, 1);
+            }
+
+            if (!$formattedPhone || !preg_match('/^\+639\d{9}$/', $formattedPhone)) {
+                if (str_starts_with($digits, '6') && !str_starts_with($digits, '639')) {
+                    $_SESSION['error'] = "Invalid Phone Number. Numbers starting with 6 must begin with 639 (e.g., 639123456789).";
+                } elseif (str_starts_with($digits, '0') && !str_starts_with($digits, '09')) {
+                    $_SESSION['error'] = "Invalid Phone Number. Numbers starting with 0 must begin with 09 (e.g., 09123456789).";
+                } else {
+                    $_SESSION['error'] = "Invalid Phone Number. Philippine mobile numbers must start with 09, 9, or 639 (e.g., 09123456789 or 9123456789).";
+                }
+                header("Location: dashboard.php?tab=drivers");
+                exit;
+            }
+            $phone = $formattedPhone;
+        }
 
         $chkUser = $pdo->prepare("SELECT id FROM users WHERE username = ? AND id != ? LIMIT 1");
         $chkUser->execute([$username, $driver_id]);
@@ -893,7 +990,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             header("Location: dashboard.php?tab=drivers");
             exit;
         }
-
 
         if ($truck_id) {
             $curTruckStmt = $pdo->prepare("SELECT truck_id FROM drivers WHERE id = ?");
@@ -1481,13 +1577,58 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
     }
 
     if ($_POST['action'] == 'add_checker') {
-        $uname = trim($_POST['checker_username']);
-        $pwd   = $_POST['checker_password'];
-        $fname = trim($_POST['first_name']);
-        $lname = trim($_POST['last_name']);
-        $phone = trim($_POST['phone']);
+        $uname = trim($_POST['checker_username'] ?? '');
+        $pwd   = $_POST['checker_password'] ?? '';
+        $fname = trim($_POST['first_name'] ?? '');
+        $lname = trim($_POST['last_name'] ?? '');
+        $raw_phone = trim($_POST['phone'] ?? '');
 
-        if (strlen($pwd) < 8) die("Password must be at least 8 characters.");
+        if (empty($uname) || empty($fname) || empty($lname)) {
+            $_SESSION['error'] = "Please fill in all required fields for the checker.";
+            header("Location: dashboard.php?tab=checkers");
+            exit;
+        }
+
+        // Phone sanitization and validation: must start with 9, 6, or 0 and saved as +639XXXXXXXXX
+        $digits = preg_replace('/\D/', '', $raw_phone);
+        $formattedPhone = null;
+
+        if (str_starts_with($digits, '639') && strlen($digits) === 12) {
+            $formattedPhone = '+639' . substr($digits, 3);
+        } elseif (str_starts_with($digits, '09') && strlen($digits) === 11) {
+            $formattedPhone = '+639' . substr($digits, 2);
+        } elseif (str_starts_with($digits, '9') && strlen($digits) === 10) {
+            $formattedPhone = '+639' . substr($digits, 1);
+        }
+
+        if (!$formattedPhone || !preg_match('/^\+639\d{9}$/', $formattedPhone)) {
+            $_SESSION['error'] = "Invalid phone number. Please enter a valid Philippine mobile number starting with 9, 6, or 0 (e.g., 09123456789 or 9123456789).";
+            header("Location: dashboard.php?tab=checkers");
+            exit;
+        }
+        $phone = $formattedPhone;
+
+        // Password validation
+        if (empty($pwd)) {
+            $_SESSION['error'] = "Password is required. Please click 'Generate' to create a password.";
+            header("Location: dashboard.php?tab=checkers");
+            exit;
+        }
+
+        if (strlen($pwd) < 8 || !preg_match('/[A-Z]/', $pwd) || !preg_match('/[a-z]/', $pwd) || !preg_match('/[0-9]/', $pwd)) {
+            $_SESSION['error'] = "Password must be at least 8 characters long and contain uppercase, lowercase, and numeric characters.";
+            header("Location: dashboard.php?tab=checkers");
+            exit;
+        }
+
+        // Check if username already exists
+        $chkU = $pdo->prepare("SELECT id FROM users WHERE username = ? LIMIT 1");
+        $chkU->execute([$uname]);
+        if ($chkU->fetch()) {
+            $_SESSION['error'] = "Username <strong>" . htmlspecialchars($uname) . "</strong> is already taken.";
+            header("Location: dashboard.php?tab=checkers");
+            exit;
+        }
 
         try {
             $pdo->beginTransaction();
@@ -1503,11 +1644,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $pdo->commit();
             $_SESSION['success'] = "Checker <strong>" . htmlspecialchars($fname . ' ' . $lname) . "</strong> added successfully.";
             log_activity($pdo, 'Registered Checker', 'Registered checker: ' . $fname . ' ' . $lname);
-            header("Location: dashboard.php?tab=orders");
+            header("Location: dashboard.php?tab=checkers");
         } catch (Exception $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
-            $_SESSION['error'] = "Failed to add checker. The username may already exist.";
-            header("Location: dashboard.php?tab=orders");
+            $_SESSION['error'] = "Failed to add checker: " . $e->getMessage();
+            header("Location: dashboard.php?tab=checkers");
         }
         exit;
     }

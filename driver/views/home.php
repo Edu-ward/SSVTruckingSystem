@@ -292,32 +292,6 @@ if (!empty($driverFullName)) {
                                 </div>
 
                             </div>
-
-                            <!-- 2-Point Visual Progress Bar -->
-                            <div class="mt-4 pt-3 border-t border-white/15 flex items-center justify-between relative px-2 sm:px-4">
-                                <!-- Background line -->
-                                <div class="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-1 bg-white/20 rounded-full overflow-hidden">
-                                    <div class="h-full <?= $isDelivered ? 'w-full bg-emerald-400' : ($status === 'In Transit' ? 'w-1/2 bg-cyan-300 animate-pulse' : 'w-0 bg-transparent') ?> transition-all duration-700"></div>
-                                </div>
-
-                                <!-- Point 1: Site Exit -->
-                                <div class="relative z-10 flex items-center gap-2 bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/25 shadow-sm">
-                                    <span class="w-2.5 h-2.5 rounded-full <?= $hasExited ? 'bg-emerald-400 shadow-sm shadow-emerald-400' : 'bg-white/40' ?>"></span>
-                                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-white">1. Time of Exit</span>
-                                </div>
-
-                                <!-- Middle Indicator -->
-                                <div class="relative z-10 hidden sm:flex items-center gap-1.5 bg-slate-900/95 backdrop-blur-md px-3.5 py-1 rounded-full border border-cyan-400/40 text-[10px] font-bold text-cyan-200 shadow-sm">
-                                    <i class="fa-solid fa-truck-fast <?= $status === 'In Transit' ? 'animate-bounce text-cyan-300' : '' ?>"></i>
-                                    <span><?= $status === 'In Transit' ? 'En Route' : ($isDelivered ? 'Trip Completed' : 'Awaiting Exit') ?></span>
-                                </div>
-
-                                <!-- Point 2: Site Arrival -->
-                                <div class="relative z-10 flex items-center gap-2 bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/25 shadow-sm">
-                                    <span class="w-2.5 h-2.5 rounded-full <?= $isDelivered ? 'bg-emerald-400 shadow-sm shadow-emerald-400' : ($status === 'In Transit' ? 'bg-cyan-300 animate-ping' : 'bg-white/40') ?>"></span>
-                                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-white">2. Estimated Time of Arrival</span>
-                                </div>
-                            </div>
                         </div>
                     <?php else: ?>
                         <div class="relative z-10 mt-5 pt-4 border-t border-white/20 flex items-center gap-2 text-rose-200 text-xs font-semibold">
@@ -704,9 +678,14 @@ if (!empty($driverFullName)) {
                 <div>
                     <div class="flex items-center gap-2 flex-wrap">
                         <h2 class="font-bold text-lg sm:text-xl text-white">Live Route & Turn-by-Turn Navigation</h2>
+                        <div id="driverRouteStatusBadgeContainer" class="inline-flex items-center">
                         <?php if ($active_dispatch && ($active_dispatch['status'] ?? '') === 'In Transit'): ?>
                             <span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-green-500/20 text-green-300 border border-green-400/30">
                                 <i class="fa-solid fa-satellite-dish fa-fade mr-1"></i> In Transit
+                            </span>
+                        <?php elseif ($active_dispatch && in_array(($active_dispatch['status'] ?? ''), ['Delivered', 'Completed'])): ?>
+                            <span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+                                <i class="fa-solid fa-arrow-rotate-left mr-1"></i> Return Trip to Quarry
                             </span>
                         <?php elseif ($active_dispatch): ?>
                             <span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30">
@@ -717,8 +696,9 @@ if (!empty($driverFullName)) {
                                 Idle (At Garage)
                             </span>
                         <?php endif; ?>
+                        </div>
                     </div>
-                    <p class="text-xs sm:text-sm text-blue-200 mt-0.5">
+                    <p class="text-xs sm:text-sm text-blue-200 mt-0.5" id="driverRouteBannerSubtitle">
                         <?php if ($active_dispatch): ?>
                             Road route from SSV Quarry Garage to <strong><?= htmlspecialchars($active_dispatch['destination']); ?></strong>.
                         <?php else: ?>
@@ -730,6 +710,13 @@ if (!empty($driverFullName)) {
 
 
             <div class="flex flex-wrap items-center gap-2">
+                <?php if ($active_dispatch): ?>
+                <button type="button" id="btnToggleReturnRoute" onclick="toggleRouteLeg()"
+                    class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-indigo-500/30 hover:bg-indigo-500/50 text-indigo-100 border border-indigo-400/40 active:scale-95 shadow transition"
+                    title="Toggle between outbound route to site and return route to quarry">
+                    <i class="fa-solid fa-arrow-rotate-left" id="toggleRouteLegIcon"></i> <span id="toggleRouteLegText">Return Route</span>
+                </button>
+                <?php endif; ?>
                 <button type="button" onclick="launchGoogleMapsNav()"
                     class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-gray-800 hover:bg-gray-100 active:scale-95 shadow transition">
                     <i class="fa-brands fa-google text-blue-600"></i> Google Maps
@@ -744,10 +731,10 @@ if (!empty($driverFullName)) {
 
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 p-4 sm:p-5 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700 text-xs sm:text-sm">
             <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200/80 dark:border-gray-700/80">
-                <div class="text-gray-400 dark:text-gray-500 text-[11px] font-semibold uppercase flex items-center gap-1">
+                <div class="text-gray-400 dark:text-gray-500 text-[11px] font-semibold uppercase flex items-center gap-1" id="driverRouteOriginLabel">
                     <i class="fa-solid fa-warehouse text-indigo-500"></i> Origin
                 </div>
-                <div class="font-bold text-gray-800 dark:text-gray-200 mt-0.5 truncate" title="Brgy. Burgos San Leonardo, Nueva Ecija">
+                <div class="font-bold text-gray-800 dark:text-gray-200 mt-0.5 truncate" id="driverRouteOriginDisplay" title="Brgy. Burgos San Leonardo, Nueva Ecija">
                     San Leonardo (Quarry)
                 </div>
             </div>
@@ -762,7 +749,7 @@ if (!empty($driverFullName)) {
             </div>
 
             <div class="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200/80 dark:border-gray-700/80">
-                <div class="text-gray-400 dark:text-gray-500 text-[11px] font-semibold uppercase flex items-center gap-1">
+                <div class="text-gray-400 dark:text-gray-500 text-[11px] font-semibold uppercase flex items-center gap-1" id="driverRouteDestLabel">
                     <i class="fa-solid fa-location-dot text-red-500"></i> Destination
                 </div>
                 <div class="font-bold text-gray-800 dark:text-gray-200 mt-0.5 truncate" id="driverRouteDestDisplay">
@@ -2516,6 +2503,14 @@ if (!empty($driverFullName)) {
 
     let activeDestName = "<?= addslashes($active_dispatch['destination'] ?? 'San Leonardo') ?>";
     let activeDestCoords = null;
+    let activeDispatchId = <?= intval($active_dispatch['id'] ?? 0); ?>;
+    let dispatchStatus = "<?= addslashes($active_dispatch['status'] ?? '') ?>";
+    let isReturnLeg = (activeDispatchId > 0 && (
+        sessionStorage.getItem('ssv_return_leg_' + activeDispatchId) === '1' ||
+        dispatchStatus === 'Delivered' ||
+        dispatchStatus === 'Completed'
+    ));
+    let hasAlertedArrival = false;
 
     function initDriverMap() {
         const mapContainer = document.getElementById('driverRouteMap');
@@ -2599,7 +2594,13 @@ if (!empty($driverFullName)) {
                 `);
 
             if (activeDestName && activeDestName !== 'San Leonardo' && activeDestName !== 'San Leonardo Garage') {
-                resolveAndPlotRoute(activeDestName);
+                if (isReturnLeg) {
+                    resolveAndPlotRoute(activeDestName).then(() => {
+                        activateReturnLeg(false);
+                    });
+                } else {
+                    resolveAndPlotRoute(activeDestName);
+                }
             } else {
                 const distEl = document.getElementById('routeDistanceText');
                 const durEl = document.getElementById('routeDurationText');
@@ -2755,19 +2756,203 @@ if (!empty($driverFullName)) {
         fitDriverRouteBounds();
     }
 
-    function drawRoutePolyline(latLngs) {
+    function drawRoutePolyline(latLngs, color = '#2563eb') {
         if (driverRoutePolyline && driverMap) {
             driverMap.removeLayer(driverRoutePolyline);
         }
         if (driverMap) {
             driverRoutePolyline = L.polyline(latLngs, {
-                color: '#2563eb',
+                color: color,
                 weight: 6,
                 opacity: 0.85,
                 lineJoin: 'round',
                 lineCap: 'round'
             }).addTo(driverMap);
         }
+    }
+
+    function activateReturnLeg(notifyUser = true) {
+        isReturnLeg = true;
+        if (activeDispatchId > 0) {
+            sessionStorage.setItem('ssv_return_leg_' + activeDispatchId, '1');
+        }
+
+        // Update Header Badge
+        const badgeContainer = document.getElementById('driverRouteStatusBadgeContainer');
+        if (badgeContainer) {
+            badgeContainer.innerHTML = `
+                <span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 flex items-center gap-1.5 animate-pulse">
+                    <i class="fa-solid fa-arrow-rotate-left"></i> Return Trip to Quarry
+                </span>
+            `;
+        }
+
+        // Update Subtitle
+        const subtitleEl = document.getElementById('driverRouteBannerSubtitle');
+        if (subtitleEl) {
+            subtitleEl.innerHTML = `Arrived at <strong>${activeDestName}</strong>. Return route active back to <strong>San Leonardo (SSV Quarry Garage)</strong>.`;
+        }
+
+        // Update Toggle Button Text
+        const toggleBtnText = document.getElementById('toggleRouteLegText');
+        const toggleBtnIcon = document.getElementById('toggleRouteLegIcon');
+        if (toggleBtnText) toggleBtnText.textContent = 'Site Route';
+        if (toggleBtnIcon) toggleBtnIcon.className = 'fa-solid fa-location-dot';
+
+        // Update Origin and Destination in Stats Display
+        const originEl = document.getElementById('driverRouteOriginDisplay');
+        const destEl = document.getElementById('driverRouteDestDisplay');
+        const originLbl = document.getElementById('driverRouteOriginLabel');
+        const destLbl = document.getElementById('driverRouteDestLabel');
+        if (originEl) originEl.textContent = activeDestName + ' (Site)';
+        if (destEl) destEl.textContent = 'San Leonardo (SSV Quarry Garage)';
+        if (originLbl) originLbl.innerHTML = '<i class="fa-solid fa-location-dot text-emerald-500"></i> Origin (Site)';
+        if (destLbl) destLbl.innerHTML = '<i class="fa-solid fa-warehouse text-indigo-500"></i> Return Destination';
+
+        // Update Marker Popups
+        if (driverDestMarker) {
+            driverDestMarker.bindPopup(`
+                <div class="driver-popup-card">
+                    <div class="driver-popup-title">
+                        <i class="fa-solid fa-circle-check text-emerald-500"></i> Delivery Site Arrived
+                    </div>
+                    <div class="driver-popup-loc text-emerald-600 dark:text-emerald-400 font-bold">${activeDestName}</div>
+                    <div class="driver-popup-hint">Arrived Delivery Site &bull; Origin of Return Leg</div>
+                </div>
+            `);
+        }
+
+        if (driverOriginMarker) {
+            driverOriginMarker.bindPopup(`
+                <div class="driver-popup-card">
+                    <div class="driver-popup-title">
+                        <i class="fa-solid fa-warehouse text-indigo-500"></i> SSV Quarry Garage
+                    </div>
+                    <div class="driver-popup-loc">Brgy. Burgos San Leonardo</div>
+                    <div class="driver-popup-hint">Return Trip Destination &bull; Fleet Base Station</div>
+                </div>
+            `);
+        }
+
+        if (notifyUser && !hasAlertedArrival) {
+            hasAlertedArrival = true;
+            if (typeof showToast === 'function') {
+                showToast('📍 Arrived at destination site! Route has automatically switched to the return trip back to SSV Quarry Garage.', 'success', 8000);
+            }
+        }
+
+        plotReturnRoute();
+    }
+
+    function activateOutwardLeg(notifyUser = true) {
+        isReturnLeg = false;
+        if (activeDispatchId > 0) {
+            sessionStorage.removeItem('ssv_return_leg_' + activeDispatchId);
+        }
+
+        // Update Header Badge
+        const badgeContainer = document.getElementById('driverRouteStatusBadgeContainer');
+        if (badgeContainer) {
+            badgeContainer.innerHTML = `
+                <span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-green-500/20 text-green-300 border border-green-400/30 flex items-center gap-1.5">
+                    <i class="fa-solid fa-satellite-dish fa-fade"></i> In Transit
+                </span>
+            `;
+        }
+
+        // Update Subtitle
+        const subtitleEl = document.getElementById('driverRouteBannerSubtitle');
+        if (subtitleEl) {
+            subtitleEl.innerHTML = `Road route from SSV Quarry Garage to <strong>${activeDestName}</strong>.`;
+        }
+
+        // Update Toggle Button Text
+        const toggleBtnText = document.getElementById('toggleRouteLegText');
+        const toggleBtnIcon = document.getElementById('toggleRouteLegIcon');
+        if (toggleBtnText) toggleBtnText.textContent = 'Return Route';
+        if (toggleBtnIcon) toggleBtnIcon.className = 'fa-solid fa-arrow-rotate-left';
+
+        // Update Stats Display
+        const originEl = document.getElementById('driverRouteOriginDisplay');
+        const destEl = document.getElementById('driverRouteDestDisplay');
+        const originLbl = document.getElementById('driverRouteOriginLabel');
+        const destLbl = document.getElementById('driverRouteDestLabel');
+        if (originEl) originEl.textContent = 'San Leonardo (Quarry)';
+        if (destEl) destEl.textContent = activeDestName;
+        if (originLbl) originLbl.innerHTML = '<i class="fa-solid fa-warehouse text-indigo-500"></i> Origin';
+        if (destLbl) destLbl.innerHTML = '<i class="fa-solid fa-location-dot text-red-500"></i> Destination';
+
+        if (notifyUser && typeof showToast === 'function') {
+            showToast('🔄 Switched back to outbound site delivery route.', 'info', 5000);
+        }
+
+        resolveAndPlotRoute(activeDestName);
+    }
+
+    function toggleRouteLeg() {
+        if (isReturnLeg) {
+            activateOutwardLeg(true);
+        } else {
+            activateReturnLeg(true);
+        }
+    }
+
+    async function plotReturnRoute() {
+        if (!driverMap) return;
+
+        const fromLat = driverCurrentLat || (activeDestCoords ? activeDestCoords.lat : GARAGE_LOCATION.lat);
+        const fromLng = driverCurrentLng || (activeDestCoords ? activeDestCoords.lng : GARAGE_LOCATION.lng);
+        const toLat = GARAGE_LOCATION.lat;
+        const toLng = GARAGE_LOCATION.lng;
+
+        lastRouteCalcLat = fromLat;
+        lastRouteCalcLng = fromLng;
+
+        const distEl = document.getElementById('routeDistanceText');
+        const durEl = document.getElementById('routeDurationText');
+        const statusEl = document.getElementById('driverMapStatusText');
+
+        if (statusEl) statusEl.textContent = 'Calculating Return Route to SSV Quarry Garage...';
+
+        try {
+            const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+            const r = await fetch(osrmUrl);
+            const routeData = await r.json();
+
+            if (routeData.code === 'Ok' && routeData.routes && routeData.routes.length > 0) {
+                const route = routeData.routes[0];
+                const distKm = (route.distance / 1000).toFixed(1);
+                const durMins = Math.round(route.duration / 60);
+
+                if (distEl) distEl.textContent = distKm + ' km';
+                if (durEl) {
+                    if (durMins >= 60) {
+                        const hrs = Math.floor(durMins / 60);
+                        const rem = durMins % 60;
+                        durEl.textContent = `${hrs} hr ${rem > 0 ? rem + ' min' : ''}`;
+                    } else {
+                        durEl.textContent = durMins + ' mins';
+                    }
+                }
+
+                const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+                drawRoutePolyline(coords, '#6366f1'); // Indigo/violet for return trip
+                if (statusEl) statusEl.textContent = `Return to Garage (${distKm} km remaining)`;
+                fitDriverRouteBounds();
+                return;
+            }
+        } catch (e) {
+            console.warn('Return route fetch failed:', e);
+        }
+
+        // Direct fallback
+        const fallbackPath = [[fromLat, fromLng], [toLat, toLng]];
+        drawRoutePolyline(fallbackPath, '#6366f1');
+        const directKm = calculateDirectDistanceKm(fromLat, fromLng, toLat, toLng);
+        if (distEl) distEl.textContent = '~' + directKm.toFixed(1) + ' km';
+        if (durEl) durEl.textContent = '~' + Math.round((directKm / 45) * 60) + ' mins';
+        if (statusEl) statusEl.textContent = `Return Route (${directKm.toFixed(1)} km)`;
+        fitDriverRouteBounds();
     }
 
     function getPresetCoords(name) {
@@ -2792,7 +2977,7 @@ if (!empty($driverFullName)) {
     let lastRouteCalcLng = null;
     let routeRefreshTimer = null;
     const ROUTE_REFRESH_MIN_DISTANCE_KM = 0.05; // Re-calculate route after moving 50 meters
-    const ROUTE_REFRESH_DEBOUNCE_MS = 10000;    // Minimum 10s between route API calls
+    const ROUTE_REFRESH_DEBOUNCE_MS = 10000; // Minimum 10s between route API calls
 
     async function resolveDriverLocationName(lat, lng) {
         // SSV Quarry Loading & Garage base station check (within ~350m)
@@ -2940,7 +3125,44 @@ if (!empty($driverFullName)) {
                 }
             }
 
-            // --- Live route refresh from driver's current position ---
+            // --- Check Proximity Arrival at Destination Site ---
+            if (!isReturnLeg && activeDestCoords && activeDestName &&
+                activeDestName !== 'San Leonardo' && activeDestName !== 'San Leonardo Garage') {
+                const distToSite = calculateDirectDistanceKm(lat, lng, activeDestCoords.lat, activeDestCoords.lng);
+                // When driver arrives within 250 meters of destination site, auto-flip to return leg
+                if (distToSite <= 0.25) {
+                    activateReturnLeg(true);
+                    return;
+                }
+            }
+
+            // --- Handle Return Leg GPS updates and countdown back to Garage ---
+            if (isReturnLeg) {
+                const distToGarage = calculateDirectDistanceKm(lat, lng, GARAGE_LOCATION.lat, GARAGE_LOCATION.lng);
+                if (distToGarage <= 0.25) {
+                    const statusEl = document.getElementById('driverMapStatusText');
+                    const distEl = document.getElementById('routeDistanceText');
+                    const durEl = document.getElementById('routeDurationText');
+                    if (statusEl) statusEl.textContent = '✅ Arrived at San Leonardo Garage — Return Complete';
+                    if (distEl) distEl.textContent = '0.0 km';
+                    if (durEl) durEl.textContent = 'At Garage';
+                    return;
+                }
+
+                const movedEnough = (lastRouteCalcLat === null) ||
+                    calculateDirectDistanceKm(lat, lng, lastRouteCalcLat, lastRouteCalcLng) >= ROUTE_REFRESH_MIN_DISTANCE_KM;
+
+                if (movedEnough) {
+                    if (routeRefreshTimer) clearTimeout(routeRefreshTimer);
+                    routeRefreshTimer = setTimeout(async () => {
+                        routeRefreshTimer = null;
+                        plotReturnRoute();
+                    }, ROUTE_REFRESH_DEBOUNCE_MS);
+                }
+                return;
+            }
+
+            // --- Live route refresh for Outward Leg from driver's current position ---
             // Only trigger if there is an active destination and driver has moved enough
             if (activeDestCoords && activeDestName &&
                 activeDestName !== 'San Leonardo' && activeDestName !== 'San Leonardo Garage') {
@@ -2985,13 +3207,16 @@ if (!empty($driverFullName)) {
                                 }
 
                                 const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
-                                drawRoutePolyline(coords);
+                                drawRoutePolyline(coords, '#2563eb');
                                 if (statusEl) statusEl.textContent = `Route to ${activeDestName} (${distKm} km remaining)`;
                             }
                         } catch (routeErr) {
                             console.warn('Live route refresh failed:', routeErr);
                             // Fallback: straight line from current position to destination
-                            drawRoutePolyline([[fromLat, fromLng], [activeDestCoords.lat, activeDestCoords.lng]]);
+                            drawRoutePolyline([
+                                [fromLat, fromLng],
+                                [activeDestCoords.lat, activeDestCoords.lng]
+                            ], '#2563eb');
                             const fallbackDist = calculateDirectDistanceKm(fromLat, fromLng, activeDestCoords.lat, activeDestCoords.lng);
                             if (distEl) distEl.textContent = '~' + fallbackDist.toFixed(1) + ' km';
                             if (durEl) durEl.textContent = '~' + Math.round((fallbackDist / 45) * 60) + ' mins';
@@ -3091,12 +3316,23 @@ if (!empty($driverFullName)) {
     }
 
     function launchGoogleMapsNav() {
+        if (isReturnLeg) {
+            const garageDest = "Brgy. Burgos, San Leonardo, Nueva Ecija, Philippines";
+            const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(garageDest)}&travelmode=driving`;
+            window.open(url, '_blank');
+            return;
+        }
         const dest = activeDestName || "Cabanatuan City, Nueva Ecija";
         const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest + ', Nueva Ecija')}&travelmode=driving`;
         window.open(url, '_blank');
     }
 
     function launchWazeNav() {
+        if (isReturnLeg) {
+            const url = `https://waze.com/ul?ll=${GARAGE_LOCATION.lat},${GARAGE_LOCATION.lng}&navigate=yes`;
+            window.open(url, '_blank');
+            return;
+        }
         if (activeDestCoords) {
             const url = `https://waze.com/ul?ll=${activeDestCoords.lat},${activeDestCoords.lng}&navigate=yes`;
             window.open(url, '_blank');

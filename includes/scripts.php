@@ -1045,6 +1045,16 @@
                     setTimeout(() => document.getElementById('rfidInput')?.focus(), 100);
                 }
                 if (modalID === 'addTruckModal') setTimeout(() => document.getElementById('newTruckRfidInput')?.focus(), 100);
+                if (modalID === 'addDriverModal') {
+                    setTimeout(() => document.getElementById('driverTruckRfidInput')?.focus(), 100);
+                }
+                if (modalID === 'addCheckerModal') {
+                    const pwdIn = document.getElementById('checkerPasswordInput');
+                    if (pwdIn && !pwdIn.value && typeof generateCheckerPassword === 'function') {
+                        generateCheckerPassword();
+                    }
+                    setTimeout(() => document.querySelector('#addCheckerModal input[name="first_name"]')?.focus(), 100);
+                }
             } else {
                 modal.classList.add('hidden');
                 if (modalID === 'dispatchModal') {
