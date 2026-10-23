@@ -1,103 +1,1069 @@
-<?php if ($_SESSION['role'] === 'Admin'): ?>
-    <!-- ================= ADMIN SCRIPTS ================= -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<?php ?>
+
+<?php if (in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin'])): ?>
+
     <script>
+        // Expose CSRF token for JS-initiated admin API calls
+        const _csrfToken = <?= json_encode($_SESSION['csrf_token'] ?? '') ?>;
+
+        const isSuperadminUser = <?= json_encode($isSuperadmin ?? (($_SESSION['role'] ?? '') === 'Superadmin')) ?>;
         const urlParams = new URLSearchParams(window.location.search);
-        const activeTab = urlParams.get('tab') || 'dashboard';
+        const activeTab = urlParams.get('tab') || (isSuperadminUser ? 'admin_management' : 'dashboard');
         let map = null;
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-btn').forEach(el => el.className = "nav-btn flex items-center space-x-1 hover:text-white px-3 py-1.5 rounded transition");
+            document.querySelectorAll('.sidebar-nav-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.bottom-nav-item').forEach(el => el.classList.remove('active'));
             const viewEl = document.getElementById('view-' + tabName);
             if (viewEl) viewEl.classList.remove('hidden');
             const navBtn = document.getElementById('nav-' + tabName);
-            if (navBtn) navBtn.className = "nav-btn flex items-center space-x-1 text-white bg-blue-700 px-3 py-1.5 rounded transition";
+            if (navBtn) navBtn.classList.add('active');
+            const bottomNavBtn = document.getElementById('bottom-nav-' + tabName);
+            if (bottomNavBtn) bottomNavBtn.classList.add('active');
             if (tabName === 'tracking') {
-                setTimeout(() => {
+                const fixAdminMap = () => {
                     if (!map) {
                         initMap();
                     } else {
                         map.invalidateSize();
                     }
+                };
+                setTimeout(fixAdminMap, 50);
+                setTimeout(fixAdminMap, 250);
+                setTimeout(fixAdminMap, 600);
+            }
+            if (tabName === 'settings') {
+                setTimeout(() => {
+                    if (window.initSettingsSimulatorMap) {
+                        window.initSettingsSimulatorMap();
+                    } else if (window.settingsSimulatorMap) {
+                        window.settingsSimulatorMap.invalidateSize();
+                    }
                 }, 250);
             }
+            if (tabName === 'dispatches') {
+                setTimeout(() => {
+                    const input = document.getElementById('dispatchScannerRfidInput');
+                    if (input) input.focus();
+                }, 200);
+            }
             window.history.pushState({}, '', '?tab=' + tabName);
+            const sidebar = document.getElementById('admin-sidebar');
+            if (sidebar && !sidebar.classList.contains('sidebar-closed') && window.innerWidth < 1024) {
+                toggleSidebar();
+            }
         }
         switchTab(activeTab);
+
+        // ── Admin Notification Center Controls ──────────────────────────────────
+        function toggleAdminNotifDropdown(state) {
+            const dropdown = document.getElementById('adminNotifDropdown');
+            if (!dropdown) return;
+            if (typeof state === 'boolean') {
+                if (state) dropdown.classList.remove('hidden');
+                else dropdown.classList.add('hidden');
+                return;
+            }
+            if (state && state.stopPropagation) state.stopPropagation();
+            dropdown.classList.toggle('hidden');
+        }
+
+        function handleNotifNavigate(tabName) {
+            toggleAdminNotifDropdown(false);
+            if (typeof switchTab === 'function') {
+                switchTab(tabName);
+            }
+        }
+
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('adminNotifDropdown');
+            if (dropdown && !dropdown.classList.contains('hidden')) {
+                const btnM = document.getElementById('adminNotifContainerMobile');
+                const btnD = document.getElementById('adminNotifContainerDesktop');
+                if (!dropdown.contains(e.target) && (!btnM || !btnM.contains(e.target)) && (!btnD || !btnD.contains(e.target))) {
+                    dropdown.classList.add('hidden');
+                }
+            }
+        });
+
+        // ── Dashboard Drill-Down Drawer ──────────────────────────────────────────
+        let _currentDrillDownType = null;
+
+        function closeDrillDown() {
+            const panel = document.getElementById('drill-down-panel');
+            if (panel) panel.classList.add('hidden');
+            document.querySelectorAll('.drill-chevron').forEach(el => el.classList.remove('rotate-180'));
+            _currentDrillDownType = null;
+        }
+
+        function openDrillDown(type) {
+            const panel = document.getElementById('drill-down-panel');
+            const icon = document.getElementById('drill-down-icon');
+            const title = document.getElementById('drill-down-title');
+            const subtitle = document.getElementById('drill-down-subtitle');
+            const link = document.getElementById('drill-down-link');
+            const content = document.getElementById('drill-down-content');
+            if (!panel || !content) return;
+
+            if (_currentDrillDownType === type) {
+                closeDrillDown();
+                return;
+            }
+
+            _currentDrillDownType = type;
+            document.querySelectorAll('.drill-chevron').forEach(el => el.classList.remove('rotate-180'));
+            const chevron = document.getElementById('chevron-' + type);
+            if (chevron) chevron.classList.add('rotate-180');
+
+            const data = window.drillDownData || {};
+            let html = '';
+
+            if (type === 'fleet') {
+                icon.innerHTML = '<i class="fa-solid fa-truck text-blue-600 dark:text-blue-400"></i>';
+                title.textContent = 'Registered Fleet Vehicles';
+                subtitle.textContent = `${(data.fleet || []).length} registered trucks in system`;
+                link.setAttribute('onclick', "switchTab('fleet')");
+                link.innerHTML = '<span>Manage Fleet</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>';
+
+                const trucks = data.fleet || [];
+                if (trucks.length === 0) {
+                    html = '<div class="text-center py-6 text-gray-400 text-xs">No registered trucks found.</div>';
+                } else {
+                    html = `
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="border-b border-gray-100 dark:border-gray-700 text-gray-400 uppercase text-[10px] tracking-wider">
+                                    <th class="py-2.5 px-3">Plate / Code</th>
+                                    <th class="py-2.5 px-3">Status</th>
+                                    <th class="py-2.5 px-3">Assigned Driver(s)</th>
+                                    <th class="py-2.5 px-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60 font-medium text-gray-700 dark:text-gray-300">
+                    `;
+                    trucks.forEach(t => {
+                        const sColor = t.status === 'Idle' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : (t.status === 'In Transit' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300');
+                        html += `
+                            <tr class="hover:bg-gray-50/70 dark:hover:bg-gray-750 transition">
+                                <td class="py-2.5 px-3 font-bold text-gray-900 dark:text-white">${escapeHtml(t.truck_code)}</td>
+                                <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${sColor}">${escapeHtml(t.status)}</span></td>
+                                <td class="py-2.5 px-3">${escapeHtml(t.driver_names || 'None Assigned')}</td>
+                                <td class="py-2.5 px-3 text-right">
+                                    <button onclick="switchTab('fleet')" class="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">View</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    html += `</tbody></table>`;
+                }
+            } else if (type === 'active') {
+                icon.innerHTML = '<i class="fa-solid fa-route text-emerald-600 dark:text-emerald-400"></i>';
+                title.textContent = 'Active On-the-Road Dispatches';
+                subtitle.textContent = `${(data.active || []).length} live dispatches currently in progress`;
+                link.setAttribute('onclick', "switchTab('dispatches')");
+                link.innerHTML = '<span>Dispatches Tab</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>';
+
+                const activeDisps = data.active || [];
+                if (activeDisps.length === 0) {
+                    html = '<div class="text-center py-6 text-gray-400 text-xs">No active dispatches right now. All trucks are currently at the garage.</div>';
+                } else {
+                    html = `
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="border-b border-gray-100 dark:border-gray-700 text-gray-400 uppercase text-[10px] tracking-wider">
+                                    <th class="py-2.5 px-3">Ticket #</th>
+                                    <th class="py-2.5 px-3">Truck & Driver</th>
+                                    <th class="py-2.5 px-3">Destination</th>
+                                    <th class="py-2.5 px-3">ETA</th>
+                                    <th class="py-2.5 px-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60 font-medium text-gray-700 dark:text-gray-300">
+                    `;
+                    activeDisps.forEach(d => {
+                        const etaFormatted = d.estimated_arrival_time ? new Date(d.estimated_arrival_time).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }) : '—';
+                        const dJson = escapeHtml(JSON.stringify(d));
+                        html += `
+                            <tr onclick='openViewDispatchModal(${JSON.stringify(d)})' class="hover:bg-blue-50/60 dark:hover:bg-gray-750 transition cursor-pointer" title="Click to view dispatch record">
+                                <td class="py-2.5 px-3 font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">${escapeHtml(d.ticket_number)} <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-60"></i></td>
+                                <td class="py-2.5 px-3 font-medium">${escapeHtml(d.truck_code || '—')} • ${escapeHtml(d.driver_name || '—')}</td>
+                                <td class="py-2.5 px-3">${escapeHtml(d.destination)}</td>
+                                <td class="py-2.5 px-3 text-indigo-600 dark:text-indigo-400 font-bold">${etaFormatted}</td>
+                                <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">${escapeHtml(d.status)}</span></td>
+                            </tr>
+                        `;
+                    });
+                    html += `</tbody></table>`;
+                }
+            } else if (type === 'completed') {
+                icon.innerHTML = '<i class="fa-solid fa-circle-check text-amber-600 dark:text-amber-400"></i>';
+                title.textContent = "Today's Delivered Dispatches";
+                subtitle.textContent = `${(data.completed || []).length} deliveries recorded today`;
+                link.setAttribute('onclick', "switchTab('reports')");
+                link.innerHTML = '<span>View Reports</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>';
+
+                const comps = data.completed || [];
+                if (comps.length === 0) {
+                    html = '<div class="text-center py-6 text-gray-400 text-xs">No dispatches delivered yet today.</div>';
+                } else {
+                    html = `
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="border-b border-gray-100 dark:border-gray-700 text-gray-400 uppercase text-[10px] tracking-wider">
+                                    <th class="py-2.5 px-3">Ticket #</th>
+                                    <th class="py-2.5 px-3">Truck & Driver</th>
+                                    <th class="py-2.5 px-3">Destination</th>
+                                    <th class="py-2.5 px-3">Delivery Time</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60 font-medium text-gray-700 dark:text-gray-300">
+                    `;
+                    comps.forEach(c => {
+                        const delivTime = c.transit_end_time ? new Date(c.transit_end_time).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }) : 'Today';
+                        html += `
+                            <tr onclick='openViewDispatchModal(${JSON.stringify(c)})' class="hover:bg-amber-50/60 dark:hover:bg-gray-750 transition cursor-pointer" title="Click to view dispatch record">
+                                <td class="py-2.5 px-3 font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">${escapeHtml(c.ticket_number)} <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-60"></i></td>
+                                <td class="py-2.5 px-3">${escapeHtml(c.truck_code || '—')} • ${escapeHtml(c.driver_name || '—')}</td>
+                                <td class="py-2.5 px-3">${escapeHtml(c.destination)}</td>
+                                <td class="py-2.5 px-3 text-emerald-600 dark:text-emerald-400 font-bold">${delivTime}</td>
+                            </tr>
+                        `;
+                    });
+                    html += `</tbody></table>`;
+                }
+            } else if (type === 'idle') {
+                icon.innerHTML = '<i class="fa-solid fa-truck text-blue-600 dark:text-blue-400"></i>';
+                title.textContent = 'Idle Trucks Ready for Dispatch';
+                subtitle.textContent = `${(data.idle || []).length} trucks parked at garage`;
+                link.setAttribute('onclick', "openCreateDispatchModalShortcut()");
+                link.innerHTML = '<span>New Dispatch</span> <i class="fa-solid fa-plus text-[10px]"></i>';
+
+                const idles = data.idle || [];
+                if (idles.length === 0) {
+                    html = '<div class="text-center py-6 text-gray-400 text-xs">No idle trucks. All trucks are dispatched or in maintenance.</div>';
+                } else {
+                    html = `
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="border-b border-gray-100 dark:border-gray-700 text-gray-400 uppercase text-[10px] tracking-wider">
+                                    <th class="py-2.5 px-3">Truck Code</th>
+                                    <th class="py-2.5 px-3">Assigned Driver(s)</th>
+                                    <th class="py-2.5 px-3">Status</th>
+                                    <th class="py-2.5 px-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60 font-medium text-gray-700 dark:text-gray-300">
+                    `;
+                    idles.forEach(t => {
+                        html += `
+                            <tr class="hover:bg-gray-50/70 dark:hover:bg-gray-750 transition">
+                                <td class="py-2.5 px-3 font-bold text-gray-900 dark:text-white">${escapeHtml(t.truck_code)}</td>
+                                <td class="py-2.5 px-3">${escapeHtml(t.driver_names || 'No Driver Assigned')}</td>
+                                <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Idle</span></td>
+                                <td class="py-2.5 px-3 text-right">
+                                    <button onclick="openCreateDispatchForTruck('${escapeHtml(t.truck_code)}')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-xs">
+                                        <i class="fa-solid fa-paper-plane text-[10px] mr-1"></i> Dispatch
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    html += `</tbody></table>`;
+                }
+            } else if (type === 'ontime') {
+                icon.innerHTML = '<i class="fa-solid fa-clock text-emerald-600 dark:text-emerald-400"></i>';
+                title.textContent = 'On-Time Delivery Performance';
+                const rateVal = data.onTimeRate !== null ? (Number(data.onTimeRate).toFixed(1) + '%') : 'No data';
+                subtitle.textContent = `Current Month On-Time Rate: ${rateVal}`;
+                link.setAttribute('onclick', "switchTab('reports')");
+                link.innerHTML = '<span>Full Reports</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>';
+
+                html = `
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 py-2">
+                        <div class="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-center">
+                            <span class="text-xs text-emerald-700 dark:text-emerald-300 font-bold uppercase tracking-wide">On-Time Rate</span>
+                            <div class="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">${rateVal}</div>
+                            <span class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 block">Delivered before or at ETA</span>
+                        </div>
+                        <div class="p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl text-center">
+                            <span class="text-xs text-blue-700 dark:text-blue-300 font-bold uppercase tracking-wide">Target Benchmark</span>
+                            <div class="text-3xl font-extrabold text-blue-600 dark:text-blue-400 mt-1">95.0%</div>
+                            <span class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 block">Standard fleet SLA</span>
+                        </div>
+                        <div class="p-4 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl text-center">
+                            <span class="text-xs text-purple-700 dark:text-purple-300 font-bold uppercase tracking-wide">ETA Calculation</span>
+                            <div class="text-sm font-bold text-purple-600 dark:text-purple-400 mt-2">OSM Road Distance</div>
+                            <span class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 block">35 km/h avg speed + 20m allowance</span>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'rfid') {
+                icon.innerHTML = '<i class="fa-solid fa-wifi text-purple-600 dark:text-purple-400"></i>';
+                title.textContent = 'Active RFID Readers & Tags';
+                subtitle.textContent = `${data.rfidActive || 0} active vehicle transponders linked`;
+                link.setAttribute('onclick', "switchTab('fleet')");
+                link.innerHTML = '<span>Fleet View</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>';
+
+                html = `
+                    <div class="space-y-3 py-1">
+                        <div class="p-3.5 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-xl flex items-center justify-between text-xs">
+                            <span class="text-purple-900 dark:text-purple-200 font-semibold"><i class="fa-solid fa-tower-broadcast text-purple-600 mr-2"></i> Garage Gate RFID Reader</span>
+                            <span class="px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">ONLINE</span>
+                        </div>
+                        <div class="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-600 dark:text-gray-300">
+                            Automatic detection active for arrivals, departures, and turnaround tracking at San Leonardo Quarry Garage.
+                        </div>
+                    </div>
+                `;
+            }
+
+            content.innerHTML = html;
+            panel.classList.remove('hidden');
+            panel.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest'
+            });
+        }
+
+        function openCreateDispatchModalShortcut() {
+            closeDrillDown();
+            switchTab('dispatches');
+            if (typeof toggleModal === 'function') {
+                toggleModal('dispatchModal', true);
+            }
+        }
+
+        function openCreateDispatchForTruck(truckCode) {
+            closeDrillDown();
+            switchTab('dispatches');
+            if (typeof toggleModal === 'function') {
+                toggleModal('dispatchModal', true);
+                setTimeout(() => {
+                    const data = window.drillDownData || {};
+                    const truck = (data.fleet || []).find(t => t.truck_code === truckCode);
+                    if (truck && truck.rfid_tag) {
+                        const rfidInput = document.getElementById('rfidInput');
+                        if (rfidInput) {
+                            rfidInput.value = truck.rfid_tag;
+                            rfidInput.dispatchEvent(new Event('change'));
+                        }
+                    }
+                }, 200);
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // Live driver active dispatch validation
+        function checkDriverActiveDispatch(driverId, driverName) {
+            const alertBox = document.getElementById('driverActiveDispatchAlert');
+            const alertMsg = document.getElementById('driverActiveDispatchAlertMsg');
+            const submitBtn = document.querySelector('#dispatchForm button[type="submit"]');
+            if (!alertBox) return;
+
+            if (!driverId) {
+                alertBox.classList.add('hidden');
+                if (submitBtn) submitBtn.disabled = false;
+                return;
+            }
+
+            const activeList = (window.drillDownData && window.drillDownData.active) || [];
+            const activeMatch = activeList.find(d => String(d.driver_id) === String(driverId) || (driverName && d.driver_name && d.driver_name.trim().toLowerCase() === driverName.trim().toLowerCase()));
+            if (activeMatch) {
+                alertMsg.innerHTML = `<strong>Driver Unavailable:</strong> ${escapeHtml(driverName || 'Driver')} already has active trip <strong>#${escapeHtml(activeMatch.ticket_number)}</strong> (${escapeHtml(activeMatch.destination)}). Resolve it before creating a new one.`;
+                alertBox.classList.remove('hidden');
+                if (submitBtn) submitBtn.disabled = true;
+            } else {
+                alertBox.classList.add('hidden');
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        }
+
+        function refreshPwdResetBadge() {
+
+            fetch('get_pwd_reset_count.php')
+                .then(r => r.json())
+                .then(data => {
+                    const badge = document.getElementById('pwdResetBadge');
+                    const navBtn = document.getElementById('nav-pwd_requests');
+                    if (data.count > 0) {
+                        if (badge) {
+                            badge.textContent = data.count;
+                            badge.classList.remove('hidden');
+                        } else if (navBtn) {
+                            const span = document.createElement('span');
+                            span.id = 'pwdResetBadge';
+                            span.className = 'ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-red-500 text-white flex items-center justify-center';
+                            span.textContent = data.count;
+                            navBtn.appendChild(span);
+                        }
+                    } else {
+                        if (badge) badge.classList.add('hidden');
+                    }
+                })
+                .catch(() => {});
+        }
+        setInterval(refreshPwdResetBadge, 15000);
+
+        function refreshCashAdvanceBadge() {
+            fetch('get_cash_advance_count.php')
+                .then(r => r.json())
+                .then(data => {
+                    const badge = document.getElementById('cashAdvanceBadge');
+                    const navBtn = document.getElementById('nav-cash_advances');
+                    if (data.count > 0) {
+                        if (badge) {
+                            badge.textContent = data.count;
+                            badge.classList.remove('hidden');
+                        } else if (navBtn) {
+                            const span = document.createElement('span');
+                            span.id = 'cashAdvanceBadge';
+                            span.className = 'ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold bg-amber-500 text-white flex items-center justify-center';
+                            span.textContent = data.count;
+                            navBtn.appendChild(span);
+                        }
+                    } else {
+                        if (badge) badge.classList.add('hidden');
+                    }
+                })
+                .catch(() => {});
+        }
+        setInterval(refreshCashAdvanceBadge, 15000);
+
+        function setActivityCategory(cat) {
+            const input = document.getElementById('logCategoryInput');
+            if (input) input.value = cat;
+
+            // Immediately update visual active states on category pills
+            document.querySelectorAll('.cat-pill-btn').forEach(btn => {
+                const btnCat = btn.dataset.cat ?? '';
+                const isActive = (btnCat === cat);
+                if (isActive) {
+                    btn.className = 'cat-pill-btn px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition whitespace-nowrap bg-violet-600 text-white shadow-xs font-bold ring-2 ring-violet-400';
+                    const icon = btn.querySelector('i');
+                    if (icon) icon.className = icon.className.replace(/text-[a-z]+-\d+/, 'text-white');
+                } else {
+                    btn.className = 'cat-pill-btn px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition whitespace-nowrap bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/60 font-medium';
+                    const icon = btn.querySelector('i');
+                    if (icon) icon.className = icon.className.replace('text-white', 'text-gray-400');
+                }
+            });
+
+            // Instant client-side filter without reloading
+            filterActivityLogsClient();
+        }
+
+        function handleDatePresetChange(val) {
+            const customRow = document.getElementById('customDateRangeRow');
+            const fromInput = document.getElementById('logDateFromInput');
+            const toInput = document.getElementById('logDateToInput');
+            if (val === 'custom') {
+                if (customRow) customRow.classList.remove('hidden');
+            } else {
+                if (customRow) customRow.classList.add('hidden');
+                if (fromInput) fromInput.value = '';
+                if (toInput) toInput.value = '';
+            }
+            // Instant client-side filter without reloading
+            filterActivityLogsClient();
+        }
+
+        function filterActivityLogsClient() {
+            const search = (document.getElementById('activityLogSearchInput')?.value || '').toLowerCase().trim();
+            const role = document.getElementById('activityLogRoleFilter')?.value || '';
+            const category = (document.getElementById('logCategoryInput')?.value || '').toLowerCase();
+            const datePreset = document.getElementById('activityLogDatePreset')?.value || '';
+            const dateFrom = document.getElementById('logDateFromInput')?.value || '';
+            const dateTo = document.getElementById('logDateToInput')?.value || '';
+
+            // Compute date boundaries
+            let minDate = '';
+            let maxDate = '';
+            const now = new Date();
+            const fmt = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+
+            if (datePreset === 'today') {
+                minDate = maxDate = fmt(now);
+            } else if (datePreset === 'yesterday') {
+                const y = new Date(now);
+                y.setDate(y.getDate() - 1);
+                minDate = maxDate = fmt(y);
+            } else if (datePreset === 'week') {
+                const w = new Date(now);
+                w.setDate(w.getDate() - 7);
+                minDate = fmt(w);
+                maxDate = fmt(now);
+            } else if (datePreset === 'month') {
+                const m = new Date(now);
+                m.setDate(m.getDate() - 30);
+                minDate = fmt(m);
+                maxDate = fmt(now);
+            } else if (datePreset === 'custom' || dateFrom || dateTo) {
+                minDate = dateFrom;
+                maxDate = dateTo;
+            }
+
+            const rows = document.querySelectorAll('.activity-log-row');
+            let visible = 0;
+            rows.forEach(row => {
+                const rowSearch = (row.dataset.search || '').toLowerCase();
+                const rowRole = row.dataset.role || '';
+                const rowCategory = (row.dataset.category || '').toLowerCase();
+                const rowDate = row.dataset.date || '';
+
+                const matchSearch = !search || rowSearch.includes(search);
+                const matchRole = !role || rowRole === role;
+                const matchCategory = !category || rowCategory === category;
+
+                let matchDate = true;
+                if (minDate && rowDate && rowDate < minDate) matchDate = false;
+                if (maxDate && rowDate && rowDate > maxDate) matchDate = false;
+
+                if (matchSearch && matchRole && matchCategory && matchDate) {
+                    row.style.display = '';
+                    visible++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            const countEl = document.getElementById('activityLogVisibleCount');
+            if (countEl) {
+                if (search || role || category || datePreset || dateFrom || dateTo) {
+                    countEl.textContent = `Showing ${visible} of ${rows.length} records matching filter`;
+                } else {
+                    countEl.textContent = 'Click any row to inspect complete event payload';
+                }
+            }
+        }
+
+        function openAuditInspectorModal(log) {
+            if (!log) return;
+            if (typeof log === 'string') {
+                try {
+                    log = JSON.parse(log);
+                } catch (e) {
+                    return;
+                }
+            }
+
+            const idEl = document.getElementById('ai_id');
+            if (idEl) idEl.innerText = log.id || '--';
+
+            const actEl = document.getElementById('ai_action');
+            if (actEl) actEl.innerText = log.action || 'Event Details';
+
+            const catEl = document.getElementById('ai_category_badge');
+            if (catEl) {
+                const cat = log.category || 'System';
+                catEl.innerText = cat;
+                let cClass = 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+                if (cat === 'Security') cClass = 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300';
+                else if (cat === 'Dispatches') cClass = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300';
+                else if (cat === 'Fleet') cClass = 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300';
+                else if (cat === 'Personnel') cClass = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300';
+                else if (cat === 'Payroll') cClass = 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300';
+                else if (cat === 'Orders') cClass = 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300';
+                catEl.className = 'px-2 py-0.5 text-[10px] font-bold rounded-full ' + cClass;
+            }
+
+            const userEl = document.getElementById('ai_user');
+            if (userEl) userEl.innerText = log.username || 'System';
+
+            const roleEl = document.getElementById('ai_role');
+            if (roleEl) roleEl.innerText = log.role || 'Unknown';
+
+            const timeEl = document.getElementById('ai_timestamp');
+            if (timeEl) timeEl.innerText = log.created_at || '--';
+
+            const relEl = document.getElementById('ai_relative_time');
+            if (relEl && log.created_at) {
+                try {
+                    const diffMs = Date.now() - new Date(log.created_at).getTime();
+                    const diffMin = Math.floor(diffMs / 60000);
+                    if (diffMin < 1) relEl.innerText = 'Just now';
+                    else if (diffMin < 60) relEl.innerText = `${diffMin}m ago`;
+                    else if (diffMin < 1440) relEl.innerText = `${Math.floor(diffMin / 60)}h ago`;
+                    else relEl.innerText = `${Math.floor(diffMin / 1440)}d ago`;
+                } catch (e) {
+                    relEl.innerText = '';
+                }
+            }
+
+            const ipEl = document.getElementById('ai_ip');
+            if (ipEl) ipEl.innerText = log.ip_address || '—';
+
+            const detEl = document.getElementById('ai_details_text');
+            if (detEl) detEl.innerText = log.details && log.details.trim() ? log.details : 'No additional details recorded for this action.';
+
+            toggleModal('auditInspectorModal', true);
+        }
+
+        function copyAiIp() {
+            const ip = document.getElementById('ai_ip')?.innerText;
+            if (ip && ip !== '—') {
+                navigator.clipboard?.writeText(ip);
+                if (typeof showFloatingToast === 'function') showFloatingToast('IP address copied to clipboard');
+            }
+        }
+
+        function copyAiDetails() {
+            const det = document.getElementById('ai_details_text')?.innerText;
+            if (det) {
+                navigator.clipboard?.writeText(det);
+                if (typeof showFloatingToast === 'function') showFloatingToast('Event details copied to clipboard');
+            }
+        }
+
         const trackingData = <?= json_encode($trackingTrucks ?? []); ?>;
+        let satelliteLayer = null;
+        let streetLayer = null;
 
         function initMap() {
             const mapDiv = document.getElementById('map');
             if (!mapDiv) return;
+
+            // Wait for Leaflet to load if script is still downloading
+            if (typeof L === 'undefined') {
+                setTimeout(initMap, 150);
+                return;
+            }
+
+            // If map already exists, simply recalculate layout dimensions
+            if (map) {
+                map.invalidateSize();
+                return;
+            }
+
+            // Clear any stale Leaflet DOM association if re-initializing
+            if (mapDiv._leaflet_id) {
+                mapDiv._leaflet_id = null;
+            }
+
             try {
-                map = L.map('map').setView([15.3621, 120.9632], 12);
-                L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-                    maxZoom: 20,
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-                }).addTo(map);
-                trackingData.forEach(truck => {
-                    if (truck.latitude && truck.longitude) {
-                        let markerClass = 'bg-gray-500';
-                        if (truck.status === 'In Transit') markerClass = 'bg-transit';
-                        if (truck.status === 'Idle') markerClass = 'bg-yellow-500';
-                        if (truck.status === 'Loading') markerClass = 'bg-blue-500';
-                        if (truck.status === 'Unloading') markerClass = 'bg-orange-500';
-                        const customIcon = L.divIcon({
-                            className: 'custom-div-icon',
-                            html: `<div class="marker-pin ${markerClass}"><i class="fa-solid fa-truck fa-xs"></i></div>`,
-                            iconSize: [30, 30],
-                            iconAnchor: [15, 15]
-                        });
-                        L.marker([truck.latitude, truck.longitude], {
-                            icon: customIcon
-                        }).addTo(map).bindPopup(`<b>${truck.truck_code}</b><br><span class="text-xs">${truck.driver_name}</span><br><span class="text-xs">Status: ${truck.status}</span>`);
-                    }
+                // OpenStreetMap Standard - 100% Free, No API Key, No Watermark
+                streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    subdomains: ['a', 'b', 'c'],
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
                 });
+
+                // Google Maps Hybrid Satellite (same as the location picker modal)
+                const googleSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                    maxZoom: 20,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                    attribution: '&copy; Google Maps Satellite'
+                });
+                satelliteLayer = googleSatellite;
+
+                map = L.map('map', {
+                    center: [15.359042, 120.965016],
+                    zoom: 14,
+                    minZoom: 5,
+                    maxBounds: [
+                        [4.0, 115.5],
+                        [21.8, 127.5]
+                    ],
+                    maxBoundsViscosity: 1.0,
+                    layers: [streetLayer],
+                    zoomControl: true
+                });
+
+                const baseMaps = {
+                    "🗺️ OpenStreetMap": streetLayer,
+                    "🛰️ Satellite (Hybrid)": satelliteLayer
+                };
+                L.control.layers(baseMaps, null, {
+                    position: 'topright'
+                }).addTo(map);
+
+                const garageIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div class="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-xl border-2 border-white ring-4 ring-indigo-500/30 hover:scale-110 transition-transform cursor-pointer" title="SSV Garage (Quarry) — San Leonardo, Nueva Ecija"><i class="fa-solid fa-warehouse text-sm"></i></div>`,
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 20]
+                });
+                L.marker([15.359042, 120.965016], {
+                        icon: garageIcon
+                    })
+                    .addTo(map)
+                    .bindPopup(`
+                        <div class="p-3 min-w-[200px]">
+                            <div class="font-bold text-gray-900 dark:text-gray-100 text-sm pb-1 border-b border-gray-100 dark:border-gray-800 flex items-center gap-2">
+                                <i class="fa-solid fa-warehouse text-indigo-500"></i> SSV Quarry Site
+                            </div>
+                            <div class="text-xs text-gray-600 dark:text-gray-300 font-medium mt-2 flex items-center gap-1.5">
+                                <i class="fa-solid fa-location-dot text-rose-500"></i>
+                                <span>San Leonardo, Nueva Ecija</span>
+                            </div>
+                        </div>
+                    `);
+
+                renderMapMarkers(trackingData);
+
+                window.map = map;
+                if (window.ResizeObserver) {
+                    const mapEl = document.getElementById('map');
+                    if (mapEl) {
+                        new ResizeObserver(() => {
+                            if (map) map.invalidateSize();
+                        }).observe(mapEl);
+                    }
+                }
+                window.addEventListener('resize', () => {
+                    if (map) map.invalidateSize();
+                });
+
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 100);
                 setTimeout(() => {
                     map.invalidateSize();
                 }, 300);
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 600);
+
+                _mapRefreshIntervalId = setInterval(refreshMap, 5000);
             } catch (error) {
                 console.error("Map initialization failed:", error);
             }
         }
 
-        function focusTruck(lat, lng) {
+        let truckMarkers = {};
+
+        function renderMapMarkers(trucks) {
+            if (!map || !Array.isArray(trucks)) return;
+            const activeCodes = trucks.map(t => t.truck_code);
+            Object.keys(truckMarkers).forEach(code => {
+                if (!activeCodes.includes(code)) {
+                    map.removeLayer(truckMarkers[code]);
+                    delete truckMarkers[code];
+                }
+            });
+
+            trucks.forEach(truck => {
+                if (!truck.latitude || !truck.longitude) return;
+
+                let markerClass = 'bg-gray-500';
+                let pulseEffect = '';
+                if (truck.status === 'In Transit') {
+                    markerClass = 'bg-emerald-500';
+                    pulseEffect = '<span class="absolute -inset-1 rounded-full bg-emerald-400 opacity-75 animate-ping"></span>';
+                }
+                if (truck.status === 'Idle') markerClass = 'bg-amber-500';
+                if (truck.status === 'Loading') markerClass = 'bg-blue-500';
+                if (truck.status === 'Unloading') markerClass = 'bg-orange-500';
+
+                const customIcon = L.divIcon({
+                    className: 'custom-div-icon relative',
+                    html: `${pulseEffect}<div class="marker-pin ${markerClass} relative z-10 shadow-lg border-2 border-white"><i class="fa-solid fa-truck text-xs"></i></div>`,
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16]
+                });
+
+                const statusBadgeBg = truck.status === 'In Transit' ? 'bg-emerald-600' : (truck.status === 'Idle' ? 'bg-amber-600' : 'bg-blue-600');
+                let etaHtml = '';
+                if (truck.estimated_arrival_time) {
+                    try {
+                        let dateStr = truck.estimated_arrival_time;
+                        if (!dateStr.includes('+') && !dateStr.endsWith('Z')) {
+                            dateStr = dateStr.replace(' ', 'T') + '+08:00';
+                        }
+                        const etaDate = new Date(dateStr);
+                        if (!isNaN(etaDate.getTime())) {
+                            const now = new Date();
+                            const diffMins = Math.round((etaDate.getTime() - now.getTime()) / 60000);
+                            const timeStr = etaDate.toLocaleTimeString([], {
+                                hour: 'numeric',
+                                minute: '2-digit'
+                            });
+                            let relStr = '';
+                            let badgeBg = 'background: rgba(16, 185, 129, 0.1); color: #059669; border-color: rgba(16, 185, 129, 0.3);';
+                            if (diffMins > 0) {
+                                if (diffMins >= 60) {
+                                    const h = Math.floor(diffMins / 60);
+                                    const m = diffMins % 60;
+                                    relStr = m > 0 ? `in ${h}h ${m}m` : `in ${h}h`;
+                                } else {
+                                    relStr = `in ${diffMins} min${diffMins > 1 ? 's' : ''}`;
+                                }
+                            } else if (diffMins >= -15) {
+                                relStr = 'Arriving at site';
+                                badgeBg = 'background: rgba(59, 130, 246, 0.1); color: #2563eb; border-color: rgba(59, 130, 246, 0.3);';
+                            } else {
+                                const past = Math.abs(diffMins);
+                                if (past >= 60) {
+                                    const h = Math.floor(past / 60);
+                                    const m = past % 60;
+                                    relStr = m > 0 ? `${h}h ${m}m past ETA` : `${h}h past ETA`;
+                                } else {
+                                    relStr = `${past}m past ETA`;
+                                }
+                                badgeBg = 'background: rgba(245, 158, 11, 0.1); color: #d97706; border-color: rgba(245, 158, 11, 0.3);';
+                            }
+                            etaHtml = `
+                                <div style="margin-top: 6px; padding: 4px 8px; border-radius: 8px; border: 1px solid; display: flex; align-items: center; justify-content: space-between; font-size: 11px; ${badgeBg}" title="Estimated return to site (round trip + 20m unloading allowance)">
+                                    <span style="font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                                        <i class="fa-regular fa-clock"></i> Return ETA:
+                                    </span>
+                                    <span style="font-weight: 700; font-family: monospace;">${timeStr} <span style="font-weight: 500; font-size: 10px; opacity: 0.85;">(${relStr})</span></span>
+                                </div>
+                            `;
+                        }
+                    } catch (e) {}
+                }
+
+                const isDark = document.documentElement.classList.contains('dark');
+                const titleColor = isDark ? '#f9fafb' : '#111827';
+                const subColor = isDark ? '#d1d5db' : '#4b5563';
+                const mutedColor = isDark ? '#9ca3af' : '#6b7280';
+                const borderColor = isDark ? '#374151' : '#e5e7eb';
+
+                const popupContent = `
+                    <div class="osm-popup-card" style="padding: 8px 10px; min-width: 200px; max-width: 270px; font-family: inherit;">
+                        <div style="font-weight: 700; font-size: 13px; color: ${titleColor}; display: flex; align-items: center; justify-content: space-between; padding-bottom: 5px; border-bottom: 1px solid ${borderColor};">
+                            <span>${truck.truck_code}</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full text-white font-semibold ${statusBadgeBg}">${truck.status}</span>
+                        </div>
+                        <div style="font-size: 12px; color: ${subColor}; margin-top: 5px; font-weight: 500;">
+                            <i class="fa-regular fa-user mr-1.5 text-blue-500"></i>${truck.driver_name || 'Unassigned'}
+                        </div>
+                        <div style="font-size: 11.5px; color: ${mutedColor}; margin-top: 3px;">
+                        <i class="fa-solid fa-location-dot mr-1.5 text-rose-500"></i><span data-popup-loc="${truck.truck_code}">${truck.current_location || 'Locating...'}</span>
+                        </div>
+                        ${truck.destination ? '<div style="font-size: 12px; font-weight: 600; color: #6366f1; margin-top: 4px;"><i class="fa-solid fa-flag-checkered mr-1.5"></i>To: ' + truck.destination + '</div>' : ''}
+                        ${etaHtml}
+                        ${truck.speed ? '<div style="font-size: 11px; color: ' + mutedColor + '; margin-top: 4px;"><i class="fa-solid fa-gauge-high mr-1.5 text-blue-400"></i>Speed: ' + truck.speed + ' mph</div>' : ''}
+                    </div>
+                `;
+                const latLng = [parseFloat(truck.latitude), parseFloat(truck.longitude)];
+
+                if (truckMarkers[truck.truck_code]) {
+                    truckMarkers[truck.truck_code].setLatLng(latLng);
+                    truckMarkers[truck.truck_code].setPopupContent(popupContent);
+                } else {
+                    truckMarkers[truck.truck_code] = L.marker(latLng, {
+                            icon: customIcon
+                        })
+                        .addTo(map)
+                        .bindPopup(popupContent);
+                }
+            });
+        }
+
+        let _mapRefreshFailures = 0;
+        let _mapRefreshIntervalId = null;
+
+        function refreshMap() {
+            if (!map) return;
+            fetch('get_tracking_data.php')
+                .then(r => r.json())
+                .then(data => {
+                    _mapRefreshFailures = 0;
+                    // If we previously slowed down, restore normal 5s interval
+                    if (_mapRefreshIntervalId && _mapRefreshIntervalId._slowed) {
+                        clearInterval(_mapRefreshIntervalId);
+                        _mapRefreshIntervalId = setInterval(refreshMap, 5000);
+                        _mapRefreshIntervalId._slowed = false;
+                    }
+                    if (data.success) {
+                        renderMapMarkers(data.trucks);
+                        const badge = document.getElementById('map-last-updated');
+                        if (badge) {
+                            const now = new Date();
+                            badge.textContent = 'Last updated: ' + now.toLocaleTimeString();
+                        }
+                        const countBadge = document.getElementById('active-fleet-count');
+                        if (countBadge) {
+                            const count = Array.isArray(data.trucks) ? data.trucks.length : 0;
+                            countBadge.textContent = `${count} ${count === 1 ? 'Vehicle' : 'Vehicles'}`;
+                        }
+                        // Update popup & sidebar locations via reverse geocode (shared fn from fleet.php)
+                        if (typeof reverseGeocode === 'function' && typeof updateLocEl === 'function') {
+                            data.trucks.forEach((truck, i) => {
+                                const lat = parseFloat(truck.latitude);
+                                const lng = parseFloat(truck.longitude);
+                                if (!lat || !lng) return;
+                                setTimeout(() => {
+                                    reverseGeocode(lat, lng).then(loc => {
+                                        // Map popup span
+                                        const popupSpan = document.querySelector(`[data-popup-loc="${truck.truck_code}"]`);
+                                        if (popupSpan) popupSpan.textContent = loc;
+                                        // Tracking sidebar span
+                                        const sideLocEl = document.querySelector(`[data-live-loc="${truck.truck_code}"]`);
+                                        if (sideLocEl) updateLocEl(sideLocEl, loc);
+                                        // Fleet card span
+                                        const fleetLocEl = document.querySelector(`[data-live-location="${truck.id}"]`);
+                                        if (fleetLocEl) updateLocEl(fleetLocEl, loc);
+                                    });
+                                }, i * 1100);
+                            });
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.warn('Map refresh error:', err);
+                    _mapRefreshFailures++;
+                    if (_mapRefreshFailures >= 3 && _mapRefreshIntervalId && !_mapRefreshIntervalId._slowed) {
+                        clearInterval(_mapRefreshIntervalId);
+                        _mapRefreshIntervalId = setInterval(refreshMap, 30000);
+                        _mapRefreshIntervalId._slowed = true;
+                        if (typeof showToast === 'function') {
+                            showToast('⚠️ Map updates paused — server unreachable. Retrying every 30s.', 'warning', 8000);
+                        }
+                    }
+                });
+        }
+
+        function focusTruck(lat, lng, truckCode) {
             switchTab('tracking');
             if (lat != 0 && lng != 0) {
                 setTimeout(() => {
-                    if (map) map.setView([lat, lng], 15, {
-                        animate: true,
-                        duration: 1
-                    });
+                    if (map) {
+                        map.flyTo([lat, lng], 15, {
+                            animate: true,
+                            duration: 1.2
+                        });
+                        if (truckCode && truckMarkers && truckMarkers[truckCode]) {
+                            truckMarkers[truckCode].openPopup();
+                        }
+                    }
                 }, 300);
             } else {
-                alert("Location data not available for this truck yet.");
+                if (typeof showToast === 'function') {
+                    showToast("Location data not available for this truck yet.", "warning");
+                } else {
+                    alert("Location data not available for this truck yet.");
+                }
             }
         }
 
-        function switchDispatchTab(tab) {
-            document.getElementById('dispatch-grid-active').classList.add('hidden');
-            document.getElementById('dispatch-grid-completed').classList.add('hidden');
-            document.getElementById('btn-tab-active').className = "px-6 py-2 rounded-full hover:text-gray-900 dark:text-gray-100 transition";
-            document.getElementById('btn-tab-completed').className = "px-6 py-2 rounded-full hover:text-gray-900 dark:text-gray-100 transition";
-            if (tab === 'active') {
-                document.getElementById('dispatch-grid-active').classList.remove('hidden');
-                document.getElementById('btn-tab-active').className = "px-6 py-2 rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition";
+        function recenterMap() {
+            if (!map) {
+                switchTab('tracking');
+                setTimeout(recenterMap, 300);
+                return;
+            }
+
+            map.invalidateSize();
+
+            const bounds = L.latLngBounds();
+            bounds.extend([15.359042, 120.965016]);
+
+            let validTruckCount = 0;
+            if (typeof trackingData !== 'undefined' && Array.isArray(trackingData)) {
+                trackingData.forEach(t => {
+                    const lat = parseFloat(t.latitude);
+                    const lng = parseFloat(t.longitude);
+                    if (lat && lng && lat !== 0) {
+                        bounds.extend([lat, lng]);
+                        validTruckCount++;
+                    }
+                });
+            }
+
+            if (validTruckCount > 0) {
+                map.flyToBounds(bounds, {
+                    padding: [60, 60],
+                    maxZoom: 15,
+                    duration: 1.2
+                });
             } else {
-                document.getElementById('dispatch-grid-completed').classList.remove('hidden');
-                document.getElementById('btn-tab-completed').className = "px-6 py-2 rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition";
+                map.flyTo([15.359042, 120.965016], 14, {
+                    duration: 1.2
+                });
+            }
+
+            if (typeof showToast === 'function') {
+                showToast("Map centered on fleet & garage", "info", 2000);
+            }
+        }
+
+
+        function switchDispatchTab(tab) {
+            const gridActive = document.getElementById('dispatch-grid-active');
+            const gridRequests = document.getElementById('dispatch-grid-requests');
+            const gridCompleted = document.getElementById('dispatch-grid-completed');
+            const dateNavCompleted = document.getElementById('completed-date-navigator');
+            const btnActive = document.getElementById('btn-tab-active');
+            const btnRequests = document.getElementById('btn-tab-requests');
+            const btnCompleted = document.getElementById('btn-tab-completed');
+
+            if (gridActive) gridActive.classList.add('hidden');
+            if (gridRequests) gridRequests.classList.add('hidden');
+            if (gridCompleted) gridCompleted.classList.add('hidden');
+            if (dateNavCompleted) dateNavCompleted.classList.add('hidden');
+
+            if (btnActive) btnActive.className = "flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full hover:text-gray-900 dark:text-gray-100 transition text-center";
+            if (btnRequests) btnRequests.className = "flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full hover:text-gray-900 dark:text-gray-100 transition relative text-center";
+            if (btnCompleted) btnCompleted.className = "flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full hover:text-gray-900 dark:text-gray-100 transition text-center";
+
+            if (tab === 'active') {
+                if (gridActive) gridActive.classList.remove('hidden');
+                if (btnActive) btnActive.className = "flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition text-center font-semibold";
+            } else if (tab === 'requests') {
+                if (gridRequests) gridRequests.classList.remove('hidden');
+                if (btnRequests) btnRequests.className = "flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition relative text-center font-semibold";
+            } else {
+                if (gridCompleted) gridCompleted.classList.remove('hidden');
+                if (dateNavCompleted) dateNavCompleted.classList.remove('hidden');
+                if (btnCompleted) btnCompleted.className = "flex-1 sm:flex-none px-3.5 sm:px-6 py-2 rounded-lg sm:rounded-full bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100 transition text-center font-semibold";
+            }
+
+            if (typeof filterDispatches === 'function') {
+                filterDispatches();
             }
         }
 
         function toggleModal(modalID, show) {
             const modal = document.getElementById(modalID);
+            if (!modal) {
+                console.warn("Modal not found:", modalID);
+                return;
+            }
             if (show) {
                 modal.classList.remove('hidden');
-                if (modalID === 'dispatchModal') setTimeout(() => document.getElementById('rfidInput').focus(), 100);
-                if (modalID === 'addTruckModal') setTimeout(() => document.getElementById('newTruckRfidInput').focus(), 100);
+                if (modalID === 'dispatchModal') {
+                    const hiddenOffHours = document.getElementById('dispatchConfirmOffHours');
+                    if (hiddenOffHours) hiddenOffHours.value = '0';
+                    setTimeout(() => document.getElementById('rfidInput')?.focus(), 100);
+                }
+                if (modalID === 'addTruckModal') setTimeout(() => document.getElementById('newTruckRfidInput')?.focus(), 100);
+                if (modalID === 'addDriverModal') {
+                    setTimeout(() => document.getElementById('driverTruckRfidInput')?.focus(), 100);
+                }
+                if (modalID === 'addCheckerModal') {
+                    const pwdIn = document.getElementById('checkerPasswordInput');
+                    if (pwdIn && !pwdIn.value && typeof generateCheckerPassword === 'function') {
+                        generateCheckerPassword();
+                    }
+                    setTimeout(() => document.querySelector('#addCheckerModal input[name="first_name"]')?.focus(), 100);
+                }
             } else {
                 modal.classList.add('hidden');
+                if (modalID === 'dispatchModal') {
+                    const hiddenOffHours = document.getElementById('dispatchConfirmOffHours');
+                    if (hiddenOffHours) hiddenOffHours.value = '0';
+                    if (!window._osmMapOpeningFromDispatch && typeof resetDispatchDriverInputs === 'function') {
+                        resetDispatchDriverInputs();
+                    }
+                }
             }
         }
 
@@ -105,116 +1071,1739 @@
             return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
         }
 
-        function openViewDriverModal(driver) {
-            document.getElementById('vd-initials').innerText = getInitialsJS(driver.name);
-            document.getElementById('vd-name').innerText = driver.name;
-            document.getElementById('vd-cdl').innerText = driver.cdl_number || 'N/A';
-            document.getElementById('vd-status').innerText = driver.status;
-            document.getElementById('vd-phone').innerText = driver.phone || 'N/A';
-            document.getElementById('vd-truck').innerText = driver.truck_code || 'None assigned';
+        function formatTripTimeStr(timeStr) {
+            if (!timeStr) return null;
+            const cleanStr = timeStr.toString().trim();
+            if (!cleanStr || !cleanStr.includes(':')) return null;
+            const isoLike = cleanStr.replace(' ', 'T');
+            const dt = new Date(isoLike);
+            if (!isNaN(dt.getTime())) {
+                return dt.toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+            }
+            const match = cleanStr.match(/(\d{1,2}):(\d{2})/);
+            if (match) {
+                let h = parseInt(match[1], 10);
+                const m = match[2];
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                h = h % 12;
+                if (h === 0) h = 12;
+                return `${h}:${m} ${ampm}`;
+            }
+            return null;
+        }
 
-            document.getElementById('vd-deliveries').innerText = driver.total_deliveries ? driver.total_deliveries : 0;
-            document.getElementById('vd-ontime').innerText = (driver.on_time_pct ? parseFloat(driver.on_time_pct).toFixed(1) : '100.0') + '%';
+        let currentViewingDriver = null;
 
-            let balance = parseFloat(driver.available_balance || 0).toFixed(2);
-            document.getElementById('vd-owed-balance').innerText = balance;
+        function expandDriverPhoto(src, name, cdl) {
+            const photoEl = document.getElementById('vd-photo');
+            let photoSrc = src;
+            if (!photoSrc && photoEl && !photoEl.classList.contains('hidden') && photoEl.src) {
+                photoSrc = photoEl.src;
+            }
+            if (!photoSrc) return;
 
-            const settleBtn = document.getElementById('vd-settle-btn');
-            if (parseFloat(balance) > 0) {
-                settleBtn.classList.remove('hidden');
-                settleBtn.onclick = function() {
-                    toggleModal('viewDriverModal', false);
-                    openSettlePayrollModal(driver.id, driver.name, balance);
-                };
-            } else {
-                settleBtn.classList.add('hidden');
+            const modalImg = document.getElementById('driverPhotoModalImg');
+            const modalName = document.getElementById('driverPhotoModalName');
+            const modalCdl = document.getElementById('driverPhotoModalCdl');
+            const modalDownload = document.getElementById('driverPhotoModalDownload');
+
+            if (modalImg) {
+                modalImg.src = photoSrc;
+                modalImg.alt = (name || (currentViewingDriver?.name || 'Driver')) + ' Profile Photo';
+            }
+            if (modalName) {
+                modalName.innerText = name || (document.getElementById('vd-name')?.innerText || (currentViewingDriver?.name || 'Driver Photo'));
+            }
+            if (modalCdl) {
+                modalCdl.innerText = cdl || (document.getElementById('vd-cdl')?.innerText || (currentViewingDriver?.cdl_number ? ('CDL: ' + currentViewingDriver.cdl_number) : 'Profile Image'));
+            }
+            if (modalDownload) {
+                modalDownload.href = photoSrc;
             }
 
-            const tripsContainer = document.getElementById('vd-recent-trips');
-            if (tripsContainer) {
-                tripsContainer.innerHTML = '';
-                if (driver.recent_trips && driver.recent_trips.length > 0) {
-                    driver.recent_trips.forEach(trip => {
-                        const payAmt = parseFloat(trip.display_pay || 0).toFixed(2);
-                        let statusBadge = trip.payment_status === 'Paid' ?
-                            `<span class="ml-2 text-green-600 font-semibold bg-green-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-[10px] uppercase"><i class="fa-solid fa-check mr-1"></i>Paid</span>` :
-                            `<span class="ml-2 text-orange-500 font-semibold bg-orange-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-[10px] uppercase"><i class="fa-solid fa-clock-rotate-left mr-1"></i>Pending</span>`;
+            toggleModal('driverPhotoModal', true);
+        }
 
-                        tripsContainer.innerHTML += `
-                        <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border-l-4 ${trip.payment_status === 'Paid' ? 'border-green-500' : 'border-orange-500'} shadow-sm mb-2">
-                            <div><div class="font-bold text-gray-800 dark:text-gray-200">${trip.destination} ${statusBadge}</div><div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5"><i class="fa-regular fa-calendar mr-1"></i> ${trip.trip_date}</div></div>
-                            <div class="font-bold ${trip.payment_status === 'Paid' ? 'text-green-600 dark:text-green-400' : 'text-orange-500 dark:text-orange-400'} text-base">₱${payAmt}</div>
-                        </div>`;
-                    });
-                } else {
-                    tripsContainer.innerHTML = '<div class="text-xs text-gray-500 dark:text-gray-400 italic mt-2">No trips recorded for this driver.</div>';
+        function openViewDriverModal(driver) {
+            currentViewingDriver = driver;
+
+            const photoEl = document.getElementById('vd-photo');
+            const initialsEl = document.getElementById('vd-initials');
+            const zoomHintEl = document.getElementById('vd-photo-zoom-hint');
+            if (driver.profile_photo) {
+                const photoUrl = '../' + driver.profile_photo + '?v=' + Date.now();
+                if (photoEl) {
+                    photoEl.src = photoUrl;
+                    photoEl.alt = driver.name;
+                    photoEl.classList.remove('hidden');
+                }
+                if (zoomHintEl) zoomHintEl.classList.remove('hidden');
+                if (initialsEl) initialsEl.classList.add('hidden');
+            } else {
+                if (photoEl) photoEl.classList.add('hidden');
+                if (zoomHintEl) zoomHintEl.classList.add('hidden');
+                if (initialsEl) {
+                    initialsEl.classList.remove('hidden');
+                    initialsEl.innerText = getInitialsJS(driver.name);
                 }
             }
+
+            const setVdText = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = val;
+            };
+            setVdText('vd-name', driver.name || 'Driver');
+            setVdText('vd-cdl', driver.cdl_number || 'N/A');
+            setVdText('vd-status', driver.status || 'Active');
+            setVdText('vd-phone', driver.phone || 'N/A');
+            setVdText('vd-truck', driver.truck_code || 'None assigned');
+            setVdText('vd-deliveries', driver.total_deliveries ? driver.total_deliveries : 0);
+            setVdText('vd-ontime', (driver.on_time_pct ? parseFloat(driver.on_time_pct).toFixed(1) : '100.0') + '%');
+
+            const tripsContainer = document.getElementById('vd-recent-trips');
+            const viewAllBtnContainer = document.getElementById('vd-view-all-trips-btn-container');
+            const viewAllBtnText = document.getElementById('vd-view-all-btn-text');
+
+            if (tripsContainer) {
+                tripsContainer.innerHTML = '';
+                const allTrips = driver.recent_trips || [];
+                const displayTrips = allTrips.slice(0, 2);
+
+                if (displayTrips.length > 0) {
+                    displayTrips.forEach(trip => {
+                        let statusBadge = (trip.status === 'Delivered' || !trip.status) ?
+                            `<span class="ml-2 text-green-600 font-semibold bg-green-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-[10px] uppercase"><i class="fa-solid fa-check mr-1"></i>Delivered</span>` :
+                            `<span class="ml-2 text-blue-500 font-semibold bg-blue-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-[10px] uppercase"><i class="fa-solid fa-truck-fast mr-1"></i>${trip.status}</span>`;
+
+                        const distNum = parseFloat(trip.distance_km || 0);
+                        const distanceDisplay = distNum > 0 ? `${distNum.toFixed(1)} km` : 'Distance N/A';
+                        const payNum = parseFloat(trip.pay_amount || 0);
+                        const payDisplay = payNum > 0 ? `₱${payNum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '₱0.00';
+
+                        const durationBadge = trip.duration ?
+                            `<span class="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-gray-800 px-2 py-0.5 rounded-md" title="Delivery Duration"><i class="fa-regular fa-clock text-[10px]"></i><span>${trip.duration}</span></span>` : '';
+
+                        const dispTime = formatTripTimeStr(trip.transit_start_time || trip.created_at);
+                        const arrTime = formatTripTimeStr(trip.transit_end_time);
+
+                        tripsContainer.innerHTML += `
+                        <div class="bg-gray-50 dark:bg-gray-700/60 p-3 rounded-xl border-l-4 border-blue-500 shadow-sm mb-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                            <div class="flex justify-between items-start">
+                                <div class="min-w-0 flex-1 pr-2">
+                                    <div class="font-bold text-gray-800 dark:text-gray-200 text-sm flex items-center flex-wrap gap-1">
+                                        <span class="truncate">${trip.destination}</span>
+                                        ${statusBadge}
+                                    </div>
+                                    <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        <span><i class="fa-regular fa-calendar mr-1"></i>${trip.trip_date || 'Recent'}</span>
+                                        <span class="inline-flex items-center text-blue-600 dark:text-blue-400 font-semibold">
+                                            <i class="fa-solid fa-route mr-1"></i>${distanceDisplay}
+                                        </span>
+                                        ${durationBadge}
+                                    </div>
+                                </div>
+                                <div class="text-right flex-shrink-0 pl-2">
+                                    <div class="text-[10px] text-gray-400 dark:text-gray-400 font-bold uppercase tracking-wider">Trip Pay</div>
+                                    <div class="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">${payDisplay}</div>
+                                    <div class="text-[10px] text-gray-400 dark:text-gray-500">₱10 / km</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-200/70 dark:border-gray-600/60">
+                                <span class="inline-flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
+                                    <i class="fa-solid fa-truck-fast text-blue-500 text-xs"></i>
+                                    <span class="text-gray-400 dark:text-gray-400 text-[10px] uppercase font-bold">Dispatched:</span>
+                                    <span class="font-bold text-gray-800 dark:text-gray-200">${dispTime || '—'}</span>
+                                </span>
+                                <span class="text-gray-300 dark:text-gray-600">•</span>
+                                <span class="inline-flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
+                                    <i class="fa-solid fa-flag-checkered text-emerald-500 text-xs"></i>
+                                    <span class="text-gray-400 dark:text-gray-400 text-[10px] uppercase font-bold">Arrived:</span>
+                                    <span class="font-bold text-gray-800 dark:text-gray-200">${arrTime || (trip.status === 'In Transit' ? '<span class="text-amber-500 font-semibold">In Transit</span>' : '—')}</span>
+                                </span>
+                            </div>
+                        </div>`;
+                    });
+
+                    if (viewAllBtnContainer) {
+                        viewAllBtnContainer.classList.remove('hidden');
+                        if (viewAllBtnText) {
+                            viewAllBtnText.textContent = `View All Deliveries (${allTrips.length})`;
+                        }
+                    }
+                } else {
+                    tripsContainer.innerHTML = '<div class="text-xs text-gray-500 dark:text-gray-400 italic mt-2">No trips recorded for this driver.</div>';
+                    if (viewAllBtnContainer) viewAllBtnContainer.classList.add('hidden');
+                }
+            }
+
+            const netPay = parseFloat(driver.net_earnings || 0);
+            const grossPay = parseFloat(driver.gross_earnings || 0);
+            const caAmount = parseFloat(driver.approved_cash_advances || 0);
+            const remBal = parseFloat(driver.remaining_balance || 0);
+
+            const netEl = document.getElementById('vd-payroll-net');
+            const breakdownEl = document.getElementById('vd-payroll-breakdown');
+            const settleBtn = document.getElementById('vd-settle-btn');
+
+            if (netEl) netEl.innerText = `₱${netPay.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            if (breakdownEl) breakdownEl.innerText = `Remaining Bal: ₱${remBal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} • CA: -₱${caAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+            if (settleBtn) {
+                if (netPay > 0) {
+                    settleBtn.disabled = false;
+                    settleBtn.className = 'px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition shadow-sm flex items-center gap-1.5 flex-shrink-0 cursor-pointer';
+                    settleBtn.innerHTML = '<i class="fa-solid fa-money-bill-transfer"></i><span>Settle</span>';
+                } else {
+                    settleBtn.disabled = true;
+                    settleBtn.className = 'px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 transition flex items-center gap-1.5 flex-shrink-0 cursor-not-allowed';
+                    settleBtn.innerHTML = '<i class="fa-solid fa-check"></i><span>Settled</span>';
+                }
+            }
+
             toggleModal('viewDriverModal', true);
         }
 
+        let currentPerformanceDriverId = null;
+
+        function openDriverPerformanceModal(driver) {
+            if (!driver) return;
+            currentPerformanceDriverId = driver.id;
+
+            const nameEl = document.getElementById('dp-driver-name');
+            const cdlEl = document.getElementById('dp-driver-cdl');
+            const truckEl = document.getElementById('dp-driver-truck');
+            const ratingNumEl = document.getElementById('dp-rating-num');
+            const photoEl = document.getElementById('dp-driver-photo');
+            const initialsEl = document.getElementById('dp-driver-initials');
+
+            if (nameEl) nameEl.innerText = driver.name || 'Driver';
+            if (cdlEl) cdlEl.innerHTML = `<i class="fa-solid fa-id-card mr-1"></i>CDL: ${driver.cdl_number || 'N/A'}`;
+            if (truckEl) truckEl.innerHTML = `<i class="fa-solid fa-truck mr-1"></i>Truck: ${driver.truck_code || 'Unassigned'}`;
+            if (ratingNumEl) ratingNumEl.innerText = (parseFloat(driver.rating !== undefined ? driver.rating : (stats.rating || 5.0))).toFixed(1);
+
+            if (driver.profile_photo) {
+                if (photoEl) {
+                    photoEl.src = '../' + driver.profile_photo + '?v=' + Date.now();
+                    photoEl.classList.remove('hidden');
+                }
+                if (initialsEl) initialsEl.classList.add('hidden');
+            } else {
+                if (photoEl) photoEl.classList.add('hidden');
+                if (initialsEl) {
+                    initialsEl.classList.remove('hidden');
+                    initialsEl.innerText = getInitialsJS(driver.name);
+                }
+            }
+
+            const stats = driver.performance_stats || {};
+            const thisWeekKm = parseFloat(stats.this_week_km || 0);
+            const thisWeekTrips = parseInt(stats.this_week_dispatches || 0);
+            const avgKm = parseFloat(stats.avg_km_per_week || 0);
+            const avgTrips = parseFloat(stats.avg_dispatches_per_week || 0);
+            const ontime = parseFloat(stats.on_time_pct !== undefined ? stats.on_time_pct : (driver.on_time_pct !== undefined ? driver.on_time_pct : 100));
+            const lifetimeKm = parseFloat(stats.total_lifetime_km || 0);
+            const lifetimeTrips = parseInt(stats.total_lifetime_dispatches || 0);
+            const activeWeeks = parseInt(stats.active_weeks_count || 0);
+
+            const thisWeekKmEl = document.getElementById('dp-this-week-km');
+            const thisWeekTripsEl = document.getElementById('dp-this-week-trips');
+            const avgKmEl = document.getElementById('dp-avg-km');
+            const avgTripsEl = document.getElementById('dp-avg-trips');
+            const ontimeEl = document.getElementById('dp-ontime');
+            const lifetimeKmEl = document.getElementById('dp-lifetime-km');
+            const lifetimeTripsEl = document.getElementById('dp-lifetime-trips');
+            const activeWeeksEl = document.getElementById('dp-active-weeks');
+            const weeksCountEl = document.getElementById('dp-weeks-count');
+
+            if (thisWeekKmEl) thisWeekKmEl.innerText = `${thisWeekKm.toFixed(1)} km`;
+            if (thisWeekTripsEl) thisWeekTripsEl.innerText = `${thisWeekTrips} ${thisWeekTrips === 1 ? 'Trip' : 'Trips'}`;
+            if (avgKmEl) avgKmEl.innerText = `${avgKm.toFixed(1)} km`;
+            if (avgTripsEl) avgTripsEl.innerText = `${avgTrips.toFixed(1)} / wk`;
+            if (ontimeEl) ontimeEl.innerText = `${ontime.toFixed(1)}%`;
+            if (lifetimeKmEl) lifetimeKmEl.innerText = `${lifetimeKm.toFixed(1)} km`;
+            if (lifetimeTripsEl) lifetimeTripsEl.innerText = `${lifetimeTrips} ${lifetimeTrips === 1 ? 'Trip' : 'Trips'}`;
+            if (activeWeeksEl) activeWeeksEl.innerText = `${activeWeeks} ${activeWeeks === 1 ? 'Week' : 'Weeks'}`;
+
+            const tableBody = document.getElementById('dp-weekly-table-body');
+            const emptyEl = document.getElementById('dp-weekly-empty');
+            const history = stats.weekly_history || [];
+
+            if (weeksCountEl) {
+                weeksCountEl.innerText = `${history.length} active ${history.length === 1 ? 'week' : 'weeks'} recorded`;
+            }
+
+            if (tableBody) {
+                tableBody.innerHTML = '';
+                if (history.length > 0) {
+                    if (emptyEl) emptyEl.classList.add('hidden');
+                    history.forEach(w => {
+                        const kmVal = parseFloat(w.total_km || 0).toFixed(1);
+                        const payVal = parseFloat(w.total_pay || 0).toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        });
+                        const tripsCount = parseInt(w.dispatches || 0);
+
+                        tableBody.innerHTML += `
+                            <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors">
+                                <td class="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-regular fa-calendar-check text-amber-500"></i>
+                                        <span>${w.week_label}</span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                        <i class="fa-solid fa-truck-check text-[10px]"></i>
+                                        ${tripsCount} ${tripsCount === 1 ? 'Trip' : 'Trips'}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-right font-bold text-gray-800 dark:text-gray-200">
+                                    ${kmVal} km
+                                </td>
+                                <td class="px-4 py-3 text-right font-extrabold text-emerald-600 dark:text-emerald-400">
+                                    ₱${payVal}
+                                </td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    if (emptyEl) emptyEl.classList.remove('hidden');
+                }
+            }
+
+            toggleModal('driverPerformanceModal', true);
+        }
+
+        function printCurrentDriverTrips() {
+            if (currentPerformanceDriverId) {
+                window.open(`print_driver_trips.php?driver_id=${currentPerformanceDriverId}`, '_blank');
+            }
+        }
+
+        let currentSettleTotalPayable = 0;
+
+        function triggerSettleFromModal() {
+            if (!currentViewingDriver) return;
+            const netPay = parseFloat(currentViewingDriver.net_earnings || 0);
+            if (netPay <= 0) return;
+            toggleModal('viewDriverModal', false);
+            openSettlePayrollModal(
+                currentViewingDriver.id,
+                currentViewingDriver.name,
+                currentViewingDriver.gross_earnings || 0,
+                currentViewingDriver.approved_cash_advances || 0,
+                currentViewingDriver.net_earnings || 0,
+                currentViewingDriver.remaining_balance || 0
+            );
+        }
+
+        function openSettlePayrollModal(driverId, driverName, gross, advances, net, prevBalance, periodFrom, periodTo, isAllCycles, periodLabel) {
+            const netNum = parseFloat(net || 0);
+            if (netNum <= 0) {
+                return;
+            }
+
+            const idEl = document.getElementById('sp-driver-id');
+            const nameEl = document.getElementById('sp-driver-name');
+            if (idEl) idEl.value = driverId;
+            if (nameEl) nameEl.textContent = driverName;
+
+            // Resolve Pay Period parameters
+            const pFrom = (typeof periodFrom !== 'undefined' && periodFrom !== null && periodFrom !== '') ?
+                periodFrom :
+                (typeof currentPayrollFrom !== 'undefined' ? currentPayrollFrom : '');
+            const pTo = (typeof periodTo !== 'undefined' && periodTo !== null && periodTo !== '') ?
+                periodTo :
+                (typeof currentPayrollTo !== 'undefined' ? currentPayrollTo : '');
+            const isAll = (typeof isAllCycles !== 'undefined') ?
+                (isAllCycles ? 1 : 0) :
+                (typeof isPayrollAllCycles !== 'undefined' && isPayrollAllCycles ? 1 : 0);
+
+            let pLabel = periodLabel;
+            if (!pLabel) {
+                const badge = document.getElementById('activePayPeriodBadge');
+                pLabel = badge ? badge.textContent.trim() : (pFrom && pTo ? `${pFrom} – ${pTo}` : 'Current Week');
+            }
+
+            const fromEl = document.getElementById('sp-period-from');
+            const toEl = document.getElementById('sp-period-to');
+            const allEl = document.getElementById('sp-is-all-cycles');
+            const labelEl = document.getElementById('sp-period-label');
+            const badgeEl = document.getElementById('sp-period-badge');
+            const tripIdsEl = document.getElementById('sp-trip-ids');
+
+            if (fromEl) fromEl.value = isAll ? '' : pFrom;
+            if (toEl) toEl.value = isAll ? '' : pTo;
+            if (allEl) allEl.value = isAll ? 1 : 0;
+            if (labelEl) labelEl.value = pLabel;
+            if (badgeEl) badgeEl.textContent = pLabel;
+
+            if (tripIdsEl) {
+                let relevantTripIds = [];
+                const driverRow = document.querySelector(`.payroll-driver-row[data-driver-id="${driverId}"]`);
+                if (driverRow) {
+                    try {
+                        const rowTrips = JSON.parse(driverRow.getAttribute('data-trips') || '[]');
+                        rowTrips.forEach(t => {
+                            if (t.paid === 0 && (isAll || (!pFrom || !pTo || (t.date >= pFrom && t.date <= pTo)))) {
+                                relevantTripIds.push(t.id);
+                            }
+                        });
+                    } catch (e) {}
+                }
+                tripIdsEl.value = relevantTripIds.join(',');
+            }
+
+            const grossNum = parseFloat(gross || 0);
+            const advNum = parseFloat(advances || 0);
+            const prevBalNum = parseFloat(prevBalance || 0);
+
+            currentSettleTotalPayable = netNum;
+
+            const grossEl = document.getElementById('sp-gross-amount');
+            const advEl = document.getElementById('sp-advances-amount');
+            const netPayEl = document.getElementById('sp-net-pay');
+            const prevBalRow = document.getElementById('sp-previous-balance-row');
+            const prevBalEl = document.getElementById('sp-previous-balance');
+            const claimedInput = document.getElementById('sp-claimed-input');
+
+            if (grossEl) grossEl.textContent = `₱${grossNum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            if (advEl) advEl.textContent = `-₱${advNum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            if (netPayEl) netPayEl.textContent = `₱${netNum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+            if (prevBalRow && prevBalEl) {
+                if (prevBalNum > 0) {
+                    prevBalRow.classList.remove('hidden');
+                    prevBalEl.textContent = `+₱${prevBalNum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                } else {
+                    prevBalRow.classList.add('hidden');
+                }
+            }
+
+            if (claimedInput) {
+                claimedInput.value = netNum.toFixed(2);
+            }
+
+            toggleModal('settlePayrollModal', true);
+        }
+
+        function recalculateSettleRemaining() {
+            // Full payout (100% disbursement) enforced
+            const claimedInput = document.getElementById('sp-claimed-input');
+            if (claimedInput) {
+                claimedInput.value = currentSettleTotalPayable.toFixed(2);
+            }
+        }
+
+        function setSettleClaimFull() {
+            recalculateSettleRemaining();
+        }
+
+        function setSettleClaimPercent(pct) {
+            recalculateSettleRemaining();
+        }
+
+        function openAdjustBalanceModal(driverId, driverName, currentBalance) {
+            const idEl = document.getElementById('ab-driver-id');
+            const nameEl = document.getElementById('ab-driver-name');
+            const curBalEl = document.getElementById('ab-current-balance');
+
+            if (idEl) idEl.value = driverId;
+            if (nameEl) nameEl.textContent = driverName;
+            const balNum = parseFloat(currentBalance || 0);
+            if (curBalEl) curBalEl.textContent = `₱${balNum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+            toggleModal('adjustDriverBalanceModal', true);
+        }
+
+        function openAllDriverDeliveriesModal() {
+            if (!currentViewingDriver) return;
+            const driver = currentViewingDriver;
+
+            const nameEl = document.getElementById('ad-driver-name');
+            if (nameEl) nameEl.textContent = driver.name;
+
+            const allTrips = driver.all_trips || driver.recent_trips || [];
+
+            const monthSelect = document.getElementById('ad-month-select');
+            if (monthSelect) {
+                const monthSet = new Set();
+                allTrips.forEach(t => {
+                    const dStr = t.trip_date || (t.transit_end_time ? t.transit_end_time.substring(0, 10) : (t.transit_start_time ? t.transit_start_time.substring(0, 10) : ''));
+                    if (dStr && dStr.length >= 7) {
+                        monthSet.add(dStr.substring(0, 7));
+                    }
+                });
+
+                const sortedMonths = Array.from(monthSet).sort().reverse();
+                let optionsHtml = '<option value="all">All Deliveries (All Time)</option>';
+                sortedMonths.forEach(ym => {
+                    const [y, m] = ym.split('-');
+                    const dateObj = new Date(parseInt(y), parseInt(m) - 1, 1);
+                    const label = dateObj.toLocaleString('default', {
+                        month: 'long',
+                        year: 'numeric'
+                    });
+                    optionsHtml += `<option value="${ym}">${label}</option>`;
+                });
+                monthSelect.innerHTML = optionsHtml;
+                monthSelect.value = 'all';
+            }
+
+            filterAllDriverDeliveriesByMonth('all');
+            toggleModal('allDriverDeliveriesModal', true);
+        }
+
+        function filterAllDriverDeliveriesByMonth(selectedMonth) {
+            if (!currentViewingDriver) return;
+            const allTrips = currentViewingDriver.all_trips || currentViewingDriver.recent_trips || [];
+
+            const filteredTrips = (selectedMonth === 'all') ?
+                allTrips :
+                allTrips.filter(t => {
+                    const dStr = t.trip_date || (t.transit_end_time ? t.transit_end_time.substring(0, 10) : (t.transit_start_time ? t.transit_start_time.substring(0, 10) : ''));
+                    return dStr && dStr.startsWith(selectedMonth);
+                });
+
+            let totalKm = 0;
+            let totalPay = 0;
+            filteredTrips.forEach(t => {
+                totalKm += parseFloat(t.distance_km || 0);
+                totalPay += parseFloat(t.pay_amount || 0);
+            });
+
+            const countBadge = document.getElementById('ad-trip-count-badge');
+            if (countBadge) countBadge.textContent = `${filteredTrips.length} Trips`;
+
+            const sumTripsEl = document.getElementById('ad-sum-trips');
+            if (sumTripsEl) sumTripsEl.textContent = filteredTrips.length;
+
+            const sumDistEl = document.getElementById('ad-sum-distance');
+            if (sumDistEl) sumDistEl.textContent = `${totalKm.toFixed(1)} km`;
+
+            const sumPayEl = document.getElementById('ad-sum-pay');
+            if (sumPayEl) sumPayEl.textContent = `₱${totalPay.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+            const monthCountPill = document.getElementById('ad-month-count-pill');
+            if (monthCountPill) {
+                monthCountPill.textContent = `${filteredTrips.length} ${filteredTrips.length === 1 ? 'trip' : 'trips'}`;
+            }
+
+            const listEl = document.getElementById('ad-all-trips-list');
+            if (listEl) {
+                listEl.innerHTML = '';
+                if (filteredTrips.length > 0) {
+                    filteredTrips.forEach((trip, idx) => {
+                        let statusBadge = (trip.status === 'Delivered' || !trip.status) ?
+                            `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"><i class="fa-solid fa-check mr-1 text-[8px]"></i>Delivered</span>` :
+                            `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"><i class="fa-solid fa-truck-fast mr-1 text-[8px]"></i>${trip.status}</span>`;
+
+                        const distNum = parseFloat(trip.distance_km || 0);
+                        const distanceDisplay = distNum > 0 ? `${distNum.toFixed(1)} km` : 'Distance N/A';
+                        const payNum = parseFloat(trip.pay_amount || 0);
+                        const payDisplay = payNum > 0 ? `₱${payNum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '₱0.00';
+
+                        const durationBadge = trip.duration ?
+                            `<span class="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-gray-800 px-2 py-0.5 rounded-md" title="Delivery Duration"><i class="fa-regular fa-clock text-[10px]"></i><span>${trip.duration}</span></span>` : '';
+
+                        const dispTime = formatTripTimeStr(trip.transit_start_time || trip.created_at);
+                        const arrTime = formatTripTimeStr(trip.transit_end_time);
+
+                        listEl.innerHTML += `
+                        <div class="p-3.5 bg-gray-50 dark:bg-gray-700/60 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-gray-100/70 dark:hover:bg-gray-700/90 hover:border-blue-300 dark:hover:border-blue-500/50 transition-colors">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-mono text-xs text-gray-400 font-bold">#${idx + 1}</span>
+                                        <span class="font-bold text-gray-800 dark:text-gray-200 text-sm">${trip.destination}</span>
+                                        ${statusBadge}
+                                    </div>
+                                    <div class="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                                        <span><i class="fa-regular fa-calendar mr-1"></i>${trip.trip_date || 'Recent'}</span>
+                                        <span class="font-semibold text-blue-600 dark:text-blue-400">
+                                            <i class="fa-solid fa-route mr-1"></i>${distanceDisplay}
+                                        </span>
+                                        ${durationBadge}
+                                    </div>
+                                    <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-200/70 dark:border-gray-600/60">
+                                        <span class="inline-flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
+                                            <i class="fa-solid fa-truck-fast text-blue-500 text-xs"></i>
+                                            <span class="text-gray-400 dark:text-gray-400 text-[10px] uppercase font-bold">Dispatched:</span>
+                                            <span class="font-bold text-gray-800 dark:text-gray-200">${dispTime || '—'}</span>
+                                        </span>
+                                        <span class="text-gray-300 dark:text-gray-600">•</span>
+                                        <span class="inline-flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
+                                            <i class="fa-solid fa-flag-checkered text-emerald-500 text-xs"></i>
+                                            <span class="text-gray-400 dark:text-gray-400 text-[10px] uppercase font-bold">Arrived:</span>
+                                            <span class="font-bold text-gray-800 dark:text-gray-200">${arrTime || (trip.status === 'In Transit' ? '<span class="text-amber-500 font-semibold">In Transit</span>' : '—')}</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="text-right flex-shrink-0">
+                                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Trip Pay</div>
+                                    <div class="text-base font-extrabold text-emerald-600 dark:text-emerald-400">${payDisplay}</div>
+                                    <div class="text-[10px] text-gray-400">₱10 / km</div>
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+                } else {
+                    listEl.innerHTML = '<div class="text-center py-10 text-xs text-gray-400 dark:text-gray-500 italic"><i class="fa-solid fa-inbox text-2xl mb-1 text-gray-300 dark:text-gray-600 block"></i>No deliveries found for this month.</div>';
+                }
+            }
+        }
+
+        function openPrintDriverTripsModal(driverId, driverName) {
+            const dr = currentViewingDriver || {
+                id: driverId,
+                name: driverName || 'Driver'
+            };
+            const modal = document.getElementById('printDriverTripsModal');
+            if (!modal) return;
+
+            const idInput = document.getElementById('pdt_driver_id');
+            const nameEl = document.getElementById('pdt_driver_name_display');
+            if (idInput) idInput.value = dr.id;
+            if (nameEl) nameEl.textContent = dr.name + (dr.cdl_number ? ' (CDL: ' + dr.cdl_number + ')' : '');
+
+            const periodSelect = document.getElementById('pdt_period');
+            if (periodSelect) periodSelect.value = 'monthly';
+            updatePdtDateInputs('monthly');
+
+            toggleModal('printDriverTripsModal', true);
+        }
+
+        function updatePdtDateInputs(period) {
+            const customDiv = document.getElementById('pdt_custom_date_range');
+            const startInput = document.getElementById('pdt_start_date');
+            const endInput = document.getElementById('pdt_end_date');
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+
+            if (period === 'today') {
+                if (startInput) startInput.value = todayStr;
+                if (endInput) endInput.value = todayStr;
+                if (customDiv) customDiv.classList.add('hidden');
+            } else if (period === 'weekly') {
+                const firstDayOfWeek = new Date(today);
+                const day = today.getDay();
+                const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+                firstDayOfWeek.setDate(diff);
+                if (startInput) startInput.value = firstDayOfWeek.toISOString().split('T')[0];
+                if (endInput) endInput.value = todayStr;
+                if (customDiv) customDiv.classList.add('hidden');
+            } else if (period === 'monthly') {
+                const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                if (startInput) startInput.value = firstDayOfMonth.toISOString().split('T')[0];
+                if (endInput) endInput.value = todayStr;
+                if (customDiv) customDiv.classList.add('hidden');
+            } else if (period === 'all') {
+                if (startInput) startInput.value = '';
+                if (endInput) endInput.value = '';
+                if (customDiv) customDiv.classList.add('hidden');
+            } else if (period === 'custom') {
+                if (customDiv) customDiv.classList.remove('hidden');
+            }
+        }
+
+        function submitPrintDriverTrips() {
+            const driverId = document.getElementById('pdt_driver_id').value;
+            const period = document.getElementById('pdt_period').value;
+            const startDate = document.getElementById('pdt_start_date').value;
+            const endDate = document.getElementById('pdt_end_date').value;
+            const status = document.getElementById('pdt_status').value;
+
+            let url = `print_driver_trips.php?driver_id=${encodeURIComponent(driverId)}&period=${encodeURIComponent(period)}&status=${encodeURIComponent(status)}`;
+            if (period === 'custom' || (startDate && endDate)) {
+                url += `&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`;
+            }
+
+            window.open(url, '_blank');
+            toggleModal('printDriverTripsModal', false);
+        }
+
         function openContactDriverModal(driver) {
-            document.getElementById('cd-title').innerText = 'Contact ' + driver.name.split(' ')[0];
-            document.getElementById('cd-phone-text').innerText = 'Call ' + (driver.phone || 'N/A');
-            document.getElementById('cd-phone-link').href = driver.phone ? 'tel:' + driver.phone : '#';
+            const titleEl = document.getElementById('cd-title');
+            if (titleEl) titleEl.innerText = 'Contact ' + ((driver && driver.name) ? driver.name.split(' ')[0] : 'Driver');
+            const textEl = document.getElementById('cd-phone-text');
+            if (textEl) textEl.innerText = 'Call ' + ((driver && driver.phone) ? driver.phone : 'N/A');
+            const linkEl = document.getElementById('cd-phone-link');
+            if (linkEl) linkEl.href = (driver && driver.phone) ? ('tel:' + driver.phone) : '#';
             toggleModal('contactDriverModal', true);
         }
 
+        function openResignDriverModal(id, name) {
+            const nameEl = document.getElementById('dd-name');
+            if (nameEl) nameEl.innerText = name;
+            const idEl = document.getElementById('delete_driver_id');
+            if (idEl) idEl.value = id;
+            toggleModal('resignDriverModal', true);
+        }
+
+        function openReinstateDriverModal(id, name) {
+            const nameEl = document.getElementById('reinstate-driver-name');
+            if (nameEl) nameEl.innerText = name;
+            const idEl = document.getElementById('reinstate_driver_id');
+            if (idEl) idEl.value = id;
+            toggleModal('reinstateDriverModal', true);
+        }
+
         function openDeleteDriverModal(id, name) {
-            document.getElementById('dd-name').innerText = name;
-            document.getElementById('delete_driver_id').value = id;
-            toggleModal('deleteDriverModal', true);
+            openResignDriverModal(id, name);
+        }
+
+        function openResetPasswordModal(id, name) {
+            const nameEl = document.getElementById('rp-name');
+            if (nameEl) nameEl.innerText = name;
+            const idEl = document.getElementById('reset_password_driver_id');
+            if (idEl) idEl.value = id;
+            const pwdInput = document.getElementById('new_driver_password');
+            if (pwdInput) {
+                pwdInput.value = '';
+                pwdInput.dispatchEvent(new Event('input'));
+            }
+            toggleModal('resetPasswordModal', true);
+        }
+
+        function openDecommissionTruckModal(truckId, truckCode) {
+            const codeEl = document.getElementById('dt-truck-code');
+            if (codeEl) codeEl.innerText = truckCode;
+            const idEl = document.getElementById('delete_truck_id');
+            if (idEl) idEl.value = truckId;
+            toggleModal('decommissionTruckModal', true);
         }
 
         function openDeleteTruckModal(truckId, truckCode) {
-            document.getElementById('dt-truck-code').innerText = truckCode;
-            document.getElementById('delete_truck_id').value = truckId;
-            toggleModal('deleteTruckModal', true);
+            openDecommissionTruckModal(truckId, truckCode);
+        }
+
+        function openRecommissionTruckModal(truckId, truckCode, rfidTag) {
+            const codeEl = document.getElementById('rec-truck-code');
+            if (codeEl) codeEl.innerText = truckCode || '';
+            const idEl = document.getElementById('rec_truck_id');
+            if (idEl) idEl.value = truckId || '';
+            const rfidEl = document.getElementById('rec_rfid_tag');
+            if (rfidEl) rfidEl.value = rfidTag || '';
+            toggleModal('recommissionTruckModal', true);
+        }
+
+        function openMarkFixedModal(truckId, truckCode) {
+            const codeEl = document.getElementById('mf-truck-code');
+            if (codeEl) codeEl.innerText = truckCode;
+            const idEl = document.getElementById('mf_truck_id');
+            if (idEl) idEl.value = truckId;
+            toggleModal('markFixedModal', true);
         }
 
         function openUpdateStatusModal(truckId, currentStatus, truckCode) {
-            document.getElementById('us-truck-code').innerText = truckCode;
-            document.getElementById('update_status_truck_id').value = truckId;
-            document.getElementById('update_status_select').value = currentStatus;
+            const codeEl = document.getElementById('us-truck-code');
+            if (codeEl) codeEl.innerText = truckCode;
+            const idEl = document.getElementById('update_status_truck_id');
+            if (idEl) idEl.value = truckId;
+            const selEl = document.getElementById('update_status_select');
+            if (selEl) selEl.value = currentStatus;
             toggleModal('updateStatusModal', true);
         }
 
         function openUpdateDriverStatusModal(driverId, currentStatus, driverName) {
-            document.getElementById('uds-driver-name').innerText = driverName;
-            document.getElementById('update_status_driver_id').value = driverId;
-            document.getElementById('update_driver_status_select').value = currentStatus;
+            const nameEl = document.getElementById('uds-driver-name');
+            if (nameEl) nameEl.innerText = driverName;
+            const idEl = document.getElementById('update_status_driver_id');
+            if (idEl) idEl.value = driverId;
+            const selEl = document.getElementById('update_driver_status_select');
+            if (selEl) selEl.value = currentStatus;
             toggleModal('updateDriverStatusModal', true);
         }
 
+        function editCurrentViewedDriver() {
+            if (!currentViewingDriver) return;
+            toggleModal('viewDriverModal', false);
+            openEditDriverModal(currentViewingDriver);
+        }
+
+        function openEditDriverModal(driver) {
+            if (!driver) return;
+            if (typeof driver === 'string') {
+                try {
+                    driver = JSON.parse(driver);
+                } catch (e) {
+                    console.error("Invalid driver JSON:", e);
+                    return;
+                }
+            }
+            const idEl = document.getElementById('edit_driver_id');
+            if (idEl) idEl.value = driver.id || '';
+            const headerEl = document.getElementById('edr_header_name');
+            if (headerEl) headerEl.innerText = driver.name || ('#' + driver.id);
+            const nameEl = document.getElementById('edit_driver_name');
+            if (nameEl) nameEl.value = driver.name || ((driver.first_name || '') + ' ' + (driver.last_name || '')).trim();
+            const cdlEl = document.getElementById('edit_driver_cdl');
+            if (cdlEl) cdlEl.value = driver.cdl_number || '';
+            const phoneEl = document.getElementById('edit_driver_phone');
+            if (phoneEl) phoneEl.value = driver.phone || '';
+            const userEl = document.getElementById('edit_driver_username');
+            if (userEl) userEl.value = driver.username || '';
+            const statusEl = document.getElementById('edit_driver_status');
+            if (statusEl) statusEl.value = driver.status || 'Off Duty';
+            const statusDisplay = document.getElementById('edit_driver_status_display');
+            if (statusDisplay) statusDisplay.innerText = driver.status || 'Off Duty';
+
+            const truckEl = document.getElementById('edit_driver_truck_id');
+            const driverIdStr = String(driver.id || '');
+            const currentTruckId = driver.truck_id ? String(driver.truck_id) : '';
+
+            if (truckEl) {
+                Array.from(truckEl.options).forEach(opt => {
+                    if (!opt.value) {
+                        opt.text = "— Unassigned (No Truck) —";
+                        opt.disabled = false;
+                        return;
+                    }
+                    const optVal = String(opt.value);
+                    const rawIds = (opt.getAttribute('data-driver-ids') || '').split(',').map(s => s.trim()).filter(Boolean);
+                    const count = parseInt(opt.getAttribute('data-count') || '0', 10);
+                    const driverNames = opt.getAttribute('data-driver-names') || '';
+                    const truckCode = opt.getAttribute('data-truck-code') || opt.text;
+
+                    const isCurrentlyAssigned = (optVal === currentTruckId) || rawIds.includes(driverIdStr);
+
+                    if (isCurrentlyAssigned) {
+                        opt.disabled = false;
+                        if (count > 1) {
+                            opt.text = `${truckCode} (Currently Assigned • 2/2 Co-driver: ${driverNames})`;
+                        } else {
+                            opt.text = `${truckCode} (Currently Assigned • Solo)`;
+                        }
+                    } else if (count >= 2) {
+                        opt.disabled = true;
+                        opt.text = `${truckCode} (Full — 2/2 drivers: ${driverNames})`;
+                    } else if (count === 1) {
+                        opt.disabled = false;
+                        opt.text = `${truckCode} (1/2 drivers — Co-driver: ${driverNames})`;
+                    } else {
+                        opt.disabled = false;
+                        opt.text = `${truckCode} (Available — 0/2 drivers)`;
+                    }
+                });
+
+                truckEl.value = currentTruckId;
+                handleEditDriverTruckChange();
+            }
+
+            toggleModal('editDriverModal', true);
+        }
+
+        function handleEditDriverTruckChange() {
+            const truckEl = document.getElementById('edit_driver_truck_id');
+            const noteEl = document.getElementById('edit_driver_truck_note');
+            if (!truckEl || !noteEl) return;
+
+            const selectedOpt = truckEl.options[truckEl.selectedIndex];
+            if (!selectedOpt || !selectedOpt.value) {
+                noteEl.innerHTML = '<span class="text-amber-600 dark:text-amber-400"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Driver will be unassigned from any vehicle.</span>';
+                return;
+            }
+
+            const driverNames = selectedOpt.getAttribute('data-driver-names') || '';
+            const count = parseInt(selectedOpt.getAttribute('data-count') || '0', 10);
+            const driverIdEl = document.getElementById('edit_driver_id');
+            const driverIdStr = driverIdEl ? String(driverIdEl.value) : '';
+            const rawIds = (selectedOpt.getAttribute('data-driver-ids') || '').split(',').map(s => s.trim()).filter(Boolean);
+            const isAssigned = rawIds.includes(driverIdStr);
+
+            if (isAssigned) {
+                noteEl.innerHTML = '<span class="text-blue-600 dark:text-blue-400"><i class="fa-solid fa-circle-check mr-1"></i>Driver is already assigned to this vehicle.</span>';
+            } else if (count === 1) {
+                noteEl.innerHTML = `<span class="text-emerald-600 dark:text-emerald-400"><i class="fa-solid fa-users mr-1"></i>Will share this truck with co-driver: <strong>${driverNames}</strong> (Slot 2/2).</span>`;
+            } else {
+                noteEl.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400"><i class="fa-solid fa-check mr-1"></i>Truck is currently unoccupied (Slot 1/2).</span>';
+            }
+        }
+
+        function openEditTruckModal(truck) {
+            if (!truck) return;
+            if (typeof truck === 'string') {
+                try {
+                    truck = JSON.parse(truck);
+                } catch (e) {
+                    console.error("Invalid truck JSON:", e);
+                    return;
+                }
+            }
+            const idEl = document.getElementById('edit_truck_id');
+            if (idEl) idEl.value = truck.id || '';
+            const headerEl = document.getElementById('et_header_code');
+            if (headerEl) headerEl.innerText = truck.truck_code || ('#' + truck.id);
+            const codeEl = document.getElementById('edit_truck_code');
+            if (codeEl) codeEl.value = truck.truck_code || '';
+            const rfidEl = document.getElementById('edit_truck_rfid');
+            if (rfidEl) rfidEl.value = truck.rfid_tag || '';
+            const statusEl = document.getElementById('edit_truck_status');
+            if (statusEl) statusEl.value = truck.status || 'Idle';
+            const statusDisplay = document.getElementById('edit_truck_status_display');
+            if (statusDisplay) statusDisplay.innerText = truck.status || 'Idle';
+
+            const driverIds = (truck.driver_ids ? String(truck.driver_ids).split(',') : [])
+                .map(s => s.trim())
+                .filter(Boolean);
+
+            const d1El = document.getElementById('edit_truck_driver_1');
+            const d2El = document.getElementById('edit_truck_driver_2');
+            const truckIdStr = String(truck.id || '');
+
+            [d1El, d2El].forEach(sel => {
+                if (!sel) return;
+                Array.from(sel.options).forEach(opt => {
+                    if (!opt.value) return;
+                    const name = opt.getAttribute('data-name') || opt.text;
+                    const optTruckId = String(opt.getAttribute('data-truck-id') || '');
+                    const optTruckCode = opt.getAttribute('data-truck-code') || '';
+
+                    if (optTruckId === truckIdStr) {
+                        opt.text = `${name} (Currently assigned to this truck)`;
+                    } else if (optTruckCode) {
+                        opt.text = `${name} (Currently on ${optTruckCode})`;
+                    } else {
+                        opt.text = `${name} (Unassigned)`;
+                    }
+                });
+            });
+
+            if (d1El) d1El.value = driverIds[0] || '';
+            if (d2El) d2El.value = driverIds[1] || '';
+
+            syncEditTruckDriverSelects();
+
+            toggleModal('editTruckModal', true);
+        }
+
+        function syncEditTruckDriverSelects() {
+            const d1El = document.getElementById('edit_truck_driver_1');
+            const d2El = document.getElementById('edit_truck_driver_2');
+            const badge = document.getElementById('edit_truck_driver_count_badge');
+            if (!d1El || !d2El) return;
+
+            const val1 = d1El.value;
+            const val2 = d2El.value;
+
+            if (val1 && val2 && val1 === val2) {
+                d2El.value = '';
+            }
+
+            Array.from(d2El.options).forEach(opt => {
+                if (!opt.value) return;
+                opt.disabled = (val1 && opt.value === val1);
+            });
+
+            Array.from(d1El.options).forEach(opt => {
+                if (!opt.value) return;
+                opt.disabled = (val2 && opt.value === val2);
+            });
+
+            let count = 0;
+            if (d1El.value) count++;
+            if (d2El.value) count++;
+
+            if (badge) {
+                badge.innerText = `${count} / 2 Drivers`;
+                if (count === 2) {
+                    badge.className = "text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300";
+                } else if (count === 1) {
+                    badge.className = "text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300";
+                } else {
+                    badge.className = "text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
+                }
+            }
+        }
+
+        function openSwitchTruckModal(driverId, driverName, truckCode) {
+            const nameEl = document.getElementById('st-driver-name');
+            if (nameEl) nameEl.innerText = driverName;
+            const codeEl = document.getElementById('st-truck-code');
+            if (codeEl) codeEl.innerText = truckCode || 'None';
+            const idEl = document.getElementById('switch_truck_driver_id');
+            if (idEl) idEl.value = driverId;
+
+            const activeTabContent = document.querySelector('.tab-content:not(.hidden)');
+            if (activeTabContent) {
+                const tabId = activeTabContent.id.replace('view-', '');
+                const tabEl = document.getElementById('switch_truck_redirect_tab');
+                if (tabEl) tabEl.value = tabId;
+            }
+
+            toggleModal('switchTruckModal', true);
+        }
+
+        function openApproveCancelModal(dispatchId, ticketNumber, reason = '', photo = '') {
+            const numEl = document.getElementById('ac-ticket-number');
+            if (numEl) numEl.innerText = ticketNumber;
+            const idEl = document.getElementById('approve_cancel_dispatch_id');
+            if (idEl) idEl.value = dispatchId;
+
+            const reasonEl = document.getElementById('ac-reason');
+            if (reasonEl) {
+                reasonEl.innerText = (reason && reason.trim()) ? reason : 'No reason specified';
+            }
+
+            const photoContainer = document.getElementById('ac-photo-container');
+            const photoImg = document.getElementById('ac-photo-img');
+            const noPhotoEl = document.getElementById('ac-no-photo');
+            if (photo && photo.trim() !== '') {
+                const cleanPhoto = photo.replace(/^\/+/, '');
+                const photoUrl = (cleanPhoto.startsWith('http') || cleanPhoto.startsWith('../')) ? cleanPhoto : ('../' + cleanPhoto);
+                if (photoImg) photoImg.src = photoUrl;
+                if (photoContainer) photoContainer.classList.remove('hidden');
+                if (noPhotoEl) noPhotoEl.classList.add('hidden');
+            } else {
+                if (photoImg) photoImg.src = '';
+                if (photoContainer) photoContainer.classList.add('hidden');
+                if (noPhotoEl) noPhotoEl.classList.remove('hidden');
+            }
+
+            toggleModal('approveCancelModal', true);
+        }
+
+        function openCancellationPhotoViewer(photoUrl, ticketNumber = '', reason = '') {
+            const modal = document.getElementById('cancellationPhotoModal');
+            if (!modal) return;
+            const modalImg = document.getElementById('cp-modal-img');
+            if (modalImg) modalImg.src = photoUrl;
+            const ticketNumEl = document.getElementById('cp-ticket-num');
+            if (ticketNumEl) ticketNumEl.innerText = ticketNumber;
+            const reasonEl = document.getElementById('cp-reason-display');
+            if (reasonEl) {
+                reasonEl.innerText = reason ? ('Reason: ' + reason) : '';
+            }
+            const newTabLink = document.getElementById('cp-open-newtab');
+            if (newTabLink) newTabLink.href = photoUrl;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeCancellationPhotoViewer() {
+            const modal = document.getElementById('cancellationPhotoModal');
+            if (!modal) return;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
         function openDeleteDispatchModal(dispatchId, ticketNumber) {
-            document.getElementById('dd-ticket-number').innerText = ticketNumber;
-            document.getElementById('delete_dispatch_id').value = dispatchId;
+            const numEl = document.getElementById('dd-ticket-number');
+            if (numEl) numEl.innerText = ticketNumber;
+            const idEl = document.getElementById('delete_dispatch_id');
+            if (idEl) idEl.value = dispatchId;
             toggleModal('deleteDispatchModal', true);
         }
 
         function markDispatchDelivered(dispatchId, ticketNumber) {
-            document.getElementById('cd-ticket-number').innerText = ticketNumber;
-            document.getElementById('complete_dispatch_id').value = dispatchId;
+            const numEl = document.getElementById('cd-ticket-number');
+            if (numEl) numEl.innerText = ticketNumber;
+            const idEl = document.getElementById('complete_dispatch_id');
+            if (idEl) idEl.value = dispatchId;
             toggleModal('completeDispatchModal', true);
         }
 
-        function openSettlePayrollModal(driverId, driverName, balance) {
-            document.getElementById('sp-driver-name').innerText = driverName;
-            document.getElementById('sp-balance').innerText = '₱' + balance;
-            document.getElementById('settle_driver_id').value = driverId;
-            toggleModal('settlePayrollModal', true);
-        }
-
         function openAssignCheckerModal(orderId, orderNumber) {
-            document.getElementById('ac-order-number').innerText = orderNumber;
-            document.getElementById('ac_order_id').value = orderId;
+            const numEl = document.getElementById('ac-order-number');
+            if (numEl) numEl.innerText = orderNumber;
+            const idEl = document.getElementById('ac_order_id');
+            if (idEl) idEl.value = orderId;
             toggleModal('assignCheckerModal', true);
         }
 
         function openCancelOrderModal(orderId, orderNumber) {
-            document.getElementById('co-order-number').innerText = orderNumber;
-            document.getElementById('co_order_id').value = orderId;
+            const numEl = document.getElementById('co-order-number');
+            if (numEl) numEl.innerText = orderNumber;
+            const idEl = document.getElementById('co_order_id');
+            if (idEl) idEl.value = orderId;
             toggleModal('cancelOrderModal', true);
+        }
+
+        async function openOrderTrucksModal(orderId) {
+            if (!orderId) return;
+
+            const loadingEl = document.getElementById('otm-loading');
+            const errorEl = document.getElementById('otm-error');
+            const contentEl = document.getElementById('otm-content');
+            const emptyEl = document.getElementById('otm-empty');
+
+            if (loadingEl) loadingEl.classList.remove('hidden');
+            if (errorEl) errorEl.classList.add('hidden');
+            if (contentEl) contentEl.classList.add('hidden');
+            if (emptyEl) emptyEl.classList.add('hidden');
+
+            const orderNumEl = document.getElementById('otm-order-number');
+            if (orderNumEl) orderNumEl.textContent = 'Order #' + orderId;
+
+            const statusBadge = document.getElementById('otm-order-status-badge');
+            if (statusBadge) {
+                statusBadge.textContent = '...';
+                statusBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+            }
+
+            const printBtn = document.getElementById('otm-print-ticket-btn');
+            if (printBtn) {
+                printBtn.onclick = function() {
+                    window.open('print_order_ticket.php?id=' + encodeURIComponent(orderId), '_blank');
+                };
+            }
+
+            if (typeof toggleModal === 'function') {
+                toggleModal('orderTrucksModal', true);
+            }
+
+            try {
+                const response = await fetch('get_order_trucks.php?order_id=' + encodeURIComponent(orderId));
+                if (!response.ok) {
+                    throw new Error('HTTP error ' + response.status);
+                }
+                const data = await response.json();
+                if (!data || !data.success) {
+                    throw new Error(data && data.message ? data.message : 'Failed to retrieve order data');
+                }
+
+                renderOrderTrucksModalData(data);
+            } catch (err) {
+                console.error('[openOrderTrucksModal] Error:', err);
+                if (loadingEl) loadingEl.classList.add('hidden');
+                if (errorEl) {
+                    errorEl.classList.remove('hidden');
+                    const msgEl = document.getElementById('otm-error-msg');
+                    if (msgEl) msgEl.textContent = err.message || 'Failed to load order delivery details. Please try again.';
+                }
+            }
+        }
+
+        function renderOrderTrucksModalData(data) {
+            const loadingEl = document.getElementById('otm-loading');
+            const contentEl = document.getElementById('otm-content');
+            const emptyEl = document.getElementById('otm-empty');
+
+            if (loadingEl) loadingEl.classList.add('hidden');
+
+            const order = data.order || {};
+            const summary = data.summary || {};
+            const trucks = data.trucks || [];
+            const deliveries = data.deliveries || [];
+
+            // Header Elements
+            const orderNumEl = document.getElementById('otm-order-number');
+            if (orderNumEl) orderNumEl.textContent = order.order_number || ('Order #' + order.id);
+
+            const clientEl = document.getElementById('otm-client-name');
+            if (clientEl) {
+                clientEl.textContent = order.client_name || 'Client';
+                if (order.contact_number) {
+                    clientEl.textContent += ' (' + order.contact_number + ')';
+                }
+            }
+
+            const destEl = document.getElementById('otm-destination');
+            if (destEl) {
+                destEl.textContent = order.destination || '---';
+                if (order.landmark) {
+                    destEl.textContent += ' • ' + order.landmark;
+                }
+            }
+
+            const gravelEl = document.getElementById('otm-gravel-type');
+            if (gravelEl) gravelEl.textContent = order.gravel_label || order.gravel_type || 'Gravel';
+
+            const statusBadge = document.getElementById('otm-order-status-badge');
+            if (statusBadge) {
+                const statusColors = {
+                    'Pending': 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-200 dark:border-amber-800',
+                    'In Progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200 border border-blue-200 dark:border-blue-800',
+                    'Fulfilled': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800',
+                    'Cancelled': 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-200 border border-rose-200 dark:border-rose-800'
+                };
+                statusBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold ' + (statusColors[order.status] || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300');
+                statusBadge.textContent = order.status || 'Pending';
+            }
+
+            // Progress stats
+            const reqCm = parseFloat(order.cubic_meters_required || 0);
+            const doneCm = parseFloat(order.cubic_meters_fulfilled || 0);
+            const remCm = parseFloat(order.remaining_cubic_meters || Math.max(0, reqCm - doneCm));
+            const pct = parseFloat(order.percent_fulfilled || (reqCm > 0 ? (doneCm / reqCm) * 100 : 0));
+
+            const progHeadline = document.getElementById('otm-progress-headline');
+            if (progHeadline) progHeadline.textContent = doneCm.toFixed(2) + ' / ' + reqCm.toFixed(2) + ' cu.m';
+
+            const progPct = document.getElementById('otm-progress-pct');
+            if (progPct) {
+                progPct.textContent = pct.toFixed(1) + '% Fulfilled';
+                if (pct >= 100) {
+                    progPct.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300';
+                } else {
+                    progPct.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300';
+                }
+            }
+
+            const remLabel = document.getElementById('otm-remaining-label');
+            if (remLabel) {
+                remLabel.textContent = remCm > 0 ? (remCm.toFixed(2) + ' cu.m remaining') : 'Order volume fully delivered';
+            }
+
+            const progressBar = document.getElementById('otm-progress-bar');
+            if (progressBar) {
+                progressBar.style.width = Math.min(100, Math.max(0, pct)) + '%';
+                if (pct >= 100) {
+                    progressBar.className = 'h-2.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500';
+                } else {
+                    progressBar.className = 'h-2.5 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-500';
+                }
+            }
+
+            // Stat Cards
+            const statTrucks = document.getElementById('otm-stat-trucks');
+            if (statTrucks) statTrucks.textContent = summary.total_trucks || trucks.length || '0';
+
+            const statTrips = document.getElementById('otm-stat-trips');
+            if (statTrips) statTrips.textContent = summary.total_trips || deliveries.length || '0';
+
+            const statVolume = document.getElementById('otm-stat-volume');
+            if (statVolume) statVolume.textContent = (summary.total_cubic_meters || doneCm).toFixed(2) + ' cu.m';
+
+            // Check if there are no trucks or deliveries
+            if (trucks.length === 0 && deliveries.length === 0) {
+                if (emptyEl) emptyEl.classList.remove('hidden');
+                if (contentEl) contentEl.classList.add('hidden');
+                return;
+            }
+
+            if (emptyEl) emptyEl.classList.add('hidden');
+            if (contentEl) contentEl.classList.remove('hidden');
+
+            // Render Contributing Trucks
+            const trucksListEl = document.getElementById('otm-trucks-list');
+            const trucksBadge = document.getElementById('otm-trucks-count-badge');
+            if (trucksBadge) trucksBadge.textContent = trucks.length + ' truck' + (trucks.length !== 1 ? 's' : '');
+
+            if (trucksListEl) {
+                let tHtml = '';
+                const totalFulfilled = (summary.total_cubic_meters > 0 ? summary.total_cubic_meters : doneCm) || 1;
+
+                trucks.forEach(function(t) {
+                    const truckPct = Math.round((t.total_cubic_meters / totalFulfilled) * 100);
+                    const driversStr = (t.drivers && t.drivers.length > 0) ? t.drivers.join(', ') : 'Assigned Driver';
+                    const dateFormatted = t.latest_timestamp ? new Date(t.latest_timestamp).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) : '--';
+
+                    tHtml += `
+                        <div class="p-3.5 rounded-xl border border-gray-100 dark:border-gray-700/80 bg-gray-50/60 dark:bg-gray-900/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-blue-200 dark:hover:border-blue-800 transition">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0">
+                                    <i class="fa-solid fa-truck"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <strong class="font-bold text-gray-900 dark:text-gray-100 text-sm font-mono">${escapeHtml(t.truck_code)}</strong>
+                                        ${t.plate_number ? `<span class="text-[11px] font-mono px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">${escapeHtml(t.plate_number)}</span>` : ''}
+                                    </div>
+                                    <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                        <i class="fa-solid fa-user-check text-[10px] text-blue-500"></i>
+                                        <span class="truncate max-w-[200px]" title="${escapeHtml(driversStr)}">${escapeHtml(driversStr)}</span>
+                                        <span class="text-gray-300 dark:text-gray-600">&bull;</span>
+                                        <span>Latest: ${escapeHtml(dateFormatted)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-2 sm:pt-0 border-gray-100 dark:border-gray-700 flex-shrink-0">
+                                <div class="text-left sm:text-right">
+                                    <div class="text-xs font-semibold text-gray-500 dark:text-gray-400">${t.trips_count} trip${t.trips_count !== 1 ? 's' : ''}</div>
+                                    <div class="text-sm font-black text-gray-900 dark:text-gray-100">${parseFloat(t.total_cubic_meters).toFixed(2)} cu.m</div>
+                                </div>
+                                <div class="w-16 text-right">
+                                    <span class="text-xs font-bold text-blue-600 dark:text-blue-400">${truckPct}%</span>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1">
+                                        <div class="bg-blue-600 h-1.5 rounded-full" style="width: ${Math.min(100, Math.max(2, truckPct))}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                trucksListEl.innerHTML = tHtml;
+            }
+
+            // Render Detailed Delivery Logs
+            const logsTableEl = document.getElementById('otm-deliveries-table-body');
+            const logsBadge = document.getElementById('otm-logs-count-badge');
+            if (logsBadge) logsBadge.textContent = deliveries.length + ' record' + (deliveries.length !== 1 ? 's' : '');
+
+            if (logsTableEl) {
+                let dHtml = '';
+                const deliveryBadges = {
+                    'Delivered': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+                    'In Transit': 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+                    'Loading': 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+                    'Unloading': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
+                    'Pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800'
+                };
+
+                deliveries.forEach(function(d) {
+                    const bClass = deliveryBadges[d.status] || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600';
+                    const dateStr = d.timestamp ? new Date(d.timestamp).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) : '--';
+
+                    dHtml += `
+                        <tr class="hover:bg-gray-50/60 dark:hover:bg-gray-700/40 transition">
+                            <td class="px-3.5 py-2.5 font-mono font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap">${escapeHtml(d.ticket_number)}</td>
+                            <td class="px-3.5 py-2.5 font-mono font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                <span class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700">${escapeHtml(d.truck_code)}</span>
+                            </td>
+                            <td class="px-3.5 py-2.5 text-gray-700 dark:text-gray-300 truncate max-w-[140px]" title="${escapeHtml(d.driver_name)}">
+                                ${escapeHtml(d.driver_name)}
+                            </td>
+                            <td class="px-3.5 py-2.5 font-black text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                                ${parseFloat(d.cubic_meters).toFixed(2)} cu.m
+                            </td>
+                            <td class="px-3.5 py-2.5 text-gray-500 dark:text-gray-400 whitespace-nowrap">${escapeHtml(dateStr)}</td>
+                            <td class="px-3.5 py-2.5 text-center whitespace-nowrap">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${bClass}">${escapeHtml(d.status)}</span>
+                            </td>
+                        </tr>
+                    `;
+                });
+                logsTableEl.innerHTML = dHtml;
+            }
+        }
+
+        function openResignCheckerModal(checkerId, checkerName) {
+            const nameEl = document.getElementById('dc-checker-name');
+            if (nameEl) nameEl.innerText = checkerName;
+            const idEl = document.getElementById('delete_checker_id');
+            if (idEl) idEl.value = checkerId;
+            toggleModal('resignCheckerModal', true);
+        }
+
+        function openDeleteCheckerModal(checkerId, checkerName) {
+            openResignCheckerModal(checkerId, checkerName);
+        }
+
+        function openResetCheckerPasswordModal(checkerId, checkerName, redirectTab = 'checkers') {
+            const nameEl = document.getElementById('rcp-name');
+            if (nameEl) nameEl.textContent = checkerName;
+            const idEl = document.getElementById('rcp_checker_id');
+            if (idEl) idEl.value = checkerId;
+            const tabEl = document.getElementById('rcp_redirect_tab');
+            if (tabEl) tabEl.value = redirectTab;
+            const pwdInput = document.getElementById('new_checker_password');
+            if (pwdInput) {
+                pwdInput.value = '';
+                pwdInput.dispatchEvent(new Event('input'));
+            }
+            toggleModal('resetCheckerPasswordModal', true);
+        }
+
+        function openCheckerOrdersModal(checkerId, checkerName) {
+            const nameEl = document.getElementById('chko-checker-name');
+            if (nameEl) nameEl.textContent = checkerName || ('Checker #' + checkerId);
+
+            const allOrders = window.allOrdersData || [];
+            const orders = allOrders.filter(function(o) {
+                return parseInt(o.checker_id, 10) === parseInt(checkerId, 10);
+            });
+
+            const totalCount = orders.length;
+            const activeCount = orders.filter(function(o) {
+                return o.status === 'In Progress' || o.status === 'Pending';
+            }).length;
+            const fulfilledCount = orders.filter(function(o) {
+                return o.status === 'Fulfilled';
+            }).length;
+
+            const badgeEl = document.getElementById('chko-order-count-badge');
+            if (badgeEl) badgeEl.textContent = totalCount + ' order' + (totalCount !== 1 ? 's' : '');
+
+            const statTotal = document.getElementById('chko-stat-total');
+            if (statTotal) statTotal.textContent = totalCount;
+
+            const statActive = document.getElementById('chko-stat-active');
+            if (statActive) statActive.textContent = activeCount;
+
+            const statFulfilled = document.getElementById('chko-stat-fulfilled');
+            if (statFulfilled) statFulfilled.textContent = fulfilledCount;
+
+            const container = document.getElementById('chko-orders-list-container');
+            if (!container) return;
+
+            if (orders.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-gray-400 dark:text-gray-500">
+                        <div class="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-700/60 flex items-center justify-center text-2xl mx-auto mb-3 text-gray-400 dark:text-gray-400">
+                            <i class="fa-solid fa-clipboard-check"></i>
+                        </div>
+                        <p class="text-sm font-bold text-gray-700 dark:text-gray-200">No Orders Assigned</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">There are currently no orders assigned to ` + (checkerName ? escapeHtml(checkerName) : 'this checker') + `.</p>
+                    </div>
+                `;
+            } else {
+                const statusConfig = {
+                    'Pending': 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-700/50',
+                    'In Progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-700/50',
+                    'Fulfilled': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700/50',
+                    'Cancelled': 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300 border-rose-200 dark:border-rose-700/50'
+                };
+
+                let html = '<div class="divide-y divide-gray-100 dark:divide-gray-700/70">';
+
+                orders.forEach(function(o) {
+                    const reqCm = parseFloat(o.cubic_meters_required || o.trucks_required || 0);
+                    const doneCm = parseFloat(o.cubic_meters_fulfilled || o.trucks_fulfilled || 0);
+                    const pct = reqCm > 0 ? Math.min(100, Math.round((doneCm / reqCm) * 100)) : 0;
+                    const gravelLabel = (window.gravelTypeLabels && window.gravelTypeLabels[o.gravel_type]) ? window.gravelTypeLabels[o.gravel_type] : (o.gravel_type || 'Gravel');
+                    const statusClass = statusConfig[o.status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600';
+                    const dateStr = o.created_at ? new Date(o.created_at).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    }) : '';
+
+                    html += `
+                        <div class="py-4 first:pt-0 last:pb-0">
+                            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap mb-1">
+                                        <span class="font-mono font-extrabold text-sm text-gray-900 dark:text-gray-100">${escapeHtml(o.order_number)}</span>
+                                        <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${statusClass}">
+                                            ${escapeHtml(o.status)}
+                                        </span>
+                                        ${dateStr ? `<span class="text-[11px] text-gray-400 dark:text-gray-500">${escapeHtml(dateStr)}</span>` : ''}
+                                    </div>
+                                    <div class="text-xs text-gray-700 dark:text-gray-300 flex items-center gap-1.5 font-medium mb-1">
+                                        <i class="fa-solid fa-user text-gray-400 text-[10px]"></i>
+                                        <span>${escapeHtml(o.client_name || 'Client')}</span>
+                                        ${o.contact_number ? `<span class="text-gray-300 dark:text-gray-600">•</span><span class="text-gray-500 dark:text-gray-400 flex items-center gap-1"><i class="fa-solid fa-phone text-[9px]"></i> ${escapeHtml(o.contact_number)}</span>` : ''}
+                                    </div>
+                                    <div class="text-xs text-gray-600 dark:text-gray-400 flex items-start gap-1.5">
+                                        <i class="fa-solid fa-location-dot text-rose-500 text-[10px] mt-0.5 flex-shrink-0"></i>
+                                        <span class="truncate max-w-md">${escapeHtml(o.destination || 'No destination')} ${o.landmark ? `<span class="text-gray-400 dark:text-gray-500">(${escapeHtml(o.landmark)})</span>` : ''}</span>
+                                    </div>
+                                </div>
+
+                                <div class="sm:text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 flex-shrink-0">
+                                    <div class="text-left sm:text-right">
+                                        <div class="text-xs font-semibold text-gray-700 dark:text-gray-300">${escapeHtml(gravelLabel)}</div>
+                                        <div class="text-xs font-bold text-gray-900 dark:text-gray-100 mt-0.5">${doneCm.toFixed(2)} / ${reqCm.toFixed(2)} cu.m</div>
+                                        <div class="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1 sm:ml-auto">
+                                            <div class="${pct >= 100 ? 'bg-emerald-500' : 'bg-blue-500'} h-1.5 rounded-full" style="width:${pct}%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-1.5 mt-1">
+                                        <a href="print_order_ticket.php?id=${encodeURIComponent(o.id)}" target="_blank"
+                                           title="Print Order Ticket"
+                                           class="px-2.5 py-1 rounded-lg text-xs font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/30 hover:bg-teal-100 dark:hover:bg-teal-900/50 border border-teal-200 dark:border-teal-700/50 transition inline-flex items-center gap-1">
+                                            <i class="fa-solid fa-print text-[10px]"></i> Ticket
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+                container.innerHTML = html;
+            }
+
+            toggleModal('checkerOrdersModal', true);
+        }
+
+        function openEditOrderModal(order) {
+            if (!order) return;
+            if (typeof order === 'string') {
+                try {
+                    order = JSON.parse(order);
+                } catch (e) {
+                    console.error("Invalid order JSON:", e);
+                    return;
+                }
+            }
+            const idEl = document.getElementById('edit_order_id');
+            if (idEl) idEl.value = order.id || '';
+            const badgeEl = document.getElementById('edit_order_number_badge');
+            if (badgeEl) badgeEl.innerText = '#' + (order.order_number || order.id || '');
+            const clientEl = document.getElementById('edit_order_client_name');
+            if (clientEl) clientEl.value = order.client_name || '';
+            const contactEl = document.getElementById('edit_order_contact_number');
+            if (contactEl) contactEl.value = order.contact_number || '';
+            const landmarkEl = document.getElementById('edit_order_landmark');
+            if (landmarkEl) landmarkEl.value = order.landmark || '';
+            const gravelEl = document.getElementById('edit_order_gravel_type');
+            if (gravelEl) gravelEl.value = order.gravel_type || 'Crushed Gravel (3/4)';
+            const cuEl = document.getElementById('edit_order_cubic_meters');
+            if (cuEl) cuEl.value = order.cubic_meters || '';
+            const checkerEl = document.getElementById('edit_order_checker_id');
+            if (checkerEl) checkerEl.value = order.checker_id || '';
+            const notesEl = document.getElementById('edit_order_notes');
+            if (notesEl) notesEl.value = order.notes || '';
+
+            const destSelect = document.getElementById('edit_order_destination');
+            if (destSelect && order.destination) {
+                let found = false;
+                for (let i = 0; i < destSelect.options.length; i++) {
+                    if (destSelect.options[i].value.trim().toLowerCase() === order.destination.trim().toLowerCase()) {
+                        destSelect.selectedIndex = i;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    const newOpt = new Option(order.destination, order.destination, true, true);
+                    destSelect.add(newOpt);
+                }
+            }
+
+            toggleModal('editOrderModal', true);
+        }
+
+        function openViewDispatchModal(ticket) {
+            if (!ticket) return;
+            if (typeof ticket === 'string') {
+                try {
+                    ticket = JSON.parse(ticket);
+                } catch (e) {
+                    console.error("Invalid ticket JSON:", e);
+                    return;
+                }
+            }
+
+            const _fmtDt = function(s) {
+                if (!s || s === '—') return '—';
+                try {
+                    const d = new Date(s.replace(/-/g, '/'));
+                    if (!isNaN(d.getTime())) {
+                        return d.toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                            }) + ' • ' +
+                            d.toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                            });
+                    }
+                } catch (e) {}
+                return s;
+            };
+
+            const _fmtDateOnly = function(s) {
+                if (!s || s === '—') return '—';
+                try {
+                    const d = new Date(s.replace(/-/g, '/'));
+                    if (!isNaN(d.getTime())) {
+                        return d.toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                        });
+                    }
+                } catch (e) {}
+                return s;
+            };
+
+            const ticketEl = document.getElementById('vd_ticket_number');
+            if (ticketEl) ticketEl.innerText = ticket.ticket_number || ('#' + (ticket.id || ''));
+
+            const badgeEl = document.getElementById('vd_status_badge');
+            if (badgeEl) {
+                const st = ticket.status || 'Pending';
+                badgeEl.innerText = st;
+                let badgeClass = 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+                if (st === 'Delivered') badgeClass = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300';
+                else if (st === 'In Transit') badgeClass = 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300';
+                else if (st === 'Pending') badgeClass = 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300';
+                else if (st === 'Cancelled') badgeClass = 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300';
+                badgeEl.className = 'px-2.5 py-0.5 text-xs font-bold rounded-full ' + badgeClass;
+            }
+
+            const truckEl = document.getElementById('vd_truck_info');
+            if (truckEl) {
+                truckEl.innerText = (ticket.truck_code || 'N/A') + (ticket.plate_number ? ' (' + ticket.plate_number + ')' : '');
+            }
+
+            const driverEl = document.getElementById('vd_driver_name');
+            if (driverEl) driverEl.innerText = ticket.driver_name || 'N/A';
+
+            const clientEl = document.getElementById('vd_client_name');
+            if (clientEl) clientEl.innerText = ticket.client_name || 'Walk-in / Direct';
+
+            const contactEl = document.getElementById('vd_contact_number');
+            if (contactEl) contactEl.innerText = ticket.contact_number || 'N/A';
+
+            const destEl = document.getElementById('vd_destination');
+            if (destEl) {
+                const distKm = ticket.distance_km && parseFloat(ticket.distance_km) > 0 ? ' (' + Math.round(ticket.distance_km) + ' km)' : '';
+                destEl.innerText = (ticket.destination || 'N/A') + distKm;
+            }
+
+            const cuEl = document.getElementById('vd_cubic_meters');
+            if (cuEl) cuEl.innerText = ticket.cubic_meters ? (parseFloat(ticket.cubic_meters).toFixed(2) + ' cu.m') : 'N/A';
+
+            const lmEl = document.getElementById('vd_landmark');
+            if (lmEl) lmEl.innerText = (ticket.landmark && ticket.landmark.trim()) ? ticket.landmark : 'None specified';
+
+            const payEl = document.getElementById('vd_trip_pay');
+            if (payEl) {
+                const payVal = parseFloat(ticket.pay_amount || ticket.driver_trip_pay || 0);
+                payEl.innerText = '₱' + payVal.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+            const distNoteEl = document.getElementById('vd_distance_note');
+            if (distNoteEl) {
+                distNoteEl.innerText = (ticket.distance_km && parseFloat(ticket.distance_km) > 0) ? `Est. distance: ${Math.round(ticket.distance_km)} km round-trip` : 'Standard trip rate';
+            }
+
+            const dateEl = document.getElementById('vd_dispatch_date');
+            if (dateEl) {
+                const rawDate = ticket.dispatch_date || (ticket.created_at ? ticket.created_at.split(' ')[0] : '—');
+                dateEl.innerText = _fmtDateOnly(rawDate);
+            }
+
+            const depEl = document.getElementById('vd_departure_time');
+            if (depEl) {
+                const rawDep = ticket.transit_start_time ? ticket.transit_start_time : (ticket.created_at || '—');
+                depEl.innerText = _fmtDt(rawDep);
+            }
+
+            const delEl = document.getElementById('vd_delivery_time');
+            if (delEl) {
+                if (ticket.transit_end_time) {
+                    delEl.innerText = _fmtDt(ticket.transit_end_time);
+                } else if (ticket.status === 'Delivered') {
+                    delEl.innerText = 'Completed';
+                } else {
+                    delEl.innerText = 'Pending Delivery';
+                }
+            }
+
+            const printBtn = document.getElementById('vd_print_btn');
+            if (printBtn) {
+                if (ticket.id) {
+                    printBtn.style.display = 'inline-flex';
+                    printBtn.onclick = function() {
+                        window.open('print_ticket.php?id=' + ticket.id, '_blank', 'noopener,noreferrer');
+                    };
+                } else {
+                    printBtn.style.display = 'none';
+                }
+            }
+
+            toggleModal('viewDispatchDetailsModal', true);
+        }
+
+        function openEditDispatchModal(ticket) {
+            if (!ticket) return;
+            if (typeof ticket === 'string') {
+                try {
+                    ticket = JSON.parse(ticket);
+                } catch (e) {
+                    console.error("Invalid ticket JSON:", e);
+                    return;
+                }
+            }
+            const idEl = document.getElementById('edit_dispatch_id');
+            if (idEl) idEl.value = ticket.id || '';
+            const ticketEl = document.getElementById('ed_ticket_number');
+            if (ticketEl) ticketEl.innerText = ticket.ticket_number || ('#' + ticket.id);
+            const truckEl = document.getElementById('ed_truck_code');
+            if (truckEl) truckEl.innerText = (ticket.truck_code || 'N/A') + (ticket.plate_number ? ' (' + ticket.plate_number + ')' : '');
+            const driverEl = document.getElementById('ed_driver_name');
+            if (driverEl) driverEl.innerText = ticket.driver_name || 'N/A';
+            const clientEl = document.getElementById('edit_dispatch_client_name');
+            if (clientEl) clientEl.value = ticket.client_name || '';
+            const contactEl = document.getElementById('edit_dispatch_contact_number');
+            if (contactEl) contactEl.value = ticket.contact_number || '';
+            const landmarkEl = document.getElementById('edit_dispatch_landmark');
+            if (landmarkEl) landmarkEl.value = ticket.landmark || '';
+            const cuEl = document.getElementById('edit_dispatch_cubic_meters');
+            if (cuEl) cuEl.value = ticket.cubic_meters || '';
+
+            const destSelect = document.getElementById('edit_dispatch_destination');
+            if (destSelect && ticket.destination) {
+                let found = false;
+                for (let i = 0; i < destSelect.options.length; i++) {
+                    if (destSelect.options[i].value.trim().toLowerCase() === ticket.destination.trim().toLowerCase()) {
+                        destSelect.selectedIndex = i;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    const distText = (ticket.distance_km && parseFloat(ticket.distance_km) > 0) ? ` (${Math.round(ticket.distance_km)} km)` : '';
+                    const newOpt = new Option(ticket.destination + distText, ticket.destination, true, true);
+                    newOpt.dataset.distance = ticket.distance_km || 0;
+                    newOpt.dataset.pay = ticket.driver_trip_pay || ticket.pay_amount || 0;
+                    destSelect.add(newOpt);
+                }
+            }
+
+            handleEditDispatchDestinationChange();
+            toggleModal('editDispatchModal', true);
+        }
+
+        function handleEditDispatchDestinationChange() {
+            const destSelect = document.getElementById('edit_dispatch_destination');
+            if (!destSelect) return;
+            const destName = destSelect.value;
+            const opt = destSelect.options[destSelect.selectedIndex];
+            calculateAndSetEditDispatchPay(destName, opt);
+        }
+
+        function calculateAndSetEditDispatchPay(destName, optElem = null) {
+            const payAmountEl = document.getElementById('editDispatchPayAmount');
+            const hiddenDist = document.getElementById('edit_dispatch_distance_km');
+            const hiddenPay = document.getElementById('edit_dispatch_pay_amount');
+            if (!payAmountEl) return;
+
+            if (!destName) {
+                payAmountEl.innerHTML = '<span class="text-gray-400 italic">Select a destination or re-pin to calculate pay</span>';
+                if (hiddenDist) hiddenDist.value = '0';
+                if (hiddenPay) hiddenPay.value = '0';
+                return;
+            }
+
+            let dist = 0;
+            let rate = null;
+            let lat = null;
+            let lng = null;
+            if (optElem) {
+                if (optElem.dataset.distance) dist = parseFloat(optElem.dataset.distance);
+                if (optElem.dataset.rate) rate = parseFloat(optElem.dataset.rate);
+                if (optElem.dataset.lat) lat = parseFloat(optElem.dataset.lat);
+                if (optElem.dataset.lng) lng = parseFloat(optElem.dataset.lng);
+            }
+
+            if (typeof computeDriverTripPay === 'function') {
+                const calc = computeDriverTripPay(dist, destName, lat, lng, rate);
+                const pay = calc.pay;
+                if (hiddenDist) hiddenDist.value = Math.round(dist);
+                if (hiddenPay) hiddenPay.value = pay;
+                payAmountEl.innerHTML = `Map Distance: <span class="font-bold text-blue-600 dark:text-blue-400">${Math.round(dist)} km</span> (round trip) &bull; Driver Trip Pay: <span class="font-bold text-green-600 dark:text-green-400">₱${pay.toFixed(2)}</span> <span class="text-gray-500 dark:text-gray-400 font-normal">(${calc.breakdown})</span>`;
+            } else {
+                if (hiddenDist) hiddenDist.value = Math.round(dist);
+                if (hiddenPay) hiddenPay.value = (optElem && optElem.dataset.pay) ? parseFloat(optElem.dataset.pay) : 0;
+                payAmountEl.innerHTML = `Map Distance: <span class="font-bold text-blue-600 dark:text-blue-400">${Math.round(dist)} km</span>`;
+            }
         }
 
         try {
@@ -335,45 +2924,289 @@
                     }
                 });
             }
+
+            const financeReports = <?= json_encode($financeReports ?? []); ?>;
+            if (document.getElementById('deliveredTripsReportChart') && financeReports.length > 0) {
+                new Chart(document.getElementById('deliveredTripsReportChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: financeReports.map(row => row.month_name),
+                        datasets: [{
+                            label: 'Delivered Trips',
+                            data: financeReports.map(row => row.deliveries),
+                            backgroundColor: '#f97316',
+                            borderColor: '#ea580c',
+                            borderWidth: 1,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                },
+                                grid: {
+                                    borderDash: [4, 4]
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    boxWidth: 8
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (document.getElementById('driverPayrollReportChart') && financeReports.length > 0) {
+                new Chart(document.getElementById('driverPayrollReportChart').getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: financeReports.map(row => row.month_name),
+                        datasets: [{
+                            label: 'Driver Payroll (₱)',
+                            data: financeReports.map(row => row.payroll),
+                            borderColor: '#22c55e',
+                            backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#22c55e'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '₱' + value.toLocaleString();
+                                    }
+                                },
+                                grid: {
+                                    borderDash: [4, 4]
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    boxWidth: 8
+                                }
+                            }
+                        }
+                    }
+                });
+            }
         } catch (err) {
             console.error("Dashboard Charts Error:", err);
         }
 
+        document.addEventListener("DOMContentLoaded", function() {
+            const plateInput = document.getElementById('newTruckPlateInput');
+            const plateFeedback = document.getElementById('plateCheckFeedback');
+            const addTruckSubmitBtn = document.querySelector('#addTruckModal button[type="submit"]');
+            if (!plateInput || !plateFeedback) return;
 
+            let plateCheckTimer = null;
+
+            plateInput.addEventListener('input', function() {
+                const val = this.value.trim();
+                clearTimeout(plateCheckTimer);
+
+                plateFeedback.innerHTML = '';
+                plateInput.classList.remove('border-red-500', 'border-green-500');
+                plateInput.classList.add('border-gray-300');
+                if (addTruckSubmitBtn) addTruckSubmitBtn.disabled = false;
+
+                if (val.length === 0) return;
+
+                plateFeedback.innerHTML = '<span class="text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Checking...</span>';
+
+                plateCheckTimer = setTimeout(() => {
+                    fetch('check_plate.php?plate=' + encodeURIComponent(val))
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.exists) {
+                                plateFeedback.innerHTML = '<span class="text-red-500 font-semibold"><i class="fa-solid fa-circle-xmark mr-1"></i>Plate number already registered.</span>';
+                                plateInput.classList.remove('border-gray-300', 'border-green-500');
+                                plateInput.classList.add('border-red-500', 'focus:ring-red-500');
+                                if (addTruckSubmitBtn) addTruckSubmitBtn.disabled = true;
+                            } else {
+                                plateFeedback.innerHTML = '<span class="text-green-600 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i>Available.</span>';
+                                plateInput.classList.remove('border-gray-300', 'border-red-500');
+                                plateInput.classList.add('border-green-500');
+                                if (addTruckSubmitBtn) addTruckSubmitBtn.disabled = false;
+                            }
+                        })
+                        .catch(() => {
+                            plateFeedback.innerHTML = '';
+                        });
+                }, 400);
+            });
+        });
 
         document.addEventListener("DOMContentLoaded", function() {
-            const destSelect = document.getElementById('destinationSelect');
-            const gravelTypeSelect = document.getElementById('gravelType');
-            const payOutput = document.getElementById('payOutput');
-            if (destSelect && payOutput) {
-                const destRates = {
-                    'San Leonardo': 150,
-                    'Tarlac': 800,
-                    'Laur': 900,
-                    'Gabaldon': 1000
-                };
-                const gravelPrices = <?= json_encode($gravelPrices ?? ["S1_regular" => 1500, "S1_crushed" => 1600, "3_4_regular" => 1400, "3_4_crushed" => 1500, "G1_regular" => 1700, "G1_crushed" => 1800, "38_regular" => 1300, "38_crushed" => 1400, "base_course" => 1200, "river_mix" => 1100, "garden_soil" => 1000]); ?>;
+            const pwdInputs = document.querySelectorAll('#new_driver_password, #newPasswordInput, .pw-complexity-input');
+            pwdInputs.forEach(pwdInput => {
+                const container = pwdInput.closest('div');
+                if (!container) return;
+                const reqLength = container.querySelector('#req-length, .req-length') || container.parentElement.querySelector('#req-length, .req-length');
+                const reqUpper = container.querySelector('#req-uppercase, .req-uppercase') || container.parentElement.querySelector('#req-uppercase, .req-uppercase');
+                const reqLower = container.querySelector('#req-lowercase, .req-lowercase') || container.parentElement.querySelector('#req-lowercase, .req-lowercase');
+                const reqNumber = container.querySelector('#req-number, .req-number') || container.parentElement.querySelector('#req-number, .req-number');
+                const modalOrForm = pwdInput.closest('form, div.bg-white, div.bg-gray-800');
+                const submitBtn = modalOrForm ? modalOrForm.querySelector('button[type="submit"], #resetPasswordSubmitBtn, #btnVerifyOtp') : null;
 
-                function calculateTotalPay() {
-                    const dest = destSelect.value;
-                    const destPrice = destRates[dest] ? destRates[dest] : 0;
-                    let gravelPrice = 0;
-                    if (gravelTypeSelect && gravelTypeSelect.value) {
-                        const type = gravelTypeSelect.value;
-                        gravelPrice = gravelPrices[type] !== undefined ? gravelPrices[type] : 0;
-                    }
-                    if (dest || (gravelTypeSelect && gravelTypeSelect.value)) {
-                        payOutput.value = '₱' + (destPrice + gravelPrice).toFixed(2);
+                function updateRequirement(el, isValid) {
+                    if (!el) return;
+                    const icon = el.querySelector('i');
+                    if (isValid) {
+                        el.className = 'flex items-center text-green-600 dark:text-green-400 font-semibold';
+                        if (icon) {
+                            icon.className = 'fa-solid fa-check mr-2';
+                        }
                     } else {
-                        payOutput.value = '₱0.00';
+                        el.className = 'flex items-center text-gray-500 dark:text-gray-400';
+                        if (icon) {
+                            icon.className = 'fa-solid fa-circle text-[6px] mr-2';
+                        }
                     }
                 }
-                destSelect.addEventListener('change', calculateTotalPay);
-                if (gravelTypeSelect) {
-                    gravelTypeSelect.addEventListener('change', calculateTotalPay);
-                }
+
+                pwdInput.addEventListener('input', function() {
+                    const val = this.value;
+                    const hasLength = val.length >= 8;
+                    const hasUpper = /[A-Z]/.test(val);
+                    const hasLower = /[a-z]/.test(val);
+                    const hasNumber = /[0-9]/.test(val);
+
+                    updateRequirement(reqLength, hasLength);
+                    updateRequirement(reqUpper, hasUpper);
+                    updateRequirement(reqLower, hasLower);
+                    updateRequirement(reqNumber, hasNumber);
+
+                    if (submitBtn) {
+                        submitBtn.disabled = !(hasLength && hasUpper && hasLower && hasNumber);
+                    }
+                });
+            });
+        });
+
+        function resetDispatchDriverInputs() {
+            const singleContainer = document.getElementById('singleDriverContainer');
+            const multiContainer = document.getElementById('multiDriverContainer');
+            const hiddenDriverId = document.getElementById('hiddenDriverId');
+            const finalDriverId = document.getElementById('finalDriverId');
+            const assignedDriverName = document.getElementById('assignedDriverName');
+            const assignedDriverSelect = document.getElementById('assignedDriverSelect');
+            const rfidInput = document.getElementById('rfidInput');
+            const rfidFeedback = document.getElementById('rfidFeedback');
+            const truckPlate = document.getElementById('truckPlate');
+            const hiddenTruckId = document.getElementById('hiddenTruckId');
+
+            if (rfidInput) rfidInput.value = '';
+            if (rfidFeedback) rfidFeedback.innerHTML = 'Waiting for scan...';
+            if (truckPlate) truckPlate.value = '';
+            if (hiddenTruckId) hiddenTruckId.value = '';
+
+            if (singleContainer) singleContainer.classList.remove('hidden');
+            if (multiContainer) multiContainer.classList.add('hidden');
+
+            if (hiddenDriverId) {
+                hiddenDriverId.disabled = false;
+                hiddenDriverId.value = '';
+            }
+            if (finalDriverId) {
+                finalDriverId.value = '';
+            }
+            if (assignedDriverName) {
+                assignedDriverName.value = '';
+            }
+            if (assignedDriverSelect) {
+                assignedDriverSelect.disabled = true;
+                assignedDriverSelect.value = '';
+                assignedDriverSelect.innerHTML = '<option value="">— Select Which Driver is Driving —</option>';
+            }
+            const hiddenOffHours = document.getElementById('dispatchConfirmOffHours');
+            if (hiddenOffHours) {
+                hiddenOffHours.value = '0';
+            }
+            const orderSel = document.getElementById('dispatchOrderSelect');
+            if (orderSel) {
+                orderSel.value = '';
             }
 
+            if (typeof window.clearDispatchOrderPresetFields === 'function') {
+                window.clearDispatchOrderPresetFields();
+            } else if (typeof clearDispatchOrderPresetFields === 'function') {
+                clearDispatchOrderPresetFields();
+            }
+        }
+
+        function closeOffHoursModal() {
+            if (typeof toggleModal === 'function') {
+                toggleModal('offHoursConfirmModal', false);
+            }
+            const hiddenOffHours = document.getElementById('dispatchConfirmOffHours');
+            if (hiddenOffHours) hiddenOffHours.value = '0';
+        }
+
+        function confirmAndSubmitOffHoursDispatch() {
+            const hiddenOffHours = document.getElementById('dispatchConfirmOffHours');
+            if (hiddenOffHours) hiddenOffHours.value = '1';
+
+            const multiContainer = document.getElementById('multiDriverContainer');
+            const sel = document.getElementById('assignedDriverSelect');
+            const finalDriver = document.getElementById('finalDriverId');
+            const hiddenDriver = document.getElementById('hiddenDriverId');
+
+            if (multiContainer && !multiContainer.classList.contains('hidden') && sel && sel.value) {
+                if (finalDriver) finalDriver.value = sel.value;
+                if (hiddenDriver) hiddenDriver.value = sel.value;
+                const backupEl = document.getElementById('multiDriverIdBackup');
+                if (backupEl) backupEl.value = sel.value;
+            } else if (hiddenDriver && hiddenDriver.value) {
+                if (finalDriver) finalDriver.value = hiddenDriver.value;
+            }
+
+            if (typeof toggleModal === 'function') {
+                toggleModal('offHoursConfirmModal', false);
+            }
+            const dispatchForm = document.getElementById('dispatchForm');
+            if (dispatchForm) {
+                dispatchForm.querySelectorAll('[data-order-locked]').forEach(function(el) {
+                    el.disabled = false;
+                });
+                dispatchForm.submit();
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
             const rfidInput = document.getElementById('rfidInput');
             const truckPlate = document.getElementById('truckPlate');
             const hiddenTruckId = document.getElementById('hiddenTruckId');
@@ -385,6 +3218,81 @@
                         e.preventDefault();
                         return false;
                     }
+                    // Sync dropdown -> hidden fields BEFORE any validation (covers keyboard/enter submit edge cases)
+                    const multiContainer = document.getElementById('multiDriverContainer');
+                    const hiddenDriverIdEl = document.getElementById('hiddenDriverId');
+                    const finalDriverIdEl = document.getElementById('finalDriverId');
+                    const sel = document.getElementById('assignedDriverSelect');
+
+                    if (multiContainer && !multiContainer.classList.contains('hidden')) {
+                        const chosenVal = (sel && sel.value) ? sel.value : '';
+                        if (finalDriverIdEl) finalDriverIdEl.value = chosenVal;
+                        if (hiddenDriverIdEl) hiddenDriverIdEl.value = chosenVal;
+                        const backupEl = document.getElementById('multiDriverIdBackup');
+                        if (backupEl) backupEl.value = chosenVal;
+
+                        if (!chosenVal) {
+                            e.preventDefault();
+                            if (sel) {
+                                sel.classList.add('ring-2', 'ring-red-500', 'border-red-500');
+                                setTimeout(() => sel.classList.remove('ring-2', 'ring-red-500', 'border-red-500'), 3000);
+                            }
+                            if (rfidFeedback) rfidFeedback.innerHTML = '<span class="text-red-500 font-bold"><i class="fa-solid fa-circle-exclamation"></i> Please select which driver is operating this truck.</span>';
+                            return false;
+                        }
+                    } else {
+                        if (hiddenDriverIdEl && hiddenDriverIdEl.value && finalDriverIdEl) {
+                            finalDriverIdEl.value = hiddenDriverIdEl.value;
+                        }
+                    }
+
+                    // Check if dispatch is outside operating hours
+                    const hiddenConfirmEl = document.getElementById('dispatchConfirmOffHours');
+                    const isAlreadyConfirmed = hiddenConfirmEl && hiddenConfirmEl.value === '1';
+
+                    if (!isAlreadyConfirmed && window.adminOperatingHours) {
+                        const now = new Date();
+                        const currHour = now.getHours();
+                        const opStart = Number(window.adminOperatingHours.start ?? 7);
+                        const opEnd = Number(window.adminOperatingHours.end ?? 20);
+
+                        if (currHour < opStart || currHour >= opEnd) {
+                            e.preventDefault();
+
+                            // Populate off-hours modal details
+                            const truckCode = document.getElementById('truckPlate')?.value || 'Unknown Truck';
+                            let driverName = document.getElementById('assignedDriverName')?.value;
+                            if (!driverName) {
+                                const sel = document.getElementById('assignedDriverSelect');
+                                if (sel && sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]?.value) {
+                                    driverName = sel.options[sel.selectedIndex]?.text;
+                                }
+                            }
+                            if (!driverName) driverName = 'Assigned Driver';
+                            const destination = document.getElementById('destinationSelect')?.value || 'Not selected';
+
+                            const tEl = document.getElementById('offHoursTruckCode');
+                            if (tEl) tEl.textContent = truckCode;
+                            const dEl = document.getElementById('offHoursDriverName');
+                            if (dEl) dEl.textContent = driverName;
+                            const destEl = document.getElementById('offHoursDestination');
+                            if (destEl) destEl.textContent = destination;
+                            const wEl = document.getElementById('offHoursWindowText');
+                            if (wEl && window.adminOperatingHours.startFormatted && window.adminOperatingHours.endFormatted) {
+                                wEl.textContent = `${window.adminOperatingHours.startFormatted} – ${window.adminOperatingHours.endFormatted}`;
+                            }
+
+                            if (typeof toggleModal === 'function') {
+                                toggleModal('offHoursConfirmModal', true);
+                            }
+                            return false;
+                        }
+                    }
+
+                    // Ensure preset locked fields submit their values cleanly
+                    dispatchForm.querySelectorAll('[data-order-locked]').forEach(function(el) {
+                        el.disabled = false;
+                    });
                 });
                 rfidInput.addEventListener('change', function() {
                     const rfidValue = this.value.trim();
@@ -393,26 +3301,134 @@
                         fetch('get_truck_by_rfid.php?rfid=' + encodeURIComponent(rfidValue)).then(response => response.json())
                             .then(data => {
                                 if (data.success) {
+                                    if (data.status === 'Maintenance') {
+                                        rfidFeedback.innerHTML = '<span class="text-red-500 font-bold"><i class="fa-solid fa-screwdriver-wrench"></i> This truck is in Maintenance!</span>';
+                                        truckPlate.value = '';
+                                        hiddenTruckId.value = '';
+                                        rfidInput.value = '';
+                                        resetDispatchDriverInputs();
+                                        return;
+                                    }
+
+                                    if (data.status !== 'Idle') {
+                                        rfidFeedback.innerHTML = `<span class="text-orange-500 font-bold"><i class="fa-solid fa-circle-exclamation"></i> Truck is currently ${data.status}!</span>`;
+                                        truckPlate.value = '';
+                                        hiddenTruckId.value = '';
+                                        rfidInput.value = '';
+                                        resetDispatchDriverInputs();
+                                        return;
+                                    }
+
+                                    if (data.today_dispatches !== undefined && data.today_dispatches >= 10) {
+                                        rfidFeedback.innerHTML = `<span class="text-red-500 font-bold"><i class="fa-solid fa-ban"></i> Daily Limit Reached: ${data.truck_code} has already reached the limit of 10 dispatches today (${data.today_dispatches}/10)!</span>`;
+                                        truckPlate.value = '';
+                                        hiddenTruckId.value = '';
+                                        rfidInput.value = '';
+                                        resetDispatchDriverInputs();
+                                        return;
+                                    }
+
+                                    const driverCount = data.driver_count !== undefined ? data.driver_count : (data.driver_id ? 1 : 0);
+
+                                    if (driverCount === 0 || (!data.driver_id && (!data.drivers || data.drivers.length === 0))) {
+                                        rfidFeedback.innerHTML = '<span class="text-red-500 font-bold"><i class="fa-solid fa-user-slash"></i> No driver assigned to this truck! Assign a driver before dispatching.</span>';
+                                        truckPlate.value = '';
+                                        hiddenTruckId.value = '';
+                                        rfidInput.value = '';
+                                        resetDispatchDriverInputs();
+                                        rfidInput.focus();
+                                        return;
+                                    }
+
                                     truckPlate.value = data.truck_code;
                                     hiddenTruckId.value = data.truck_id;
 
+                                    const singleContainer = document.getElementById('singleDriverContainer');
+                                    const multiContainer = document.getElementById('multiDriverContainer');
                                     const hiddenDriverId = document.getElementById('hiddenDriverId');
                                     const assignedDriverName = document.getElementById('assignedDriverName');
-                                    if (hiddenDriverId && assignedDriverName) {
-                                        hiddenDriverId.value = data.driver_id || '';
-                                        assignedDriverName.value = data.driver_name || 'No Driver Assigned';
-                                    }
+                                    const assignedDriverSelect = document.getElementById('assignedDriverSelect');
 
-                                    rfidFeedback.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-check"></i> Truck matched!</span>';
+                                    if (driverCount >= 2 && data.drivers && data.drivers.length >= 2) {
+                                        if (singleContainer) singleContainer.classList.add('hidden');
+                                        if (multiContainer) multiContainer.classList.remove('hidden');
+
+                                        const finalDriverId = document.getElementById('finalDriverId');
+                                        if (hiddenDriverId) {
+                                            hiddenDriverId.disabled = true; // Disabled so single_driver_id is not submitted
+                                            hiddenDriverId.value = '';
+                                        }
+                                        if (finalDriverId) {
+                                            finalDriverId.value = '';
+                                        }
+
+                                        if (assignedDriverSelect) {
+                                            assignedDriverSelect.disabled = false;
+                                            assignedDriverSelect.required = true;
+                                            assignedDriverSelect.innerHTML = '<option value="">— Select Which Driver is Driving —</option>';
+                                            data.drivers.forEach(d => {
+                                                const opt = document.createElement('option');
+                                                opt.value = d.id;
+                                                opt.textContent = `${d.name} (${d.status})`;
+                                                assignedDriverSelect.appendChild(opt);
+                                            });
+                                            assignedDriverSelect.onchange = function() {
+                                                const finalEl = document.getElementById('finalDriverId');
+                                                if (finalEl) finalEl.value = this.value;
+                                                const hiddenEl = document.getElementById('hiddenDriverId');
+                                                if (hiddenEl) hiddenEl.value = this.value;
+                                                const backupEl = document.getElementById('multiDriverIdBackup');
+                                                if (backupEl) backupEl.value = this.value;
+                                                checkDriverActiveDispatch(this.value, this.options[this.selectedIndex]?.textContent);
+                                            };
+                                            assignedDriverSelect.focus();
+                                        }
+
+                                        rfidFeedback.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-check"></i> Truck matched! Select which driver is operating.</span>';
+                                    } else {
+                                        if (singleContainer) singleContainer.classList.remove('hidden');
+                                        if (multiContainer) multiContainer.classList.add('hidden');
+
+                                        const finalDriverId = document.getElementById('finalDriverId');
+                                        if (assignedDriverSelect) {
+                                            assignedDriverSelect.disabled = true;
+                                            assignedDriverSelect.required = false;
+                                            assignedDriverSelect.value = '';
+                                            assignedDriverSelect.innerHTML = '';
+                                        }
+
+                                        const driverObj = (data.drivers && data.drivers[0]) ? data.drivers[0] : {
+                                            id: data.driver_id,
+                                            name: data.driver_name
+                                        };
+
+                                        if (hiddenDriverId) {
+                                            hiddenDriverId.disabled = false;
+                                            hiddenDriverId.value = driverObj.id || '';
+                                        }
+                                        if (finalDriverId) {
+                                            finalDriverId.value = driverObj.id || '';
+                                        }
+                                        if (assignedDriverName) {
+                                            assignedDriverName.value = driverObj.name || 'No Driver Assigned';
+                                        }
+
+                                        checkDriverActiveDispatch(driverObj.id, driverObj.name);
+
+                                        rfidFeedback.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-check"></i> Truck matched! Driver auto-filled.</span>';
+                                    }
                                 } else {
                                     truckPlate.value = '';
                                     hiddenTruckId.value = '';
+                                    resetDispatchDriverInputs();
+                                    checkDriverActiveDispatch(null, null);
                                     rfidFeedback.innerHTML = '<span class="text-red-500"><i class="fa-solid fa-triangle-exclamation"></i> Unregistered RFID tag!</span>';
                                     rfidInput.value = '';
                                     rfidInput.focus();
                                 }
                             })
                             .catch(error => {
+                                resetDispatchDriverInputs();
                                 rfidFeedback.innerHTML = '<span class="text-red-500">Database connection error.</span>';
                             });
                     }
@@ -421,6 +3437,27 @@
         });
 
         document.addEventListener("DOMContentLoaded", function() {
+            if (activeTab === 'tracking') {
+                setTimeout(() => {
+                    if (!map) initMap();
+                    else map.invalidateSize();
+                }, 100);
+                setTimeout(() => {
+                    if (map) map.invalidateSize();
+                }, 400);
+            }
+
+            setInterval(() => {
+                const clk = document.getElementById('dispatchModalLiveClock');
+                if (clk) {
+                    clk.textContent = new Date().toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                }
+            }, 1000);
+
             function updateLoadingTimers() {
                 const containers = document.querySelectorAll('.loading-timer-container');
                 const LOADING_DURATION_MS = 20 * 60 * 1000;
@@ -455,7 +3492,7 @@
                                 headers: {
                                     'Content-Type': 'application/x-www-form-urlencoded'
                                 },
-                                body: 'truck_code=' + encodeURIComponent(truckCode)
+                                body: 'truck_code=' + encodeURIComponent(truckCode) + '&csrf_token=' + encodeURIComponent(_csrfToken)
                             }).then(response => response.json()).then(data => {
                                 if (data.success) {
                                     window.location.reload();
@@ -473,31 +3510,24 @@
 
         try {
             const financeData = <?= json_encode($financeReports ?? []); ?>;
-            const deliveryData = <?= json_encode($deliveryPerformance ?? []); ?>;
+            const deliveryData = [];
             if (financeData.length > 0 && document.getElementById('revenueReportChart')) {
                 new Chart(document.getElementById('revenueReportChart').getContext('2d'), {
                     type: 'line',
                     data: {
                         labels: financeData.map(d => d.month_name),
                         datasets: [{
-                            label: 'Revenue',
-                            data: financeData.map(d => d.revenue),
-                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                            label: 'Driver Salaries Paid (₱)',
+                            data: financeData.map(d => d.payroll),
+                            backgroundColor: 'rgba(59, 130, 246, 0.15)',
                             borderColor: '#3b82f6',
                             fill: true,
                             tension: 0.4
                         }, {
-                            label: 'Expenses',
-                            data: financeData.map(d => d.expenses),
-                            backgroundColor: 'rgba(239, 68, 68, 0.7)',
-                            borderColor: '#ef4444',
-                            fill: true,
-                            tension: 0.4
-                        }, {
-                            label: 'Profit',
-                            data: financeData.map(d => d.profit),
-                            backgroundColor: 'rgba(34, 197, 94, 0.7)',
-                            borderColor: '#22c55e',
+                            label: 'Delivered Trips Count',
+                            data: financeData.map(d => d.deliveries),
+                            backgroundColor: 'rgba(249, 115, 22, 0.15)',
+                            borderColor: '#f97316',
                             fill: true,
                             tension: 0.4
                         }]
@@ -506,7 +3536,7 @@
                         responsive: true,
                         scales: {
                             y: {
-                                stacked: true,
+                                stacked: false,
                                 beginAtZero: true,
                                 grid: {
                                     borderDash: [4, 4]
@@ -529,46 +3559,48 @@
                         }
                     }
                 });
-                new Chart(document.getElementById('deliveryReportChart').getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels: deliveryData.map(d => d.week_name),
-                        datasets: [{
-                            label: 'On Time',
-                            data: deliveryData.map(d => d.on_time),
-                            backgroundColor: '#22c55e'
-                        }, {
-                            label: 'Delayed',
-                            data: deliveryData.map(d => d.delayed),
-                            backgroundColor: '#ef4444'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    borderDash: [4, 4]
+                if (document.getElementById('deliveryReportChart')) {
+                    new Chart(document.getElementById('deliveryReportChart').getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: deliveryData.map(d => d.week_name),
+                            datasets: [{
+                                label: 'On Time',
+                                data: deliveryData.map(d => d.on_time),
+                                backgroundColor: '#22c55e'
+                            }, {
+                                label: 'Delayed',
+                                data: deliveryData.map(d => d.delayed),
+                                backgroundColor: '#ef4444'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        borderDash: [4, 4]
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    }
                                 }
                             },
-                            x: {
-                                grid: {
-                                    display: false
-                                }
-                            }
-                        },
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    usePointStyle: true,
-                                    boxWidth: 8
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        usePointStyle: true,
+                                        boxWidth: 8
+                                    }
                                 }
                             }
                         }
-                    }
-                });
+                    });
+                }
             }
         } catch (err) {
             console.error("Reports Charts Error:", err);
@@ -576,103 +3608,641 @@
     </script>
 
 <?php elseif ($_SESSION['role'] === 'Driver' || $_SESSION['role'] === 'Checker'): ?>
-    <!-- ================= DRIVER SCRIPTS ================= -->
+
     <script>
-        function openChangePasswordModal() {
-            document.getElementById('otpModalOverlay').classList.remove('hidden');
-            document.getElementById('otpModalOverlay').classList.add('flex');
-            showStep('stepRequest');
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeTab = urlParams.get('tab') || 'dashboard';
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.sidebar-nav-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.bottom-nav-item').forEach(el => el.classList.remove('active'));
+
+            const viewEl = document.getElementById('view-' + tabName);
+            if (viewEl) viewEl.classList.remove('hidden');
+
+            const navBtn = document.getElementById('nav-' + tabName);
+            if (navBtn) navBtn.classList.add('active');
+
+            const bottomNavBtn = document.getElementById('bottom-nav-' + tabName);
+            if (bottomNavBtn) bottomNavBtn.classList.add('active');
+
+            if (tabName === 'route') {
+                const fixDriverMap = () => {
+                    const m = window.driverMap || (typeof driverMap !== 'undefined' ? driverMap : null);
+                    if (m) {
+                        m.invalidateSize();
+                        if (typeof fitDriverRouteBounds === 'function') {
+                            fitDriverRouteBounds();
+                        }
+                    } else if (typeof initDriverMap === 'function') {
+                        initDriverMap();
+                    }
+                };
+                setTimeout(fixDriverMap, 50);
+                setTimeout(fixDriverMap, 200);
+                setTimeout(fixDriverMap, 500);
+                setTimeout(fixDriverMap, 1000);
+            }
+
+            window.history.pushState({}, '', '?tab=' + tabName);
         }
 
-        function closeOtpModal() {
-            document.getElementById('otpModalOverlay').classList.add('hidden');
-            document.getElementById('otpModalOverlay').classList.remove('flex');
-            document.getElementById('stepRequest').classList.remove('scale-100', 'opacity-100');
-            document.getElementById('stepVerify').classList.remove('scale-100', 'opacity-100');
+        document.addEventListener('DOMContentLoaded', function() {
+            switchTab(activeTab);
+        });
+
+        <?php if ($_SESSION['role'] === 'Driver' && !empty($active_dispatch)): ?>
+                (function() {
+                    const PUSH_INTERVAL_MS = 10000;
+                    let lastPushTime = 0;
+                    let watchId = null;
+                    let simIntervalId = null;
+                    let gpsBadge = null;
+                    const isTransit = <?= ($active_dispatch['status'] === 'In Transit') ? 'true' : 'false'; ?>;
+                    const activeDest = <?= json_encode($active_dispatch['destination'] ?? ''); ?>;
+
+                    function createGpsBadge(statusMsg, colorHex = '#22c55e') {
+                        let badge = document.getElementById('gps-status-badge');
+                        if (!badge) {
+                            badge = document.createElement('div');
+                            badge.id = 'gps-status-badge';
+                            const style = document.createElement('style');
+                            style.textContent = `
+                                @keyframes gps-pulse {
+                                    0%, 100% { opacity: 1; transform: scale(1); }
+                                    50% { opacity: 0.35; transform: scale(1.35); }
+                                }
+                                #gps-status-badge {
+                                    position: fixed;
+                                    bottom: calc(env(safe-area-inset-bottom, 0px) + 4.75rem);
+                                    left: 1rem;
+                                    z-index: 9999;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 0.5rem;
+                                    background: rgba(15, 23, 42, 0.9);
+                                    color: #fff;
+                                    font-size: 0.76rem;
+                                    font-weight: 600;
+                                    padding: 0.45rem 0.95rem;
+                                    border-radius: 9999px;
+                                    border: 1px solid rgba(255, 255, 255, 0.15);
+                                    backdrop-filter: blur(8px);
+                                    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+                                    pointer-events: none;
+                                    transition: all 0.3s ease;
+                                }
+                                @media (min-width: 1024px) {
+                                    #gps-status-badge {
+                                        bottom: 1.25rem;
+                                        left: 1.25rem;
+                                    }
+                                }
+                            `;
+                            document.head.appendChild(style);
+                            document.body.appendChild(badge);
+                        }
+                        badge.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${colorHex};display:inline-block;animation:gps-pulse 1.4s ease-in-out infinite;box-shadow:0 0 6px ${colorHex};"></span> ${statusMsg}`;
+                        gpsBadge = badge;
+                    }
+
+                    async function pushLocation(lat, lng, speed) {
+                        if (!isTransit) return;
+                        // Enforce Philippine operational boundary (4.5°N - 21.5°N, 116.0°E - 127.0°E)
+                        if (lat < 4.5 || lat > 21.5 || lng < 116.0 || lng > 127.0) {
+                            console.warn('Location update rejected: Outside Philippine operational limits', lat, lng);
+                            return;
+                        }
+                        const now = Date.now();
+                        if (now - lastPushTime < PUSH_INTERVAL_MS) return;
+                        lastPushTime = now;
+
+                        let locationName = '';
+                        if (typeof NominatimService !== 'undefined') {
+                            try {
+                                const geoRes = await NominatimService.reverseGeocode(lat, lng);
+                                if (geoRes && geoRes.formatted && !geoRes.formatted.startsWith('Point at')) {
+                                    locationName = geoRes.formatted;
+                                }
+                            } catch (e) {
+                                console.warn('Reverse geocode error:', e);
+                            }
+                        }
+                        if (!locationName) {
+                            locationName = 'In Transit';
+                        }
+
+                        const fd = new FormData();
+                        fd.append('latitude', lat.toFixed(7));
+                        fd.append('longitude', lng.toFixed(7));
+                        fd.append('speed', (speed || 0).toFixed(2));
+                        if (locationName) {
+                            fd.append('location_name', locationName);
+                        }
+
+                        fetch('update_location.php', {
+                                method: 'POST',
+                                body: fd
+                            })
+                            .then(r => r.json())
+                            .then(data => {
+                                if (gpsBadge) {
+                                    if (data.tracking) {
+                                        gpsBadge.style.background = 'rgba(22,101,52,0.92)';
+                                    } else {
+                                        gpsBadge.style.background = 'rgba(0,0,0,0.85)';
+                                    }
+                                }
+                            })
+                            .catch(() => {});
+                    }
+
+                    function startSimulatedGps() {
+                        // Guard must be at the very top — before any side-effects (toast, ipapi fetch)
+                        // to prevent repeated toasts and IP API calls on every GPS glitch.
+                        if (simIntervalId !== null) return;
+
+                        showToast("ℹ️ Simulated GPS active (Local Testing Fallback). Fetching IP location...", "info", 5000);
+
+                        let startLat = 15.3621;
+                        let startLng = 120.9632;
+
+                        fetch('https://ipapi.co/json/')
+                            .then(r => r.json())
+                            .then(ipData => {
+                                if (ipData.latitude && ipData.longitude) {
+                                    // Only accept IP coordinates if within Philippine operational bounds
+                                    if (ipData.latitude >= 4.5 && ipData.latitude <= 21.5 && ipData.longitude >= 116.0 && ipData.longitude <= 127.0) {
+                                        startLat = ipData.latitude;
+                                        startLng = ipData.longitude;
+                                        showToast("✅ Simulation aligned with your local network location.", "success", 4000);
+                                    } else {
+                                        console.warn("IP location is outside the Philippines. Defaulting simulation to San Leonardo Garage.");
+                                    }
+                                }
+                                runSimulation();
+                            })
+                            .catch(() => {
+                                runSimulation();
+                            });
+
+                        function runSimulation() {
+                            const destCoords = {
+                                'San Leonardo': {
+                                    lat: 15.3621,
+                                    lng: 120.9632
+                                },
+                                'Tarlac': {
+                                    lat: 15.4828,
+                                    lng: 120.5963
+                                },
+                                'Laur': {
+                                    lat: 15.4385,
+                                    lng: 121.1895
+                                },
+                                'Gabaldon': {
+                                    lat: 15.4533,
+                                    lng: 121.3283
+                                }
+                            };
+
+                            const target = destCoords[activeDest] || {
+                                lat: startLat,
+                                lng: startLng
+                            };
+
+                            if (isTransit) {
+                                createGpsBadge('GPS Simulated — Sharing Location', '#0284c7');
+                            } else {
+                                createGpsBadge('GPS Simulated — Ready for Trip', '#3b82f6');
+                                return;
+                            }
+
+                            function stepSimulation() {
+                                let progress = parseFloat(localStorage.getItem('sim_progress_' + activeDest)) || 0;
+
+                                const curLat = startLat + (target.lat - startLat) * progress;
+                                const curLng = startLng + (target.lng - startLng) * progress;
+                                const curSpeed = progress < 1 ? 55 + Math.random() * 5 : 0;
+
+                                pushLocation(curLat, curLng, curSpeed);
+
+                                if (progress < 1) {
+                                    progress += 0.05;
+                                    if (progress > 1) progress = 1;
+                                    localStorage.setItem('sim_progress_' + activeDest, progress);
+                                } else {
+                                    createGpsBadge('GPS Simulated — Arrived', '#22c55e');
+                                }
+                            }
+
+                            stepSimulation();
+                            simIntervalId = setInterval(stepSimulation, PUSH_INTERVAL_MS);
+                        }
+                    }
+
+                    function startGPS() {
+                        if ((window.isSecureContext === false || window.location.protocol !== 'https:') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                            showToast("⚠️ Notice: Mobile browsers require HTTPS for real GPS hardware. Connect via https:// or enable SSL in InfinityFree for live GPS (simulated transit active).", "warning", 10000);
+                        }
+
+                        if (!navigator.geolocation) {
+                            showToast("❌ Geolocation not supported. Activating simulated fallback...", "warning", 8000);
+                            startSimulatedGps();
+                            return;
+                        }
+
+                        createGpsBadge('Acquiring GPS Signal...', '#f59e0b');
+
+                        let consecutiveTimeouts = 0;
+                        let hasRealGps = false;
+
+                        // Phase 1: Rapid instant fix using cached / network location (no timeout failure)
+                        navigator.geolocation.getCurrentPosition(
+                            function(pos) {
+                                hasRealGps = true;
+                                if (isTransit) {
+                                    createGpsBadge('GPS Active — Sharing Location', '#22c55e');
+                                    pushLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.speed ? pos.coords.speed * 3.6 : 0);
+                                } else {
+                                    createGpsBadge('GPS Ready', '#3b82f6');
+                                }
+                            },
+                            function(err) {
+                                // Silent check - watchPosition will handle persistent tracking
+                                console.log('Initial quick GPS check:', err.message);
+                            }, {
+                                enableHighAccuracy: false,
+                                timeout: 10000,
+                                maximumAge: 120000
+                            }
+                        );
+
+                        // Phase 2: Continuous tracking with adaptive high-accuracy to network fallback
+                        function setupWatch(highAccuracy = true) {
+                            if (watchId !== null) {
+                                navigator.geolocation.clearWatch(watchId);
+                                watchId = null;
+                            }
+
+                            const watchOpts = highAccuracy ? {
+                                enableHighAccuracy: true,
+                                timeout: 30000,
+                                maximumAge: 10000
+                            } : {
+                                enableHighAccuracy: false,
+                                timeout: 30000,
+                                maximumAge: 30000
+                            };
+
+                            watchId = navigator.geolocation.watchPosition(
+                                function(pos) {
+                                    consecutiveTimeouts = 0;
+                                    hasRealGps = true;
+
+                                    // Deactivate simulated GPS if active since real GPS fix is obtained
+                                    if (simIntervalId !== null) {
+                                        clearInterval(simIntervalId);
+                                        simIntervalId = null;
+                                        console.log('Real GPS fix established. Deactivated simulated transit.');
+                                        showToast("✅ Real GPS signal connected.", "success", 4000);
+                                    }
+
+                                    if (isTransit) {
+                                        createGpsBadge('GPS Active — Sharing Location', '#22c55e');
+                                        pushLocation(
+                                            pos.coords.latitude,
+                                            pos.coords.longitude,
+                                            pos.coords.speed ? pos.coords.speed * 3.6 : 0
+                                        );
+                                    } else {
+                                        createGpsBadge('GPS Ready', '#3b82f6');
+                                    }
+                                },
+                                function(err) {
+                                    console.warn('GPS watch status (' + (highAccuracy ? 'high-acc' : 'standard') + '):', err.message);
+
+                                    if (err.code === err.PERMISSION_DENIED) {
+                                        showToast("⚠️ Location access denied. Activating simulated fallback...", "warning", 8000);
+                                        startSimulatedGps();
+                                        return;
+                                    }
+
+                                    // Timeout handling: gracefully degrade from satellite GPS to network GPS without spamming toasts
+                                    if (err.code === err.TIMEOUT) {
+                                        consecutiveTimeouts++;
+                                        if (highAccuracy && consecutiveTimeouts >= 2) {
+                                            console.log('Switching to standard accuracy network GPS provider after satellite timeout.');
+                                            setupWatch(false);
+                                            return;
+                                        }
+                                    }
+
+                                    // If no real GPS has ever succeeded and errors persist, start simulated fallback quietly
+                                    if (!hasRealGps && consecutiveTimeouts >= 3 && simIntervalId === null) {
+                                        startSimulatedGps();
+                                    }
+                                },
+                                watchOpts
+                            );
+                        }
+
+                        setupWatch(true);
+                    }
+
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', startGPS);
+                    } else {
+                        startGPS();
+                    }
+
+                    window.addEventListener('beforeunload', function() {
+                        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+                        if (simIntervalId !== null) clearInterval(simIntervalId);
+                    });
+                })();
+        <?php endif; ?>
+
+        let prPollingInterval = null;
+        const prRole = '<?= strtolower($_SESSION['role'] ?? 'driver') ?>';
+        const prBasePath = prRole === 'checker' ? '../checker/' : '../driver/';
+
+        function openResetPasswordModal() {
+            checkCurrentResetStatus(function(status) {
+                const overlay = document.getElementById('pwdResetOverlay');
+                if (!overlay) return;
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+                if (status === 'Approved') {
+                    showPrStep('prStepSetPwd');
+                } else if (status === 'Pending') {
+                    showPrStep('prStepWaiting');
+                    startPrPolling();
+                } else {
+                    showPrStep('prStepRequest');
+                }
+            });
         }
 
-        function showStep(stepId) {
-            document.getElementById('stepRequest').classList.add('hidden');
-            document.getElementById('stepVerify').classList.add('hidden');
+        function closePwdResetModal() {
+            const overlay = document.getElementById('pwdResetOverlay');
+            if (!overlay) return;
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+            stopPrPolling();
+            document.querySelectorAll('#pwdResetOverlay > div').forEach(d => {
+                d.classList.add('hidden');
+                d.classList.remove('scale-100', 'opacity-100');
+                d.classList.add('scale-95', 'opacity-0');
+            });
+        }
+
+        function showPrStep(stepId) {
+            document.querySelectorAll('#pwdResetOverlay > div').forEach(d => {
+                d.classList.add('hidden');
+                d.classList.remove('scale-100', 'opacity-100');
+                d.classList.add('scale-95', 'opacity-0');
+            });
             const step = document.getElementById(stepId);
+            if (!step) return;
             step.classList.remove('hidden');
             setTimeout(() => {
+                step.classList.remove('scale-95', 'opacity-0');
                 step.classList.add('scale-100', 'opacity-100');
             }, 50);
         }
 
-        function requestOtp() {
-            const btn = document.getElementById('btnRequestOtp');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-            btn.disabled = true;
-            fetch('otp_handler.php', {
+        function checkCurrentResetStatus(cb) {
+            fetch('../includes/check_reset_status.php')
+                .then(r => r.json())
+                .then(data => cb(data.status || 'none'))
+                .catch(() => cb('none'));
+        }
+
+        function submitResetRequest() {
+            const btn = document.getElementById('btnSendRequest');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            }
+            fetch(prBasePath + 'request_pwd_reset.php', {
                     method: 'POST'
                 })
-                .then(res => res.json())
+                .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        alert("SIMULATED SMS: Your SSV Trucking OTP code is " + data.simulated_otp);
-                        document.getElementById('otpPhoneText').innerText = "***-***-" + data.phone_last_4;
-                        btn.innerHTML = 'Send OTP';
-                        btn.disabled = false;
-                        showStep('stepVerify');
+                        if (data.already_approved) {
+                            showPrStep('prStepSetPwd');
+                        } else {
+                            showPrStep('prStepWaiting');
+                            startPrPolling();
+                            showToast(data.message || 'Request sent!', 'info');
+                        }
                     } else {
-                        alert('Error: ' + data.message);
-                        btn.innerHTML = 'Send OTP';
-                        btn.disabled = false;
+                        showToast(data.message || 'Failed to send request.', 'error');
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = 'Send Request';
+                        }
                     }
-                }).catch(e => {
-                    alert('Network Error');
-                    btn.innerHTML = 'Send OTP';
-                    btn.disabled = false;
+                }).catch(() => {
+                    showToast('Network error. Please try again.', 'error');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = 'Send Request';
+                    }
                 });
         }
 
-        function verifyAndChangePwd() {
-            const otp = document.getElementById('otpInput').value;
-            const pwd = document.getElementById('newPasswordInput').value;
-            if (!otp || !pwd) {
-                alert("Please fill all fields");
+        function startPrPolling() {
+            stopPrPolling();
+            prPollingInterval = setInterval(() => {
+                checkCurrentResetStatus(function(status) {
+                    if (status === 'Approved') {
+                        stopPrPolling();
+                        const overlay = document.getElementById('pwdResetOverlay');
+                        if (overlay && !overlay.classList.contains('hidden')) {
+                            showPrStep('prStepSetPwd');
+                        }
+                        showToast('✅ Your password reset was approved! You can now set your new password.', 'success', 8000);
+                    } else if (status === 'none') {
+                        stopPrPolling();
+                        const overlay = document.getElementById('pwdResetOverlay');
+                        if (overlay && !overlay.classList.contains('hidden')) {
+                            showPrStep('prStepRequest');
+                        }
+                        showToast('Your password reset request was rejected by the Admin.', 'warning', 6000);
+                    }
+                });
+            }, 5000);
+        }
+
+        function stopPrPolling() {
+            if (prPollingInterval) {
+                clearInterval(prPollingInterval);
+                prPollingInterval = null;
+            }
+        }
+
+        function submitNewPassword() {
+            const pwd = document.getElementById('prNewPassword');
+            const msgEl = document.getElementById('prSetPwdMsg');
+            const btn = document.getElementById('btnSetPwd');
+
+            if (!pwd.value) {
+                showMsg(msgEl, 'Please enter a new password.', 'error');
                 return;
             }
 
-            const btn = document.getElementById('btnVerifyOtp');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
-            const fn = new FormData();
-            fn.append('otp', otp);
-            fn.append('new_password', pwd);
+            const fd = new FormData();
+            fd.append('new_password', pwd.value);
 
-            fetch('change_pwd.php', {
+            fetch(prBasePath + 'set_new_password.php', {
                     method: 'POST',
-                    body: fn
+                    body: fd
                 })
-                .then(res => res.json())
+                .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        alert(data.message);
-                        closeOtpModal();
-                        document.getElementById('otpInput').value = '';
-                        document.getElementById('newPasswordInput').value = '';
+                        showToast(data.message || 'Password updated successfully!', 'success');
+                        closePwdResetModal();
+                        if (pwd) pwd.value = '';
                     } else {
-                        alert('Error: ' + data.message);
+                        showMsg(msgEl, data.message || 'Failed to update password.', 'error');
+                        btn.disabled = false;
+                        btn.innerHTML = 'Update Password';
                     }
-                    btn.innerHTML = 'Update';
+                }).catch(() => {
+                    showMsg(msgEl, 'Network error. Please try again.', 'error');
                     btn.disabled = false;
-                }).catch(e => {
-                    alert("Network Error");
-                    btn.innerHTML = 'Update';
-                    btn.disabled = false;
+                    btn.innerHTML = 'Update Password';
                 });
         }
-        // Theme icon initialisation
+
+        function showMsg(el, msg, type) {
+            if (!el) return;
+            el.textContent = msg;
+            el.className = 'mb-3 text-sm rounded-lg px-3 py-2 ' + (type === 'error' ?
+                'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' :
+                'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400');
+            el.classList.remove('hidden');
+        }
+
+        function openChangePasswordModal() {
+            openResetPasswordModal();
+        }
+
+        function closeOtpModal() {
+            closePwdResetModal();
+        }
+
+        // ==========================================
+        // Global Action Loading Controller
+        // ==========================================
+        window.showActionLoader = function(title, subtitle) {
+            const loader = document.getElementById('globalActionLoader');
+            const titleEl = document.getElementById('globalActionLoaderTitle');
+            const subEl = document.getElementById('globalActionLoaderSub');
+            const card = document.getElementById('globalActionLoaderCard');
+            if (!loader) return;
+            if (title && titleEl) titleEl.textContent = title;
+            if (subtitle && subEl) subEl.textContent = subtitle;
+            loader.classList.remove('opacity-0', 'pointer-events-none');
+            loader.classList.add('opacity-100');
+            if (card) {
+                card.classList.remove('scale-95');
+                card.classList.add('scale-100');
+            }
+        };
+
+        window.hideActionLoader = function() {
+            const loader = document.getElementById('globalActionLoader');
+            const card = document.getElementById('globalActionLoaderCard');
+            if (!loader) return;
+            loader.classList.add('opacity-0', 'pointer-events-none');
+            loader.classList.remove('opacity-100');
+            if (card) {
+                card.classList.add('scale-95');
+                card.classList.remove('scale-100');
+            }
+        };
+
+        window.addEventListener('pageshow', function() {
+            window.hideActionLoader();
+        });
+
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            if (!form || !form.tagName || form.tagName.toLowerCase() !== 'form') return;
+
+            let actionTitle = 'Processing Action...';
+            let actionSub = 'Please wait while the system securely processes your request...';
+
+            const formId = form.id || '';
+            const actionAttr = form.getAttribute('action') || '';
+            const actionVal = (form.querySelector('input[name="action"]') || {}).value || '';
+
+            if (formId === 'settlePayrollForm' || actionVal === 'settle_driver_payroll') {
+                actionTitle = 'Settling Driver Payroll & Finalizing Disbursement...';
+                actionSub = 'Verifying trips, releasing 100% salary, and generating payout voucher...';
+            } else if (actionVal.includes('cash_advance') || formId.includes('cashAdvance')) {
+                actionTitle = 'Processing Cash Advance...';
+                actionSub = 'Updating advance ledger and driver balance...';
+            } else if (actionVal.includes('dispatch') || formId.includes('Dispatch')) {
+                actionTitle = 'Processing Dispatch & Routing...';
+                actionSub = 'Updating delivery details, route coordinates, and truck status...';
+            } else if (actionVal.includes('driver') || formId.includes('Driver')) {
+                actionTitle = 'Updating Driver Information...';
+                actionSub = 'Saving driver credentials and license records...';
+            } else if (actionVal.includes('truck') || actionVal.includes('fleet') || formId.includes('Truck')) {
+                actionTitle = 'Updating Fleet Vehicle...';
+                actionSub = 'Saving truck specs, RFID, and maintenance status...';
+            } else if (actionAttr.includes('export_reports') || formId.includes('export')) {
+                actionTitle = 'Exporting Financial & Operational Report...';
+                actionSub = 'Compiling data and preparing download...';
+                setTimeout(window.hideActionLoader, 3500);
+            } else {
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    const txt = submitBtn.textContent.trim().replace(/\s+/g, ' ');
+                    if (txt && txt.length < 30) {
+                        actionTitle = `${txt}...`;
+                    }
+                }
+            }
+
+            window.showActionLoader(actionTitle, actionSub);
+
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn && !submitBtn.disabled) {
+                const existingIcon = submitBtn.querySelector('i');
+                if (existingIcon) {
+                    existingIcon.className = 'fa-solid fa-circle-notch fa-spin mr-1.5';
+                } else {
+                    submitBtn.insertAdjacentHTML('afterbegin', '<i class="fa-solid fa-circle-notch fa-spin mr-1.5"></i>');
+                }
+                submitBtn.classList.add('opacity-80', 'cursor-wait');
+            }
+        });
+
         document.addEventListener("DOMContentLoaded", function() {
             const icon = document.getElementById('themeIcon');
             if (icon && document.documentElement.classList.contains('dark')) {
                 icon.classList.replace('fa-moon', 'fa-sun');
             }
+
+            checkCurrentResetStatus(function(status) {
+                if (status === 'Pending') {
+                    startPrPolling();
+                } else if (status === 'Approved') {
+                    showToast('✅ Your password reset was approved! Click "Reset Password" to set your new password.', 'success', 8000);
+                }
+            });
         });
     </script>
 
-<?php endif; ?>
+<?php endif; ?>

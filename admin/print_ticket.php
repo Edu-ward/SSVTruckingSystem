@@ -1,8 +1,13 @@
 <?php
-session_start();
-require '../db.php';
+require_once __DIR__ . '/../includes/security_headers.php';
+require_once __DIR__ . '/../db.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+if (!isset($_SESSION['user_id'])) {
+    die("Unauthorized Access. Please log in.");
+}
+
+$userRole = $_SESSION['role'] ?? '';
+if (!in_array($userRole, ['Admin', 'Superadmin', 'Driver'])) {
     die("Unauthorized Access");
 }
 
@@ -10,16 +15,21 @@ if (!isset($_GET['id'])) {
     die("Ticket ID not specified.");
 }
 
-$ticket_id = $_GET['id'];
+$ticket_id = intval($_GET['id']);
 
 $stmt = $pdo->prepare("
     SELECT d.*, 
            t.truck_code, 
            CONCAT(tr.first_name, ' ', tr.last_name) AS driver_name, 
-           tr.phone AS driver_phone
+           tr.phone AS driver_phone,
+           o.order_number,
+           COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name,
+           COALESCE(NULLIF(d.contact_number, ''), o.contact_number) AS contact_number,
+           COALESCE(NULLIF(d.landmark, ''), o.landmark) AS landmark
     FROM dispatches d
     LEFT JOIN trucks t ON d.truck_id = t.id
     LEFT JOIN drivers tr ON d.driver_id = tr.id
+    LEFT JOIN orders o ON d.order_id = o.id
     WHERE d.id = ?
 ");
 $stmt->execute([$ticket_id]);
@@ -27,6 +37,13 @@ $ticket = $stmt->fetch();
 
 if (!$ticket) {
     die("Ticket not found.");
+}
+
+if ($userRole === 'Driver') {
+    $currentDriverId = intval($_SESSION['user_id'] ?? 0);
+    if (intval($ticket['driver_id'] ?? 0) !== $currentDriverId) {
+        die("Unauthorized Access: You can only view your own dispatch tickets.");
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -36,18 +53,55 @@ if (!$ticket) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Print Waybill - <?= htmlspecialchars($ticket['ticket_number']); ?></title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        @page {
+            size: A5 portrait;
+            margin: 0;
+        }
+
         @media print {
+
+            html,
             body {
-                print-color-adjust: exact;
-                -webkit-print-color-adjust: exact;
+                width: 148mm !important;
+                height: 210mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+                overflow: hidden !important;
             }
 
             .no-print {
                 display: none !important;
+            }
+
+            .page-wrapper {
+                width: 148mm !important;
+                height: 210mm !important;
+                padding: 3mm 4mm !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+            }
+
+            .ticket-copy {
+                flex: 1 !important;
+                overflow: hidden !important;
+            }
+
+            .cut-line {
+                border: none !important;
+                border-top: 1px dashed #aaa !important;
+                margin: 0 !important;
+                page-break-after: avoid !important;
             }
         }
 
@@ -56,129 +110,515 @@ if (!$ticket) {
             font-family: 'Inter', sans-serif;
         }
 
-        .waybill-container {
+        
+        .preview-shell {
+            display: flex;
+            justify-content: center;
+            padding-top: 80px;
+            padding-bottom: 30px;
+        }
+
+        
+        .page-wrapper {
             background: #fff;
-            width: 210mm;
-            min-height: 297mm;
-            margin: 20px auto;
-            padding: 40px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            width: 148mm;
+            height: 210mm;
+            padding: 3mm 4mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        
+        .cut-line {
+            border: none;
+            border-top: 1px dashed #aaa;
+            margin: 0;
+            position: relative;
+        }
+
+        .cut-line::before {
+            content: '\2702';
+            position: absolute;
+            left: -14px;
+            top: -9px;
+            font-size: 11px;
+            color: #aaa;
+        }
+
+        
+        .ticket-copy {
+            flex: 1;
+            padding: 2mm 2mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        
+        .tc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1.5px solid #111;
+            padding-bottom: 3px;
+            margin-bottom: 4px;
+        }
+
+        .tc-header .brand {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .tc-header .brand img {
+            height: 26px;
+            width: auto;
+        }
+
+        .tc-header .brand-text h1 {
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .tc-header .brand-text p {
+            font-size: 7px;
+            color: #666;
+            line-height: 1.3;
+        }
+
+        .tc-header .ticket-id {
+            text-align: right;
+        }
+
+        .tc-header .ticket-id .label {
+            font-size: 7px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #555;
+        }
+
+        .tc-header .ticket-id .number {
+            font-size: 9px;
+            font-weight: 700;
+            color: #1d4ed8;
+            font-family: monospace;
+        }
+
+        
+        .tc-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 3px;
+            margin-bottom: 4px;
+        }
+
+        .info-box {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 3px 5px;
+        }
+
+        .info-box .box-label {
+            font-size: 7px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #888;
+            margin-bottom: 2px;
+        }
+
+        .info-box .driver-name {
+            font-size: 9px;
+            font-weight: 700;
+            color: #111;
+            line-height: 1.3;
+        }
+
+        .info-box .driver-phone {
+            font-size: 8px;
+            color: #555;
+        }
+
+        .info-box .vehicle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 3px;
+            padding-top: 3px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 8px;
+        }
+
+        .info-box .vehicle-badge {
+            font-family: monospace;
+            font-weight: 700;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 1px 5px;
+            font-size: 8px;
+        }
+
+        .dispatch-table {
+            width: 100%;
+            font-size: 8px;
+            border-collapse: collapse;
+        }
+
+        .dispatch-table td {
+            padding: 2px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .dispatch-table td:last-child {
+            text-align: right;
+            font-weight: 700;
+            color: #111;
+        }
+
+        .dispatch-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            color: #15803d;
+            text-transform: uppercase;
+            font-size: 7.5px;
+        }
+
+        
+        .tc-routing {
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .routing-header {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-bottom: 1px solid #d1d5db;
+            font-size: 7px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: #555;
+        }
+
+        .routing-body {
+            padding: 4px 6px;
+            position: relative;
+        }
+
+        .route-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .route-row+.route-row {
+            margin-top: 4px;
+        }
+
+        .route-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .dot-a {
+            background: #fff;
+            border: 1.5px solid #9ca3af;
+            color: #555;
+        }
+
+        .dot-b {
+            background: #111;
+            color: #fff;
+        }
+
+        .route-info .route-sub {
+            font-size: 7px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #888;
+            font-weight: 700;
+        }
+
+        .route-info .route-val {
+            font-size: 9px;
+            font-weight: 600;
+            color: #111;
+        }
+
+        .route-connector {
+            width: 1.5px;
+            height: 8px;
+            background: #d1d5db;
+            margin-left: 8px;
+        }
+
+        
+        .tc-sigs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            border-top: 1px solid #d1d5db;
+            padding-top: 3px;
+        }
+
+        .sig-block {
+            text-align: center;
+        }
+
+        .sig-block .sig-line {
+            border-bottom: 1px solid #333;
+            height: 14px;
+            margin-bottom: 2px;
+        }
+
+        .sig-block .sig-label {
+            font-size: 7px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #333;
+        }
+
+        .sig-block .sig-sub {
+            font-size: 6.5px;
+            color: #888;
+            margin-top: 1px;
+        }
+
+        
+        .copy-label {
+            text-align: right;
+            font-size: 6.5px;
+            color: #bbb;
+            font-style: italic;
+            margin-top: 2px;
+        }
+
+        
+        .toolbar {
+            background: #111827;
+            color: #fff;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 99;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .toolbar .t-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .toolbar .t-left i {
+            color: #60a5fa;
+        }
+
+        .toolbar .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: 0.15s;
+            margin-left: 8px;
+        }
+
+        .btn-gray {
+            background: #374151;
+            color: #fff;
+        }
+
+        .btn-gray:hover {
+            background: #4b5563;
+        }
+
+        .btn-blue {
+            background: #2563eb;
+            color: #fff;
+        }
+
+        .btn-blue:hover {
+            background: #1d4ed8;
         }
     </style>
 </head>
 
-<body class="text-gray-900">
+<body>
 
-    <div class="no-print bg-gray-900 text-white p-4 flex justify-between items-center fixed top-0 w-full z-10 shadow-md">
-        <div class="flex items-center space-x-3">
-            <i class="fa-solid fa-print text-blue-400"></i>
-            <span class="font-semibold">Print Preview</span>
+    <div class="toolbar no-print">
+        <div class="t-left">
+            <i class="fa-solid fa-print"></i>
+            <span>Print Preview &mdash; Waybill Ticket (3 Copies / A5)</span>
         </div>
-        <div class="space-x-2">
-            <button onclick="window.close()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition">Close Tab</button>
-            <button onclick="window.print()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-semibold transition shadow"><i class="fa-solid fa-print mr-2"></i> Print Now</button>
+        <div>
+            <button onclick="window.close()" class="btn btn-gray">Close Tab</button>
+            <button onclick="window.print()" class="btn btn-blue"><i class="fa-solid fa-print" style="margin-right:6px;"></i>Print Now</button>
         </div>
     </div>
 
-    <div class="waybill-container mt-20 relative">
-        <div class="flex justify-between items-start border-b-2 border-gray-900 pb-6 mb-6">
-            <div>
-                <div class="flex items-center mb-1">
-                    <img src="../src/ssvLogo.png" alt="SSV Logo" class="h-16 w-auto mr-4">
-                    <h1 class="text-4xl font-bold tracking-tight">SSV Trucking</h1>
-                </div>
-                <p class="text-sm text-gray-600">San Leonardo, Nueva Ecija, Philippines</p>
-                <p class="text-sm text-gray-600">Operations Waybill Record</p>
-            </div>
-            <div class="text-right">
-                <h2 class="text-2xl font-bold text-gray-800 uppercase tracking-widest mb-1">TICKET</h2>
-                <p class="text-sm text-gray-500 font-mono tracking-widest mt-2"><?= htmlspecialchars($ticket['ticket_number']); ?></p>
-            </div>
-        </div>
+    <div class="preview-shell">
+        <div class="page-wrapper">
 
-        <div class="grid grid-cols-2 gap-8 mb-8">
-            <div class="bg-gray-50 p-4 border border-gray-200">
-                <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Carrier Details</p>
-                <p class="font-semibold text-lg text-gray-800 mb-1"><?= htmlspecialchars($ticket['driver_name']); ?></p>
-                <p class="text-sm text-gray-600"><i class="fa-solid fa-phone text-gray-400 w-4"></i> <?= htmlspecialchars($ticket['driver_phone'] ?? 'N/A'); ?></p>
-                <div class="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center">
-                    <span class="text-sm text-gray-600">Assigned Vehicle:</span>
-                    <strong class="text-gray-900 bg-white border border-gray-300 px-3 py-1 rounded shadow-sm"><?= htmlspecialchars($ticket['truck_code']); ?></strong>
-                </div>
-            </div>
+            <?php
+            $copies = ['Office Copy', 'Driver Copy', 'Customer Copy'];
+            foreach ($copies as $idx => $copyLabel):
+            ?>
 
-            <div class="bg-gray-50 p-4 border border-gray-200">
-                <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Dispatch Details</p>
-                <table class="w-full text-sm mt-1">
-                    <tbody>
-                        <tr>
-                            <td class="text-gray-600 py-1.5 border-b border-gray-200">Date Issued:</td>
-                            <td class="text-right font-medium text-gray-900 border-b border-gray-200"><?= date('F d, Y', strtotime($ticket['dispatch_date'])); ?></td>
-                        </tr>
-                        <tr>
-                            <td class="text-gray-600 py-1.5 border-b border-gray-200">Current Status:</td>
-                            <td class="text-right font-medium text-gray-900 border-b border-gray-200 uppercase"><?= htmlspecialchars($ticket['status']); ?></td>
-                        </tr>
+                <?php if ($idx > 0): ?>
+                    <hr class="cut-line"><?php endif; ?>
 
-                        <tr>
-                            <td class="text-gray-600 py-1.5">Client's Bill:</td>
-                            <td class="text-right font-bold text-gray-900">₱<?= number_format($ticket['pay_amount'], 2); ?></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                <div class="ticket-copy">
 
-        <div class="border border-gray-300 rounded overflow-hidden mb-12">
-            <div class="bg-gray-100 px-4 py-2 border-b border-gray-300">
-                <h3 class="text-sm font-bold uppercase tracking-wider text-gray-700">Routing Information</h3>
-            </div>
-            <div class="p-6 relative">
-                <div class="flex items-center space-x-6 mb-8">
-                    <div class="w-12 h-12 bg-white rounded-full border-2 border-gray-300 flex items-center justify-center font-bold text-lg text-gray-500 shadow-sm">A</div>
-                    <div class="flex-1">
-                        <p class="text-xs text-gray-500 font-bold uppercase tracking-wide">Origin / Loading Point</p>
-                        <p class="text-lg font-semibold text-gray-800"><?= htmlspecialchars($ticket['origin']); ?></p>
+                    
+                    <div class="tc-header">
+                        <div class="brand">
+                            <img src="../assets/ssvLogo.png" alt="SSV Logo">
+                            <div class="brand-text">
+                                <h1>SSV Trucking</h1>
+                                <p>San Leonardo, Nueva Ecija</p>
+                                <p>Operations Waybill Record</p>
+                            </div>
+                        </div>
+                        <div class="ticket-id">
+                            <div class="label">Waybill Ticket</div>
+                            <div class="number"><?= htmlspecialchars($ticket['ticket_number']); ?></div>
+                        </div>
                     </div>
-                </div>
 
-                <div class="w-0.5 h-12 bg-gray-200 absolute left-12 top-16"></div>
+                    
+                    <div class="tc-body">
+                        <div class="info-box">
+                            <div class="box-label">Carrier Details</div>
+                            <div class="driver-name"><?= htmlspecialchars($ticket['driver_name']); ?></div>
+                            <div class="driver-phone"><?= htmlspecialchars($ticket['driver_phone'] ?? 'N/A'); ?></div>
+                            <div class="vehicle-row">
+                                <span style="color:#666;">Vehicle:</span>
+                                <span class="vehicle-badge"><?= htmlspecialchars($ticket['truck_code']); ?></span>
+                            </div>
+                        </div>
 
-                <div class="flex items-center space-x-6">
-                    <div class="w-12 h-12 bg-gray-900 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-md">B</div>
-                    <div class="flex-1">
-                        <p class="text-xs text-gray-500 font-bold uppercase tracking-wide">Destination / Drop-off</p>
-                        <p class="text-xl font-bold text-black uppercase tracking-wide underline decoration-2 decoration-gray-300 underline-offset-4"><?= htmlspecialchars($ticket['destination']); ?></p>
+                        <div class="info-box">
+                            <div class="box-label">Client / Consignee</div>
+                            <div class="driver-name" style="font-size:8.5px;"><?= htmlspecialchars($ticket['client_name'] ?: 'General Client'); ?></div>
+                            <div class="driver-phone"><?= htmlspecialchars($ticket['contact_number'] ?: 'No contact'); ?></div>
+                            <div class="vehicle-row">
+                                <span style="color:#666;">Order:</span>
+                                <span class="vehicle-badge" style="font-size:7.5px;"><?= htmlspecialchars($ticket['order_number'] ?: 'Direct'); ?></span>
+                            </div>
+                        </div>
+
+                        <div class="info-box">
+                            <div class="box-label">Dispatch Details</div>
+                            <table class="dispatch-table">
+                                <tbody>
+                                    <tr>
+                                        <td style="color:#666;">Date:</td>
+                                        <td><?= date('M d, Y', strtotime($ticket['dispatch_date'])); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="color:#666;">Volume:</td>
+                                        <td><?= number_format($ticket['cubic_meters'] ?? 0, 2); ?> cu.m</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
+
+                    
+                    <div class="tc-routing">
+                        <div class="routing-header">Routing Information</div>
+                        <div class="routing-body">
+                            <div class="route-row">
+                                <div class="route-dot dot-a">A</div>
+                                <div class="route-info">
+                                    <div class="route-sub">Origin / Loading Point</div>
+                                    <div class="route-val"><?= htmlspecialchars($ticket['origin']); ?></div>
+                                </div>
+                            </div>
+                            <div class="route-connector"></div>
+                            <div class="route-row">
+                                <div class="route-dot dot-b">B</div>
+                                <div class="route-info">
+                                    <div class="route-sub">Destination / Drop-off</div>
+                                    <div class="route-val" style="text-transform:uppercase;text-decoration:underline;"><?= htmlspecialchars($ticket['destination']); ?></div>
+                                    <?php if (!empty($ticket['landmark'])): ?>
+                                        <div class="route-sub" style="margin-top:1px; color:#b45309; text-transform:none;">
+                                            <span style="font-weight:700; color:#888; text-transform:uppercase;">Landmark:</span> <?= htmlspecialchars($ticket['landmark']); ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="tc-sigs">
+                        <div class="sig-block">
+                            <div class="sig-line"></div>
+                            <div class="sig-label">Driver Signature</div>
+                            <div class="sig-sub">Date: ______/______/______</div>
+                        </div>
+                        <div class="sig-block">
+                            <div class="sig-line"></div>
+                            <div class="sig-label">Signature</div>
+                            <div class="sig-sub">Validated by Customer's Checker</div>
+                        </div>
+                    </div>
+
+                    <div class="copy-label"><?= $copyLabel ?></div>
+
                 </div>
-            </div>
-        </div>
 
-        <div class="grid grid-cols-2 gap-12 mt-20 pt-8 border-t border-gray-300">
-            <div class="text-center">
-                <div class="border-b border-gray-900 w-full h-12 mb-2"></div>
-                <p class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Driver Signature</p>
-                <p class="text-xs text-gray-500 mt-1">Date Received: ________/____/________</p>
-            </div>
-            <div class="text-center">
-                <div class="border-b border-gray-900 w-full h-12 mb-2"></div>
-                <p class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Customer's Checker</p>
-                <p class="text-xs text-gray-500 mt-1">Validated by Customer's Checker</p>
-            </div>
-        </div>
+            <?php endforeach; ?>
 
-        <div class="absolute bottom-0 left-0 w-full text-center opacity-40">
-            <p class="text-xs font-mono uppercase tracking-widest border-t border-dashed border-gray-300 pt-4 mt-16">INTERNAL USE ONLY • DOCUMENT GENERATED ON <?= date('Y-m-d H:i:s'); ?></p>
         </div>
-
     </div>
 
     <script>
-        window.onload = function() {
-            setTimeout(function() {
+        let _ticketPrintTriggered = false;
+        window.triggerTicketPrint = function() {
+            if (_ticketPrintTriggered) return;
+            _ticketPrintTriggered = true;
+            try {
+                window.focus();
                 window.print();
-            }, 800);
+            } catch(e) {
+                console.warn('Print trigger error:', e);
+            }
         };
+
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                window.triggerTicketPrint();
+            }, 500);
+        });
     </script>
 </body>
 

@@ -1,6 +1,6 @@
 <?php
-session_start();
-require '../db.php';
+require_once __DIR__ . '/../includes/security_headers.php';
+require_once __DIR__ . '/../db.php';
 
 header('Content-Type: application/json');
 
@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $otp = rand(100000, 999999);
 
     $_SESSION['reset_otp'] = $otp;
-    $_SESSION['otp_expiry'] = time() + 300; // 5 minutes
+    $_SESSION['otp_expiry'] = time() + 300; 
 
     echo json_encode([
         'success' => true,

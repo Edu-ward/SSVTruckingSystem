@@ -1,45 +1,569 @@
 <?php
-session_start();
-require '../db.php';
+require_once __DIR__ . '/../includes/security_headers.php';
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../includes/activity_log.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Driver') {
-    header("Location: index.php");
+    header("Location: ../index.php");
     exit;
+}
+
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 $driver_id = $_SESSION['user_id'];
 
-$stmt = $pdo->prepare("SELECT * FROM driver_payroll WHERE driver_id = ?");
-$stmt->execute([$driver_id]);
-$payroll = $stmt->fetch() ?: ['total_amount' => 0, 'amount_claimed' => 0];
+$stmtDriver = $pdo->prepare("
+    SELECT 
+        d.first_name, d.last_name, d.profile_photo, d.cdl_number, d.phone, d.status, d.truck_id, d.rating, 
+        u.username, t.truck_code, t.status AS truck_status 
+    FROM drivers d 
+    JOIN users u ON u.id = d.id 
+    LEFT JOIN trucks t ON t.id = d.truck_id 
+    WHERE d.id = ?
+");
+$stmtDriver->execute([$driver_id]);
+$driverProfile = $stmtDriver->fetch(PDO::FETCH_ASSOC);
 
-$available_balance = max(0, $payroll['total_amount'] - $payroll['amount_claimed']);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'request_cash_advance') {
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+        http_response_code(403);
+        die("CSRF token validation failed.");
+    }
+    $ca_amount = floatval($_POST['ca_amount'] ?? 0);
+    $ca_reason = trim($_POST['ca_reason'] ?? '');
 
-$driver_rates = [
-    'San Leonardo' => 150,
-    'Tarlac' => 800,
-    'Laur' => 900,
-    'Gabaldon' => 1000
-];
+    if ($ca_amount < 100) {
+        $_SESSION['error'] = "Minimum cash advance amount is ₱100.";
+    } else {
+        try {
+            $pdo->prepare("INSERT INTO cash_advances (driver_id, amount, reason) VALUES (?, ?, ?)")
+                ->execute([$driver_id, $ca_amount, $ca_reason]);
 
-$stmt2 = $pdo->prepare("SELECT trip_date, destination, status FROM driver_trips WHERE driver_id = ? ORDER BY trip_date DESC, id DESC");
+            $pdo->prepare("INSERT IGNORE INTO driver_payroll (driver_id, total_amount, amount_claimed) VALUES (?, 0, 0)")
+                ->execute([$driver_id]);
+            $_SESSION['success'] = "Cash advance request of ₱" . number_format($ca_amount, 2) . " submitted. Awaiting Admin approval.";
+            log_activity($pdo, 'Requested Cash Advance', 'Driver requested cash advance of ₱' . number_format($ca_amount, 2));
+        } catch (Exception $e) {
+            $_SESSION['error'] = "Failed to submit cash advance request.";
+        }
+    }
+    header("Location: dashboard.php?tab=cash_advance");
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'request_cancel_trip') {
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+        http_response_code(403);
+        die("CSRF token validation failed.");
+    }
+    $reason = trim($_POST['reason'] ?? '');
+    if (empty($reason)) {
+        $reason = "Breakdown / Maintenance Required";
+    }
+
+    // Process photo attachment upload if provided
+    $photo_path = null;
+    if (isset($_FILES['cancellation_photo']) && $_FILES['cancellation_photo']['error'] === UPLOAD_ERR_OK) {
+        $file = $_FILES['cancellation_photo'];
+        $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $max_size = 5 * 1024 * 1024; // 5MB
+
+        if ($file['size'] > $max_size) {
+            $_SESSION['error'] = "Photo attachment exceeds the 5MB size limit.";
+            header("Location: dashboard.php");
+            exit;
+        }
+
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file['tmp_name']);
+        if (!in_array($mime, $allowed_types)) {
+            $_SESSION['error'] = "Invalid file type. Please upload a JPG, PNG, GIF, or WEBP image.";
+            header("Location: dashboard.php");
+            exit;
+        }
+
+        $ext_map = [
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/gif'  => 'gif',
+            'image/webp' => 'webp',
+        ];
+        $ext = $ext_map[$mime] ?? 'jpg';
+        $upload_dir = __DIR__ . '/../assets/uploads/cancellations/';
+        if (!is_dir($upload_dir)) {
+            @mkdir($upload_dir, 0777, true);
+        }
+        $filename = 'cancel_' . $driver_id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+        $dest = $upload_dir . $filename;
+
+        if (move_uploaded_file($file['tmp_name'], $dest)) {
+            $photo_path = 'assets/uploads/cancellations/' . $filename;
+        }
+    }
+
+    try {
+        $pdo->beginTransaction();
+
+        $stmt = $pdo->prepare("SELECT id, truck_id, status FROM dispatches WHERE driver_id = ? AND status NOT IN ('Delivered', 'Cancelled', 'Completed')");
+        $stmt->execute([$driver_id]);
+        $active_dispatches = $stmt->fetchAll();
+
+        $already_requested = false;
+        foreach ($active_dispatches as $dispatch) {
+            if ($dispatch['status'] === 'Cancellation Requested') {
+                $already_requested = true;
+                break;
+            }
+        }
+
+        if ($already_requested) {
+            $_SESSION['error'] = "A cancellation request is already pending for your current trip.";
+            $pdo->rollBack();
+            header("Location: dashboard.php");
+            exit;
+        }
+
+        foreach ($active_dispatches as $dispatch) {
+            $stmtUpdate = $pdo->prepare("UPDATE dispatches SET status = 'Cancellation Requested', cancellation_reason = ?, cancellation_photo = ? WHERE id = ?");
+            $stmtUpdate->execute([$reason, $photo_path, $dispatch['id']]);
+        }
+        $stmtUpdateTrip = $pdo->prepare("UPDATE driver_trips SET status = 'Cancellation Requested' WHERE driver_id = ? AND status NOT IN ('Delivered', 'Cancelled', 'Completed')");
+        $stmtUpdateTrip->execute([$driver_id]);
+
+        $pdo->commit();
+        if (count($active_dispatches) > 0) {
+            $_SESSION['success'] = "Cancellation requested. Please wait for Admin approval.";
+            log_activity($pdo, 'Requested Cancellation', 'Driver requested trip cancellation: ' . $reason . ($photo_path ? ' (with photo attachment)' : ''));
+        } else {
+            $_SESSION['error'] = "No active trip found to cancel.";
+        }
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        $_SESSION['error'] = "An error occurred while processing your request.";
+    }
+
+    header("Location: dashboard.php");
+    exit;
+}
+$_dest_rows = $pdo->query("SELECT name FROM destinations WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
+
+$stmt2 = $pdo->prepare("
+    SELECT 
+        dt.id,
+        dt.trip_date, 
+        dt.destination, 
+        dt.status, 
+        dt.created_at, 
+        dt.transit_start_time, 
+        dt.transit_end_time,
+        dt.estimated_arrival_time,
+        dt.order_id,
+        COALESCE(NULLIF(dt.distance_km, 0), dest.distance_km, 0.00) AS distance_km,
+        COALESCE(NULLIF(dt.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
+        d.id AS dispatch_id,
+        d.ticket_number,
+        COALESCE(NULLIF(d.origin, ''), 'SSV Quarry Garage') AS origin,
+        d.cubic_meters,
+        d.dispatch_date,
+        COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name,
+        COALESCE(NULLIF(d.contact_number, ''), o.contact_number) AS contact_number,
+        COALESCE(NULLIF(d.landmark, ''), o.landmark) AS landmark,
+        d.cancellation_reason,
+        d.cancellation_photo,
+        t.truck_code,
+        t.rfid_tag,
+        o.order_number
+    FROM driver_trips dt
+    LEFT JOIN destinations dest ON dest.name = dt.destination
+    LEFT JOIN dispatches d ON d.id = (
+        SELECT d2.id FROM dispatches d2 
+        WHERE (dt.order_id IS NOT NULL AND d2.order_id = dt.order_id)
+           OR (dt.order_id IS NULL AND d2.driver_id = dt.driver_id AND d2.destination = dt.destination AND DATE(d2.created_at) = DATE(dt.created_at))
+        ORDER BY d2.id DESC 
+        LIMIT 1
+    )
+    LEFT JOIN trucks t ON d.truck_id = t.id
+    LEFT JOIN orders o ON COALESCE(d.order_id, dt.order_id) = o.id
+    WHERE dt.driver_id = ? 
+    ORDER BY dt.trip_date DESC, dt.id DESC
+");
 $stmt2->execute([$driver_id]);
 $raw_trips = $stmt2->fetchAll();
 
 $trips = [];
-foreach ($raw_trips as $t) {
-    $t['pay_amount'] = $driver_rates[$t['destination']] ?? 0;
-    $trips[] = $t;
+$weekly_trips = 0;
+$monthly_trips = 0;
+$total_completed_trips = 0;
+$current_week = date('oW');
+$current_month = date('Y-m');
+
+
+$dayOfWeek = (int)date('N');
+$thisMonday = date('Y-m-d', strtotime('-' . ($dayOfWeek - 1) . ' days'));
+$thisSaturday = date('Y-m-d', strtotime('+' . (6 - $dayOfWeek) . ' days'));
+$thisSunday = date('Y-m-d', strtotime('+' . (7 - $dayOfWeek) . ' days'));
+
+
+$driverTripPayPeriods = [];
+for ($w = 0; $w < 12; $w++) {
+    $mon = date('Y-m-d', strtotime("$thisMonday -$w weeks"));
+    $sat = date('Y-m-d', strtotime("$thisSaturday -$w weeks"));
+    $sun = date('Y-m-d', strtotime("$thisSunday -$w weeks"));
+
+    $sameMonth = (date('M', strtotime($mon)) === date('M', strtotime($sun)));
+    if ($sameMonth) {
+        $datesFormatted = date('F j', strtotime($mon)) . ' – ' . date('j, Y', strtotime($sun));
+    } else {
+        $datesFormatted = date('F j', strtotime($mon)) . ' – ' . date('F j, Y', strtotime($sun));
+    }
+
+    $wPrefix = ($w === 0) ? "This Week: " : (($w === 1) ? "Last Week: " : "$w Weeks Ago: ");
+    $shortLabel = ($w === 0) ? "This Week" : (($w === 1) ? "Last Week" : "$w Weeks Ago");
+    $label = $wPrefix . $datesFormatted;
+
+    $driverTripPayPeriods[] = [
+        'from'        => $mon,
+        'to'          => $sun,
+        'sat'         => $sat,
+        'label'       => $label,
+        'short_label' => $shortLabel,
+        'clean_dates' => $datesFormatted,
+        'is_current'  => ($w === 0)
+    ];
 }
 
-include '../includes/header.php';
+$selectableWeeks = $driverTripPayPeriods;
+
+$selectedFrom = $_GET['date_from'] ?? $thisMonday;
+$selectedTo   = $_GET['date_to']   ?? $thisSunday;
+
+$defaultTripPeriod = $driverTripPayPeriods[0] ?? [
+    'from' => $thisMonday,
+    'to' => $thisSunday,
+    'clean_dates' => date('F j', strtotime($thisMonday)) . ' – ' . date('F j, Y', strtotime($thisSunday)),
+    'short_label' => 'This Week'
+];
+
+$activeTripPeriodCleanDates = $defaultTripPeriod['clean_dates'];
+$activeTripPeriodShortLabel = 'This Week';
+foreach ($driverTripPayPeriods as $p) {
+    if ($p['from'] === $selectedFrom && $p['to'] === $selectedTo) {
+        $activeTripPeriodCleanDates = $p['clean_dates'];
+        $activeTripPeriodShortLabel = $p['short_label'];
+        break;
+    }
+}
+if ($selectedFrom !== $defaultTripPeriod['from'] || $selectedTo !== $defaultTripPeriod['to']) {
+    $activeTripPeriodCleanDates = date('M d, Y', strtotime($selectedFrom)) . ' – ' . date('M d, Y', strtotime($selectedTo));
+    if ($activeTripPeriodShortLabel === 'This Week') {
+        $activeTripPeriodShortLabel = 'Custom';
+    }
+}
+
+$weeklyFilteredTrips = [];
+$weeklyDistanceKm    = 0.0;
+$weeklyPayAmount     = 0.0;
+
+foreach ($raw_trips as $t) {
+    $trips[] = $t;
+    $tDate = date('Y-m-d', strtotime($t['trip_date'] ?: $t['created_at']));
+
+    if ($tDate >= $selectedFrom && $tDate <= $selectedTo) {
+        $weeklyFilteredTrips[] = $t;
+        $weeklyDistanceKm += floatval($t['distance_km'] ?? 0);
+        $weeklyPayAmount += floatval($t['pay_amount'] ?? 0);
+    }
+
+    if ($t['status'] === 'Delivered') {
+        $total_completed_trips++;
+        $trip_time = strtotime($t['trip_date'] ?: $t['created_at']);
+        if ($trip_time) {
+            if (date('oW', $trip_time) === $current_week) {
+                $weekly_trips++;
+            }
+            if (date('Y-m', $trip_time) === $current_month) {
+                $monthly_trips++;
+            }
+        }
+    }
+}
+
+$stmtCancel = $pdo->prepare("SELECT id FROM dispatches WHERE driver_id = ? AND status = 'Cancellation Requested' LIMIT 1");
+$stmtCancel->execute([$driver_id]);
+$has_pending_cancellation = $stmtCancel->fetch() ? true : false;
+
+$stmtActive = $pdo->prepare("
+    SELECT 
+        d.id, d.ticket_number, d.origin, d.destination, d.status, d.cubic_meters, d.created_at,
+        d.transit_start_time, d.transit_end_time, d.estimated_arrival_time, d.dispatch_date,
+        COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name,
+        COALESCE(NULLIF(d.contact_number, ''), o.contact_number) AS contact_number,
+        COALESCE(NULLIF(d.landmark, ''), o.landmark) AS landmark,
+        o.order_number,
+        t.truck_code, t.rfid_tag,
+        d.cancellation_reason, d.cancellation_photo,
+        COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
+        COALESCE(dest.distance_km, ROUND(d.pay_amount / 10, 1), 0.00) AS distance_km
+    FROM dispatches d 
+    JOIN trucks t ON d.truck_id = t.id 
+    LEFT JOIN orders o ON d.order_id = o.id
+    LEFT JOIN destinations dest ON dest.name = d.destination
+    WHERE d.driver_id = ? AND d.status IN ('Pending', 'Dispatched', 'Loading', 'In Transit', 'Unloading', 'Cancellation Requested')
+    LIMIT 1
+");
+$stmtActive->execute([$driver_id]);
+$active_dispatch = $stmtActive->fetch();
+
+// Fallback: if driver status is 'Dispatched' but no ticket found yet in dispatches table,
+// try fetching the most recent non-completed dispatch record for this driver.
+$driver_is_dispatched = ($driverProfile['status'] ?? '') === 'Dispatched';
+if (!$active_dispatch && $driver_is_dispatched) {
+    $stmtFallback = $pdo->prepare("
+        SELECT 
+            d.id, d.ticket_number, d.origin, d.destination, d.status, d.cubic_meters, d.created_at,
+            d.transit_start_time, d.transit_end_time, d.estimated_arrival_time, d.dispatch_date,
+            COALESCE(NULLIF(d.client_name, ''), o.client_name) AS client_name,
+            COALESCE(NULLIF(d.contact_number, ''), o.contact_number) AS contact_number,
+            COALESCE(NULLIF(d.landmark, ''), o.landmark) AS landmark,
+            o.order_number,
+            t.truck_code, t.rfid_tag,
+            d.cancellation_reason, d.cancellation_photo,
+            COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
+            COALESCE(dest.distance_km, ROUND(d.pay_amount / 10, 1), 0.00) AS distance_km
+        FROM dispatches d 
+        JOIN trucks t ON d.truck_id = t.id 
+        LEFT JOIN orders o ON d.order_id = o.id
+        LEFT JOIN destinations dest ON dest.name = d.destination
+        WHERE d.driver_id = ? AND d.status NOT IN ('Delivered', 'Cancelled', 'Completed')
+        ORDER BY d.id DESC
+        LIMIT 1
+    ");
+    $stmtFallback->execute([$driver_id]);
+    $active_dispatch = $stmtFallback->fetch();
+}
+
+$payStmt = $pdo->prepare("SELECT total_amount, amount_claimed, remaining_balance FROM driver_payroll WHERE driver_id = ?");
+$payStmt->execute([$driver_id]);
+$driverPayroll = $payStmt->fetch(PDO::FETCH_ASSOC);
+$driverRemainingBalance = floatval($driverPayroll['remaining_balance'] ?? 0);
+
+$grossEarnStmt = $pdo->prepare("
+    SELECT COALESCE(SUM(
+        COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00)
+    ), 0) 
+    FROM dispatches d
+    LEFT JOIN destinations dest ON dest.name = d.destination
+    WHERE d.driver_id = ? AND d.status = 'Delivered' AND (d.is_payroll_paid = 0 OR d.is_payroll_paid IS NULL) AND d.payroll_id IS NULL
+");
+$grossEarnStmt->execute([$driver_id]);
+$driverGrossEarnings = floatval($grossEarnStmt->fetchColumn());
+
+
+$cashAdvStmt = $pdo->prepare("SELECT id, amount, reason, status, is_settled, requested_at, resolved_at FROM cash_advances WHERE driver_id = ? ORDER BY requested_at DESC");
+$cashAdvStmt->execute([$driver_id]);
+$driverCashAdvances = $cashAdvStmt->fetchAll(PDO::FETCH_ASSOC);
+
+$caPendingCount = 0;
+$totalCashAdvancesClaimed = 0.0;
+$totalCashAdvancesSettled = 0.0;
+
+foreach ($driverCashAdvances as $ca) {
+    if ($ca['status'] === 'Pending') $caPendingCount++;
+    if ($ca['status'] === 'Approved' && empty($ca['is_settled'])) {
+        $totalCashAdvancesClaimed += floatval($ca['amount']);
+    }
+    if (!empty($ca['is_settled'])) {
+        $totalCashAdvancesSettled += floatval($ca['amount']);
+    }
+}
+
+$netPay = max(0, $driverGrossEarnings + $driverRemainingBalance - $totalCashAdvancesClaimed);
+
+
+$stmtPayrollTrips = $pdo->prepare("
+    SELECT 
+        d.id,
+        d.ticket_number,
+        d.destination,
+        COALESCE(NULLIF(d.pay_amount, 0), IF(LOWER(dest.name) LIKE '%san leonardo%', 300.00, IF(dest.distance_km > 0, ROUND(300.00 + GREATEST(0, dest.distance_km - IF(LOWER(dest.name) LIKE '%peñaranda%' OR LOWER(dest.name) LIKE '%penaranda%', 6, 12)) * 10, 2), IF(dest.driver_rate > 0, dest.driver_rate, 300.00))), 0.00) AS pay_amount,
+        d.cubic_meters,
+        d.transit_end_time,
+        d.created_at,
+        d.is_payroll_paid,
+        d.payroll_settled_at,
+        t.truck_code,
+        dest.distance_km
+    FROM dispatches d
+    LEFT JOIN trucks t ON t.id = d.truck_id
+    LEFT JOIN destinations dest ON dest.name = d.destination
+    WHERE d.driver_id = ? AND d.status = 'Delivered'
+    ORDER BY d.id DESC
+");
+$stmtPayrollTrips->execute([$driver_id]);
+$payrollTrips = $stmtPayrollTrips->fetchAll(PDO::FETCH_ASSOC);
+
+
+$settleStmt = $pdo->prepare("SELECT settlement_ticket, gross_amount, previous_balance, cash_advance_deduction, net_pay, amount_claimed, remaining_balance, trips_count, settled_at, notes FROM driver_payroll_settlements WHERE driver_id = ? ORDER BY settled_at DESC LIMIT 10");
+$settleStmt->execute([$driver_id]);
+$payrollSettlements = $settleStmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+$driverNotifications = [];
+
+
+$notifDispStmt = $pdo->prepare("SELECT ticket_number, destination, status, created_at, transit_start_time, transit_end_time FROM dispatches WHERE driver_id = ? ORDER BY id DESC LIMIT 12");
+$notifDispStmt->execute([$driver_id]);
+foreach ($notifDispStmt->fetchAll(PDO::FETCH_ASSOC) as $nd) {
+    $timeStr = $nd['transit_end_time'] ?: ($nd['transit_start_time'] ?: $nd['created_at']);
+    $ts = strtotime($timeStr);
+    if ($nd['status'] === 'Delivered') {
+        $driverNotifications[] = [
+            'id' => 'disp_' . $nd['ticket_number'],
+            'title' => 'Trip Delivered Successfully',
+            'message' => 'Ticket #' . $nd['ticket_number'] . ' to ' . $nd['destination'] . ' has been marked Delivered. Earnings added to payroll.',
+            'type' => 'success',
+            'icon' => 'fa-circle-check',
+            'badge' => 'Delivered',
+            'color' => 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30',
+            'tab' => 'trips',
+            'timestamp' => $ts
+        ];
+    } elseif ($nd['status'] === 'In Transit') {
+        $driverNotifications[] = [
+            'id' => 'disp_' . $nd['ticket_number'],
+            'title' => 'Dispatch In Transit',
+            'message' => 'Your trip #' . $nd['ticket_number'] . ' to ' . $nd['destination'] . ' is on the road. Live GPS sharing active.',
+            'type' => 'info',
+            'icon' => 'fa-truck-fast',
+            'badge' => 'In Transit',
+            'color' => 'text-blue-500 bg-blue-50 dark:bg-blue-950/30',
+            'tab' => 'route',
+            'timestamp' => $ts
+        ];
+    } elseif ($nd['status'] === 'Loading' || $nd['status'] === 'Pending') {
+        $driverNotifications[] = [
+            'id' => 'disp_' . $nd['ticket_number'],
+            'title' => 'New Trip Assigned',
+            'message' => 'New dispatch ticket #' . $nd['ticket_number'] . ' assigned: ' . $nd['destination'] . '.',
+            'type' => 'info',
+            'icon' => 'fa-route',
+            'badge' => 'Assigned',
+            'color' => 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30',
+            'tab' => 'dashboard',
+            'timestamp' => $ts
+        ];
+    } elseif ($nd['status'] === 'Cancellation Requested') {
+        $driverNotifications[] = [
+            'id' => 'disp_' . $nd['ticket_number'],
+            'title' => 'Trip Cancellation Requested',
+            'message' => 'Cancellation for ticket #' . $nd['ticket_number'] . ' was submitted and is awaiting Admin review.',
+            'type' => 'warning',
+            'icon' => 'fa-triangle-exclamation',
+            'badge' => 'Pending Review',
+            'color' => 'text-amber-500 bg-amber-50 dark:bg-amber-950/30',
+            'tab' => 'dashboard',
+            'timestamp' => $ts
+        ];
+    }
+}
+
+
+foreach ($driverCashAdvances as $ca) {
+    $caTs = strtotime($ca['resolved_at'] ?: $ca['requested_at']);
+    if ($ca['status'] === 'Approved') {
+        $driverNotifications[] = [
+            'id' => 'ca_' . $ca['id'],
+            'title' => 'Cash Advance Approved',
+            'message' => 'Your cash advance of ₱' . number_format($ca['amount'], 2) . ' was approved! You can now print the voucher in the Cash Advance tab.',
+            'type' => 'success',
+            'icon' => 'fa-hand-holding-dollar',
+            'badge' => 'Approved',
+            'color' => 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30',
+            'tab' => 'cash_advance',
+            'timestamp' => $caTs
+        ];
+    } elseif ($ca['status'] === 'Rejected') {
+        $driverNotifications[] = [
+            'id' => 'ca_' . $ca['id'],
+            'title' => 'Cash Advance Declined',
+            'message' => 'Your cash advance request of ₱' . number_format($ca['amount'], 2) . ' was declined by the Admin.',
+            'type' => 'error',
+            'icon' => 'fa-circle-xmark',
+            'badge' => 'Rejected',
+            'color' => 'text-rose-500 bg-rose-50 dark:bg-rose-950/30',
+            'tab' => 'cash_advance',
+            'timestamp' => $caTs
+        ];
+    } else {
+        $driverNotifications[] = [
+            'id' => 'ca_' . $ca['id'],
+            'title' => 'Cash Advance Submitted',
+            'message' => 'Your request of ₱' . number_format($ca['amount'], 2) . ' has been forwarded to Admin for approval.',
+            'type' => 'info',
+            'icon' => 'fa-clock',
+            'badge' => 'Pending',
+            'color' => 'text-amber-500 bg-amber-50 dark:bg-amber-950/30',
+            'tab' => 'cash_advance',
+            'timestamp' => $caTs
+        ];
+    }
+}
+
+
+$notifPrStmt = $pdo->prepare("SELECT id, status, requested_at, resolved_at FROM password_reset_requests WHERE user_id = ? ORDER BY id DESC LIMIT 3");
+$notifPrStmt->execute([$driver_id]);
+foreach ($notifPrStmt->fetchAll(PDO::FETCH_ASSOC) as $pr) {
+    $prTs = strtotime($pr['resolved_at'] ?: $pr['requested_at']);
+    if ($pr['status'] === 'Approved') {
+        $driverNotifications[] = [
+            'id' => 'pr_' . $pr['id'],
+            'title' => 'Password Reset Approved',
+            'message' => 'Admin has approved your password reset request. You can now set your new password.',
+            'type' => 'success',
+            'icon' => 'fa-key',
+            'badge' => 'Action Required',
+            'color' => 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30',
+            'tab' => 'profile',
+            'timestamp' => $prTs
+        ];
+    }
+}
+
+
+foreach ($payrollSettlements as $ps) {
+    $driverNotifications[] = [
+        'id' => 'ps_' . $ps['settlement_ticket'],
+        'title' => 'Payroll Payout Processed',
+        'message' => 'Settlement #' . $ps['settlement_ticket'] . ' completed. Claimed amount: ₱' . number_format($ps['amount_claimed'], 2) . '.',
+        'type' => 'success',
+        'icon' => 'fa-money-bill-wave',
+        'badge' => 'Settled',
+        'color' => 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30',
+        'tab' => 'payroll',
+        'timestamp' => strtotime($ps['settled_at'])
+    ];
+}
+
+
+usort($driverNotifications, function ($a, $b) {
+    return $b['timestamp'] - $a['timestamp'];
+});
+
+
+$unreadNotificationCount = 0;
+
+include __DIR__ . '/../includes/header.php';
 ?>
 
-<div class="max-w-7xl mx-auto px-6 py-8">
+<div class="max-w-[1400px] mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-8">
     <?php
-    include 'views/home.php';
-    include 'views/modals.php';
+    include __DIR__ . '/views/home.php';
+    include __DIR__ . '/views/modals.php';
     ?>
 </div>
+</div>
 
-<?php include '../includes/scripts.php'; ?>
+<?php include __DIR__ . '/../includes/scripts.php'; ?>
