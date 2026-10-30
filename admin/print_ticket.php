@@ -11,12 +11,28 @@ if (!in_array($userRole, ['Admin', 'Superadmin', 'Driver'])) {
     die("Unauthorized Access");
 }
 
-if (!isset($_GET['id'])) {
+if (!isset($_GET['id']) && empty($_GET['ids'])) {
     die("Ticket ID not specified.");
 }
 
-$ticket_id = intval($_GET['id']);
+$ticket_ids = [];
+if (!empty($_GET['ids'])) {
+    $parts = explode(',', $_GET['ids']);
+    foreach ($parts as $p) {
+        $cid = intval(trim($p));
+        if ($cid > 0 && !in_array($cid, $ticket_ids)) $ticket_ids[] = $cid;
+    }
+} elseif (isset($_GET['id'])) {
+    $cid = intval($_GET['id']);
+    if ($cid > 0) $ticket_ids[] = $cid;
+}
 
+if (empty($ticket_ids)) {
+    die("No valid Ticket IDs specified.");
+}
+
+$inClause = implode(',', array_fill(0, count($ticket_ids), '?'));
+$fieldClause = implode(',', array_fill(0, count($ticket_ids), '?'));
 $stmt = $pdo->prepare("
     SELECT d.*, 
            t.truck_code, 
@@ -30,21 +46,29 @@ $stmt = $pdo->prepare("
     LEFT JOIN trucks t ON d.truck_id = t.id
     LEFT JOIN drivers tr ON d.driver_id = tr.id
     LEFT JOIN orders o ON d.order_id = o.id
-    WHERE d.id = ?
+    WHERE d.id IN ($inClause)
+    ORDER BY FIELD(d.id, $fieldClause)
 ");
-$stmt->execute([$ticket_id]);
-$ticket = $stmt->fetch();
+$stmt->execute(array_merge($ticket_ids, $ticket_ids));
+$tickets = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-if (!$ticket) {
-    die("Ticket not found.");
+if (empty($tickets)) {
+    die("Ticket(s) not found.");
 }
 
 if ($userRole === 'Driver') {
     $currentDriverId = intval($_SESSION['user_id'] ?? 0);
-    if (intval($ticket['driver_id'] ?? 0) !== $currentDriverId) {
+    $tickets = array_values(array_filter($tickets, fn($t) => intval($t['driver_id'] ?? 0) === $currentDriverId));
+    if (empty($tickets)) {
         die("Unauthorized Access: You can only view your own dispatch tickets.");
     }
 }
+
+$ticketCount = count($tickets);
+$ticket = $tickets[0];
+$pageTitle = $ticketCount > 1 
+    ? "Print Waybills - {$ticketCount} Tickets" 
+    : "Print Waybill - " . htmlspecialchars($ticket['ticket_number']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -52,7 +76,7 @@ if ($userRole === 'Driver') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Print Waybill - <?= htmlspecialchars($ticket['ticket_number']); ?></title>
+    <title><?= $pageTitle; ?></title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -72,11 +96,9 @@ if ($userRole === 'Driver') {
             html,
             body {
                 width: 148mm !important;
-                height: 210mm !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 background: #fff !important;
-                overflow: hidden !important;
             }
 
             .no-print {
@@ -86,10 +108,19 @@ if ($userRole === 'Driver') {
             .page-wrapper {
                 width: 148mm !important;
                 height: 210mm !important;
+                max-height: 210mm !important;
                 padding: 3mm 4mm !important;
                 display: flex !important;
                 flex-direction: column !important;
                 justify-content: space-between !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                box-shadow: none !important;
+            }
+
+            .page-wrapper:last-child {
+                page-break-after: auto !important;
+                break-after: auto !important;
             }
 
             .ticket-copy {
@@ -113,9 +144,11 @@ if ($userRole === 'Driver') {
         
         .preview-shell {
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
             padding-top: 80px;
-            padding-bottom: 30px;
+            padding-bottom: 40px;
         }
 
         
@@ -475,15 +508,16 @@ if ($userRole === 'Driver') {
     <div class="toolbar no-print">
         <div class="t-left">
             <i class="fa-solid fa-print"></i>
-            <span>Print Preview &mdash; Waybill Ticket (3 Copies / A5)</span>
+            <span>Print Preview &mdash; <?= $ticketCount > 1 ? "{$ticketCount} Waybill Tickets (A5 each)" : "Waybill Ticket (3 Copies / A5)"; ?></span>
         </div>
         <div>
             <button onclick="window.close()" class="btn btn-gray">Close Tab</button>
-            <button onclick="window.print()" class="btn btn-blue"><i class="fa-solid fa-print" style="margin-right:6px;"></i>Print Now</button>
+            <button onclick="window.print()" class="btn btn-blue"><i class="fa-solid fa-print" style="margin-right:6px;"></i>Print <?= $ticketCount > 1 ? "All {$ticketCount} Tickets" : "Now"; ?></button>
         </div>
     </div>
 
     <div class="preview-shell">
+        <?php foreach ($tickets as $ticket): ?>
         <div class="page-wrapper">
 
             <?php
@@ -544,7 +578,7 @@ if ($userRole === 'Driver') {
                                     </tr>
                                     <tr>
                                         <td style="color:#666;">Volume:</td>
-                                        <td><?= number_format($ticket['cubic_meters'] ?? 0, 2); ?> cu.m</td>
+                                        <td><?= number_format($ticket['cubic_meters'] ?? 0, 0); ?> cu.m</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -599,6 +633,7 @@ if ($userRole === 'Driver') {
             <?php endforeach; ?>
 
         </div>
+        <?php endforeach; ?>
     </div>
 
     <script>

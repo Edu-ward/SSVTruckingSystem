@@ -768,6 +768,278 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
+    if ($_POST['action'] === 'create_batch_dispatch') {
+        $batch_order_id = !empty($_POST['batch_order_id']) ? intval($_POST['batch_order_id']) : null;
+        $batch_trucks_json = trim($_POST['batch_trucks_json'] ?? '[]');
+
+        if (!$batch_order_id) {
+            $_SESSION['scan_err'] = "Please select an order for batch dispatch.";
+            header("Location: dashboard.php?tab=dispatches");
+            exit;
+        }
+
+        $ordStmt = $pdo->prepare("SELECT * FROM orders WHERE id = ?");
+        $ordStmt->execute([$batch_order_id]);
+        $orderData = $ordStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$orderData) {
+            $_SESSION['scan_err'] = "Selected order not found.";
+            header("Location: dashboard.php?tab=dispatches");
+            exit;
+        }
+
+        $queuedTrucks = json_decode($batch_trucks_json, true);
+        if (!is_array($queuedTrucks) || empty($queuedTrucks)) {
+            $_SESSION['scan_err'] = "No trucks queued for batch dispatch. Please scan at least one truck RFID.";
+            header("Location: dashboard.php?tab=dispatches");
+            exit;
+        }
+
+        $currentHour = (int)date('G');
+        $isOffHours = ($currentHour >= $OP_HOURS_END || $currentHour < $OP_HOURS_START);
+        if ($isOffHours && empty($_POST['confirm_off_hours'])) {
+            $_SESSION['scan_err'] = "⏰ Off-Hours Warning: Dispatches are normally created between " . date('g:i A', mktime($OP_HOURS_START, 0, 0)) . " and " . date('g:i A', mktime($OP_HOURS_END, 0, 0)) . ". To proceed outside operating hours, please confirm.";
+            $_SESSION['off_hours_batch_pending'] = $_POST;
+            header("Location: dashboard.php?tab=dispatches");
+            exit;
+        }
+
+        $origin = 'Brgy. Burgos San Leonardo, Nueva Ecija';
+        $destination = trim($orderData['destination'] ?? '');
+        $client_name = trim($orderData['client_name'] ?? '');
+        $contact_number = trim($orderData['contact_number'] ?? '');
+        $landmark = trim($orderData['landmark'] ?? '');
+
+        $dist_km = 0;
+        if (isset($DISTANCE_KM[$destination]) && floatval($DISTANCE_KM[$destination]) > 0) {
+            $dist_km = round(floatval($DISTANCE_KM[$destination]));
+        }
+
+        if ($dist_km <= 0) {
+            $destLower = strtolower($destination);
+            $presetTownKm = [
+                'peñaranda' => 20,
+                'penaranda' => 20,
+                'general tinio' => 30,
+                'gen. tinio' => 30,
+                'papaya' => 30,
+                'gapan' => 22,
+                'san isidro' => 24,
+                'jaen' => 20,
+                'santa rosa' => 24,
+                'sta. rosa' => 24,
+                'cabanatuan' => 44,
+                'palayan' => 50,
+                'talavera' => 60,
+                'san leonardo' => 30,
+                'tarlac' => 160,
+                'laur' => 180,
+                'gabaldon' => 200,
+                'dingalan' => 230,
+                'baler' => 280,
+                'san miguel' => 52,
+                'san ildefonso' => 68,
+                'san rafael' => 90,
+                'baliuag' => 104
+            ];
+            foreach ($presetTownKm as $town => $kmVal) {
+                if (strpos($destLower, $town) !== false) {
+                    $dist_km = $kmVal;
+                    break;
+                }
+            }
+        }
+        $dist_km = round($dist_km);
+        if ($dist_km < 1 && !empty($destination)) {
+            $dist_km = 1;
+        }
+
+        $roundTripKm = floatval($dist_km > 0 ? $dist_km : 10.0);
+        $roundTripKm = min(180.0, max(2.0, $roundTripKm));
+        $drivingMins = round(($roundTripKm / 35) * 60);
+        $allowanceMins = 20;
+        $etaMinutes = max(30, $drivingMins + $allowanceMins);
+        $estimated_arrival_time = date('Y-m-d H:i:s', strtotime("+{$etaMinutes} minutes"));
+
+        $validatedList = [];
+        $seenTruckIds = [];
+        $seenDriverIds = [];
+
+        foreach ($queuedTrucks as $item) {
+            $tId = intval($item['truck_id'] ?? 0);
+            $dId = intval($item['driver_id'] ?? 0);
+            $cMeters = floatval($item['cubic_meters'] ?? 10.0);
+            if ($cMeters <= 0) $cMeters = 10.0;
+
+            if (!$tId) {
+                $_SESSION['scan_err'] = "Invalid truck in batch list.";
+                header("Location: dashboard.php?tab=dispatches");
+                exit;
+            }
+
+            if (in_array($tId, $seenTruckIds)) {
+                continue;
+            }
+            $seenTruckIds[] = $tId;
+
+            $tStmt = $pdo->prepare("SELECT id, truck_code, status FROM trucks WHERE id = ?");
+            $tStmt->execute([$tId]);
+            $truckRow = $tStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$truckRow) {
+                $_SESSION['scan_err'] = "Truck ID #{$tId} not found in system.";
+                header("Location: dashboard.php?tab=dispatches");
+                exit;
+            }
+            if ($truckRow['status'] === 'Maintenance') {
+                $_SESSION['scan_err'] = "Truck {$truckRow['truck_code']} is under maintenance and cannot be dispatched.";
+                header("Location: dashboard.php?tab=dispatches");
+                exit;
+            }
+            if ($truckRow['status'] !== 'Idle') {
+                $_SESSION['scan_err'] = "Truck {$truckRow['truck_code']} is currently {$truckRow['status']} (not Idle).";
+                header("Location: dashboard.php?tab=dispatches");
+                exit;
+            }
+
+            $todayTruckDispsStmt = $pdo->prepare("SELECT COUNT(*) FROM dispatches WHERE truck_id = ? AND dispatch_date = CURDATE()");
+            $todayTruckDispsStmt->execute([$tId]);
+            $todayTruckDisps = (int)$todayTruckDispsStmt->fetchColumn();
+            if ($todayTruckDisps >= $DAILY_TRUCK_DISPATCH_LIMIT) {
+                $_SESSION['scan_err'] = "🚫 {$truckRow['truck_code']} has reached the daily limit of {$DAILY_TRUCK_DISPATCH_LIMIT} dispatches today.";
+                header("Location: dashboard.php?tab=dispatches");
+                exit;
+            }
+
+            if (!$dId) {
+                $assignedStmt = $pdo->prepare("SELECT id FROM drivers WHERE truck_id = ? AND status != 'Resigned' ORDER BY id ASC");
+                $assignedStmt->execute([$tId]);
+                $assignedDrivers = $assignedStmt->fetchAll(PDO::FETCH_COLUMN);
+                if (count($assignedDrivers) === 1) {
+                    $dId = intval($assignedDrivers[0]);
+                } elseif (count($assignedDrivers) > 1) {
+                    $_SESSION['scan_err'] = "Truck {$truckRow['truck_code']} has multiple assigned drivers. Please specify which driver is operating it.";
+                    header("Location: dashboard.php?tab=dispatches");
+                    exit;
+                }
+            }
+
+            if (!$dId) {
+                $_SESSION['scan_err'] = "Truck {$truckRow['truck_code']} does not have an assigned driver.";
+                header("Location: dashboard.php?tab=dispatches");
+                exit;
+            }
+
+            if (in_array($dId, $seenDriverIds)) {
+                $_SESSION['scan_err'] = "A driver cannot be assigned to multiple trucks in the same batch dispatch.";
+                header("Location: dashboard.php?tab=dispatches");
+                exit;
+            }
+            $seenDriverIds[] = $dId;
+
+            $activeDispStmt = $pdo->prepare("SELECT ticket_number FROM dispatches WHERE driver_id = ? AND status IN ('Pending','In Transit','Loading','Unloading','Cancellation Requested') ORDER BY id DESC LIMIT 1");
+            $activeDispStmt->execute([$dId]);
+            $existingTicket = $activeDispStmt->fetchColumn();
+            if ($existingTicket) {
+                $dNameStmt = $pdo->prepare("SELECT CONCAT(first_name,' ',last_name) AS nm FROM drivers WHERE id = ?");
+                $dNameStmt->execute([$dId]);
+                $driverName = $dNameStmt->fetchColumn() ?: 'Driver';
+                $_SESSION['scan_err'] = "🚫 {$driverName} already has an active dispatch ticket #{$existingTicket}. Resolve or cancel it before dispatching.";
+                header("Location: dashboard.php?tab=dispatches");
+                exit;
+            }
+
+            $driver_pay = floatval($item['pay_amount'] ?? 0);
+            if ($driver_pay <= 0) {
+                $driver_pay = calculateTripPay($dist_km, $destination, floatval($DRIVER_RATES[$destination] ?? 0));
+            }
+            if (isWithinSanLeonardo($destination)) {
+                $driver_pay = 300.00;
+            }
+
+            $validatedList[] = [
+                'truck_id' => $tId,
+                'truck_code' => $truckRow['truck_code'],
+                'driver_id' => $dId,
+                'cubic_meters' => $cMeters,
+                'driver_pay' => $driver_pay
+            ];
+        }
+
+        if (empty($validatedList)) {
+            $_SESSION['scan_err'] = "No valid trucks could be prepared for batch dispatch.";
+            header("Location: dashboard.php?tab=dispatches");
+            exit;
+        }
+
+        try {
+            $pdo->beginTransaction();
+
+            $createdTicketNumbers = [];
+            $createdDispatchIds = [];
+
+            foreach ($validatedList as $vTruck) {
+                $tId = $vTruck['truck_id'];
+                $dId = $vTruck['driver_id'];
+                $cMeters = $vTruck['cubic_meters'];
+                $dPay = $vTruck['driver_pay'];
+
+                $ticketPlaceholder = 'TKT-PENDING-' . time() . '-' . $tId;
+
+                $insert = $pdo->prepare("INSERT INTO dispatches (ticket_number, truck_id, driver_id, client_name, contact_number, status, origin, destination, landmark, pay_amount, dispatch_date, cubic_meters, order_id, transit_start_time, estimated_arrival_time) VALUES (?, ?, ?, ?, ?, 'In Transit', ?, ?, ?, ?, CURDATE(), ?, ?, NOW(), ?)");
+                $insert->execute([$ticketPlaceholder, $tId, $dId, $client_name, $contact_number, $origin, $destination, $landmark, $dPay, $cMeters, $batch_order_id, $estimated_arrival_time]);
+                $new_dispatch_id = $pdo->lastInsertId();
+
+                $ticketNum = 'TKT-' . date('Y') . '-' . str_pad($new_dispatch_id, 4, '0', STR_PAD_LEFT);
+                $pdo->prepare("UPDATE dispatches SET ticket_number = ? WHERE id = ?")->execute([$ticketNum, $new_dispatch_id]);
+
+                $trip_insert = $pdo->prepare("INSERT INTO driver_trips (driver_id, destination, trip_date, status, order_id, transit_start_time, estimated_arrival_time, distance_km, pay_amount) VALUES (?, ?, CURDATE(), 'In Transit', ?, NOW(), ?, ?, ?)");
+                $trip_insert->execute([$dId, $destination, $batch_order_id, $estimated_arrival_time, $dist_km, $dPay]);
+
+                $pdo->prepare("UPDATE trucks SET status = 'In Transit' WHERE id = ?")->execute([$tId]);
+                $pdo->prepare("UPDATE drivers SET status = 'In Transit' WHERE id = ?")->execute([$dId]);
+
+                $createdTicketNumbers[] = $ticketNum;
+                $createdDispatchIds[] = $new_dispatch_id;
+            }
+
+            $chkDest = $pdo->prepare("SELECT id, distance_km FROM destinations WHERE name = ?");
+            $chkDest->execute([$destination]);
+            $destRow = $chkDest->fetch(PDO::FETCH_ASSOC);
+            if (!$destRow && !empty($destination)) {
+                $insDest = $pdo->prepare("INSERT INTO destinations (name, distance_km, driver_rate) VALUES (?, ?, ?)");
+                $insDest->execute([$destination, $dist_km, $validatedList[0]['driver_pay']]);
+            } elseif ($destRow && floatval($destRow['distance_km']) <= 0 && $dist_km > 0) {
+                $updDest = $pdo->prepare("UPDATE destinations SET distance_km = ?, driver_rate = ? WHERE id = ?");
+                $updDest->execute([$dist_km, $validatedList[0]['driver_pay'], $destRow['id']]);
+            }
+
+            $pdo->prepare("UPDATE orders SET status = 'In Progress' WHERE id = ? AND status = 'Pending'")->execute([$batch_order_id]);
+
+            $pdo->commit();
+
+            $count = count($createdTicketNumbers);
+            $ticketsListStr = implode(', ', $createdTicketNumbers);
+            $orderNum = $orderData['order_number'] ?? "Order #{$batch_order_id}";
+
+            $printUrl = "#";
+            if (!empty($createdDispatchIds)) {
+                $batchIdsStr = implode(',', $createdDispatchIds);
+                $_SESSION['auto_print_ids'] = $batchIdsStr;
+                $printUrl = "print_ticket.php?ids=" . urlencode($batchIdsStr);
+            }
+
+            $_SESSION['success'] = "Batch dispatch successful! <strong>{$count}</strong> dispatch tickets created for <strong>{$orderNum}</strong>: {$ticketsListStr}. All trucks are now <strong>In Transit</strong>. <a href='{$printUrl}' target='_blank' rel='noopener noreferrer' class='inline-flex items-center gap-1.5 ml-2.5 underline text-white font-bold hover:text-emerald-100 transition'><i class='fa-solid fa-print text-xs'></i> Print All Waybills</a>";
+            log_activity($pdo, 'Created Batch Dispatch', "Created {$count} dispatch tickets ({$ticketsListStr}) for {$orderNum} to {$destination}");
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('create_batch_dispatch failed: ' . $e->getMessage());
+            $_SESSION['scan_err'] = "Failed to create batch dispatch: " . $e->getMessage();
+        }
+        header("Location: dashboard.php?tab=dispatches");
+        exit;
+    }
+
     if ($_POST['action'] === 'edit_dispatch') {
         $dispatch_id = intval($_POST['dispatch_id'] ?? 0);
         $destination = trim($_POST['destination'] ?? '');
@@ -3343,11 +3615,24 @@ include __DIR__ . '/../includes/header.php';
 </div>
 </div>
 <?php include __DIR__ . '/views/modals.php'; ?>
-<?php if (isset($_SESSION['auto_print_id'])):
-    $print_id = intval($_SESSION['auto_print_id']);
+<?php 
+$autoPrintWaybillUrl = null;
+if (isset($_SESSION['auto_print_ids'])) {
+    $rawBatchIds = trim($_SESSION['auto_print_ids']);
+    unset($_SESSION['auto_print_ids']);
+    if (!empty($rawBatchIds)) {
+        $autoPrintWaybillUrl = "print_ticket.php?ids=" . urlencode($rawBatchIds);
+    }
+} elseif (isset($_SESSION['auto_print_id'])) {
+    $singlePrintId = intval($_SESSION['auto_print_id']);
     unset($_SESSION['auto_print_id']);
+    if ($singlePrintId > 0) {
+        $autoPrintWaybillUrl = "print_ticket.php?id=" . $singlePrintId;
+    }
+}
+if (!empty($autoPrintWaybillUrl)):
 ?>
-    <iframe id="autoPrintWaybillFrame" src="print_ticket.php?id=<?= $print_id; ?>" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:-9999;opacity:0;pointer-events:none;border:none;"></iframe>
+    <iframe id="autoPrintWaybillFrame" src="<?= $autoPrintWaybillUrl; ?>" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:-9999;opacity:0;pointer-events:none;border:none;"></iframe>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const printFrame = document.getElementById('autoPrintWaybillFrame');
@@ -3370,7 +3655,7 @@ include __DIR__ . '/../includes/header.php';
                     console.warn('Iframe print error, trying fallback:', e);
                 }
                 try {
-                    window.open('print_ticket.php?id=<?= $print_id; ?>', '_blank', 'noopener,noreferrer');
+                    window.open('<?= $autoPrintWaybillUrl; ?>', '_blank', 'noopener,noreferrer');
                 } catch (e) {}
             }
 

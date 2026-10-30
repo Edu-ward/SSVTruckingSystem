@@ -45,6 +45,10 @@
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
+                <button onclick="toggleModal('batchDispatchModal', true)" class="text-sm w-full sm:w-auto px-4 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 transition shadow-sm flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span>Batch Dispatch</span>
+                </button>
                 <button onclick="toggleModal('dispatchModal', true)" class="btn-primary text-sm w-full sm:w-auto">
                     <i class="fa-solid fa-plus"></i>
                     <span>Create Dispatch</span>

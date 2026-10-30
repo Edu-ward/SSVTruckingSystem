@@ -696,8 +696,16 @@
                 <i class="fa-solid fa-xmark fa-lg"></i>
             </button>
             <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
-                <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Create New Dispatch Ticket</h3>
-                <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Scan the truck's RFID to auto-fill details, then select destination and gravel type to calculate pay.</p>
+                <div class="flex items-center justify-between pr-8">
+                    <div>
+                        <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Create New Dispatch Ticket</h3>
+                        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Scan the truck's RFID to auto-fill details, then select destination and gravel type to calculate pay.</p>
+                    </div>
+                    <button type="button" onclick="toggleModal('dispatchModal', false); toggleModal('batchDispatchModal', true);" class="text-xs font-semibold text-violet-700 dark:text-violet-300 bg-violet-50 hover:bg-violet-100 dark:bg-violet-900/40 dark:hover:bg-violet-900/60 px-3 py-1.5 rounded-xl border border-violet-200 dark:border-violet-700 transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer shadow-xs" title="Switch to batch dispatch for a single order">
+                        <i class="fa-solid fa-layer-group text-violet-500"></i>
+                        <span>Batch Mode</span>
+                    </button>
+                </div>
             </div>
             <form method="POST" action="dashboard.php" class="p-5 sm:p-6 overflow-y-auto space-y-4" id="dispatchForm">
                 <input type="hidden" name="action" value="create_dispatch">
@@ -860,6 +868,569 @@
             </form>
         </div>
     </div>
+
+    <!-- Batch Dispatch Modal -->
+    <div id="batchDispatchModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden relative max-h-[90vh] flex flex-col">
+            <button onclick="toggleModal('batchDispatchModal', false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:text-gray-200 z-10">
+                <i class="fa-solid fa-xmark fa-lg"></i>
+            </button>
+            <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
+                <div class="flex items-center justify-between pr-8">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white flex items-center justify-center text-lg shadow-md flex-shrink-0">
+                            <i class="fa-solid fa-layer-group"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Batch Dispatch — Multiple Trucks</h3>
+                            <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">Select an order, then scan truck RFIDs one by one to queue multiple dispatches at once.</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="toggleModal('batchDispatchModal', false); toggleModal('dispatchModal', true);" class="text-xs font-semibold text-violet-700 dark:text-violet-300 bg-violet-50 hover:bg-violet-100 dark:bg-violet-900/40 dark:hover:bg-violet-900/60 px-3 py-1.5 rounded-xl border border-violet-200 dark:border-violet-700 transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer shadow-xs" title="Switch back to single truck dispatch">
+                        <i class="fa-solid fa-truck text-violet-500"></i>
+                        <span>Single Mode</span>
+                    </button>
+                </div>
+            </div>
+            <form method="POST" action="dashboard.php" class="flex flex-col flex-1 overflow-hidden" id="batchDispatchForm">
+                <input type="hidden" name="action" value="create_batch_dispatch">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                <input type="hidden" name="batch_trucks_json" id="batchTrucksJson" value="[]">
+                <input type="hidden" name="confirm_off_hours" id="batchConfirmOffHours" value="0">
+
+                <div class="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1">
+                    <!-- Step 1: Select Order -->
+                    <div class="bg-violet-50/60 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl p-4">
+                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">
+                            <i class="fa-solid fa-file-invoice text-violet-500 mr-1"></i>
+                            Select Order <span class="text-red-500">*</span>
+                        </label>
+                        <select name="batch_order_id" id="batchOrderSelect" onchange="onBatchOrderChange(this)" required class="w-full border border-violet-300 dark:border-violet-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm">
+                            <option value="">— Select an Order to Fulfill —</option>
+                            <?php
+                            $batchActiveOrders = array_filter($allOrders ?? [], fn($o) => in_array($o['status'], ['Pending', 'In Progress']));
+                            foreach ($batchActiveOrders as $_bao):
+                                $bReq = floatval($_bao['cubic_meters_required'] > 0 ? $_bao['cubic_meters_required'] : $_bao['trucks_required']);
+                                $bDone = floatval($_bao['cubic_meters_fulfilled'] > 0 ? $_bao['cubic_meters_fulfilled'] : $_bao['trucks_fulfilled']);
+                                $bRem = max(0, $bReq - $bDone);
+                            ?>
+                                <option value="<?= $_bao['id'] ?>"
+                                    data-destination="<?= htmlspecialchars($_bao['destination']) ?>"
+                                    data-gravel="<?= htmlspecialchars($_bao['gravel_type']) ?>"
+                                    data-customer="<?= htmlspecialchars($_bao['client_name']) ?>"
+                                    data-contact="<?= htmlspecialchars($_bao['contact_number'] ?? '') ?>"
+                                    data-landmark="<?= htmlspecialchars($_bao['landmark'] ?? '') ?>"
+                                    data-remaining="<?= $bRem ?>">
+                                    <?= htmlspecialchars($_bao['order_number']) ?> · <?= htmlspecialchars($_bao['client_name']) ?> — <?= htmlspecialchars($_bao['destination']) ?> (<?= number_format($bRem, 2) ?> cu.m remaining)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div id="batchOrderInfo" class="hidden mt-2">
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                                <div class="bg-white dark:bg-gray-700/60 rounded-lg p-2 border border-violet-100 dark:border-violet-800/50">
+                                    <span class="text-gray-400 dark:text-gray-500 block mb-0.5">Customer</span>
+                                    <span id="batchCustomerName" class="font-bold text-gray-800 dark:text-gray-100 truncate block">—</span>
+                                </div>
+                                <div class="bg-white dark:bg-gray-700/60 rounded-lg p-2 border border-violet-100 dark:border-violet-800/50">
+                                    <span class="text-gray-400 dark:text-gray-500 block mb-0.5">Destination</span>
+                                    <span id="batchDestination" class="font-bold text-gray-800 dark:text-gray-100 truncate block">—</span>
+                                </div>
+                                <div class="bg-white dark:bg-gray-700/60 rounded-lg p-2 border border-violet-100 dark:border-violet-800/50">
+                                    <span class="text-gray-400 dark:text-gray-500 block mb-0.5">Gravel Type</span>
+                                    <span id="batchGravelType" class="font-bold text-gray-800 dark:text-gray-100 truncate block">—</span>
+                                </div>
+                                <div class="bg-white dark:bg-gray-700/60 rounded-lg p-2 border border-violet-100 dark:border-violet-800/50">
+                                    <span class="text-gray-400 dark:text-gray-500 block mb-0.5">Remaining</span>
+                                    <span id="batchRemaining" class="font-bold text-violet-600 dark:text-violet-400 block">—</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Scan RFID -->
+                    <div id="batchScanSection" class="opacity-40 pointer-events-none transition-all duration-300">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200">
+                                <i class="fa-solid fa-wifi text-blue-500 mr-1"></i>
+                                Scan Truck RFID Tags
+                            </label>
+                            <span id="batchTruckCounter" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                                0 trucks queued
+                            </span>
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <div class="flex-1 relative">
+                                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Tap/Scan Truck RFID Card</label>
+                                <input type="text" id="batchRfidInput" placeholder="Click here and scan truck RFID card..." autocomplete="off" class="w-full border border-blue-300 dark:border-blue-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 dark:bg-blue-900/40 dark:text-gray-100 transition-colors text-sm pr-10">
+                                <div id="batchRfidSpinner" class="hidden absolute right-3 top-9 -translate-y-1/2">
+                                    <i class="fa-solid fa-spinner fa-spin text-blue-500"></i>
+                                </div>
+                            </div>
+                            <div class="w-24">
+                                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1 text-center font-medium">Cubic Meters</label>
+                                <input type="number" step="1" min="1" id="batchPerTruckCubic" placeholder="cu.m" value="15" title="Default cubic meters per truck" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-2 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm text-center font-semibold">
+                            </div>
+                        </div>
+                        <p id="batchRfidFeedback" class="text-xs mt-1.5 text-gray-500 dark:text-gray-400">Select an order first, then scan truck RFID tags to add them to the queue.</p>
+                    </div>
+
+                    <!-- Queued Trucks List -->
+                    <div id="batchTruckList" class="hidden">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="text-sm font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                                <i class="fa-solid fa-truck-fast text-indigo-500"></i>
+                                Queued Trucks (<span id="batchQueueCountLabel">0</span>)
+                            </h4>
+                            <button type="button" onclick="clearAllBatchTrucks()" class="text-[11px] text-red-500 hover:text-red-700 dark:hover:text-red-400 font-semibold transition cursor-pointer">
+                                <i class="fa-solid fa-trash-can mr-0.5"></i> Clear All
+                            </button>
+                        </div>
+                        <div id="batchTruckCards" class="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                            <!-- Dynamically populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Batch Summary -->
+                    <div id="batchSummary" class="hidden">
+                        <div class="bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-900/30 dark:to-violet-900/30 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4">
+                            <div class="grid grid-cols-3 gap-4 text-center">
+                                <div>
+                                    <span class="text-[11px] text-gray-500 dark:text-gray-400 block mb-0.5">Total Trucks</span>
+                                    <span id="batchSummaryTrucks" class="text-xl font-black text-indigo-600 dark:text-indigo-400">0</span>
+                                </div>
+                                <div>
+                                    <span class="text-[11px] text-gray-500 dark:text-gray-400 block mb-0.5">Total Volume</span>
+                                    <span id="batchSummaryVolume" class="text-xl font-black text-violet-600 dark:text-violet-400">0.00 cu.m</span>
+                                </div>
+                                <div>
+                                    <span class="text-[11px] text-gray-500 dark:text-gray-400 block mb-0.5">Est. Driver Pay</span>
+                                    <span id="batchSummaryPay" class="text-xl font-black text-emerald-600 dark:text-emerald-400">₱0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="p-5 sm:p-6 border-t border-gray-100 dark:border-gray-700 flex-shrink-0 flex justify-between items-center">
+                    <p id="batchFooterHint" class="text-xs text-gray-400 dark:text-gray-500 max-w-[50%]">
+                        <i class="fa-solid fa-circle-info text-blue-400 mr-1"></i>
+                        All queued trucks will be dispatched simultaneously for the selected order.
+                    </p>
+                    <div class="flex space-x-3">
+                        <button type="button" onclick="toggleModal('batchDispatchModal', false)" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
+                        <button type="submit" id="batchSubmitBtn" disabled class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 transition shadow-md shadow-violet-600/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>Create <span id="batchSubmitCount">0</span> Dispatch Tickets</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ─── Batch Dispatch Logic ───────────────────────────────────────
+        window.batchTrucks = [];
+
+        function onBatchOrderChange(sel) {
+            const opt = sel.options[sel.selectedIndex];
+            const infoEl = document.getElementById('batchOrderInfo');
+            const scanSection = document.getElementById('batchScanSection');
+
+            if (!opt || !opt.value) {
+                if (infoEl) infoEl.classList.add('hidden');
+                if (scanSection) {
+                    scanSection.classList.add('opacity-40', 'pointer-events-none');
+                }
+                return;
+            }
+
+            const setTextById = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = val || '—';
+            };
+            setTextById('batchCustomerName', opt.dataset.customer);
+            setTextById('batchDestination', opt.dataset.destination);
+
+            const gravelKey = opt.dataset.gravel || '';
+            const gravelSelect = document.getElementById('gravelType');
+            let gravelLabel = gravelKey;
+            if (gravelSelect) {
+                for (let i = 0; i < gravelSelect.options.length; i++) {
+                    if (gravelSelect.options[i].value === gravelKey) {
+                        gravelLabel = gravelSelect.options[i].textContent.trim();
+                        break;
+                    }
+                }
+            }
+            setTextById('batchGravelType', gravelLabel);
+            setTextById('batchRemaining', parseFloat(opt.dataset.remaining || 0).toFixed(2) + ' cu.m');
+
+            if (infoEl) infoEl.classList.remove('hidden');
+            if (scanSection) {
+                scanSection.classList.remove('opacity-40', 'pointer-events-none');
+            }
+
+            setTimeout(() => document.getElementById('batchRfidInput')?.focus(), 150);
+        }
+
+        function addTruckToBatch(truckData) {
+            if (window.batchTrucks.find(t => t.truck_id == truckData.truck_id)) {
+                const fb = document.getElementById('batchRfidFeedback');
+                if (fb) fb.innerHTML = '<span class="text-amber-500 font-bold"><i class="fa-solid fa-circle-exclamation mr-1"></i> Truck ' + (truckData.truck_code || '') + ' is already in the queue!</span>';
+                const inp = document.getElementById('batchRfidInput');
+                if (inp) {
+                    inp.value = '';
+                    inp.focus();
+                }
+                return;
+            }
+
+            const duplicateDriver = window.batchTrucks.find(t => t.driver_id == truckData.driver_id);
+            if (duplicateDriver) {
+                const fb = document.getElementById('batchRfidFeedback');
+                if (fb) fb.innerHTML = '<span class="text-amber-500 font-bold"><i class="fa-solid fa-user-xmark mr-1"></i> Driver ' + (truckData.driver_name || '') + ' is already assigned to truck ' + duplicateDriver.truck_code + ' in this batch!</span>';
+                const inp = document.getElementById('batchRfidInput');
+                if (inp) {
+                    inp.value = '';
+                    inp.focus();
+                }
+                return;
+            }
+
+            const cubicInput = document.getElementById('batchPerTruckCubic');
+            const cubicVal = parseInt(cubicInput?.value || 15, 10);
+            truckData.cubic_meters = cubicVal > 0 ? cubicVal : 15;
+
+            window.batchTrucks.push(truckData);
+            renderBatchTruckList();
+
+            const inp = document.getElementById('batchRfidInput');
+            if (inp) {
+                inp.value = '';
+                inp.focus();
+            }
+            const fb = document.getElementById('batchRfidFeedback');
+            if (fb) fb.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i> Truck ' + (truckData.truck_code || '') + ' added! Ready for next scan.</span>';
+        }
+
+        function removeBatchTruck(index) {
+            window.batchTrucks.splice(index, 1);
+            renderBatchTruckList();
+            document.getElementById('batchRfidInput')?.focus();
+        }
+
+        function clearAllBatchTrucks() {
+            window.batchTrucks = [];
+            renderBatchTruckList();
+            document.getElementById('batchRfidInput')?.focus();
+            const fb = document.getElementById('batchRfidFeedback');
+            if (fb) fb.innerHTML = '<span class="text-gray-500 dark:text-gray-400">Queue cleared. Scan truck RFID tags to add them.</span>';
+        }
+
+        function updateBatchTruckDriver(index, newDriverId, newDriverName) {
+            if (window.batchTrucks[index]) {
+                window.batchTrucks[index].driver_id = parseInt(newDriverId, 10);
+                window.batchTrucks[index].driver_name = newDriverName;
+                document.getElementById('batchTrucksJson').value = JSON.stringify(window.batchTrucks);
+            }
+        }
+
+        function updateBatchTruckCubic(index, newCubic) {
+            const val = parseInt(newCubic, 10);
+            if (window.batchTrucks[index] && val > 0) {
+                window.batchTrucks[index].cubic_meters = val;
+                renderBatchTruckList();
+            }
+        }
+
+        function renderBatchTruckList() {
+            const listEl = document.getElementById('batchTruckList');
+            const cardsEl = document.getElementById('batchTruckCards');
+            const summaryEl = document.getElementById('batchSummary');
+            const counterEl = document.getElementById('batchTruckCounter');
+            const countLabel = document.getElementById('batchQueueCountLabel');
+            const submitBtn = document.getElementById('batchSubmitBtn');
+            const submitCount = document.getElementById('batchSubmitCount');
+            const jsonInput = document.getElementById('batchTrucksJson');
+            const trucks = window.batchTrucks;
+
+            if (trucks.length === 0) {
+                if (listEl) listEl.classList.add('hidden');
+                if (summaryEl) summaryEl.classList.add('hidden');
+                if (counterEl) {
+                    counterEl.textContent = '0 trucks queued';
+                    counterEl.classList.remove('bg-indigo-100', 'text-indigo-700', 'dark:bg-indigo-900/50', 'dark:text-indigo-300');
+                    counterEl.classList.add('bg-gray-100', 'text-gray-500', 'dark:bg-gray-700', 'dark:text-gray-400');
+                }
+                if (countLabel) countLabel.textContent = '0';
+                if (submitBtn) submitBtn.disabled = true;
+                if (submitCount) submitCount.textContent = '0';
+                if (jsonInput) jsonInput.value = '[]';
+                return;
+            }
+
+            if (listEl) listEl.classList.remove('hidden');
+            if (summaryEl) summaryEl.classList.remove('hidden');
+            if (counterEl) {
+                counterEl.textContent = trucks.length + ' truck' + (trucks.length > 1 ? 's' : '') + ' queued';
+                counterEl.classList.remove('bg-gray-100', 'text-gray-500', 'dark:bg-gray-700', 'dark:text-gray-400');
+                counterEl.classList.add('bg-indigo-100', 'text-indigo-700', 'dark:bg-indigo-900/50', 'dark:text-indigo-300');
+            }
+            if (countLabel) countLabel.textContent = trucks.length;
+            if (submitBtn) submitBtn.disabled = false;
+            if (submitCount) submitCount.textContent = trucks.length;
+
+            let cardsHTML = '';
+            let totalVolume = 0;
+            let totalPay = 0;
+            trucks.forEach((t, idx) => {
+                totalVolume += parseFloat(t.cubic_meters);
+                totalPay += parseFloat(t.pay_amount || 0);
+
+                let driverSelectorHtml = '';
+                if (t.drivers && t.drivers.length > 1) {
+                    driverSelectorHtml = `
+                        <select onchange="updateBatchTruckDriver(${idx}, this.value, this.options[this.selectedIndex].text)" class="text-[11px] font-semibold border border-indigo-200 dark:border-indigo-700 rounded-lg px-2 py-0.5 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                            ${t.drivers.map(d => `<option value="${d.id}" ${d.id == t.driver_id ? 'selected' : ''}>${d.name}</option>`).join('')}
+                        </select>`;
+                } else {
+                    driverSelectorHtml = `<span class="font-medium text-gray-700 dark:text-gray-300">${t.driver_name || 'No Driver'}</span>`;
+                }
+
+                cardsHTML += `
+                    <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl group hover:border-indigo-300 dark:hover:border-indigo-600 transition">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-black flex-shrink-0">
+                            ${idx + 1}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-sm text-gray-900 dark:text-gray-100">${t.truck_code}</span>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" value="${Math.round(t.cubic_meters) || 15}" onchange="updateBatchTruckCubic(${idx}, this.value)" class="w-14 text-center text-xs font-bold border border-blue-200 dark:border-blue-700 rounded-md px-1 py-0.5 bg-white dark:bg-gray-700 text-blue-700 dark:text-blue-300" title="Adjust cubic meters for this truck">
+                                    <span class="text-[10px] text-gray-400">cu.m</span>
+                                </div>
+                            </div>
+                            <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex flex-wrap items-center gap-1.5">
+                                <i class="fa-solid fa-user text-[10px] text-gray-400"></i>
+                                ${driverSelectorHtml}
+                                ${t.pay_amount ? '<span class="text-emerald-600 dark:text-emerald-400 font-semibold">· ₱' + parseFloat(t.pay_amount).toFixed(2) + '</span>' : ''}
+                            </div>
+                        </div>
+                        <button type="button" onclick="removeBatchTruck(${idx})" class="text-gray-300 hover:text-red-500 transition p-1.5" title="Remove from queue">
+                            <i class="fa-solid fa-circle-xmark fa-lg"></i>
+                        </button>
+                    </div>`;
+            });
+            if (cardsEl) cardsEl.innerHTML = cardsHTML;
+
+            const setTextById = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = val;
+            };
+            setTextById('batchSummaryTrucks', trucks.length);
+            setTextById('batchSummaryVolume', Math.round(totalVolume) + ' cu.m');
+            setTextById('batchSummaryPay', '₱' + totalPay.toFixed(2));
+
+            if (jsonInput) jsonInput.value = JSON.stringify(trucks);
+        }
+
+        window.resetBatchDispatchModal = function() {
+            window.batchTrucks = [];
+            renderBatchTruckList();
+            const orderSel = document.getElementById('batchOrderSelect');
+            if (orderSel) orderSel.value = '';
+            const infoEl = document.getElementById('batchOrderInfo');
+            if (infoEl) infoEl.classList.add('hidden');
+            const scanSection = document.getElementById('batchScanSection');
+            if (scanSection) scanSection.classList.add('opacity-40', 'pointer-events-none');
+            const rfidInput = document.getElementById('batchRfidInput');
+            if (rfidInput) rfidInput.value = '';
+            const hiddenConfirm = document.getElementById('batchConfirmOffHours');
+            if (hiddenConfirm) hiddenConfirm.value = '0';
+            const fb = document.getElementById('batchRfidFeedback');
+            if (fb) fb.innerHTML = '<span class="text-gray-500 dark:text-gray-400">Select an order first, then scan truck RFID tags to add them to the queue.</span>';
+        };
+
+        // RFID scanning for batch modal
+        document.addEventListener('DOMContentLoaded', function() {
+            const batchRfidInput = document.getElementById('batchRfidInput');
+            if (!batchRfidInput) return;
+
+            // Handle Enter keypress from USB barcode/RFID scanners
+            batchRfidInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    batchRfidInput.dispatchEvent(new Event('change'));
+                }
+            });
+
+            batchRfidInput.addEventListener('change', function() {
+                const rfidValue = this.value.trim();
+                if (rfidValue.length < 1) return;
+
+                const fb = document.getElementById('batchRfidFeedback');
+                const spinner = document.getElementById('batchRfidSpinner');
+                if (fb) fb.innerHTML = '<span class="text-blue-500"><i class="fa-solid fa-spinner fa-spin"></i> Looking up truck...</span>';
+                if (spinner) spinner.classList.remove('hidden');
+
+                fetch('get_truck_by_rfid.php?rfid=' + encodeURIComponent(rfidValue))
+                    .then(response => response.json())
+                    .then(data => {
+                        if (spinner) spinner.classList.add('hidden');
+
+                        if (!data.success) {
+                            if (fb) fb.innerHTML = '<span class="text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Unregistered RFID tag!</span>';
+                            batchRfidInput.value = '';
+                            batchRfidInput.focus();
+                            return;
+                        }
+
+                        if (data.status === 'Maintenance') {
+                            if (fb) fb.innerHTML = '<span class="text-red-500 font-bold"><i class="fa-solid fa-screwdriver-wrench"></i> Truck ' + data.truck_code + ' is in Maintenance!</span>';
+                            batchRfidInput.value = '';
+                            batchRfidInput.focus();
+                            return;
+                        }
+
+                        if (data.status !== 'Idle') {
+                            if (fb) fb.innerHTML = `<span class="text-orange-500 font-bold"><i class="fa-solid fa-circle-exclamation"></i> Truck ${data.truck_code} is currently ${data.status}!</span>`;
+                            batchRfidInput.value = '';
+                            batchRfidInput.focus();
+                            return;
+                        }
+
+                        if (data.today_dispatches !== undefined && data.today_dispatches >= 10) {
+                            if (fb) fb.innerHTML = `<span class="text-red-500 font-bold"><i class="fa-solid fa-ban"></i> Daily Limit Reached: ${data.truck_code} has already reached the limit of 10 dispatches today (${data.today_dispatches}/10)!</span>`;
+                            batchRfidInput.value = '';
+                            batchRfidInput.focus();
+                            return;
+                        }
+
+                        const driverCount = data.driver_count !== undefined ? data.driver_count : (data.driver_id ? 1 : 0);
+                        if (driverCount === 0 || (!data.driver_id && (!data.drivers || data.drivers.length === 0))) {
+                            if (fb) fb.innerHTML = '<span class="text-red-500 font-bold"><i class="fa-solid fa-user-slash"></i> No driver assigned to truck ' + data.truck_code + '!</span>';
+                            batchRfidInput.value = '';
+                            batchRfidInput.focus();
+                            return;
+                        }
+
+                        const orderSel = document.getElementById('batchOrderSelect');
+                        const orderOpt = orderSel?.options[orderSel.selectedIndex];
+                        const destName = orderOpt?.dataset.destination || '';
+
+                        let selectedDriver = null;
+                        if (data.drivers && data.drivers.length > 0) {
+                            selectedDriver = data.drivers.find(d => d.status !== 'In Transit' && d.status !== 'Dispatched') || data.drivers[0];
+                        } else if (data.driver_id) {
+                            selectedDriver = {
+                                id: data.driver_id,
+                                name: data.driver_name,
+                                status: 'Active'
+                            };
+                        }
+
+                        if (!selectedDriver) {
+                            if (fb) fb.innerHTML = '<span class="text-red-500 font-bold"><i class="fa-solid fa-user-slash"></i> No available driver for truck ' + data.truck_code + '!</span>';
+                            batchRfidInput.value = '';
+                            batchRfidInput.focus();
+                            return;
+                        }
+
+                        let payAmount = 0;
+                        const singleDestSelect = document.getElementById('destinationSelect');
+                        if (singleDestSelect && destName) {
+                            for (let i = 0; i < singleDestSelect.options.length; i++) {
+                                if (singleDestSelect.options[i].value.toLowerCase() === destName.toLowerCase()) {
+                                    payAmount = parseFloat(singleDestSelect.options[i].dataset.pay || 0);
+                                    break;
+                                }
+                            }
+                        }
+
+                        addTruckToBatch({
+                            truck_id: data.truck_id,
+                            truck_code: data.truck_code,
+                            rfid_tag: rfidValue,
+                            driver_id: selectedDriver.id,
+                            driver_name: selectedDriver.name,
+                            drivers: data.drivers || [],
+                            pay_amount: payAmount,
+                            cubic_meters: parseInt(document.getElementById('batchPerTruckCubic')?.value || 15, 10)
+                        });
+                    })
+                    .catch(err => {
+                        if (spinner) spinner.classList.add('hidden');
+                        if (fb) fb.innerHTML = '<span class="text-red-500"><i class="fa-solid fa-triangle-exclamation"></i> Connection error. Try again.</span>';
+                        batchRfidInput.value = '';
+                        batchRfidInput.focus();
+                    });
+            });
+
+            const batchForm = document.getElementById('batchDispatchForm');
+            if (batchForm) {
+                batchForm.addEventListener('submit', function(e) {
+                    if (document.activeElement === batchRfidInput && batchRfidInput.value !== '') {
+                        e.preventDefault();
+                        return false;
+                    }
+                    if (window.batchTrucks.length === 0) {
+                        e.preventDefault();
+                        if (typeof showToast === 'function') showToast('Please scan at least one truck RFID tag.', 'warning');
+                        else alert('Please scan at least one truck RFID tag.');
+                        return false;
+                    }
+
+                    // Check if dispatch is outside operating hours
+                    const hiddenConfirmEl = document.getElementById('batchConfirmOffHours');
+                    const isAlreadyConfirmed = hiddenConfirmEl && hiddenConfirmEl.value === '1';
+
+                    if (!isAlreadyConfirmed && window.adminOperatingHours) {
+                        const now = new Date();
+                        const currHour = now.getHours();
+                        const opStart = Number(window.adminOperatingHours.start ?? 7);
+                        const opEnd = Number(window.adminOperatingHours.end ?? 20);
+
+                        if (currHour < opStart || currHour >= opEnd) {
+                            e.preventDefault();
+
+                            // Populate off-hours modal details
+                            const truckCodes = window.batchTrucks.map(t => t.truck_code).join(', ');
+                            const driverNames = window.batchTrucks.map(t => t.driver_name).join(', ');
+                            const orderSel = document.getElementById('batchOrderSelect');
+                            const dest = orderSel?.options[orderSel.selectedIndex]?.dataset.destination || 'Not selected';
+
+                            const tEl = document.getElementById('offHoursTruckCode');
+                            if (tEl) tEl.textContent = truckCodes;
+                            const dEl = document.getElementById('offHoursDriverName');
+                            if (dEl) dEl.textContent = driverNames;
+                            const destEl = document.getElementById('offHoursDestination');
+                            if (destEl) destEl.textContent = dest;
+                            const wEl = document.getElementById('offHoursWindowText');
+                            if (wEl && window.adminOperatingHours.startFormatted && window.adminOperatingHours.endFormatted) {
+                                wEl.textContent = `${window.adminOperatingHours.startFormatted} – ${window.adminOperatingHours.endFormatted}`;
+                            }
+
+                            window._pendingOffHoursForm = 'batchDispatchForm';
+
+                            if (typeof toggleModal === 'function') {
+                                toggleModal('offHoursConfirmModal', true);
+                            }
+                            return false;
+                        }
+                    }
+
+                    document.getElementById('batchTrucksJson').value = JSON.stringify(window.batchTrucks);
+                    const btn = document.getElementById('batchSubmitBtn');
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Dispatched Trucks...';
+                    }
+                });
+            }
+        });
+    </script>
 
     <!-- Off-Hours Dispatch Confirmation Modal -->
     <div id="offHoursConfirmModal" class="fixed inset-0 z-[70] flex items-center justify-center bg-gray-900/60 backdrop-blur-xs hidden p-4">

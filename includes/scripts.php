@@ -1044,6 +1044,9 @@
                     if (hiddenOffHours) hiddenOffHours.value = '0';
                     setTimeout(() => document.getElementById('rfidInput')?.focus(), 100);
                 }
+                if (modalID === 'batchDispatchModal') {
+                    setTimeout(() => document.getElementById('batchOrderSelect')?.focus(), 100);
+                }
                 if (modalID === 'addTruckModal') setTimeout(() => document.getElementById('newTruckRfidInput')?.focus(), 100);
                 if (modalID === 'addDriverModal') {
                     setTimeout(() => document.getElementById('driverTruckRfidInput')?.focus(), 100);
@@ -1062,6 +1065,11 @@
                     if (hiddenOffHours) hiddenOffHours.value = '0';
                     if (!window._osmMapOpeningFromDispatch && typeof resetDispatchDriverInputs === 'function') {
                         resetDispatchDriverInputs();
+                    }
+                }
+                if (modalID === 'batchDispatchModal') {
+                    if (typeof resetBatchDispatchModal === 'function') {
+                        resetBatchDispatchModal();
                     }
                 }
             }
@@ -3174,9 +3182,33 @@
             }
             const hiddenOffHours = document.getElementById('dispatchConfirmOffHours');
             if (hiddenOffHours) hiddenOffHours.value = '0';
+            const batchHiddenOffHours = document.getElementById('batchConfirmOffHours');
+            if (batchHiddenOffHours) batchHiddenOffHours.value = '0';
+            window._pendingOffHoursForm = null;
         }
 
         function confirmAndSubmitOffHoursDispatch() {
+            if (window._pendingOffHoursForm === 'batchDispatchForm') {
+                const batchHiddenOffHours = document.getElementById('batchConfirmOffHours');
+                if (batchHiddenOffHours) batchHiddenOffHours.value = '1';
+
+                if (typeof toggleModal === 'function') {
+                    toggleModal('offHoursConfirmModal', false);
+                }
+                const batchForm = document.getElementById('batchDispatchForm');
+                if (batchForm) {
+                    document.getElementById('batchTrucksJson').value = JSON.stringify(window.batchTrucks || []);
+                    const btn = document.getElementById('batchSubmitBtn');
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Dispatched Trucks...';
+                    }
+                    batchForm.submit();
+                }
+                window._pendingOffHoursForm = null;
+                return;
+            }
+
             const hiddenOffHours = document.getElementById('dispatchConfirmOffHours');
             if (hiddenOffHours) hiddenOffHours.value = '1';
 
