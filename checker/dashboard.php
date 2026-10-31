@@ -166,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         $pdo->prepare("UPDATE dispatches SET status = 'Delivered', transit_end_time = NOW(), is_on_time = ? WHERE id = ?")->execute([$isOnTime, $activeDispatch['id']]);
                         $pdo->prepare("UPDATE driver_trips SET status = 'Delivered', transit_end_time = NOW(), is_on_time = ? WHERE driver_id = ? AND status = 'In Transit' ORDER BY id DESC LIMIT 1")->execute([$isOnTime, $dispatchedDriverId]);
                         $pdo->prepare("UPDATE trucks SET status = 'Idle', current_location = 'San Leonardo (Garage)' WHERE id = ?")->execute([$truck['id']]);
-                        $pdo->prepare("UPDATE drivers SET status = 'Active' WHERE id = ?")->execute([$dispatchedDriverId]);
+                        $pdo->prepare("UPDATE drivers SET status = 'Active', queue_entry_time = NOW() WHERE id = ?")->execute([$dispatchedDriverId]);
                     } elseif ($dispatchedDriverId) {
                         $pdo->prepare(
                             "INSERT INTO driver_trips (driver_id, destination, trip_date, status, order_id, transit_end_time, is_on_time) VALUES (?, ?, CURDATE(), 'Delivered', ?, NOW(), 1)"

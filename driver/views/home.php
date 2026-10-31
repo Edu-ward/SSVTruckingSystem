@@ -38,7 +38,12 @@ if (!empty($driverFullName)) {
                     </span>
                 <?php else: ?>
                     <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 flex items-center gap-1.5">
-                        <span class="w-2 h-2 rounded-full bg-amber-400"></span> Idle at Garage
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <?php if ($driverQueuePosition): ?>
+                            Queue #<?= $driverQueuePosition ?> of <?= $driverQueueTotal ?>
+                        <?php else: ?>
+                            Idle at Garage
+                        <?php endif; ?>
                     </span>
                 <?php endif; ?>
             </div>
@@ -51,7 +56,13 @@ if (!empty($driverFullName)) {
                 <?php elseif ($driver_is_dispatched): ?>
                     You have been dispatched by Admin. Your dispatch ticket is being prepared — please stand by.
                 <?php else: ?>
-                    Stationed at SSV Quarry Garage. You are ready for your next trip assignment.
+                    <?php if ($driverQueuePosition === 1): ?>
+                        You are <strong>NEXT</strong> in the dispatch queue &mdash; stand by for your trip assignment!
+                    <?php elseif ($driverQueuePosition > 1): ?>
+                        You are queue number <strong>#<?= $driverQueuePosition ?></strong> of <?= $driverQueueTotal ?>. Stationed at SSV Quarry Garage awaiting dispatch.
+                    <?php else: ?>
+                        Stationed at SSV Quarry Garage. You are ready for your next trip assignment.
+                    <?php endif; ?>
                 <?php endif; ?>
             </p>
         </div>
@@ -607,25 +618,176 @@ if (!empty($driverFullName)) {
                 </div>
             </div>
         <?php else: ?>
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div class="flex items-center space-x-4 text-center sm:text-left">
-                    <div class="w-14 h-14 bg-green-50 dark:bg-green-900/20 text-green-500 rounded-2xl flex items-center justify-center text-2xl mx-auto sm:mx-0 shadow-inner">
-                        <i class="fa-solid fa-house-chimney-user"></i>
+            <!-- ── QUEUE NUMBER CARD ── -->
+            <div id="driverQueueCard" class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+
+                <!-- Header strip -->
+                <div class="bg-gradient-to-r from-emerald-500 to-teal-600 px-5 sm:px-7 py-4 text-white flex items-center justify-between flex-wrap gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center text-xl shadow-sm">
+                            <i class="fa-solid fa-list-ol"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-black text-base sm:text-lg tracking-tight">Queue Position</h3>
+                            <p class="text-emerald-100 text-[11px]">You will be dispatched in order &mdash; wait for Admin assignment</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="font-bold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2 justify-center sm:justify-start">
-                            Status: Idle (At Garage)
-                            <span class="w-2.5 h-2.5 bg-green-500 rounded-full inline-block animate-pulse"></span>
-                        </h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">You are currently active, registered, and waiting for a new trip assignment.</p>
+                    <span id="queueStatusBadge" class="px-3 py-1.5 rounded-full text-[11px] font-extrabold uppercase tracking-wide bg-white/20 text-emerald-100 border border-white/25 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse inline-block"></span>
+                        Standby
+                    </span>
+                </div>
+
+                <!-- Queue Number display -->
+                <div class="px-5 sm:px-7 py-6 flex flex-col sm:flex-row items-center sm:items-stretch gap-6">
+
+                    <!-- Big queue number -->
+                    <div class="flex-shrink-0 flex flex-col items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-2 border-emerald-200 dark:border-emerald-700/50 rounded-2xl px-10 py-6 min-w-[160px] shadow-inner">
+                        <span class="text-[11px] font-extrabold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-1">Your Queue #</span>
+                        <span id="queueNumber" class="text-7xl font-black font-mono leading-none text-emerald-700 dark:text-emerald-300 tabular-nums">
+                            <?= $driverQueuePosition ?? '–' ?>
+                        </span>
+                        <span id="queueTotal" class="text-xs font-semibold text-emerald-500 dark:text-emerald-400 mt-2">
+                            of <?= $driverQueueTotal ?? '–' ?> in queue
+                        </span>
+                    </div>
+
+                    <!-- Details -->
+                    <div class="flex-1 flex flex-col gap-3 justify-center">
+                        <div class="flex items-start gap-3 p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/40">
+                            <i class="fa-solid fa-circle-info text-emerald-500 mt-0.5 text-sm"></i>
+                            <div>
+                                <p class="text-sm font-bold text-gray-800 dark:text-gray-100">How the queue works</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
+                                    When your truck's RFID is scanned upon arrival, your trip is marked <strong>Delivered</strong> and you are automatically placed in the queue. Drivers are dispatched in arrival order.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Drivers ahead list -->
+                        <div id="queueAheadList" class="text-xs text-gray-500 dark:text-gray-400">
+                            <?php if (!empty($driverQueuePosition) && $driverQueuePosition > 1): ?>
+                                <span class="font-semibold text-gray-600 dark:text-gray-300">Drivers ahead of you:</span>
+                                <span id="queueAheadCount" class="ml-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-bold text-[11px]">
+                                    <?= $driverQueuePosition - 1 ?>
+                                </span>
+                            <?php elseif ($driverQueuePosition === 1): ?>
+                                <span class="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
+                                    <i class="fa-solid fa-star text-amber-400"></i>
+                                    You are <strong>NEXT</strong> in line for dispatch!
+                                </span>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Action row -->
+                        <div class="flex flex-wrap items-center gap-2 pt-1">
+                            <button type="button" onclick="refreshQueueStatus()" id="queueRefreshBtn"
+                                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm active:scale-95 transition">
+                                <i class="fa-solid fa-rotate-right" id="queueRefreshIcon"></i>
+                                Refresh Queue
+                            </button>
+                            <span id="queueLastUpdated" class="text-[11px] text-gray-400 dark:text-gray-500">
+                                Updated just now
+                            </span>
+                        </div>
                     </div>
                 </div>
-                <div class="text-center sm:text-right w-full sm:w-auto">
-                    <span class="text-xs bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 px-4 py-2 rounded-xl font-bold uppercase inline-block border border-gray-200 dark:border-gray-700">
-                        Waiting for Admin Dispatch
+
+                <!-- Bottom bar: entry time -->
+                <div class="px-5 sm:px-7 py-3 bg-gray-50 dark:bg-gray-900/40 border-t border-gray-100 dark:border-gray-700/60 flex items-center justify-between flex-wrap gap-2 text-[11px] text-gray-400 dark:text-gray-500 font-mono">
+                    <span><i class="fa-solid fa-clock mr-1"></i>Queue entry:
+                        <?php if (!empty($driverQueuePosition)): ?>
+                            <strong class="text-gray-600 dark:text-gray-300 font-sans" id="queueEntryTime">Calculating…</strong>
+                        <?php else: ?>
+                            <strong class="text-gray-600 dark:text-gray-300 font-sans">Pending</strong>
+                        <?php endif; ?>
+                    </span>
+                    <span class="flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                        Auto-refreshes every 30 s
                     </span>
                 </div>
             </div>
+
+            <script>
+            (function() {
+                let _queueTimer = null;
+
+                function timeAgo(isoStr) {
+                    if (!isoStr) return '';
+                    const d = new Date(isoStr.replace(' ', 'T'));
+                    const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+                    if (diff < 60) return 'just now';
+                    if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
+                    if (diff < 86400) return Math.floor(diff / 3600) + ' hr ago';
+                    return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                }
+
+                window.refreshQueueStatus = function() {
+                    const btn  = document.getElementById('queueRefreshBtn');
+                    const icon = document.getElementById('queueRefreshIcon');
+                    if (icon) { icon.classList.add('fa-spin'); }
+                    if (btn)  { btn.disabled = true; }
+
+                    fetch('get_queue_status.php', { credentials: 'same-origin' })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.mode === 'dispatched') {
+                                // Driver has been dispatched — reload so the ticket card shows
+                                location.reload();
+                                return;
+                            }
+
+                            // Update queue number
+                            const numEl   = document.getElementById('queueNumber');
+                            const totEl   = document.getElementById('queueTotal');
+                            const aheadEl = document.getElementById('queueAheadList');
+                            const entryEl = document.getElementById('queueEntryTime');
+                            const luEl    = document.getElementById('queueLastUpdated');
+                            const badge   = document.getElementById('queueStatusBadge');
+
+                            if (numEl) numEl.textContent = data.position ?? '–';
+                            if (totEl) totEl.textContent = 'of ' + (data.total ?? '–') + ' in queue';
+
+                            if (aheadEl) {
+                                if (data.position === 1) {
+                                    aheadEl.innerHTML = '<span class="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold"><i class="fa-solid fa-star text-amber-400"></i> You are <strong>NEXT</strong> in line for dispatch!</span>';
+                                } else {
+                                    const cnt = (data.position || 1) - 1;
+                                    aheadEl.innerHTML = '<span class="font-semibold text-gray-600 dark:text-gray-300">Drivers ahead of you:</span> <span class="ml-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-bold text-[11px]">' + cnt + '</span>';
+                                }
+                            }
+
+                            if (entryEl && data.queue_entry_time) {
+                                entryEl.textContent = timeAgo(data.queue_entry_time);
+                            }
+                            if (luEl) luEl.textContent = 'Updated just now';
+                            if (badge) {
+                                badge.innerHTML = data.position === 1
+                                    ? '<span class="w-2 h-2 rounded-full bg-amber-300 animate-pulse inline-block"></span> Next Up!'
+                                    : '<span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse inline-block"></span> Standby';
+                            }
+                        })
+                        .catch(() => {
+                            const luEl = document.getElementById('queueLastUpdated');
+                            if (luEl) luEl.textContent = 'Refresh failed — retry';
+                        })
+                        .finally(() => {
+                            if (icon) icon.classList.remove('fa-spin');
+                            if (btn)  btn.disabled = false;
+                        });
+                };
+
+                // Auto-refresh every 30 seconds
+                _queueTimer = setInterval(window.refreshQueueStatus, 30000);
+
+                // Set initial entry time display
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Trigger one immediate refresh to get live data
+                    window.refreshQueueStatus();
+                });
+            })();
+            </script>
         <?php endif; ?>
     </div>
 

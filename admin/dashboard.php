@@ -1334,7 +1334,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                     $isOnTime = computeIsOnTime($dispatch, date('Y-m-d H:i:s'));
                     $pdo->prepare("UPDATE dispatches SET status = 'Delivered', transit_end_time = NOW(), is_on_time = ? WHERE id = ?")->execute([$isOnTime, $dispatch['id']]);
                     $pdo->prepare("UPDATE trucks SET status = 'Idle', current_location = ? WHERE id = ?")->execute([$GARAGE_NAME, $truck['id']]);
-                    $pdo->prepare("UPDATE drivers SET status = 'Active' WHERE id = ?")->execute([$dispatch['driver_id']]);
+                    $pdo->prepare("UPDATE drivers SET status = 'Active', queue_entry_time = NOW() WHERE id = ?")->execute([$dispatch['driver_id']]);
                     $pdo->prepare("UPDATE driver_trips SET status = 'Delivered', transit_end_time = NOW(), is_on_time = ? WHERE driver_id = ? AND destination = ? AND status IN ('In Transit', 'Pending') ORDER BY id DESC LIMIT 1")->execute([$isOnTime, $dispatch['driver_id'], $dispatch['destination']]);
 
                     $order_id = $dispatch['order_id'] ?? null;
@@ -1421,7 +1421,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $isOnTime = computeIsOnTime($dispatch, date('Y-m-d H:i:s'));
             $pdo->prepare("UPDATE dispatches SET status = 'Delivered', transit_end_time = NOW(), is_on_time = ? WHERE id = ?")->execute([$isOnTime, $dispatch_id]);
             $pdo->prepare("UPDATE trucks SET status = 'Idle', current_location = ? WHERE id = ?")->execute([$GARAGE_NAME, $dispatch['truck_id']]);
-            $pdo->prepare("UPDATE drivers SET status = 'Active' WHERE id = ?")->execute([$dispatch['driver_id']]);
+            $pdo->prepare("UPDATE drivers SET status = 'Active', queue_entry_time = NOW() WHERE id = ?")->execute([$dispatch['driver_id']]);
             $pdo->prepare("UPDATE driver_trips SET status = 'Delivered', transit_end_time = NOW(), is_on_time = ? WHERE driver_id = ? AND destination = ? AND status = 'In Transit' ORDER BY id DESC LIMIT 1")->execute([$isOnTime, $dispatch['driver_id'], $dispatch['destination']]);
 
             $order_id = $dispatch['order_id'] ?? null;

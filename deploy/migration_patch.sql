@@ -12,9 +12,11 @@ ALTER TABLE `trucks`
     ADD COLUMN IF NOT EXISTS `longitude` DECIMAL(11, 8) DEFAULT '120.963200',
     ADD COLUMN IF NOT EXISTS `speed` INT(11) DEFAULT 0;
 
--- 3. Ensure `drivers` has profile photo
+-- 3. Ensure `drivers` has profile photo, rfid_tag, and queue_entry_time
 ALTER TABLE `drivers`
-    ADD COLUMN IF NOT EXISTS `profile_photo` VARCHAR(255) DEFAULT NULL;
+    ADD COLUMN IF NOT EXISTS `profile_photo` VARCHAR(255) DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS `rfid_tag` VARCHAR(100) DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS `queue_entry_time` DATETIME DEFAULT NULL;
 
 -- 4. Ensure `checkers` table exists
 CREATE TABLE IF NOT EXISTS `checkers` (
