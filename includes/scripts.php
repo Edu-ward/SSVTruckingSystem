@@ -3125,6 +3125,43 @@
             });
         });
 
+                window.dispatchQueueDriver = function(rfidTag, truckCode, driverId) {
+            if (typeof toggleModal === 'function') {
+                toggleModal('dispatchModal', true);
+            }
+            setTimeout(function() {
+                const rfidInput = document.getElementById('rfidInput');
+                if (rfidInput && rfidTag) {
+                    rfidInput.value = rfidTag;
+                    rfidInput.dispatchEvent(new Event('change'));
+                }
+            }, 180);
+        };
+
+        window.selectQueuePriorityTruck = function(rfidTag, truckCode) {
+            const rfidInput = document.getElementById('rfidInput');
+            if (rfidInput) {
+                if (rfidTag) {
+                    rfidInput.value = rfidTag;
+                } else if (window.dispatchQueueDrivers && window.dispatchQueueDrivers.length > 0) {
+                    rfidInput.value = window.dispatchQueueDrivers[0].rfid_tag || '';
+                }
+                rfidInput.dispatchEvent(new Event('change'));
+            }
+        };
+
+        window.quickAddBatchTruckFromQueue = function(rfidTag, btnEl) {
+            if (!rfidTag) return;
+            const batchInp = document.getElementById('batchRfidInput');
+            if (batchInp) {
+                batchInp.value = rfidTag;
+                batchInp.dispatchEvent(new Event('change'));
+                if (btnEl) {
+                    btnEl.classList.add('opacity-40', 'pointer-events-none', 'line-through');
+                }
+            }
+        };
+
         function resetDispatchDriverInputs() {
             const singleContainer = document.getElementById('singleDriverContainer');
             const multiContainer = document.getElementById('multiDriverContainer');
@@ -3140,6 +3177,8 @@
             if (rfidInput) rfidInput.value = '';
             if (rfidFeedback) rfidFeedback.innerHTML = 'Waiting for scan...';
             if (truckPlate) truckPlate.value = '';
+            const advisoryBox = document.getElementById('queueAdvisoryAlert');
+            if (advisoryBox) advisoryBox.classList.add('hidden');
             if (hiddenTruckId) hiddenTruckId.value = '';
 
             if (singleContainer) singleContainer.classList.remove('hidden');
@@ -3448,6 +3487,20 @@
                                         checkDriverActiveDispatch(driverObj.id, driverObj.name);
 
                                         rfidFeedback.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-check"></i> Truck matched! Driver auto-filled.</span>';
+
+                                        const advBox = document.getElementById('queueAdvisoryAlert');
+                                        const advMsg = document.getElementById('queueAdvisoryMessage');
+                                        if (data.is_priority === false && data.queue_position > 1) {
+                                            if (advBox && advMsg) {
+                                                advBox.classList.remove('hidden');
+                                                advMsg.innerHTML = 'Truck <strong>' + data.truck_code + '</strong> is currently <strong>Queue #' + data.queue_position + ' of ' + (data.queue_total || '–') + '</strong>. <strong>' + (data.priority_driver_name || 'Priority Driver') + ' (' + (data.priority_truck_code || 'Priority Truck') + ')</strong> is <strong>Queue #1</strong> and arrived earlier. You may proceed if this order specifically requires this truck.';
+                                            }
+                                        } else {
+                                            if (advBox) advBox.classList.add('hidden');
+                                            if (data.queue_position === 1) {
+                                                rfidFeedback.innerHTML += ' <span class="text-emerald-600 dark:text-emerald-400 font-bold ml-1"><i class="fa-solid fa-star text-amber-400"></i> Priority #1 in Queue</span>';
+                                            }
+                                        }
                                     }
                                 } else {
                                     truckPlate.value = '';

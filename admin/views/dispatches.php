@@ -25,6 +25,102 @@
         </div>
     </div>
 
+    <!-- ── GARAGE DISPATCH QUEUE (FIFO) ── -->
+    <div class="mb-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-5 sm:p-6 overflow-hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg shadow-xs flex-shrink-0">
+                    <i class="fa-solid fa-list-ol"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">Garage Dispatch Queue</h2>
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+                            <?= count($dispatchQueueDrivers ?? []); ?> Drivers Waiting
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Dispatched in First-In, First-Out sequence to ensure fair truck turnaround.</p>
+                </div>
+            </div>
+            <?php if (!empty($dispatchQueueDrivers)): 
+                $topDriver = $dispatchQueueDrivers[0];
+            ?>
+                <button type="button" onclick="dispatchQueueDriver('<?= htmlspecialchars($topDriver['rfid_tag'] ?? '') ?>', '<?= htmlspecialchars($topDriver['truck_code'] ?? '') ?>', <?= intval($topDriver['driver_id']) ?>)"
+                    class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm shadow-emerald-500/20 active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-bolt text-amber-300"></i>
+                    <span>Dispatch Priority Truck (<?= htmlspecialchars($topDriver['truck_code'] ?? 'Next') ?>)</span>
+                </button>
+            <?php endif; ?>
+        </div>
+
+        <?php if (!empty($dispatchQueueDrivers)): ?>
+            <div class="flex gap-3.5 overflow-x-auto pb-2 pt-1 no-scrollbar">
+                <?php foreach ($dispatchQueueDrivers as $qIdx => $qDriver): 
+                    $pos = $qIdx + 1;
+                    $isTop = ($pos === 1);
+                    $waitMins = 0;
+                    if (!empty($qDriver['effective_queue_time'])) {
+                        $waitMins = max(0, round((time() - strtotime($qDriver['effective_queue_time'])) / 60));
+                    }
+                    $waitStr = $waitMins > 0 ? "{$waitMins}m in queue" : "Just entered";
+                ?>
+                    <div class="flex-shrink-0 w-64 sm:w-72 rounded-2xl p-4 transition-all duration-200 <?= $isTop 
+                        ? 'bg-gradient-to-br from-emerald-50 via-teal-50 to-emerald-100/50 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-900/20 border-2 border-emerald-400 dark:border-emerald-500 shadow-md ring-2 ring-emerald-400/20' 
+                        : 'bg-gray-50/80 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700/80 hover:border-gray-300 dark:hover:border-gray-600 shadow-xs' ?>">
+                        
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider uppercase <?= $isTop 
+                                ? 'bg-emerald-500 text-white shadow-xs flex items-center gap-1' 
+                                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300' ?>">
+                                <?= $isTop ? '<i class="fa-solid fa-star text-amber-300 text-[9px]"></i> Priority #1' : "Queue #{$pos}" ?>
+                            </span>
+                            <span class="text-[11px] font-mono text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                <i class="fa-regular fa-clock text-[10px]"></i>
+                                <?= $waitStr ?>
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-11 h-11 rounded-xl <?= $isTop ? 'bg-emerald-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300' ?> flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-xs overflow-hidden">
+                                <?php if (!empty($qDriver['profile_photo']) && file_exists(__DIR__ . '/../../' . $qDriver['profile_photo'])): ?>
+                                    <img src="../<?= htmlspecialchars($qDriver['profile_photo']) ?>" alt="" class="w-full h-full object-cover">
+                                <?php else: ?>
+                                    <?= strtoupper(substr($qDriver['first_name'] ?? 'D', 0, 1) . substr($qDriver['last_name'] ?? '', 0, 1)) ?>
+                                <?php endif; ?>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <h4 class="font-bold text-sm text-gray-900 dark:text-gray-100 truncate"><?= htmlspecialchars($qDriver['driver_name']) ?></h4>
+                                <div class="flex items-center gap-1.5 mt-0.5">
+                                    <span class="px-1.5 py-0.5 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-mono text-[10px] font-extrabold text-blue-600 dark:text-blue-400">
+                                        <?= htmlspecialchars($qDriver['truck_code'] ?: 'No Truck') ?>
+                                    </span>
+                                    <?php if (!empty($qDriver['phone'])): ?>
+                                        <span class="text-[10px] text-gray-400 truncate"><?= htmlspecialchars($qDriver['phone']) ?></span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" 
+                            onclick="dispatchQueueDriver('<?= htmlspecialchars($qDriver['rfid_tag'] ?? '') ?>', '<?= htmlspecialchars($qDriver['truck_code'] ?? '') ?>', <?= intval($qDriver['driver_id']) ?>)"
+                            class="w-full py-2 px-3 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer <?= $isTop 
+                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs' 
+                                : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700' ?>">
+                            <i class="fa-solid fa-paper-plane text-[10px] <?= $isTop ? 'text-emerald-100' : 'text-gray-400' ?>"></i>
+                            <span><?= $isTop ? 'Dispatch Next (Priority)' : 'Dispatch This Truck' ?></span>
+                        </button>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div class="py-6 px-4 rounded-xl bg-gray-50/60 dark:bg-gray-900/30 border border-dashed border-gray-200 dark:border-gray-700 text-center">
+                <i class="fa-solid fa-truck-moving text-2xl text-gray-300 dark:text-gray-600 mb-1.5 block"></i>
+                <p class="text-xs font-semibold text-gray-600 dark:text-gray-400">No trucks currently waiting in the garage queue</p>
+                <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Drivers will automatically appear here upon completing trips or when marked active at the garage.</p>
+            </div>
+        <?php endif; ?>
+    </div>
+
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 p-4 sm:p-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div class="flex items-center space-x-3">

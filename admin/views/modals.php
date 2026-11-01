@@ -714,6 +714,51 @@
                 <input type="hidden" name="distance_km" id="dispatchDistanceKm" value="0">
                 <input type="hidden" name="pay_amount" id="dispatchDriverPay" value="0">
                 <input type="hidden" name="confirm_off_hours" id="dispatchConfirmOffHours" value="0">
+
+                <!-- Queue Priority Helper Banner -->
+                <?php if (!empty($dispatchQueueDrivers)): 
+                    $pDriver = $dispatchQueueDrivers[0];
+                    $pWaitMins = 0;
+                    if (!empty($pDriver['effective_queue_time'])) {
+                        $pWaitMins = max(0, round((time() - strtotime($pDriver['effective_queue_time'])) / 60));
+                    }
+                    $pWaitStr = $pWaitMins > 0 ? "{$pWaitMins}m waiting" : "Just entered";
+                ?>
+                    <div id="dispatchQueueSuggestion" class="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center font-black text-xs shadow-xs flex-shrink-0">
+                                #1
+                            </div>
+                            <div class="text-xs min-w-0">
+                                <div class="font-bold text-gray-900 dark:text-white flex items-center gap-1.5 flex-wrap">
+                                    <span class="text-gray-500 dark:text-gray-400 font-normal">Next in Line:</span>
+                                    <span class="text-emerald-700 dark:text-emerald-300 font-extrabold truncate"><?= htmlspecialchars($pDriver['driver_name']) ?></span>
+                                    <span class="px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 text-[10px] font-mono font-bold"><?= htmlspecialchars($pDriver['truck_code'] ?: 'TRK') ?></span>
+                                </div>
+                                <p class="text-gray-500 dark:text-gray-400 text-[11px] mt-0.5">
+                                    Priority #1 (<?= $pWaitStr ?>) &bull; Recommended to dispatch first
+                                </p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="selectQueuePriorityTruck('<?= htmlspecialchars($pDriver['rfid_tag'] ?? '') ?>', '<?= htmlspecialchars($pDriver['truck_code'] ?? '') ?>')" 
+                            class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
+                            <i class="fa-solid fa-bolt text-amber-300 text-[11px]"></i>
+                            <span>Auto-Select</span>
+                        </button>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Advisory Queue Warning Container (Shown if scanned truck is not #1) -->
+                <div id="queueAdvisoryAlert" class="hidden p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 text-xs text-amber-800 dark:text-amber-200 flex items-start gap-2.5">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-500 text-base mt-0.5 flex-shrink-0"></i>
+                    <div class="flex-1">
+                        <div class="font-bold flex items-center gap-1.5">
+                            <span>Queue Order Advisory</span>
+                            <span id="queueAdvisoryBadge" class="px-2 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-200 dark:bg-amber-800/60 text-amber-900 dark:text-amber-100 uppercase">Not Next In Line</span>
+                        </div>
+                        <p class="text-[11px] mt-0.5 text-amber-700 dark:text-amber-300" id="queueAdvisoryMessage"></p>
+                    </div>
+                </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">Scan Truck RFID Tag <span class="text-red-500">*</span></label>
                     <input type="text" id="rfidInput" name="rfid_tag" placeholder="Click here and scan RFID card..." required autofocus autocomplete="off" class="w-full border border-blue-300 dark:border-blue-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 dark:bg-blue-900 dark:text-gray-100 transition-colors text-sm">
@@ -946,6 +991,33 @@
                             </div>
                         </div>
                     </div>
+
+                                        <!-- Queue Quick Add Tray -->
+                    <?php if (!empty($dispatchQueueDrivers)): ?>
+                        <div class="bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl p-3">
+                            <div class="flex items-center justify-between gap-2 mb-2">
+                                <span class="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-list-ol text-emerald-600"></i>
+                                    Waiting Queue (FIFO Order)
+                                </span>
+                                <span class="text-[11px] text-gray-400">Click a truck to quick-add in queue order</span>
+                            </div>
+                            <div class="flex flex-wrap gap-1.5" id="batchQueuePills">
+                                <?php foreach ($dispatchQueueDrivers as $bIdx => $bDriver): 
+                                    $bPos = $bIdx + 1;
+                                ?>
+                                    <button type="button" 
+                                        onclick="quickAddBatchTruckFromQueue('<?= htmlspecialchars($bDriver['rfid_tag'] ?? '') ?>', this)"
+                                        data-queue-rfid="<?= htmlspecialchars($bDriver['rfid_tag'] ?? '') ?>"
+                                        class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 flex items-center gap-1.5 transition shadow-2xs cursor-pointer">
+                                        <span class="w-4 h-4 rounded-full <?= $bPos === 1 ? 'bg-amber-400 text-slate-900' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300' ?> font-black text-[9px] flex items-center justify-center"><?= $bPos ?></span>
+                                        <span class="font-mono font-bold"><?= htmlspecialchars($bDriver['truck_code']) ?></span>
+                                        <span class="text-gray-400 text-[10px] truncate max-w-[80px]"><?= htmlspecialchars($bDriver['first_name']) ?></span>
+                                    </button>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
 
                     <!-- Step 2: Scan RFID -->
                     <div id="batchScanSection" class="opacity-40 pointer-events-none transition-all duration-300">

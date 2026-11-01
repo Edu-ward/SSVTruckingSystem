@@ -4,7 +4,6 @@ require_once __DIR__ . '/../db.php';
 
 header('Content-Type: application/json');
 
-
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin'])) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
@@ -14,8 +13,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['Admin',
 if (isset($_GET['rfid'])) {
     $rfid = trim($_GET['rfid']);
 
-    
-    $stmt = $pdo->prepare("SELECT id, truck_code, status FROM trucks WHERE rfid_tag = ? LIMIT 1");
+    $stmt = $pdo->prepare("SELECT id, truck_code, status, rfid_tag FROM trucks WHERE rfid_tag = ? LIMIT 1");
     $stmt->execute([$rfid]);
     $truck = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -36,16 +34,59 @@ if (isset($_GET['rfid'])) {
         $todayDispStmt->execute([$truck['id']]);
         $todayDispatches = (int)$todayDispStmt->fetchColumn();
 
+        // Calculate queue info for all idle waiting drivers
+        $queueStmt = $pdo->query("
+            SELECT 
+                d.id AS driver_id,
+                d.truck_id,
+                t.truck_code,
+                t.rfid_tag,
+                CONCAT(d.first_name, ' ', d.last_name) AS driver_name,
+                COALESCE(
+                    d.queue_entry_time,
+                    (SELECT MAX(dt.transit_end_time) FROM driver_trips dt WHERE dt.driver_id = d.id AND dt.status = 'Delivered'),
+                    (SELECT MAX(disp.transit_end_time) FROM dispatches disp WHERE disp.driver_id = d.id AND disp.status = 'Delivered'),
+                    u.created_at
+                ) AS effective_queue_time
+            FROM drivers d
+            JOIN users u ON u.id = d.id
+            LEFT JOIN trucks t ON t.id = d.truck_id
+            WHERE d.status NOT IN ('Resigned', 'Suspended', 'On Leave')
+              AND NOT EXISTS (
+                  SELECT 1 FROM dispatches d2
+                  WHERE d2.driver_id = d.id
+                    AND d2.status IN ('Pending', 'Dispatched', 'Loading', 'In Transit', 'Unloading', 'Cancellation Requested')
+              )
+            ORDER BY effective_queue_time ASC, d.id ASC
+        ");
+        $allQueue = $queueStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $queuePosition = null;
+        $priorityTruck = !empty($allQueue) ? $allQueue[0] : null;
+        foreach ($allQueue as $idx => $qRow) {
+            if (intval($qRow['truck_id']) === intval($truck['id'])) {
+                $queuePosition = $idx + 1;
+                break;
+            }
+        }
+
+        $isPriority = ($queuePosition === 1 || empty($allQueue));
+
         echo json_encode([
-            'success'          => true,
-            'truck_id'         => $truck['id'],
-            'truck_code'       => $truck['truck_code'],
-            'status'           => $truck['status'],
-            'driver_count'     => $driverCount,
-            'drivers'          => $drivers,
-            'driver_id'        => $primaryDriver ? $primaryDriver['id'] : null,
+            'success'              => true,
+            'truck_id'             => $truck['id'],
+            'truck_code'           => $truck['truck_code'],
+            'status'               => $truck['status'],
+            'driver_count'         => $driverCount,
+            'drivers'              => $drivers,
+            'driver_id'            => $primaryDriver ? $primaryDriver['id'] : null,
             'driver_name'      => $primaryDriver ? $primaryDriver['name'] : 'No Driver Assigned',
-            'today_dispatches' => $todayDispatches
+            'today_dispatches' => $todayDispatches,
+            'queue_position'   => $queuePosition,
+            'queue_total'      => count($allQueue),
+            'priority_truck_code' => $priorityTruck ? $priorityTruck['truck_code'] : null,
+            'priority_driver_name' => $priorityTruck ? $priorityTruck['driver_name'] : null,
+            'is_priority'      => $isPriority
         ]);
     } else {
         echo json_encode(['success' => false, 'message' => 'No truck found for this RFID tag']);

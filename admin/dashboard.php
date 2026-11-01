@@ -2704,6 +2704,42 @@ try {
 if (!is_array($activeTicketsRecords)) $activeTicketsRecords = [];
 
 try {
+    $dispatchQueueDrivers = $pdo->query("
+        SELECT 
+            d.id AS driver_id,
+            d.first_name,
+            d.last_name,
+            CONCAT(d.first_name, ' ', d.last_name) AS driver_name,
+            d.phone,
+            d.profile_photo,
+            d.truck_id,
+            d.queue_entry_time,
+            t.truck_code,
+            t.rfid_tag,
+            t.status AS truck_status,
+            COALESCE(
+                d.queue_entry_time,
+                (SELECT MAX(dt.transit_end_time) FROM driver_trips dt WHERE dt.driver_id = d.id AND dt.status = 'Delivered'),
+                (SELECT MAX(disp.transit_end_time) FROM dispatches disp WHERE disp.driver_id = d.id AND disp.status = 'Delivered'),
+                u.created_at
+            ) AS effective_queue_time
+        FROM drivers d
+        JOIN users u ON u.id = d.id
+        LEFT JOIN trucks t ON t.id = d.truck_id
+        WHERE d.status NOT IN ('Resigned', 'Suspended', 'On Leave')
+          AND NOT EXISTS (
+              SELECT 1 FROM dispatches d2
+              WHERE d2.driver_id = d.id
+                AND d2.status IN ('Pending', 'Dispatched', 'Loading', 'In Transit', 'Unloading', 'Cancellation Requested')
+          )
+        ORDER BY effective_queue_time ASC, d.id ASC
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $dispatchQueueDrivers = [];
+}
+if (!is_array($dispatchQueueDrivers)) $dispatchQueueDrivers = [];
+
+try {
     $allDrivers = $pdo->query("
         SELECT 
             d.*, 
@@ -3763,6 +3799,7 @@ if (!empty($autoPrintWaybillUrl)):
     </script>
 <?php endif; ?>
 <script>
+    window.dispatchQueueDrivers = <?= json_encode($dispatchQueueDrivers ?? []) ?>;
     window.drillDownData = {
         fleet: <?= json_encode($allTrucksList ?? []) ?>,
         active: <?= json_encode($activeTicketsRecords ?? []) ?>,
