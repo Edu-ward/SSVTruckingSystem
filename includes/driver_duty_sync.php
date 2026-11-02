@@ -23,6 +23,13 @@ if (!function_exists('syncDailyDriverStatuses')) {
         }
 
         try {
+            // Clear queue from previous days (queue is reset daily)
+            $pdo->exec("
+                UPDATE drivers
+                SET queue_entry_time = NULL
+                WHERE queue_entry_time IS NOT NULL
+                  AND DATE(queue_entry_time) < CURDATE()
+            ");
             
             
             $pdo->exec("

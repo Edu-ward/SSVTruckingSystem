@@ -34,7 +34,7 @@ if (isset($_GET['rfid'])) {
         $todayDispStmt->execute([$truck['id']]);
         $todayDispatches = (int)$todayDispStmt->fetchColumn();
 
-        // Calculate queue info for all idle waiting drivers
+        // Calculate queue info for idle waiting drivers today
         $queueStmt = $pdo->query("
             SELECT 
                 d.id AS driver_id,
@@ -42,22 +42,19 @@ if (isset($_GET['rfid'])) {
                 t.truck_code,
                 t.rfid_tag,
                 CONCAT(d.first_name, ' ', d.last_name) AS driver_name,
-                COALESCE(
-                    d.queue_entry_time,
-                    (SELECT MAX(dt.transit_end_time) FROM driver_trips dt WHERE dt.driver_id = d.id AND dt.status = 'Delivered'),
-                    (SELECT MAX(disp.transit_end_time) FROM dispatches disp WHERE disp.driver_id = d.id AND disp.status = 'Delivered'),
-                    u.created_at
-                ) AS effective_queue_time
+                d.queue_entry_time AS effective_queue_time
             FROM drivers d
             JOIN users u ON u.id = d.id
             LEFT JOIN trucks t ON t.id = d.truck_id
             WHERE d.status NOT IN ('Resigned', 'Suspended', 'On Leave')
+              AND d.queue_entry_time IS NOT NULL
+              AND DATE(d.queue_entry_time) = CURDATE()
               AND NOT EXISTS (
                   SELECT 1 FROM dispatches d2
                   WHERE d2.driver_id = d.id
                     AND d2.status IN ('Pending', 'Dispatched', 'Loading', 'In Transit', 'Unloading', 'Cancellation Requested')
               )
-            ORDER BY effective_queue_time ASC, d.id ASC
+            ORDER BY d.queue_entry_time ASC, d.id ASC
         ");
         $allQueue = $queueStmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -80,13 +77,13 @@ if (isset($_GET['rfid'])) {
             'driver_count'         => $driverCount,
             'drivers'              => $drivers,
             'driver_id'            => $primaryDriver ? $primaryDriver['id'] : null,
-            'driver_name'      => $primaryDriver ? $primaryDriver['name'] : 'No Driver Assigned',
-            'today_dispatches' => $todayDispatches,
-            'queue_position'   => $queuePosition,
-            'queue_total'      => count($allQueue),
-            'priority_truck_code' => $priorityTruck ? $priorityTruck['truck_code'] : null,
+            'driver_name'          => $primaryDriver ? $primaryDriver['name'] : 'No Driver Assigned',
+            'today_dispatches'     => $todayDispatches,
+            'queue_position'       => $queuePosition,
+            'queue_total'          => count($allQueue),
+            'priority_truck_code'  => $priorityTruck ? $priorityTruck['truck_code'] : null,
             'priority_driver_name' => $priorityTruck ? $priorityTruck['driver_name'] : null,
-            'is_priority'      => $isPriority
+            'is_priority'          => $isPriority
         ]);
     } else {
         echo json_encode(['success' => false, 'message' => 'No truck found for this RFID tag']);

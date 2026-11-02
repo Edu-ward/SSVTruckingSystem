@@ -617,7 +617,7 @@ if (!empty($driverFullName)) {
                     </div>
                 </div>
             </div>
-        <?php else: ?>
+        <?php elseif (!empty($driverQueuePosition)): ?>
             <!-- ── QUEUE NUMBER CARD ── -->
             <div id="driverQueueCard" class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
 
@@ -732,8 +732,8 @@ if (!empty($driverFullName)) {
                     fetch('get_queue_status.php', { credentials: 'same-origin' })
                         .then(r => r.json())
                         .then(data => {
-                            if (data.mode === 'dispatched') {
-                                // Driver has been dispatched — reload so the ticket card shows
+                            if (data.mode === 'dispatched' || data.mode === 'idle') {
+                                // Driver dispatched or queue cleared — reload so the appropriate view shows
                                 location.reload();
                                 return;
                             }
@@ -786,6 +786,40 @@ if (!empty($driverFullName)) {
                     // Trigger one immediate refresh to get live data
                     window.refreshQueueStatus();
                 });
+            })();
+            </script>
+        <?php else: ?>
+            <!-- ── IDLE / SHIFT STANDBY CARD ── -->
+            <div id="driverIdleCard" class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-100 dark:border-gray-700 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center space-x-4 text-center sm:text-left">
+                    <div class="w-14 h-14 bg-green-50 dark:bg-green-900/20 text-green-500 rounded-2xl flex items-center justify-center text-2xl mx-auto sm:mx-0 shadow-inner">
+                        <i class="fa-solid fa-house-chimney-user"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2 justify-center sm:justify-start">
+                            Status: Ready for Shift (Garage)
+                            <span class="w-2.5 h-2.5 bg-green-500 rounded-full inline-block animate-pulse"></span>
+                        </h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Stationed at SSV Quarry Garage. You will enter the dispatch queue once your delivery trip is completed.</p>
+                    </div>
+                </div>
+                <div class="text-center sm:text-right w-full sm:w-auto">
+                    <span class="text-xs bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 px-4 py-2 rounded-xl font-bold uppercase inline-block border border-gray-200 dark:border-gray-700">
+                        Ready for Dispatch
+                    </span>
+                </div>
+            </div>
+            <script>
+            (function() {
+                setInterval(function() {
+                    fetch('get_queue_status.php', { credentials: 'same-origin' })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.mode === 'dispatched' || data.mode === 'queued') {
+                                location.reload();
+                            }
+                        }).catch(() => {});
+                }, 30000);
             })();
             </script>
         <?php endif; ?>

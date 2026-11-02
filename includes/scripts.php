@@ -3126,6 +3126,13 @@
         });
 
                 window.dispatchQueueDriver = function(rfidTag, truckCode, driverId) {
+            if (window.dispatchQueueDrivers && window.dispatchQueueDrivers.length > 0) {
+                const topDriver = window.dispatchQueueDrivers[0];
+                if (rfidTag && topDriver.rfid_tag && rfidTag !== topDriver.rfid_tag) {
+                    alert('Only the priority truck (' + (topDriver.truck_code || 'Priority #1') + ') can be dispatched. Other trucks must wait until Priority #1 is dispatched.');
+                    return;
+                }
+            }
             if (typeof toggleModal === 'function') {
                 toggleModal('dispatchModal', true);
             }

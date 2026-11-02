@@ -45,11 +45,21 @@
             <?php if (!empty($dispatchQueueDrivers)): 
                 $topDriver = $dispatchQueueDrivers[0];
             ?>
-                <button type="button" onclick="dispatchQueueDriver('<?= htmlspecialchars($topDriver['rfid_tag'] ?? '') ?>', '<?= htmlspecialchars($topDriver['truck_code'] ?? '') ?>', <?= intval($topDriver['driver_id']) ?>)"
-                    class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm shadow-emerald-500/20 active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer">
-                    <i class="fa-solid fa-bolt text-amber-300"></i>
-                    <span>Dispatch Priority Truck (<?= htmlspecialchars($topDriver['truck_code'] ?? 'Next') ?>)</span>
-                </button>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <form method="POST" action="dashboard.php" class="inline" onsubmit="return confirm('Clear the garage dispatch queue for today? This resets all waiting queue numbers until drivers complete their next delivery trips.');">
+                        <input type="hidden" name="action" value="clear_dispatch_queue">
+                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                        <button type="submit" class="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-rose-50 dark:bg-gray-700 dark:hover:bg-rose-950/40 text-gray-600 hover:text-rose-600 dark:text-gray-300 dark:hover:text-rose-400 border border-gray-200 dark:border-gray-600 transition flex items-center gap-1.5 cursor-pointer shadow-2xs" title="Clear today's queue at end of day">
+                            <i class="fa-solid fa-broom text-[11px]"></i>
+                            <span>Clear Queue</span>
+                        </button>
+                    </form>
+                    <button type="button" onclick="dispatchQueueDriver('<?= htmlspecialchars($topDriver['rfid_tag'] ?? '') ?>', '<?= htmlspecialchars($topDriver['truck_code'] ?? '') ?>', <?= intval($topDriver['driver_id']) ?>)"
+                        class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm shadow-emerald-500/20 active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-bolt text-amber-300"></i>
+                        <span>Dispatch Priority Truck (<?= htmlspecialchars($topDriver['truck_code'] ?? 'Next') ?>)</span>
+                    </button>
+                </div>
             <?php endif; ?>
         </div>
 
@@ -101,14 +111,21 @@
                             </div>
                         </div>
 
-                        <button type="button" 
-                            onclick="dispatchQueueDriver('<?= htmlspecialchars($qDriver['rfid_tag'] ?? '') ?>', '<?= htmlspecialchars($qDriver['truck_code'] ?? '') ?>', <?= intval($qDriver['driver_id']) ?>)"
-                            class="w-full py-2 px-3 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer <?= $isTop 
-                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs' 
-                                : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700' ?>">
-                            <i class="fa-solid fa-paper-plane text-[10px] <?= $isTop ? 'text-emerald-100' : 'text-gray-400' ?>"></i>
-                            <span><?= $isTop ? 'Dispatch Next (Priority)' : 'Dispatch This Truck' ?></span>
-                        </button>
+                        <?php if ($isTop): ?>
+                            <button type="button" 
+                                onclick="dispatchQueueDriver('<?= htmlspecialchars($qDriver['rfid_tag'] ?? '') ?>', '<?= htmlspecialchars($qDriver['truck_code'] ?? '') ?>', <?= intval($qDriver['driver_id']) ?>)"
+                                class="w-full py-2 px-3 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95">
+                                <i class="fa-solid fa-paper-plane text-[10px] text-emerald-100"></i>
+                                <span>Dispatch Next (Priority)</span>
+                            </button>
+                        <?php else: ?>
+                            <button type="button" disabled
+                                title="Waiting for Priority #1 to be dispatched first"
+                                class="w-full py-2 px-3 rounded-xl font-semibold text-xs bg-gray-100 dark:bg-gray-800/80 text-gray-400 dark:text-gray-500 border border-dashed border-gray-200 dark:border-gray-700 cursor-not-allowed flex items-center justify-center gap-1.5 select-none opacity-80">
+                                <i class="fa-solid fa-lock text-[10px] text-gray-400"></i>
+                                <span>Locked &bull; Waits for #1</span>
+                            </button>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             </div>

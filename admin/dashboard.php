@@ -1399,6 +1399,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
     }
 
 
+    if ($_POST['action'] === 'clear_dispatch_queue') {
+        $pdo->exec("UPDATE drivers SET queue_entry_time = NULL");
+        log_activity($pdo, 'Cleared Dispatch Queue', 'Admin cleared the garage dispatch queue.');
+        $_SESSION['success'] = "Garage dispatch queue cleared for the day.";
+        header("Location: dashboard.php?tab=dispatches");
+        exit;
+    }
+
     if ($_POST['action'] == 'update_driver_status') {
         $driver_id = $_POST['driver_id'];
         $new_status = $_POST['new_status'];
@@ -2717,22 +2725,19 @@ try {
             t.truck_code,
             t.rfid_tag,
             t.status AS truck_status,
-            COALESCE(
-                d.queue_entry_time,
-                (SELECT MAX(dt.transit_end_time) FROM driver_trips dt WHERE dt.driver_id = d.id AND dt.status = 'Delivered'),
-                (SELECT MAX(disp.transit_end_time) FROM dispatches disp WHERE disp.driver_id = d.id AND disp.status = 'Delivered'),
-                u.created_at
-            ) AS effective_queue_time
+            d.queue_entry_time AS effective_queue_time
         FROM drivers d
         JOIN users u ON u.id = d.id
         LEFT JOIN trucks t ON t.id = d.truck_id
         WHERE d.status NOT IN ('Resigned', 'Suspended', 'On Leave')
+          AND d.queue_entry_time IS NOT NULL
+          AND DATE(d.queue_entry_time) = CURDATE()
           AND NOT EXISTS (
               SELECT 1 FROM dispatches d2
               WHERE d2.driver_id = d.id
                 AND d2.status IN ('Pending', 'Dispatched', 'Loading', 'In Transit', 'Unloading', 'Cancellation Requested')
           )
-        ORDER BY effective_queue_time ASC, d.id ASC
+        ORDER BY d.queue_entry_time ASC, d.id ASC
     ")->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     $dispatchQueueDrivers = [];

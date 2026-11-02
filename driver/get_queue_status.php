@@ -3,6 +3,7 @@
  * driver/get_queue_status.php
  * Returns the current driver's queue position and total queue size as JSON.
  * Used by the driver dashboard for live polling.
+ * Clears/ignores queue entries from previous days.
  */
 require_once __DIR__ . '/../includes/security_headers.php';
 require_once __DIR__ . '/../db.php';
@@ -39,24 +40,31 @@ if ($activeDispatch) {
     exit;
 }
 
-// Driver is idle — compute queue position
-// Make sure this driver has a queue_entry_time
+// Check if this driver entered the queue TODAY
 $myEntryStmt = $pdo->prepare("SELECT queue_entry_time FROM drivers WHERE id = ?");
 $myEntryStmt->execute([$driver_id]);
 $myEntry = $myEntryStmt->fetchColumn();
 
-if (!$myEntry) {
-    // First time: set entry time to now
-    $pdo->prepare("UPDATE drivers SET queue_entry_time = NOW() WHERE id = ?")->execute([$driver_id]);
-    $myEntry = date('Y-m-d H:i:s');
+// If no queue entry time or entry is from a past day, driver is idle/not in queue today
+if (empty($myEntry) || date('Y-m-d', strtotime($myEntry)) !== date('Y-m-d')) {
+    echo json_encode([
+        'mode'            => 'idle',
+        'position'        => null,
+        'total'           => 0,
+        'queue_entry_time'=> null,
+        'drivers_ahead'   => []
+    ]);
+    exit;
 }
 
-// Position = number of idle drivers whose entry time is EARLIER than mine + 1
+// Driver is active in today's queue
+// Position = number of idle drivers whose today's entry time is EARLIER than mine + 1
 $posStmt = $pdo->prepare("
     SELECT COUNT(*) + 1 AS position
     FROM drivers
     WHERE id != ?
       AND queue_entry_time IS NOT NULL
+      AND DATE(queue_entry_time) = CURDATE()
       AND queue_entry_time <= ?
       AND status NOT IN ('Resigned', 'Suspended', 'On Leave')
       AND NOT EXISTS (
@@ -68,10 +76,12 @@ $posStmt = $pdo->prepare("
 $posStmt->execute([$driver_id, $myEntry]);
 $position = (int)($posStmt->fetchColumn() ?: 1);
 
-// Total idle drivers in queue
+// Total idle drivers in today's queue
 $totalStmt = $pdo->prepare("
     SELECT COUNT(*) FROM drivers
     WHERE status NOT IN ('Resigned', 'Suspended', 'On Leave')
+      AND queue_entry_time IS NOT NULL
+      AND DATE(queue_entry_time) = CURDATE()
       AND NOT EXISTS (
           SELECT 1 FROM dispatches d2
           WHERE d2.driver_id = drivers.id
@@ -81,12 +91,13 @@ $totalStmt = $pdo->prepare("
 $totalStmt->execute();
 $total = (int)($totalStmt->fetchColumn() ?: 1);
 
-// Fetch the drivers ahead of me for context
+// Drivers ahead
 $aheadStmt = $pdo->prepare("
     SELECT CONCAT(d.first_name, ' ', d.last_name) AS name, d.queue_entry_time
     FROM drivers d
     WHERE d.id != ?
       AND d.queue_entry_time IS NOT NULL
+      AND DATE(d.queue_entry_time) = CURDATE()
       AND d.queue_entry_time <= ?
       AND d.status NOT IN ('Resigned', 'Suspended', 'On Leave')
       AND NOT EXISTS (
@@ -107,4 +118,3 @@ echo json_encode([
     'queue_entry_time'=> $myEntry,
     'drivers_ahead'   => $ahead,
 ]);
-
