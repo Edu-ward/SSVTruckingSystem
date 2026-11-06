@@ -607,12 +607,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $dist_km = 1;
         }
 
-        // If a pay_amount was explicitly posted by the form, use that; otherwise use order's stored driver_pay or compute from distance
-        if (!empty($_POST['pay_amount']) && floatval($_POST['pay_amount']) > 0) {
+        // If an order is linked and has a stored driver_pay, prioritize the order's declared driver_pay
+        if ($order_id && !empty($ordData['driver_pay']) && floatval($ordData['driver_pay']) > 0) {
+            $driver_pay = floatval($ordData['driver_pay']);
+        } elseif (!empty($_POST['pay_amount']) && floatval($_POST['pay_amount']) > 0) {
             $driver_pay = isWithinSanLeonardo($destination) ? 300.00 : floatval($_POST['pay_amount']);
         }
         if (empty($driver_pay) || $driver_pay <= 0) {
             $driver_pay = calculateTripPay($dist_km, $destination, 0);
+        }
+        if (isWithinSanLeonardo($destination)) {
+            $driver_pay = 300.00;
         }
 
         $roundTripKm = floatval($dist_km > 0 ? $dist_km : 10.0);

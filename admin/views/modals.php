@@ -805,9 +805,11 @@
                             if ($_singlePay <= 0) {
                                 $_singlePay = getDestinationPay($_ao['destination'] ?? '');
                             }
+                            $_singleDist = isWithinSanLeonardo($_ao['destination'] ?? '') ? 12 : ($_singlePay > 300 ? round((($_singlePay - 300) / 10) + 12) : 12);
                         ?>
                             <option value="<?= $_ao['id'] ?>"
                                 data-destination="<?= htmlspecialchars($_ao['destination']) ?>"
+                                data-distance="<?= $_singleDist ?>"
                                 data-pay="<?= number_format($_singlePay, 2, '.', '') ?>"
                                 data-gravel="<?= htmlspecialchars($_ao['gravel_type']) ?>"
                                 data-customer="<?= htmlspecialchars($_ao['client_name']) ?>"
@@ -965,9 +967,11 @@
                                 if ($_orderPay <= 0) {
                                     $_orderPay = 300.00;
                                 }
+                                $_orderDist = isWithinSanLeonardo($_orderDest) ? 12 : ($_orderPay > 300 ? round((($_orderPay - 300) / 10) + 12) : 12);
                             ?>
                                 <option value="<?= $_bao['id'] ?>"
                                     data-destination="<?= htmlspecialchars($_bao['destination']) ?>"
+                                    data-distance="<?= $_orderDist ?>"
                                     data-gravel="<?= htmlspecialchars($_bao['gravel_type']) ?>"
                                     data-customer="<?= htmlspecialchars($_bao['client_name']) ?>"
                                     data-contact="<?= htmlspecialchars($_bao['contact_number'] ?? '') ?>"
@@ -1541,7 +1545,10 @@
                             return;
                         }
 
-                        let payAmount = getPayAmountForDestination(destName);
+                        let payAmount = parseFloat(orderOpt?.dataset.pay || 0);
+                        if (payAmount <= 0) {
+                            payAmount = getPayAmountForDestination(destName);
+                        }
 
                         addTruckToBatch({
                             truck_id: data.truck_id,
@@ -3637,7 +3644,8 @@
                     optElem.dataset.distance = rounded;
                     optElem.dataset.pay = amount;
                 }
-                payAmountEl.innerHTML = `Map Distance: <span class="font-bold text-blue-600 dark:text-blue-400">${rounded} km</span> (round trip) &bull; Driver Trip Pay: <span class="font-bold text-green-600 dark:text-green-400">₱${amount.toFixed(2)}</span> <span class="text-gray-500 dark:text-gray-400 font-normal">(${calc.breakdown})</span>`;
+                const breakdownText = (pay > 0 && Math.abs(pay - calc.pay) > 0.01) ? `Order Declared Rate` : calc.breakdown;
+                payAmountEl.innerHTML = `Map Distance: <span class="font-bold text-blue-600 dark:text-blue-400">${rounded} km</span> (round trip) &bull; Driver Trip Pay: <span class="font-bold text-green-600 dark:text-green-400">₱${amount.toFixed(2)}</span> <span class="text-gray-500 dark:text-gray-400 font-normal">(${breakdownText})</span>`;
                 payPreview.classList.remove('hidden');
 
                 const roundTripKm = Math.min(180, Math.max(2, rounded));
@@ -3661,11 +3669,15 @@
                 return rounded;
             };
 
-            if (optElem && parseFloat(optElem.dataset.distance) > 0) {
-                const preloadedKm = parseFloat(optElem.dataset.distance);
+            if (optElem && (parseFloat(optElem.dataset.pay) > 0 || parseFloat(optElem.dataset.distance) > 0)) {
+                let preloadedPay = parseFloat(optElem.dataset.pay || 0);
+                let preloadedKm = parseFloat(optElem.dataset.distance || 0);
+                if (preloadedKm <= 0 && preloadedPay > 0) {
+                    preloadedKm = isSanLeonardo(destName) ? 12 : (preloadedPay > 300 ? Math.round(((preloadedPay - 300) / 10) + 12) : 12);
+                }
                 const calc = computeDriverTripPay(preloadedKm, destName, optLat, optLng);
-                const preloadedPay = parseFloat(optElem.dataset.pay) || calc.pay;
-                applyBadge(preloadedKm, preloadedPay);
+                const finalPay = preloadedPay > 0 ? preloadedPay : calc.pay;
+                applyBadge(preloadedKm, finalPay);
                 return;
             }
 
