@@ -547,7 +547,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $landmark = !empty($_POST['landmark']) ? trim($_POST['landmark']) : null;
 
         if ($order_id) {
-            $ordStmt = $pdo->prepare("SELECT client_name, contact_number, landmark, destination, gravel_type FROM orders WHERE id = ?");
+            $ordStmt = $pdo->prepare("SELECT client_name, contact_number, landmark, destination, gravel_type, driver_pay FROM orders WHERE id = ?");
             $ordStmt->execute([$order_id]);
             $ordData = $ordStmt->fetch(PDO::FETCH_ASSOC);
             if ($ordData) {
@@ -555,14 +555,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 if (empty($contact_number)) $contact_number = $ordData['contact_number'] ?? null;
                 if (empty($landmark)) $landmark = $ordData['landmark'] ?? null;
                 if (empty($destination)) $destination = $ordData['destination'] ?? '';
+                // Use stored driver_pay from order as default if no pay_amount posted
+                if (empty($driver_pay) && floatval($ordData['driver_pay'] ?? 0) > 0) {
+                    $driver_pay = floatval($ordData['driver_pay']);
+                }
             }
         }
 
         $dist_km = 0;
         if (!empty($_POST['distance_km']) && floatval($_POST['distance_km']) > 0) {
             $dist_km = round(floatval($_POST['distance_km']));
-        } elseif (isset($DISTANCE_KM[$destination]) && floatval($DISTANCE_KM[$destination]) > 0) {
-            $dist_km = round(floatval($DISTANCE_KM[$destination]));
         }
 
         if ($dist_km <= 0) {
@@ -578,10 +580,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 'jaen' => 20,
                 'santa rosa' => 24,
                 'sta. rosa' => 24,
-                'cabanatuan' => 44,
+                'cabanatuan' => 32,
                 'palayan' => 50,
                 'talavera' => 60,
-                'san leonardo' => 30,
+                'san leonardo' => 12,
                 'tarlac' => 160,
                 'laur' => 180,
                 'gabaldon' => 200,
@@ -605,17 +607,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $dist_km = 1;
         }
 
-        // orders table does not have distance_km / driver_pay columns on production — compute from destination name
+        // If a pay_amount was explicitly posted by the form, use that; otherwise use order's stored driver_pay or compute from distance
+        if (!empty($_POST['pay_amount']) && floatval($_POST['pay_amount']) > 0) {
+            $driver_pay = isWithinSanLeonardo($destination) ? 300.00 : floatval($_POST['pay_amount']);
+        }
         if (empty($driver_pay) || $driver_pay <= 0) {
             $driver_pay = calculateTripPay($dist_km, $destination, 0);
-        }
-        if (!empty($_POST['pay_amount']) && floatval($_POST['pay_amount']) > 0) {
-            $postedPay = floatval($_POST['pay_amount']);
-            if (isWithinSanLeonardo($destination)) {
-                $driver_pay = 300.00;
-            } else {
-                $driver_pay = $postedPay;
-            }
         }
 
         $roundTripKm = floatval($dist_km > 0 ? $dist_km : 10.0);
@@ -717,11 +714,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $contact_number = trim($orderData['contact_number'] ?? '');
         $landmark = trim($orderData['landmark'] ?? '');
 
-        $dist_km = 0;
-        if (!empty($orderData['distance_km']) && floatval($orderData['distance_km']) > 0) {
-            $dist_km = round(floatval($orderData['distance_km']));
-        }
+        // Use the driver_pay stored on the order (set at order creation from map distance)
+        $order_stored_pay = floatval($orderData['driver_pay'] ?? 0);
 
+        $dist_km = 0;
         if ($dist_km <= 0) {
             $destLower = strtolower($destination);
             $presetTownKm = [
@@ -735,10 +731,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 'jaen' => 20,
                 'santa rosa' => 24,
                 'sta. rosa' => 24,
-                'cabanatuan' => 44,
+                'cabanatuan' => 32,
                 'palayan' => 50,
                 'talavera' => 60,
-                'san leonardo' => 30,
+                'san leonardo' => 12,
                 'tarlac' => 160,
                 'laur' => 180,
                 'gabaldon' => 200,
@@ -857,8 +853,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             }
 
             $driver_pay = floatval($item['pay_amount'] ?? 0);
-            if ($driver_pay <= 0 && !empty($orderData['driver_pay']) && floatval($orderData['driver_pay']) > 0) {
-                $driver_pay = floatval($orderData['driver_pay']);
+            // Priority: 1) explicitly posted pay per truck, 2) stored driver_pay from the order, 3) computed from distance
+            if ($driver_pay <= 0 && $order_stored_pay > 0) {
+                $driver_pay = $order_stored_pay;
             }
             if ($driver_pay <= 0) {
                 $driver_pay = calculateTripPay($dist_km, $destination, 0);
@@ -1721,9 +1718,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $contact_number = !empty($_POST['contact_number']) ? trim($_POST['contact_number']) : null;
         $landmark = !empty($_POST['landmark']) ? trim($_POST['landmark']) : null;
         $destination = trim($_POST['destination'] ?? '');
-        $stmt = $pdo->prepare("INSERT INTO orders (order_number, client_name, contact_number, gravel_type, destination, landmark, trucks_required, cubic_meters_required, checker_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        // Compute driver pay from posted distance (from map) or preset lookup
+        $order_dist_km = floatval($_POST['distance_km'] ?? 0);
+        if ($order_dist_km > 0) {
+            $order_driver_pay = calculateTripPay($order_dist_km, $destination, 0);
+        } else {
+            $order_driver_pay = getDestinationPay($destination);
+        }
         $checker_id = !empty($_POST['checker_id']) ? intval($_POST['checker_id']) : null;
-        $stmt->execute([$orderNum, $_POST['client_name'], $contact_number, $_POST['gravel_type'], $destination, $landmark, $trucks_req, $cubic_meters_required, $checker_id, $_POST['notes'] ?? '']);
+        $stmt = $pdo->prepare("INSERT INTO orders (order_number, client_name, contact_number, gravel_type, destination, landmark, trucks_required, cubic_meters_required, checker_id, notes, driver_pay) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$orderNum, $_POST['client_name'], $contact_number, $_POST['gravel_type'], $destination, $landmark, $trucks_req, $cubic_meters_required, $checker_id, $_POST['notes'] ?? '', $order_driver_pay]);
         $_SESSION['success'] = "Order <strong>{$orderNum}</strong> created successfully.";
         log_activity($pdo, 'Created Order', 'Created order ' . $orderNum . ' for ' . $_POST['client_name']);
         header("Location: dashboard.php?tab=orders");
@@ -1741,13 +1745,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $trucks_req = max(1, (int)ceil($cubic_meters_required));
         $checker_id = !empty($_POST['checker_id']) ? intval($_POST['checker_id']) : null;
         $notes = trim($_POST['notes'] ?? '');
+        // Recompute driver pay from posted distance (from map) or preset lookup
+        $order_dist_km = floatval($_POST['distance_km'] ?? 0);
+        if ($order_dist_km > 0) {
+            $order_driver_pay = calculateTripPay($order_dist_km, $destination, 0);
+        } else {
+            $order_driver_pay = getDestinationPay($destination);
+        }
 
         if (!$order_id || !$client_name || !$destination || !$gravel_type || $cubic_meters_required <= 0) {
             $_SESSION['error'] = "Please fill in all required fields to update the order.";
         } else {
             try {
-                $stmt = $pdo->prepare("UPDATE orders SET client_name = ?, contact_number = ?, destination = ?, landmark = ?, gravel_type = ?, cubic_meters_required = ?, trucks_required = ?, checker_id = ?, notes = ? WHERE id = ?");
-                $stmt->execute([$client_name, $contact_number, $destination, $landmark, $gravel_type, $cubic_meters_required, $trucks_req, $checker_id, $notes, $order_id]);
+                $stmt = $pdo->prepare("UPDATE orders SET client_name = ?, contact_number = ?, destination = ?, landmark = ?, gravel_type = ?, cubic_meters_required = ?, trucks_required = ?, checker_id = ?, notes = ?, driver_pay = ? WHERE id = ?");
+                $stmt->execute([$client_name, $contact_number, $destination, $landmark, $gravel_type, $cubic_meters_required, $trucks_req, $checker_id, $notes, $order_driver_pay, $order_id]);
 
                 $pdo->prepare("UPDATE dispatches SET destination = ?, landmark = ?, client_name = ?, contact_number = ? WHERE order_id = ? AND status = 'Pending'")
                     ->execute([$destination, $landmark, $client_name, $contact_number, $order_id]);

@@ -800,19 +800,14 @@
                             $req = floatval($_ao['cubic_meters_required'] > 0 ? $_ao['cubic_meters_required'] : $_ao['trucks_required']);
                             $done = floatval($_ao['cubic_meters_fulfilled'] > 0 ? $_ao['cubic_meters_fulfilled'] : $_ao['trucks_fulfilled']);
                             $rem = max(0, $req - $done);
+                            // Use stored driver_pay from orders table (set at order creation from map distance)
                             $_singlePay = floatval($_ao['driver_pay'] ?? 0);
-                            $_singleDist = floatval($_ao['distance_km'] ?? 0);
                             if ($_singlePay <= 0) {
-                                if ($_singleDist > 0) {
-                                    $_singlePay = calculateTripPay($_singleDist, $_ao['destination'] ?? '', 0);
-                                } else {
-                                    $_singlePay = getDestinationPay($_ao['destination'] ?? '');
-                                }
+                                $_singlePay = getDestinationPay($_ao['destination'] ?? '');
                             }
                         ?>
                             <option value="<?= $_ao['id'] ?>"
                                 data-destination="<?= htmlspecialchars($_ao['destination']) ?>"
-                                data-distance="<?= $_singleDist ?>"
                                 data-pay="<?= number_format($_singlePay, 2, '.', '') ?>"
                                 data-gravel="<?= htmlspecialchars($_ao['gravel_type']) ?>"
                                 data-customer="<?= htmlspecialchars($_ao['client_name']) ?>"
@@ -972,14 +967,10 @@
                                 $bDone = floatval($_bao['cubic_meters_fulfilled'] > 0 ? $_bao['cubic_meters_fulfilled'] : $_bao['trucks_fulfilled']);
                                 $bRem = max(0, $bReq - $bDone);
                                 $_orderDest = trim($_bao['destination'] ?? '');
+                                // Use stored driver_pay from orders table (set at order creation from map distance)
                                 $_orderPay = floatval($_bao['driver_pay'] ?? 0);
                                 if ($_orderPay <= 0) {
-                                    $_orderDist = floatval($_bao['distance_km'] ?? 0);
-                                    if ($_orderDist > 0) {
-                                        $_orderPay = calculateTripPay($_orderDist, $_orderDest, 0);
-                                    } else {
-                                        $_orderPay = getDestinationPay($_orderDest);
-                                    }
+                                    $_orderPay = getDestinationPay($_orderDest);
                                 }
                                 if ($_orderPay <= 0) {
                                     $_orderPay = 300.00;

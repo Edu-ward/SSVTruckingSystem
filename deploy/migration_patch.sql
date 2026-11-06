@@ -40,7 +40,8 @@ ALTER TABLE `orders`
     ADD COLUMN IF NOT EXISTS `cubic_meters_fulfilled` DECIMAL(10,2) DEFAULT '0.00',
     ADD COLUMN IF NOT EXISTS `checker_id` INT DEFAULT NULL,
     ADD COLUMN IF NOT EXISTS `contact_number` VARCHAR(50) DEFAULT NULL,
-    ADD COLUMN IF NOT EXISTS `landmark` VARCHAR(255) DEFAULT NULL;
+    ADD COLUMN IF NOT EXISTS `landmark` VARCHAR(255) DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS `driver_pay` DECIMAL(10,2) DEFAULT '0.00';
 
 -- 6. Ensure `dispatches` has distance and tracking columns
 ALTER TABLE `dispatches`
