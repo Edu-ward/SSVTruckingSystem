@@ -175,12 +175,7 @@ const NominatimService = (function () {
         const globalBase = (typeof window !== 'undefined' && window.BASE_TRIP_RATE) ? Number(window.BASE_TRIP_RATE) : 300.00;
         const globalPerKm = (typeof window !== 'undefined' && window.RATE_PER_KM) ? Number(window.RATE_PER_KM) : 10.00;
 
-        let basePay = globalBase;
-        if (customRate != null && Number(customRate) > 0) {
-            basePay = Number(customRate);
-        } else if (typeof window !== 'undefined' && window.DESTINATION_DRIVER_RATES && name && window.DESTINATION_DRIVER_RATES[name] > 0) {
-            basePay = Number(window.DESTINATION_DRIVER_RATES[name]);
-        }
+        let basePay = (customRate != null && Number(customRate) > 0) ? Number(customRate) : globalBase;
 
         if (isWithinSanLeonardo(name)) {
             return {

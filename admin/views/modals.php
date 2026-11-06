@@ -800,9 +800,20 @@
                             $req = floatval($_ao['cubic_meters_required'] > 0 ? $_ao['cubic_meters_required'] : $_ao['trucks_required']);
                             $done = floatval($_ao['cubic_meters_fulfilled'] > 0 ? $_ao['cubic_meters_fulfilled'] : $_ao['trucks_fulfilled']);
                             $rem = max(0, $req - $done);
+                            $_singlePay = floatval($_ao['driver_pay'] ?? 0);
+                            $_singleDist = floatval($_ao['distance_km'] ?? 0);
+                            if ($_singlePay <= 0) {
+                                if ($_singleDist > 0) {
+                                    $_singlePay = calculateTripPay($_singleDist, $_ao['destination'] ?? '', 0);
+                                } else {
+                                    $_singlePay = getDestinationPay($_ao['destination'] ?? '');
+                                }
+                            }
                         ?>
                             <option value="<?= $_ao['id'] ?>"
                                 data-destination="<?= htmlspecialchars($_ao['destination']) ?>"
+                                data-distance="<?= $_singleDist ?>"
+                                data-pay="<?= number_format($_singlePay, 2, '.', '') ?>"
                                 data-gravel="<?= htmlspecialchars($_ao['gravel_type']) ?>"
                                 data-customer="<?= htmlspecialchars($_ao['client_name']) ?>"
                                 data-contact="<?= htmlspecialchars($_ao['contact_number'] ?? '') ?>"
@@ -846,15 +857,17 @@
                             </button>
                         </div>
                         <select name="destination" id="destinationSelect" onchange="handleDispatchDestinationChange()" required class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm transition-colors">
-                            <option value="">Select Destination</option>
-                            <?php foreach ($destinations as $_dest): ?>
-                                <?php
-                                $_dist = round(floatval($_dest['distance_km']));
-                                $_rate = floatval($_dest['driver_rate']);
-                                $_pay = calculateTripPay($_dist, $_dest['name'], $_rate);
-                                ?>
-                                <option value="<?= htmlspecialchars($_dest['name']); ?>" data-distance="<?= $_dist; ?>" data-pay="<?= $_pay; ?>" data-rate="<?= $_rate; ?>"><?= htmlspecialchars($_dest['name']); ?><?php if ($_dist > 0): ?> (<?= $_dist; ?> km)<?php endif; ?></option>
-                            <?php endforeach; ?>
+                            <option value="">Select Destination or Search Map</option>
+                            <option value="San Leonardo, Nueva Ecija" data-distance="12" data-pay="300">San Leonardo (12 km) - ₱300.00</option>
+                            <option value="Cabanatuan City, Nueva Ecija" data-distance="32" data-pay="500">Cabanatuan City (~32 km) - ₱500.00</option>
+                            <option value="Gapan City, Nueva Ecija" data-distance="22" data-pay="400">Gapan City (~22 km) - ₱400.00</option>
+                            <option value="Peñaranda, Nueva Ecija" data-distance="20" data-pay="440">Peñaranda (~20 km) - ₱440.00</option>
+                            <option value="General Tinio, Nueva Ecija" data-distance="30" data-pay="540">General Tinio (~30 km) - ₱540.00</option>
+                            <option value="Santa Rosa, Nueva Ecija" data-distance="24" data-pay="420">Santa Rosa (~24 km) - ₱420.00</option>
+                            <option value="San Isidro, Nueva Ecija" data-distance="24" data-pay="420">San Isidro (~24 km) - ₱420.00</option>
+                            <option value="Jaen, Nueva Ecija" data-distance="20" data-pay="380">Jaen (~20 km) - ₱380.00</option>
+                            <option value="Palayan City, Nueva Ecija" data-distance="50" data-pay="680">Palayan City (~50 km) - ₱680.00</option>
+                            <option value="Talavera, Nueva Ecija" data-distance="60" data-pay="780">Talavera (~60 km) - ₱780.00</option>
                         </select>
                         <div id="dispatchPayPreview" class="text-xs mt-2 hidden">
                             <div class="p-2.5 rounded-xl bg-blue-50/80 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50 flex items-start gap-2">
@@ -959,7 +972,15 @@
                                 $bDone = floatval($_bao['cubic_meters_fulfilled'] > 0 ? $_bao['cubic_meters_fulfilled'] : $_bao['trucks_fulfilled']);
                                 $bRem = max(0, $bReq - $bDone);
                                 $_orderDest = trim($_bao['destination'] ?? '');
-                                $_orderPay = getDestinationPay($_orderDest, $DISTANCE_KM ?? [], $DRIVER_RATES ?? []);
+                                $_orderPay = floatval($_bao['driver_pay'] ?? 0);
+                                if ($_orderPay <= 0) {
+                                    $_orderDist = floatval($_bao['distance_km'] ?? 0);
+                                    if ($_orderDist > 0) {
+                                        $_orderPay = calculateTripPay($_orderDist, $_orderDest, 0);
+                                    } else {
+                                        $_orderPay = getDestinationPay($_orderDest);
+                                    }
+                                }
                                 if ($_orderPay <= 0) {
                                     $_orderPay = 300.00;
                                 }
@@ -1784,13 +1805,19 @@
                         break;
                     }
                 }
+                let targetOpt;
                 if (foundIndex >= 0) {
                     destSelect.selectedIndex = foundIndex;
+                    targetOpt = destSelect.options[foundIndex];
                 } else {
-                    const newOpt = new Option(dest, dest, true, true);
-                    destSelect.add(newOpt);
+                    targetOpt = new Option(dest, dest, true, true);
+                    destSelect.add(targetOpt);
                 }
-                await calculateAndSetDispatchPay(dest, destSelect.options[destSelect.selectedIndex]);
+                const orderDist = parseFloat(opt.dataset.distance || 0);
+                const orderPay = parseFloat(opt.dataset.pay || 0);
+                if (orderDist > 0) targetOpt.dataset.distance = orderDist;
+                if (orderPay > 0) targetOpt.dataset.pay = orderPay;
+                await calculateAndSetDispatchPay(dest, targetOpt);
             }
 
             if (gravelSelect) {
@@ -2701,6 +2728,22 @@
     </div>
 
 
+    <datalist id="commonDestinationsList">
+        <option value="San Leonardo, Nueva Ecija">
+        <option value="Cabanatuan City, Nueva Ecija">
+        <option value="Gapan City, Nueva Ecija">
+        <option value="Peñaranda, Nueva Ecija">
+        <option value="General Tinio, Nueva Ecija">
+        <option value="Santa Rosa, Nueva Ecija">
+        <option value="San Isidro, Nueva Ecija">
+        <option value="Jaen, Nueva Ecija">
+        <option value="Palayan City, Nueva Ecija">
+        <option value="Talavera, Nueva Ecija">
+        <option value="Tarlac">
+        <option value="Laur, Nueva Ecija">
+        <option value="Gabaldon, Nueva Ecija">
+    </datalist>
+
     <div id="addOrderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden p-3 sm:p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden relative max-h-[90vh] flex flex-col">
             <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
@@ -2715,6 +2758,8 @@
             <form method="POST" action="dashboard.php" class="p-5 sm:p-6 overflow-y-auto space-y-4">
                 <input type="hidden" name="action" value="add_order">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                <input type="hidden" name="distance_km" id="addOrderDistanceKm" value="0">
+                <input type="hidden" name="driver_pay" id="addOrderDriverPay" value="0">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Client Name <span class="text-red-500">*</span></label>
@@ -2733,12 +2778,8 @@
                                 <i class="fa-solid fa-map-location-dot"></i> Search OSM Map
                             </button>
                         </div>
-                        <select name="destination" required class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
-                            <option value="">Select destination</option>
-                            <?php foreach ($destinations as $_dest): ?>
-                                <option value="<?= htmlspecialchars($_dest['name']); ?>"><?= htmlspecialchars($_dest['name']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <input type="text" name="destination" id="addOrderDestinationInput" list="commonDestinationsList" required placeholder="Type destination or click Search OSM Map..." class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                        <div id="addOrderLocationPreview" class="mt-1.5 hidden text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1.5"><i class="fa-solid fa-location-dot"></i> <span id="addOrderLocationPreviewText"></span></div>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Landmark <span class="text-gray-400 font-normal">(optional)</span></label>
@@ -2798,6 +2839,8 @@
                 <input type="hidden" name="action" value="edit_order">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                 <input type="hidden" name="order_id" id="edit_order_id" required>
+                <input type="hidden" name="distance_km" id="edit_order_distance_km" value="0">
+                <input type="hidden" name="driver_pay" id="edit_order_driver_pay" value="0">
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -2818,12 +2861,8 @@
                                 <i class="fa-solid fa-map-location-dot"></i> Search / Re-pin OSM Map
                             </button>
                         </div>
-                        <select name="destination" id="edit_order_destination" required class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
-                            <option value="">Select destination</option>
-                            <?php foreach ($destinations as $_dest): ?>
-                                <option value="<?= htmlspecialchars($_dest['name']); ?>"><?= htmlspecialchars($_dest['name']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <input type="text" name="destination" id="edit_order_destination" list="commonDestinationsList" required placeholder="Type destination or click Search OSM Map..." class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                        <div id="editOrderLocationPreview" class="mt-1.5 hidden text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1.5"><i class="fa-solid fa-location-dot"></i> <span id="editOrderLocationPreviewText"></span></div>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Landmark</label>
@@ -2909,15 +2948,17 @@
                         </button>
                     </div>
                     <select name="destination" id="edit_dispatch_destination" onchange="handleEditDispatchDestinationChange()" required class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
-                        <option value="">Select Destination</option>
-                        <?php foreach ($destinations as $_dest): ?>
-                            <?php
-                            $_dist = round(floatval($_dest['distance_km']));
-                            $_rate = floatval($_dest['driver_rate']);
-                            $_pay = calculateTripPay($_dist, $_dest['name'], $_rate);
-                            ?>
-                            <option value="<?= htmlspecialchars($_dest['name']); ?>" data-distance="<?= $_dist; ?>" data-pay="<?= $_pay; ?>" data-rate="<?= $_rate; ?>"><?= htmlspecialchars($_dest['name']); ?><?php if ($_dist > 0): ?> (<?= $_dist; ?> km)<?php endif; ?></option>
-                        <?php endforeach; ?>
+                        <option value="">Select Destination or Search Map</option>
+                        <option value="San Leonardo, Nueva Ecija" data-distance="12" data-pay="300">San Leonardo (12 km) - ₱300.00</option>
+                        <option value="Cabanatuan City, Nueva Ecija" data-distance="32" data-pay="500">Cabanatuan City (~32 km) - ₱500.00</option>
+                        <option value="Gapan City, Nueva Ecija" data-distance="22" data-pay="400">Gapan City (~22 km) - ₱400.00</option>
+                        <option value="Peñaranda, Nueva Ecija" data-distance="20" data-pay="440">Peñaranda (~20 km) - ₱440.00</option>
+                        <option value="General Tinio, Nueva Ecija" data-distance="30" data-pay="540">General Tinio (~30 km) - ₱540.00</option>
+                        <option value="Santa Rosa, Nueva Ecija" data-distance="24" data-pay="420">Santa Rosa (~24 km) - ₱420.00</option>
+                        <option value="San Isidro, Nueva Ecija" data-distance="24" data-pay="420">San Isidro (~24 km) - ₱420.00</option>
+                        <option value="Jaen, Nueva Ecija" data-distance="20" data-pay="380">Jaen (~20 km) - ₱380.00</option>
+                        <option value="Palayan City, Nueva Ecija" data-distance="50" data-pay="680">Palayan City (~50 km) - ₱680.00</option>
+                        <option value="Talavera, Nueva Ecija" data-distance="60" data-pay="780">Talavera (~60 km) - ₱780.00</option>
                     </select>
                     <div id="editDispatchPayPreview" class="text-xs mt-2">
                         <div class="p-2.5 rounded-xl bg-blue-50/80 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50 flex items-start gap-2">
@@ -3569,12 +3610,7 @@
             const globalBase = (typeof window !== 'undefined' && window.BASE_TRIP_RATE) ? Number(window.BASE_TRIP_RATE) : 300.00;
             const globalPerKm = (typeof window !== 'undefined' && window.RATE_PER_KM) ? Number(window.RATE_PER_KM) : 10.00;
 
-            let basePay = globalBase;
-            if (customRate != null && Number(customRate) > 0) {
-                basePay = Number(customRate);
-            } else if (typeof window !== 'undefined' && window.DESTINATION_DRIVER_RATES && name && window.DESTINATION_DRIVER_RATES[name] > 0) {
-                basePay = Number(window.DESTINATION_DRIVER_RATES[name]);
-            }
+            let basePay = (customRate != null && Number(customRate) > 0) ? Number(customRate) : globalBase;
 
             if (isSanLeonardo(name)) {
                 return {
@@ -4010,49 +4046,75 @@
 
         function applySelectedOsmLocation() {
             if (!currentSelectedLocation) return;
-            let destSelect = null;
-            if (targetInputContext === 'dispatch') {
-                destSelect = document.getElementById('destinationSelect');
-            } else if (targetInputContext === 'order') {
-                destSelect = document.querySelector('#addOrderModal select[name="destination"]');
+            const payVal = currentSelectedPay || computeDriverTripPay(currentSelectedDistanceKm, currentSelectedLocation, currentSelectedLat, currentSelectedLng).pay;
+
+            if (targetInputContext === 'order') {
+                const inp = document.getElementById('addOrderDestinationInput');
+                if (inp) inp.value = currentSelectedLocation;
+                const distInp = document.getElementById('addOrderDistanceKm');
+                if (distInp) distInp.value = currentSelectedDistanceKm;
+                const payInp = document.getElementById('addOrderDriverPay');
+                if (payInp) payInp.value = payVal;
+                const prev = document.getElementById('addOrderLocationPreview');
+                const prevText = document.getElementById('addOrderLocationPreviewText');
+                if (prev && prevText) {
+                    prevText.textContent = `${currentSelectedLocation} • ${currentSelectedDistanceKm} km round trip • ₱${payVal.toFixed(2)} driver pay`;
+                    prev.classList.remove('hidden');
+                }
             } else if (targetInputContext === 'edit_order') {
-                destSelect = document.getElementById('edit_order_destination');
-            } else if (targetInputContext === 'edit_dispatch') {
-                destSelect = document.getElementById('edit_dispatch_destination');
-            }
-
-            if (destSelect) {
-                let foundIndex = -1;
-                for (let i = 0; i < destSelect.options.length; i++) {
-                    if (destSelect.options[i].value.toLowerCase() === currentSelectedLocation.toLowerCase()) {
-                        foundIndex = i;
-                        break;
-                    }
+                const inp = document.getElementById('edit_order_destination');
+                if (inp) inp.value = currentSelectedLocation;
+                const distInp = document.getElementById('edit_order_distance_km');
+                if (distInp) distInp.value = currentSelectedDistanceKm;
+                const payInp = document.getElementById('edit_order_driver_pay');
+                if (payInp) payInp.value = payVal;
+                const prev = document.getElementById('editOrderLocationPreview');
+                const prevText = document.getElementById('editOrderLocationPreviewText');
+                if (prev && prevText) {
+                    prevText.textContent = `${currentSelectedLocation} • ${currentSelectedDistanceKm} km round trip • ₱${payVal.toFixed(2)} driver pay`;
+                    prev.classList.remove('hidden');
                 }
-                let targetOpt;
-                if (foundIndex >= 0) {
-                    destSelect.selectedIndex = foundIndex;
-                    targetOpt = destSelect.options[foundIndex];
-                } else {
-                    const kmSuffix = currentSelectedDistanceKm > 0 ? ` (${currentSelectedDistanceKm} km)` : '';
-                    targetOpt = new Option(currentSelectedLocation + kmSuffix, currentSelectedLocation, true, true);
-                    destSelect.add(targetOpt);
-                }
-
-                if (currentSelectedLat && currentSelectedLng) {
-                    targetOpt.dataset.lat = currentSelectedLat;
-                    targetOpt.dataset.lng = currentSelectedLng;
-                }
-                if (currentSelectedDistanceKm > 0) {
-                    targetOpt.dataset.distance = currentSelectedDistanceKm;
-                    targetOpt.dataset.pay = currentSelectedPay || computeDriverTripPay(currentSelectedDistanceKm, currentSelectedLocation, currentSelectedLat, currentSelectedLng).pay;
-                }
-
+            } else {
+                let destSelect = null;
                 if (targetInputContext === 'dispatch') {
-                    calculateAndSetDispatchPay(currentSelectedLocation, targetOpt);
+                    destSelect = document.getElementById('destinationSelect');
                 } else if (targetInputContext === 'edit_dispatch') {
-                    if (typeof calculateAndSetEditDispatchPay === 'function') {
-                        calculateAndSetEditDispatchPay(currentSelectedLocation, targetOpt);
+                    destSelect = document.getElementById('edit_dispatch_destination');
+                }
+
+                if (destSelect) {
+                    let foundIndex = -1;
+                    for (let i = 0; i < destSelect.options.length; i++) {
+                        if (destSelect.options[i].value.toLowerCase() === currentSelectedLocation.toLowerCase()) {
+                            foundIndex = i;
+                            break;
+                        }
+                    }
+                    let targetOpt;
+                    if (foundIndex >= 0) {
+                        destSelect.selectedIndex = foundIndex;
+                        targetOpt = destSelect.options[foundIndex];
+                    } else {
+                        const kmSuffix = currentSelectedDistanceKm > 0 ? ` (${currentSelectedDistanceKm} km)` : '';
+                        targetOpt = new Option(currentSelectedLocation + kmSuffix, currentSelectedLocation, true, true);
+                        destSelect.add(targetOpt);
+                    }
+
+                    if (currentSelectedLat && currentSelectedLng) {
+                        targetOpt.dataset.lat = currentSelectedLat;
+                        targetOpt.dataset.lng = currentSelectedLng;
+                    }
+                    if (currentSelectedDistanceKm > 0) {
+                        targetOpt.dataset.distance = currentSelectedDistanceKm;
+                        targetOpt.dataset.pay = payVal;
+                    }
+
+                    if (targetInputContext === 'dispatch') {
+                        calculateAndSetDispatchPay(currentSelectedLocation, targetOpt);
+                    } else if (targetInputContext === 'edit_dispatch') {
+                        if (typeof calculateAndSetEditDispatchPay === 'function') {
+                            calculateAndSetEditDispatchPay(currentSelectedLocation, targetOpt);
+                        }
                     }
                 }
             }

@@ -47,22 +47,10 @@ $OP_HOURS_START   = intval($_settings_raw['op_hours_start'] ?? 7);
 $OP_HOURS_END     = intval($_settings_raw['op_hours_end'] ?? 20);
 $DAILY_TRUCK_DISPATCH_LIMIT = intval($_settings_raw['daily_truck_dispatch_limit'] ?? 10);
 
-try {
-    $_dest_rows  = $pdo->query("SELECT id, name, driver_rate, distance_km, is_active FROM destinations ORDER BY is_active DESC, name ASC")->fetchAll(PDO::FETCH_ASSOC);
-} catch (Throwable $e) {
-    $_dest_rows = [];
-}
 $DRIVER_RATES = [];
 $DISTANCE_KM  = [];
 $destinations = [];
-$allDestinations = $_dest_rows;
-foreach ($_dest_rows as $_d) {
-    if (!empty($_d['is_active'])) {
-        $DRIVER_RATES[$_d['name']] = floatval($_d['driver_rate']);
-        $DISTANCE_KM[$_d['name']]  = floatval($_d['distance_km']);
-        $destinations[] = $_d;
-    }
-}
+$allDestinations = [];
 
 function isWithinSanLeonardo(string $destName): bool
 {
@@ -106,13 +94,9 @@ function getSanLeonardoBoundaryDistance(string $destName): float
 
 function calculateTripPay(float $dist_km, string $destName = '', float $customRate = 0.0, ?float $baseRate = null, ?float $perKmRate = null): float
 {
-    global $BASE_TRIP_RATE, $RATE_PER_KM, $DRIVER_RATES;
+    global $BASE_TRIP_RATE, $RATE_PER_KM;
     $base  = ($baseRate !== null && $baseRate > 0) ? $baseRate : (isset($BASE_TRIP_RATE) && $BASE_TRIP_RATE > 0 ? $BASE_TRIP_RATE : 300.00);
     $perKm = ($perKmRate !== null && $perKmRate >= 0) ? $perKmRate : (isset($RATE_PER_KM) && $RATE_PER_KM >= 0 ? $RATE_PER_KM : 10.00);
-
-    if ($customRate <= 0 && !empty($destName) && isset($DRIVER_RATES[$destName])) {
-        $customRate = floatval($DRIVER_RATES[$destName]);
-    }
 
     if (isWithinSanLeonardo($destName)) {
         return $customRate > 0 ? $customRate : $base;
@@ -132,10 +116,9 @@ function calculateTripPay(float $dist_km, string $destName = '', float $customRa
     return $base;
 }
 
-function getDestinationPay(string $destName, array $DISTANCE_KM, array $DRIVER_RATES): float
+function getDestinationPay(string $destName, array $DISTANCE_KM = [], array $DRIVER_RATES = []): float
 {
     $km = floatval($DISTANCE_KM[$destName] ?? 0);
-    $rate = floatval($DRIVER_RATES[$destName] ?? 0);
 
     if ($km <= 0) {
         $destLower = strtolower(trim($destName));
@@ -172,9 +155,6 @@ function getDestinationPay(string $destName, array $DISTANCE_KM, array $DRIVER_R
         }
     }
 
-    // Use 0 for custom rate so pay is always computed from base + distance formula
-    // (driver_rate in DB is treated as a flat rate elsewhere; for estimation purposes
-    //  we always use the standard base + per-km formula to match the Route Preview)
     return calculateTripPay($km, $destName, 0);
 }
 
@@ -466,110 +446,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-    if ($_POST['action'] === 'add_destination') {
-        $dname  = trim($_POST['dest_name'] ?? '');
-        $dkm    = floatval($_POST['dest_distance_km'] ?? 0);
-        $drate  = floatval($_POST['dest_driver_rate'] ?? 0);
-        if (!$dname) {
-            $_SESSION['dest_error'] = 'Destination name is required.';
-        } else {
-
-            $geoFlagTerms = ['metro manila', 'makati', 'quezon city', 'pasig', 'marikina', 'parañaque', 'paranaque', 'pasay', 'caloocan', 'malabon', 'navotas', 'valenzuela', 'mandaluyong', 'las piñas', 'las pinas', 'muntinlupa', 'taguig', 'pateros', 'san juan', 'cebu', 'davao', 'mindanao', 'visayas', 'iloilo', 'cagayan de oro', 'zamboanga', 'bacolod', 'bohol', 'palawan', 'batangas', 'cavite', 'laguna', 'rizal'];
-            $dnLower = strtolower($dname);
-            $isOutOfArea = false;
-            foreach ($geoFlagTerms as $term) {
-                if (strpos($dnLower, $term) !== false) {
-                    $isOutOfArea = true;
-                    break;
-                }
-            }
-            if ($isOutOfArea) {
-                $_SESSION['dest_warning'] = "⚠️ '" . htmlspecialchars($dname) . "' appears to be outside the service area. It has been saved but flagged for review.";
-            }
-            try {
-                $pdo->prepare("INSERT INTO destinations (name, distance_km, driver_rate, is_out_of_area) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE distance_km = VALUES(distance_km), driver_rate = VALUES(driver_rate), is_out_of_area = VALUES(is_out_of_area)")
-                    ->execute([$dname, $dkm, $drate, $isOutOfArea ? 1 : 0]);
-                if (!$isOutOfArea) $_SESSION['dest_success'] = "Destination '" . htmlspecialchars($dname) . "' added successfully.";
-                log_activity($pdo, 'Added Destination', "Added destination: $dname (distance: {$dkm} km, rate: ₱{$drate})");
-            } catch (Exception $e) {
-
-                try {
-                    $pdo->prepare("INSERT INTO destinations (name, distance_km, driver_rate) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE distance_km = VALUES(distance_km), driver_rate = VALUES(driver_rate)")
-                        ->execute([$dname, $dkm, $drate]);
-                    if (!$isOutOfArea) $_SESSION['dest_success'] = "Destination '" . htmlspecialchars($dname) . "' added successfully.";
-                } catch (Exception $e2) {
-                    $_SESSION['dest_error'] = 'Failed to add destination. Name may already exist.';
-                }
-            }
-        }
-        header('Location: dashboard.php?tab=settings');
-        exit;
-    }
-
-    if ($_POST['action'] === 'edit_destination') {
-        $did    = intval($_POST['dest_id'] ?? 0);
-        $dname  = trim($_POST['dest_name'] ?? '');
-        $dkm    = floatval($_POST['dest_distance_km'] ?? 0);
-        $drate  = floatval($_POST['dest_driver_rate'] ?? 0);
-        $active = intval($_POST['dest_is_active'] ?? 1);
-        if (!$did || !$dname) {
-            $_SESSION['dest_error'] = 'Invalid destination data.';
-        } else {
-
-            $geoFlagTerms = ['metro manila', 'makati', 'quezon city', 'pasig', 'marikina', 'parañaque', 'paranaque', 'pasay', 'caloocan', 'malabon', 'navotas', 'valenzuela', 'mandaluyong', 'las piñas', 'las pinas', 'muntinlupa', 'taguig', 'pateros', 'san juan', 'cebu', 'davao', 'mindanao', 'visayas', 'iloilo', 'cagayan de oro', 'zamboanga', 'bacolod', 'bohol', 'palawan', 'batangas', 'cavite', 'laguna', 'rizal'];
-            $dnLower = strtolower($dname);
-            $isOutOfArea = false;
-            foreach ($geoFlagTerms as $term) {
-                if (strpos($dnLower, $term) !== false) {
-                    $isOutOfArea = true;
-                    break;
-                }
-            }
-            if ($isOutOfArea) {
-                $_SESSION['dest_warning'] = "⚠️ '" . htmlspecialchars($dname) . "' appears to be outside the service area. It has been saved but flagged for review.";
-            }
-            try {
-                $pdo->prepare("UPDATE destinations SET name = ?, distance_km = ?, driver_rate = ?, is_active = ?, is_out_of_area = ? WHERE id = ?")
-                    ->execute([$dname, $dkm, $drate, $active, $isOutOfArea ? 1 : 0, $did]);
-                $payText = calculateTripPay($dkm, $dname, $drate);
-                if (!$isOutOfArea) $_SESSION['dest_success'] = "Destination updated: '" . htmlspecialchars($dname) . "' — " . ($dkm > 0 ? number_format($dkm, 1) . " km (₱" . number_format($payText, 2) . " pay)" : "Flat rate ₱" . number_format($drate, 2)) . ".";
-                log_activity($pdo, 'Edited Destination', "Updated destination ID $did: $dname (distance: {$dkm} km, rate: ₱{$drate})");
-            } catch (Exception $e) {
-
-                try {
-                    $pdo->prepare("UPDATE destinations SET name = ?, distance_km = ?, driver_rate = ?, is_active = ? WHERE id = ?")
-                        ->execute([$dname, $dkm, $drate, $active, $did]);
-                    $payText = calculateTripPay($dkm, $dname, $drate);
-                    if (!$isOutOfArea) $_SESSION['dest_success'] = "Destination updated: '" . htmlspecialchars($dname) . "' — " . ($dkm > 0 ? number_format($dkm, 1) . " km (₱" . number_format($payText, 2) . " pay)" : "Flat rate ₱" . number_format($drate, 2)) . ".";
-                } catch (Exception $e2) {
-                    $_SESSION['dest_error'] = 'Failed to update destination.';
-                }
-            }
-        }
-        header('Location: dashboard.php?tab=settings');
-        exit;
-    }
-
-    if ($_POST['action'] === 'delete_destination') {
-        $did = intval($_POST['dest_id'] ?? 0);
-        if ($did > 0) {
-            try {
-                $chk = $pdo->prepare("SELECT name FROM destinations WHERE id = ?");
-                $chk->execute([$did]);
-                $dRow = $chk->fetch();
-                $pdo->prepare("DELETE FROM destinations WHERE id = ?")->execute([$did]);
-                $_SESSION['dest_success'] = "Destination '" . htmlspecialchars($dRow['name'] ?? '') . "' deleted successfully.";
-                log_activity($pdo, 'Deleted Destination', "Deleted destination ID $did (" . ($dRow['name'] ?? '') . ")");
-            } catch (Exception $e) {
-
-                $pdo->prepare("UPDATE destinations SET is_active = 0 WHERE id = ?")->execute([$did]);
-                $_SESSION['dest_success'] = "Destination deactivated successfully.";
-            }
-        }
-        header('Location: dashboard.php?tab=settings');
-        exit;
-    }
-
 
 
     if ($_POST['action'] == 'create_dispatch') {
@@ -729,7 +605,22 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $dist_km = 1;
         }
 
-        $driver_pay = calculateTripPay($dist_km, $destination, floatval($DRIVER_RATES[$destination] ?? 0));
+        if ($order_id) {
+            $ordStmt = $pdo->prepare("SELECT distance_km, driver_pay FROM orders WHERE id = ?");
+            $ordStmt->execute([$order_id]);
+            $ordRow = $ordStmt->fetch(PDO::FETCH_ASSOC);
+            if ($ordRow) {
+                if ($dist_km <= 0 && floatval($ordRow['distance_km']) > 0) {
+                    $dist_km = round(floatval($ordRow['distance_km']));
+                }
+                if (floatval($ordRow['driver_pay']) > 0 && empty($_POST['pay_amount'])) {
+                    $driver_pay = floatval($ordRow['driver_pay']);
+                }
+            }
+        }
+        if (empty($driver_pay) || $driver_pay <= 0) {
+            $driver_pay = calculateTripPay($dist_km, $destination, 0);
+        }
         if (!empty($_POST['pay_amount']) && floatval($_POST['pay_amount']) > 0) {
             $postedPay = floatval($_POST['pay_amount']);
             if (isWithinSanLeonardo($destination)) {
@@ -772,17 +663,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
 
             $trip_insert = $pdo->prepare("INSERT INTO driver_trips (driver_id, destination, trip_date, status, order_id, transit_start_time, estimated_arrival_time, distance_km, pay_amount) VALUES (?, ?, CURDATE(), 'In Transit', ?, NOW(), ?, ?, ?)");
             $trip_insert->execute([$driver_id, $destination, $order_id, $estimated_arrival_time, $dist_km, $driver_pay]);
-
-            $chkDest = $pdo->prepare("SELECT id, distance_km FROM destinations WHERE name = ?");
-            $chkDest->execute([$destination]);
-            $destRow = $chkDest->fetch(PDO::FETCH_ASSOC);
-            if (!$destRow) {
-                $insDest = $pdo->prepare("INSERT INTO destinations (name, distance_km, driver_rate) VALUES (?, ?, ?)");
-                $insDest->execute([$destination, $dist_km, $driver_pay]);
-            } elseif (floatval($destRow['distance_km']) <= 0 && $dist_km > 0) {
-                $updDest = $pdo->prepare("UPDATE destinations SET distance_km = ?, driver_rate = ? WHERE id = ?");
-                $updDest->execute([$dist_km, $driver_pay, $destRow['id']]);
-            }
 
             if ($order_id) {
                 $pdo->prepare("UPDATE orders SET status = 'In Progress' WHERE id = ? AND status = 'Pending'")->execute([$order_id]);
@@ -850,8 +730,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $landmark = trim($orderData['landmark'] ?? '');
 
         $dist_km = 0;
-        if (isset($DISTANCE_KM[$destination]) && floatval($DISTANCE_KM[$destination]) > 0) {
-            $dist_km = round(floatval($DISTANCE_KM[$destination]));
+        if (!empty($orderData['distance_km']) && floatval($orderData['distance_km']) > 0) {
+            $dist_km = round(floatval($orderData['distance_km']));
         }
 
         if ($dist_km <= 0) {
@@ -989,8 +869,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             }
 
             $driver_pay = floatval($item['pay_amount'] ?? 0);
+            if ($driver_pay <= 0 && !empty($orderData['driver_pay']) && floatval($orderData['driver_pay']) > 0) {
+                $driver_pay = floatval($orderData['driver_pay']);
+            }
             if ($driver_pay <= 0) {
-                $driver_pay = calculateTripPay($dist_km, $destination, floatval($DRIVER_RATES[$destination] ?? 0));
+                $driver_pay = calculateTripPay($dist_km, $destination, 0);
             }
             if (isWithinSanLeonardo($destination)) {
                 $driver_pay = 300.00;
@@ -1040,17 +923,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
 
                 $createdTicketNumbers[] = $ticketNum;
                 $createdDispatchIds[] = $new_dispatch_id;
-            }
-
-            $chkDest = $pdo->prepare("SELECT id, distance_km FROM destinations WHERE name = ?");
-            $chkDest->execute([$destination]);
-            $destRow = $chkDest->fetch(PDO::FETCH_ASSOC);
-            if (!$destRow && !empty($destination)) {
-                $insDest = $pdo->prepare("INSERT INTO destinations (name, distance_km, driver_rate) VALUES (?, ?, ?)");
-                $insDest->execute([$destination, $dist_km, $validatedList[0]['driver_pay']]);
-            } elseif ($destRow && floatval($destRow['distance_km']) <= 0 && $dist_km > 0) {
-                $updDest = $pdo->prepare("UPDATE destinations SET distance_km = ?, driver_rate = ? WHERE id = ?");
-                $updDest->execute([$dist_km, $validatedList[0]['driver_pay'], $destRow['id']]);
             }
 
             $pdo->prepare("UPDATE orders SET status = 'In Progress' WHERE id = ? AND status = 'Pending'")->execute([$batch_order_id]);
@@ -1111,14 +983,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
                 if ($dispRow) {
                     $pdo->prepare("UPDATE driver_trips SET destination = ?, distance_km = ?, pay_amount = ? WHERE driver_id = ? AND status IN ('Pending', 'In Transit') ORDER BY id DESC LIMIT 1")
                         ->execute([$destination, $distance_km, $pay_amount, $dispRow['driver_id']]);
-                }
-
-
-                $chkDest = $pdo->prepare("SELECT id FROM destinations WHERE name = ?");
-                $chkDest->execute([$destination]);
-                if (!$chkDest->fetch()) {
-                    $pdo->prepare("INSERT INTO destinations (name, distance_km, driver_rate) VALUES (?, ?, ?)")
-                        ->execute([$destination, $distance_km, $pay_amount]);
                 }
 
                 $_SESSION['success'] = "Dispatch ticket updated successfully.";
@@ -1868,9 +1732,19 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $trucks_req = max(1, (int)ceil($cubic_meters_required));
         $contact_number = !empty($_POST['contact_number']) ? trim($_POST['contact_number']) : null;
         $landmark = !empty($_POST['landmark']) ? trim($_POST['landmark']) : null;
-        $stmt = $pdo->prepare("INSERT INTO orders (order_number, client_name, contact_number, gravel_type, destination, landmark, trucks_required, cubic_meters_required, checker_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $destination = trim($_POST['destination'] ?? '');
+        $dist_km = floatval($_POST['distance_km'] ?? 0);
+        $driver_pay = floatval($_POST['driver_pay'] ?? 0);
+        if ($driver_pay <= 0 && !empty($destination)) {
+            if ($dist_km > 0) {
+                $driver_pay = calculateTripPay($dist_km, $destination, 0);
+            } else {
+                $driver_pay = getDestinationPay($destination);
+            }
+        }
+        $stmt = $pdo->prepare("INSERT INTO orders (order_number, client_name, contact_number, gravel_type, destination, distance_km, driver_pay, landmark, trucks_required, cubic_meters_required, checker_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $checker_id = !empty($_POST['checker_id']) ? intval($_POST['checker_id']) : null;
-        $stmt->execute([$orderNum, $_POST['client_name'], $contact_number, $_POST['gravel_type'], $_POST['destination'], $landmark, $trucks_req, $cubic_meters_required, $checker_id, $_POST['notes'] ?? '']);
+        $stmt->execute([$orderNum, $_POST['client_name'], $contact_number, $_POST['gravel_type'], $destination, $dist_km, $driver_pay, $landmark, $trucks_req, $cubic_meters_required, $checker_id, $_POST['notes'] ?? '']);
         $_SESSION['success'] = "Order <strong>{$orderNum}</strong> created successfully.";
         log_activity($pdo, 'Created Order', 'Created order ' . $orderNum . ' for ' . $_POST['client_name']);
         header("Location: dashboard.php?tab=orders");
@@ -1882,6 +1756,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $client_name = trim($_POST['client_name'] ?? '');
         $contact_number = !empty($_POST['contact_number']) ? trim($_POST['contact_number']) : null;
         $destination = trim($_POST['destination'] ?? '');
+        $dist_km = floatval($_POST['distance_km'] ?? 0);
+        $driver_pay = floatval($_POST['driver_pay'] ?? 0);
+        if ($driver_pay <= 0 && !empty($destination)) {
+            if ($dist_km > 0) {
+                $driver_pay = calculateTripPay($dist_km, $destination, 0);
+            } else {
+                $driver_pay = getDestinationPay($destination);
+            }
+        }
         $landmark = !empty($_POST['landmark']) ? trim($_POST['landmark']) : null;
         $gravel_type = trim($_POST['gravel_type'] ?? '');
         $cubic_meters_required = floatval($_POST['cubic_meters_required'] ?? 0);
@@ -1893,12 +1776,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $_SESSION['error'] = "Please fill in all required fields to update the order.";
         } else {
             try {
-                $stmt = $pdo->prepare("UPDATE orders SET client_name = ?, contact_number = ?, destination = ?, landmark = ?, gravel_type = ?, cubic_meters_required = ?, trucks_required = ?, checker_id = ?, notes = ? WHERE id = ?");
-                $stmt->execute([$client_name, $contact_number, $destination, $landmark, $gravel_type, $cubic_meters_required, $trucks_req, $checker_id, $notes, $order_id]);
+                $stmt = $pdo->prepare("UPDATE orders SET client_name = ?, contact_number = ?, destination = ?, distance_km = ?, driver_pay = ?, landmark = ?, gravel_type = ?, cubic_meters_required = ?, trucks_required = ?, checker_id = ?, notes = ? WHERE id = ?");
+                $stmt->execute([$client_name, $contact_number, $destination, $dist_km, $driver_pay, $landmark, $gravel_type, $cubic_meters_required, $trucks_req, $checker_id, $notes, $order_id]);
 
-
-                $pdo->prepare("UPDATE dispatches SET destination = ?, landmark = ?, client_name = ?, contact_number = ? WHERE order_id = ? AND status = 'Pending'")
-                    ->execute([$destination, $landmark, $client_name, $contact_number, $order_id]);
+                $pdo->prepare("UPDATE dispatches SET destination = ?, distance_km = ?, pay_amount = ?, landmark = ?, client_name = ?, contact_number = ? WHERE order_id = ? AND status = 'Pending'")
+                    ->execute([$destination, $dist_km, $driver_pay, $landmark, $client_name, $contact_number, $order_id]);
 
                 $_SESSION['success'] = "Order updated successfully.";
                 log_activity($pdo, 'Edited Order', "Updated order ID {$order_id} (Client: {$client_name}, Destination: {$destination})");

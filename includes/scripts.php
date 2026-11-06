@@ -2562,20 +2562,21 @@
             const notesEl = document.getElementById('edit_order_notes');
             if (notesEl) notesEl.value = order.notes || '';
 
-            const destSelect = document.getElementById('edit_order_destination');
-            if (destSelect && order.destination) {
-                let found = false;
-                for (let i = 0; i < destSelect.options.length; i++) {
-                    if (destSelect.options[i].value.trim().toLowerCase() === order.destination.trim().toLowerCase()) {
-                        destSelect.selectedIndex = i;
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    const newOpt = new Option(order.destination, order.destination, true, true);
-                    destSelect.add(newOpt);
-                }
+            const destInput = document.getElementById('edit_order_destination');
+            if (destInput && order.destination) {
+                destInput.value = order.destination;
+            }
+            const distInput = document.getElementById('edit_order_distance_km');
+            if (distInput) distInput.value = order.distance_km || 0;
+            const payInput = document.getElementById('edit_order_driver_pay');
+            if (payInput) payInput.value = order.driver_pay || 0;
+            const prev = document.getElementById('editOrderLocationPreview');
+            const prevText = document.getElementById('editOrderLocationPreviewText');
+            if (prev && prevText && order.destination && parseFloat(order.distance_km || 0) > 0) {
+                prevText.textContent = `${order.destination} • ${order.distance_km} km round trip • ₱${parseFloat(order.driver_pay || 0).toFixed(2)} driver pay`;
+                prev.classList.remove('hidden');
+            } else if (prev) {
+                prev.classList.add('hidden');
             }
 
             toggleModal('editOrderModal', true);
