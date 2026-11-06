@@ -1117,50 +1117,64 @@
         function getPayAmountForDestination(destName) {
             if (!destName) return 0;
 
-            // 1. Try to read from currently selected order option in batchOrderSelect
+            // 1. Priority: read server-computed pay from the currently selected order option.
+            // This value is computed server-side via getDestinationPay() using the standard
+            // base + per-km formula (ignoring any custom driver_rate override), so it matches
+            // the Route Preview calculation.
             const orderSel = document.getElementById('batchOrderSelect');
             if (orderSel && orderSel.selectedIndex >= 0) {
                 const curOpt = orderSel.options[orderSel.selectedIndex];
-                if (curOpt && curOpt.value) {
-                    const optDest = (curOpt.dataset.destination || '').trim().toLowerCase();
-                    const targetDest = destName.trim().toLowerCase();
-                    if (optDest === targetDest && curOpt.dataset.pay && parseFloat(curOpt.dataset.pay) > 0) {
-                        return parseFloat(curOpt.dataset.pay);
-                    }
+                if (curOpt && curOpt.value && curOpt.dataset.pay) {
+                    const p = parseFloat(curOpt.dataset.pay);
+                    if (p > 0) return p;
                 }
             }
 
-            // 2. Try looking in single destination select element
+            // 2. Fallback: match against single-dispatch destinationSelect options by name.
             const singleDestSelect = document.getElementById('destinationSelect');
             if (singleDestSelect) {
                 const searchName = destName.trim().toLowerCase();
                 for (let i = 0; i < singleDestSelect.options.length; i++) {
                     const optVal = singleDestSelect.options[i].value.trim().toLowerCase();
                     if (optVal && (optVal === searchName || optVal.includes(searchName) || searchName.includes(optVal))) {
+                        // Use base + km formula to avoid custom-rate override: re-compute with
+                        // global rates if distance data is available
+                        const distKm = parseInt(singleDestSelect.options[i].dataset.distance || 0, 10);
+                        if (distKm > 0 && typeof getSanLeonardoBoundaryDistance === 'function') {
+                            const base = Number(window.BASE_TRIP_RATE || 300);
+                            const perKm = Number(window.RATE_PER_KM || 10);
+                            const boundary = getSanLeonardoBoundaryDistance(optVal);
+                            const outside = Math.max(0, distKm - boundary);
+                            return base + outside * perKm;
+                        }
                         const p = parseFloat(singleDestSelect.options[i].dataset.pay || 0);
                         if (p > 0) return p;
                     }
                 }
             }
 
-            // 3. Try computeDriverTripPay if available
-            if (typeof computeDriverTripPay === 'function') {
-                const searchLower = destName.toLowerCase();
-                let approxKm = 32;
-                if (searchLower.includes('cabanatuan')) approxKm = 32;
-                else if (searchLower.includes('gapan')) approxKm = 22;
-                else if (searchLower.includes('general tinio') || searchLower.includes('gen. tinio') || searchLower.includes('papaya')) approxKm = 30;
-                else if (searchLower.includes('peñaranda') || searchLower.includes('penaranda')) approxKm = 20;
-                else if (searchLower.includes('santa rosa') || searchLower.includes('sta. rosa')) approxKm = 24;
-                else if (searchLower.includes('san isidro')) approxKm = 24;
-                else if (searchLower.includes('jaen')) approxKm = 20;
-                else if (searchLower.includes('palayan')) approxKm = 50;
-                else if (searchLower.includes('talavera')) approxKm = 60;
-                const calc = computeDriverTripPay(approxKm, destName);
-                if (calc && calc.pay > 0) return calc.pay;
+            // 3. Last resort: standard formula with rough km approximation.
+            // NOTE: does NOT use window.DESTINATION_DRIVER_RATES to avoid the custom-rate bug.
+            const base = Number(window.BASE_TRIP_RATE || 300);
+            const perKm = Number(window.RATE_PER_KM || 10);
+            const searchLower = destName.toLowerCase();
+            let approxKm = 0;
+            if (searchLower.includes('cabanatuan')) approxKm = 32;
+            else if (searchLower.includes('gapan')) approxKm = 22;
+            else if (searchLower.includes('general tinio') || searchLower.includes('gen. tinio') || searchLower.includes('papaya')) approxKm = 30;
+            else if (searchLower.includes('peñaranda') || searchLower.includes('penaranda')) approxKm = 20;
+            else if (searchLower.includes('santa rosa') || searchLower.includes('sta. rosa')) approxKm = 24;
+            else if (searchLower.includes('san isidro')) approxKm = 24;
+            else if (searchLower.includes('jaen')) approxKm = 20;
+            else if (searchLower.includes('palayan')) approxKm = 50;
+            else if (searchLower.includes('talavera')) approxKm = 60;
+            if (approxKm > 0 && typeof getSanLeonardoBoundaryDistance === 'function') {
+                const boundary = getSanLeonardoBoundaryDistance(destName);
+                const outside = Math.max(0, approxKm - boundary);
+                return base + outside * perKm;
             }
 
-            return 300.00;
+            return base; // absolute fallback
         }
 
         function onBatchOrderChange(sel) {

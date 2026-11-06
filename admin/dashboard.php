@@ -172,7 +172,10 @@ function getDestinationPay(string $destName, array $DISTANCE_KM, array $DRIVER_R
         }
     }
 
-    return calculateTripPay($km, $destName, $rate);
+    // Use 0 for custom rate so pay is always computed from base + distance formula
+    // (driver_rate in DB is treated as a flat rate elsewhere; for estimation purposes
+    //  we always use the standard base + per-km formula to match the Route Preview)
+    return calculateTripPay($km, $destName, 0);
 }
 
 function computeIsOnTime(array $dispatch, ?string $nowTime = null): int
