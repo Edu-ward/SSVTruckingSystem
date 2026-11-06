@@ -30,7 +30,7 @@ try {
     ");
     $drivers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    echo "";
+    // asdsadasdasd
 
     echo json_encode([
         'success' => true,

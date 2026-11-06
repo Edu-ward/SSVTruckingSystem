@@ -114,6 +114,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 if ($isDup) {
                     $_SESSION['error'] = "⚠️ Truck <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> delivery trip has already been confirmed/scanned.";
                 } else {
+                    // ── Policy: Minimum 5-minute gap between dispatch ticket creation and RFID scan ──
+                    $MIN_DISPATCH_SCAN_MINUTES = 5;
+                    $tooEarly = false;
+                    if ($activeDispatch) {
+                        $dispTimeStmt = $pdo->prepare("SELECT transit_start_time, created_at FROM dispatches WHERE id = ? LIMIT 1");
+                        $dispTimeStmt->execute([$activeDispatch['id']]);
+                        $dispTimeRow = $dispTimeStmt->fetch(PDO::FETCH_ASSOC);
+                        $dispCreated = !empty($dispTimeRow['transit_start_time'])
+                            ? $dispTimeRow['transit_start_time']
+                            : ($dispTimeRow['created_at'] ?? null);
+                        if ($dispCreated) {
+                            $elapsedSeconds = time() - strtotime($dispCreated);
+                            if ($elapsedSeconds < ($MIN_DISPATCH_SCAN_MINUTES * 60)) {
+                                $remainingSecs = ($MIN_DISPATCH_SCAN_MINUTES * 60) - $elapsedSeconds;
+                                $remainingMins = ceil($remainingSecs / 60);
+                                $_SESSION['error'] = "🚫 <strong>Too Early to Scan:</strong> Dispatch ticket for truck <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> was created only " . floor($elapsedSeconds / 60) . " minute(s) ago. A minimum of <strong>{$MIN_DISPATCH_SCAN_MINUTES} minutes</strong> must pass before the RFID can be scanned. Please wait approximately <strong>{$remainingMins} more minute(s)</strong>.";
+                                $tooEarly = true;
+                            }
+                        }
+                    }
+
+                    if (!$tooEarly) {
                     $scannedCm = ($activeDispatch && floatval($activeDispatch['cubic_meters']) > 0) ? floatval($activeDispatch['cubic_meters']) : 0;
                     if ($scannedCm <= 0) {
                         $dispStmt = $pdo->prepare("SELECT cubic_meters FROM dispatches WHERE truck_id = ? ORDER BY id DESC LIMIT 1");
@@ -189,7 +211,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         $_SESSION['success'] = "✅ <strong>" . htmlspecialchars($truck['truck_code']) . "</strong> logged (" . number_format($scannedCm, 2) . " cu.m). <strong>" . number_format($remainingCm, 2) . " cu.m</strong> remaining.";
                         log_activity($pdo, 'Scanned Truck', 'Scanned truck ' . $truck['truck_code'] . ' for order ID ' . $order_id . ' (' . number_format($scannedCm, 2) . ' cu.m)');
                     }
-                }
+                    } // end if (!$tooEarly)
+                } // end else (!$isDup)
             }
         }
     }

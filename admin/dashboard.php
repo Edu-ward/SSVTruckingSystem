@@ -1331,6 +1331,21 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
 
             if ($dispatch) {
                 if ($dispatch['status'] === 'In Transit' || $dispatch['status'] === 'Pending') {
+                    $MIN_DISPATCH_SCAN_MINUTES = 5;
+                    $dispCreated = !empty($dispatch['transit_start_time'])
+                        ? $dispatch['transit_start_time']
+                        : ($dispatch['created_at'] ?? null);
+                    if ($dispCreated) {
+                        $elapsedSeconds = time() - strtotime($dispCreated);
+                        if ($elapsedSeconds < ($MIN_DISPATCH_SCAN_MINUTES * 60)) {
+                            $remainingSecs = ($MIN_DISPATCH_SCAN_MINUTES * 60) - $elapsedSeconds;
+                            $remainingMins = ceil($remainingSecs / 60);
+                            $_SESSION['scan_err'] = "🚫 <strong>Too Early to Scan:</strong> Dispatch ticket for truck <strong>{$truck['truck_code']}</strong> was created only " . floor($elapsedSeconds / 60) . " minute(s) ago. A minimum of <strong>{$MIN_DISPATCH_SCAN_MINUTES} minutes</strong> must pass before the RFID can be scanned. Please wait approximately <strong>{$remainingMins} more minute(s)</strong>.";
+                            header("Location: dashboard.php?tab=dispatches");
+                            exit;
+                        }
+                    }
+
                     $isOnTime = computeIsOnTime($dispatch, date('Y-m-d H:i:s'));
                     $pdo->prepare("UPDATE dispatches SET status = 'Delivered', transit_end_time = NOW(), is_on_time = ? WHERE id = ?")->execute([$isOnTime, $dispatch['id']]);
                     $pdo->prepare("UPDATE trucks SET status = 'Idle', current_location = ? WHERE id = ?")->execute([$GARAGE_NAME, $truck['id']]);

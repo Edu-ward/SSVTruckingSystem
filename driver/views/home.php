@@ -800,7 +800,7 @@ if (!empty($driverFullName)) {
                             Status: Ready for Shift (Garage)
                             <span class="w-2.5 h-2.5 bg-green-500 rounded-full inline-block animate-pulse"></span>
                         </h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Stationed at SSV Quarry Garage. You will enter the dispatch queue once your delivery trip is completed.</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Stationed at SSV Quarry Garage. You will enter the dispatch queue once your first delivery trip for today is completed.</p>
                     </div>
                 </div>
                 <div class="text-center sm:text-right w-full sm:w-auto">
