@@ -958,6 +958,11 @@
                                 $bReq = floatval($_bao['cubic_meters_required'] > 0 ? $_bao['cubic_meters_required'] : $_bao['trucks_required']);
                                 $bDone = floatval($_bao['cubic_meters_fulfilled'] > 0 ? $_bao['cubic_meters_fulfilled'] : $_bao['trucks_fulfilled']);
                                 $bRem = max(0, $bReq - $bDone);
+                                $_orderDest = trim($_bao['destination'] ?? '');
+                                $_orderPay = getDestinationPay($_orderDest, $DISTANCE_KM ?? [], $DRIVER_RATES ?? []);
+                                if ($_orderPay <= 0) {
+                                    $_orderPay = 300.00;
+                                }
                             ?>
                                 <option value="<?= $_bao['id'] ?>"
                                     data-destination="<?= htmlspecialchars($_bao['destination']) ?>"
@@ -965,7 +970,8 @@
                                     data-customer="<?= htmlspecialchars($_bao['client_name']) ?>"
                                     data-contact="<?= htmlspecialchars($_bao['contact_number'] ?? '') ?>"
                                     data-landmark="<?= htmlspecialchars($_bao['landmark'] ?? '') ?>"
-                                    data-remaining="<?= $bRem ?>">
+                                    data-remaining="<?= $bRem ?>"
+                                    data-pay="<?= number_format($_orderPay, 2, '.', '') ?>">
                                     <?= htmlspecialchars($_bao['order_number']) ?> · <?= htmlspecialchars($_bao['client_name']) ?> — <?= htmlspecialchars($_bao['destination']) ?> (<?= number_format($bRem, 2) ?> cu.m remaining)
                                 </option>
                             <?php endforeach; ?>
@@ -1005,11 +1011,14 @@
                             <div class="flex flex-wrap gap-1.5" id="batchQueuePills">
                                 <?php foreach ($dispatchQueueDrivers as $bIdx => $bDriver): 
                                     $bPos = $bIdx + 1;
+                                    $isPriority = ($bPos === 1);
                                 ?>
                                     <button type="button" 
                                         onclick="quickAddBatchTruckFromQueue('<?= htmlspecialchars($bDriver['rfid_tag'] ?? '') ?>', this)"
                                         data-queue-rfid="<?= htmlspecialchars($bDriver['rfid_tag'] ?? '') ?>"
-                                        class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 flex items-center gap-1.5 transition shadow-2xs cursor-pointer">
+                                        data-queue-pos="<?= $bPos ?>"
+                                        title="<?= $isPriority ? 'Priority #1 Truck' : 'Priority #1 must be added first' ?>"
+                                        class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 flex items-center gap-1.5 transition shadow-2xs cursor-pointer <?= !$isPriority ? 'opacity-40 pointer-events-none cursor-not-allowed' : '' ?>">
                                         <span class="w-4 h-4 rounded-full <?= $bPos === 1 ? 'bg-amber-400 text-slate-900' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300' ?> font-black text-[9px] flex items-center justify-center"><?= $bPos ?></span>
                                         <span class="font-mono font-bold"><?= htmlspecialchars($bDriver['truck_code']) ?></span>
                                         <span class="text-gray-400 text-[10px] truncate max-w-[80px]"><?= htmlspecialchars($bDriver['first_name']) ?></span>
@@ -1105,6 +1114,44 @@
         // ─── Batch Dispatch Logic ───────────────────────────────────────
         window.batchTrucks = [];
 
+        function getPayAmountForDestination(destName) {
+            if (!destName) return 0;
+
+            // 1. Try to read from currently selected order option in batchOrderSelect
+            const orderSel = document.getElementById('batchOrderSelect');
+            if (orderSel && orderSel.selectedIndex >= 0) {
+                const curOpt = orderSel.options[orderSel.selectedIndex];
+                if (curOpt && curOpt.value) {
+                    const optDest = (curOpt.dataset.destination || '').trim().toLowerCase();
+                    const targetDest = destName.trim().toLowerCase();
+                    if (optDest === targetDest && curOpt.dataset.pay && parseFloat(curOpt.dataset.pay) > 0) {
+                        return parseFloat(curOpt.dataset.pay);
+                    }
+                }
+            }
+
+            // 2. Try looking in single destination select element
+            const singleDestSelect = document.getElementById('destinationSelect');
+            if (singleDestSelect) {
+                const searchName = destName.trim().toLowerCase();
+                for (let i = 0; i < singleDestSelect.options.length; i++) {
+                    const optVal = singleDestSelect.options[i].value.trim().toLowerCase();
+                    if (optVal && (optVal === searchName || optVal.includes(searchName) || searchName.includes(optVal))) {
+                        const p = parseFloat(singleDestSelect.options[i].dataset.pay || 0);
+                        if (p > 0) return p;
+                    }
+                }
+            }
+
+            // 3. Try computeDriverTripPay if available
+            if (typeof computeDriverTripPay === 'function') {
+                const calc = computeDriverTripPay(20, destName);
+                if (calc && calc.pay > 0) return calc.pay;
+            }
+
+            return 300.00;
+        }
+
         function onBatchOrderChange(sel) {
             const opt = sel.options[sel.selectedIndex];
             const infoEl = document.getElementById('batchOrderInfo');
@@ -1114,6 +1161,11 @@
                 if (infoEl) infoEl.classList.add('hidden');
                 if (scanSection) {
                     scanSection.classList.add('opacity-40', 'pointer-events-none');
+                }
+                // Reset pay for any queued trucks if order is cleared
+                if (window.batchTrucks && window.batchTrucks.length > 0) {
+                    window.batchTrucks.forEach(t => t.pay_amount = 0);
+                    renderBatchTruckList();
                 }
                 return;
             }
@@ -1142,6 +1194,19 @@
             if (infoEl) infoEl.classList.remove('hidden');
             if (scanSection) {
                 scanSection.classList.remove('opacity-40', 'pointer-events-none');
+            }
+
+            // Recalculate/update pay for any trucks already assigned in the batch queue
+            const destName = opt.dataset.destination || '';
+            let orderPayAmount = parseFloat(opt.dataset.pay || 0);
+            if (orderPayAmount <= 0) {
+                orderPayAmount = getPayAmountForDestination(destName);
+            }
+            if (window.batchTrucks && window.batchTrucks.length > 0) {
+                window.batchTrucks.forEach(t => {
+                    t.pay_amount = orderPayAmount;
+                });
+                renderBatchTruckList();
             }
 
             setTimeout(() => document.getElementById('batchRfidInput')?.focus(), 150);
@@ -1177,6 +1242,7 @@
 
             window.batchTrucks.push(truckData);
             renderBatchTruckList();
+            updateBatchQueuePillsState();
 
             const inp = document.getElementById('batchRfidInput');
             if (inp) {
@@ -1187,24 +1253,52 @@
             if (fb) fb.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i> Truck ' + (truckData.truck_code || '') + ' added! Ready for next scan.</span>';
         }
 
-        function removeBatchTruck(index) {
-            const removedTruck = window.batchTrucks[index];
-            if (removedTruck && removedTruck.rfid_tag) {
-                const pill = document.querySelector(`#batchQueuePills [data-queue-rfid="${CSS.escape(removedTruck.rfid_tag)}"]`);
-                if (pill) {
-                    pill.classList.remove('opacity-40', 'pointer-events-none', 'line-through');
+        function updateBatchQueuePillsState() {
+            const pills = document.querySelectorAll('#batchQueuePills [data-queue-rfid]');
+            if (!pills || pills.length === 0) return;
+
+            // Check if Priority #1 is currently in window.batchTrucks
+            const priorityPill = document.querySelector('#batchQueuePills [data-queue-pos="1"]');
+            const priorityRfid = priorityPill ? priorityPill.getAttribute('data-queue-rfid') : null;
+            const isPriorityQueued = priorityRfid && window.batchTrucks.some(t => t.rfid_tag == priorityRfid);
+
+            pills.forEach(pill => {
+                const rfid = pill.getAttribute('data-queue-rfid');
+                const pos = parseInt(pill.getAttribute('data-queue-pos') || 0, 10);
+                const isTruckAlreadyInBatch = window.batchTrucks.some(t => t.rfid_tag == rfid);
+
+                if (isTruckAlreadyInBatch) {
+                    pill.classList.add('opacity-40', 'pointer-events-none', 'line-through');
+                    pill.classList.remove('cursor-not-allowed');
+                } else if (pos === 1) {
+                    // Priority 1 is always available if not yet added
+                    pill.classList.remove('opacity-40', 'pointer-events-none', 'line-through', 'cursor-not-allowed');
+                    pill.title = 'Priority #1 Truck';
+                } else {
+                    // Other drivers are enabled only after Priority #1 has been added
+                    if (isPriorityQueued) {
+                        pill.classList.remove('opacity-40', 'pointer-events-none', 'line-through', 'cursor-not-allowed');
+                        pill.title = 'Click to add to batch';
+                    } else {
+                        pill.classList.add('opacity-40', 'pointer-events-none');
+                        pill.classList.remove('line-through');
+                        pill.title = 'Priority #1 must be added first';
+                    }
                 }
-            }
+            });
+        }
+
+        function removeBatchTruck(index) {
             window.batchTrucks.splice(index, 1);
             renderBatchTruckList();
+            updateBatchQueuePillsState();
             document.getElementById('batchRfidInput')?.focus();
         }
 
         function clearAllBatchTrucks() {
             window.batchTrucks = [];
-            const pills = document.querySelectorAll('#batchQueuePills [data-queue-rfid]');
-            pills.forEach(p => p.classList.remove('opacity-40', 'pointer-events-none', 'line-through'));
             renderBatchTruckList();
+            updateBatchQueuePillsState();
             document.getElementById('batchRfidInput')?.focus();
             const fb = document.getElementById('batchRfidFeedback');
             if (fb) fb.innerHTML = '<span class="text-gray-500 dark:text-gray-400">Queue cleared. Scan truck RFID tags to add them.</span>';
@@ -1319,9 +1413,8 @@
 
         window.resetBatchDispatchModal = function() {
             window.batchTrucks = [];
-            const pills = document.querySelectorAll('#batchQueuePills [data-queue-rfid]');
-            pills.forEach(p => p.classList.remove('opacity-40', 'pointer-events-none', 'line-through'));
             renderBatchTruckList();
+            updateBatchQueuePillsState();
             const orderSel = document.getElementById('batchOrderSelect');
             if (orderSel) orderSel.value = '';
             const infoEl = document.getElementById('batchOrderInfo');
@@ -1421,16 +1514,7 @@
                             return;
                         }
 
-                        let payAmount = 0;
-                        const singleDestSelect = document.getElementById('destinationSelect');
-                        if (singleDestSelect && destName) {
-                            for (let i = 0; i < singleDestSelect.options.length; i++) {
-                                if (singleDestSelect.options[i].value.toLowerCase() === destName.toLowerCase()) {
-                                    payAmount = parseFloat(singleDestSelect.options[i].dataset.pay || 0);
-                                    break;
-                                }
-                            }
-                        }
+                        let payAmount = getPayAmountForDestination(destName);
 
                         addTruckToBatch({
                             truck_id: data.truck_id,

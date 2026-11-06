@@ -3159,6 +3159,19 @@
 
         window.quickAddBatchTruckFromQueue = function(rfidTag, btnEl) {
             if (!rfidTag) return;
+            // Check FIFO restriction: Priority #1 must be added before subsequent trucks
+            if (btnEl && btnEl.dataset && btnEl.dataset.queuePos) {
+                const pos = parseInt(btnEl.dataset.queuePos, 10);
+                if (pos > 1) {
+                    const priorityPill = document.querySelector('#batchQueuePills [data-queue-pos="1"]');
+                    const priorityRfid = priorityPill ? priorityPill.getAttribute('data-queue-rfid') : null;
+                    const isPriorityQueued = priorityRfid && window.batchTrucks && window.batchTrucks.some(t => t.rfid_tag == priorityRfid);
+                    if (!isPriorityQueued) {
+                        alert('Only Priority #1 can be added first. Please add Priority #1 before adding other trucks from the waiting queue.');
+                        return;
+                    }
+                }
+            }
             const batchInp = document.getElementById('batchRfidInput');
             if (batchInp) {
                 batchInp.value = rfidTag;
