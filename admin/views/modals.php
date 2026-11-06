@@ -852,17 +852,7 @@
                             </button>
                         </div>
                         <select name="destination" id="destinationSelect" onchange="handleDispatchDestinationChange()" required class="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm transition-colors">
-                            <option value="">Select Destination or Search Map</option>
-                            <option value="San Leonardo, Nueva Ecija" data-distance="12" data-pay="300">San Leonardo (12 km) - ₱300.00</option>
-                            <option value="Cabanatuan City, Nueva Ecija" data-distance="32" data-pay="500">Cabanatuan City (~32 km) - ₱500.00</option>
-                            <option value="Gapan City, Nueva Ecija" data-distance="22" data-pay="400">Gapan City (~22 km) - ₱400.00</option>
-                            <option value="Peñaranda, Nueva Ecija" data-distance="20" data-pay="440">Peñaranda (~20 km) - ₱440.00</option>
-                            <option value="General Tinio, Nueva Ecija" data-distance="30" data-pay="540">General Tinio (~30 km) - ₱540.00</option>
-                            <option value="Santa Rosa, Nueva Ecija" data-distance="24" data-pay="420">Santa Rosa (~24 km) - ₱420.00</option>
-                            <option value="San Isidro, Nueva Ecija" data-distance="24" data-pay="420">San Isidro (~24 km) - ₱420.00</option>
-                            <option value="Jaen, Nueva Ecija" data-distance="20" data-pay="380">Jaen (~20 km) - ₱380.00</option>
-                            <option value="Palayan City, Nueva Ecija" data-distance="50" data-pay="680">Palayan City (~50 km) - ₱680.00</option>
-                            <option value="Talavera, Nueva Ecija" data-distance="60" data-pay="780">Talavera (~60 km) - ₱780.00</option>
+                            <option value="">Select Destination on Search OSM Map</option>
                         </select>
                         <div id="dispatchPayPreview" class="text-xs mt-2 hidden">
                             <div class="p-2.5 rounded-xl bg-blue-50/80 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50 flex items-start gap-2">
