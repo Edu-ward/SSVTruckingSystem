@@ -605,19 +605,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $dist_km = 1;
         }
 
-        if ($order_id) {
-            $ordStmt = $pdo->prepare("SELECT distance_km, driver_pay FROM orders WHERE id = ?");
-            $ordStmt->execute([$order_id]);
-            $ordRow = $ordStmt->fetch(PDO::FETCH_ASSOC);
-            if ($ordRow) {
-                if ($dist_km <= 0 && floatval($ordRow['distance_km']) > 0) {
-                    $dist_km = round(floatval($ordRow['distance_km']));
-                }
-                if (floatval($ordRow['driver_pay']) > 0 && empty($_POST['pay_amount'])) {
-                    $driver_pay = floatval($ordRow['driver_pay']);
-                }
-            }
-        }
+        // orders table does not have distance_km / driver_pay columns on production — compute from destination name
         if (empty($driver_pay) || $driver_pay <= 0) {
             $driver_pay = calculateTripPay($dist_km, $destination, 0);
         }
@@ -1733,18 +1721,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $contact_number = !empty($_POST['contact_number']) ? trim($_POST['contact_number']) : null;
         $landmark = !empty($_POST['landmark']) ? trim($_POST['landmark']) : null;
         $destination = trim($_POST['destination'] ?? '');
-        $dist_km = floatval($_POST['distance_km'] ?? 0);
-        $driver_pay = floatval($_POST['driver_pay'] ?? 0);
-        if ($driver_pay <= 0 && !empty($destination)) {
-            if ($dist_km > 0) {
-                $driver_pay = calculateTripPay($dist_km, $destination, 0);
-            } else {
-                $driver_pay = getDestinationPay($destination);
-            }
-        }
-        $stmt = $pdo->prepare("INSERT INTO orders (order_number, client_name, contact_number, gravel_type, destination, distance_km, driver_pay, landmark, trucks_required, cubic_meters_required, checker_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO orders (order_number, client_name, contact_number, gravel_type, destination, landmark, trucks_required, cubic_meters_required, checker_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $checker_id = !empty($_POST['checker_id']) ? intval($_POST['checker_id']) : null;
-        $stmt->execute([$orderNum, $_POST['client_name'], $contact_number, $_POST['gravel_type'], $destination, $dist_km, $driver_pay, $landmark, $trucks_req, $cubic_meters_required, $checker_id, $_POST['notes'] ?? '']);
+        $stmt->execute([$orderNum, $_POST['client_name'], $contact_number, $_POST['gravel_type'], $destination, $landmark, $trucks_req, $cubic_meters_required, $checker_id, $_POST['notes'] ?? '']);
         $_SESSION['success'] = "Order <strong>{$orderNum}</strong> created successfully.";
         log_activity($pdo, 'Created Order', 'Created order ' . $orderNum . ' for ' . $_POST['client_name']);
         header("Location: dashboard.php?tab=orders");
@@ -1756,15 +1735,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
         $client_name = trim($_POST['client_name'] ?? '');
         $contact_number = !empty($_POST['contact_number']) ? trim($_POST['contact_number']) : null;
         $destination = trim($_POST['destination'] ?? '');
-        $dist_km = floatval($_POST['distance_km'] ?? 0);
-        $driver_pay = floatval($_POST['driver_pay'] ?? 0);
-        if ($driver_pay <= 0 && !empty($destination)) {
-            if ($dist_km > 0) {
-                $driver_pay = calculateTripPay($dist_km, $destination, 0);
-            } else {
-                $driver_pay = getDestinationPay($destination);
-            }
-        }
         $landmark = !empty($_POST['landmark']) ? trim($_POST['landmark']) : null;
         $gravel_type = trim($_POST['gravel_type'] ?? '');
         $cubic_meters_required = floatval($_POST['cubic_meters_required'] ?? 0);
@@ -1776,11 +1746,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             $_SESSION['error'] = "Please fill in all required fields to update the order.";
         } else {
             try {
-                $stmt = $pdo->prepare("UPDATE orders SET client_name = ?, contact_number = ?, destination = ?, distance_km = ?, driver_pay = ?, landmark = ?, gravel_type = ?, cubic_meters_required = ?, trucks_required = ?, checker_id = ?, notes = ? WHERE id = ?");
-                $stmt->execute([$client_name, $contact_number, $destination, $dist_km, $driver_pay, $landmark, $gravel_type, $cubic_meters_required, $trucks_req, $checker_id, $notes, $order_id]);
+                $stmt = $pdo->prepare("UPDATE orders SET client_name = ?, contact_number = ?, destination = ?, landmark = ?, gravel_type = ?, cubic_meters_required = ?, trucks_required = ?, checker_id = ?, notes = ? WHERE id = ?");
+                $stmt->execute([$client_name, $contact_number, $destination, $landmark, $gravel_type, $cubic_meters_required, $trucks_req, $checker_id, $notes, $order_id]);
 
-                $pdo->prepare("UPDATE dispatches SET destination = ?, distance_km = ?, pay_amount = ?, landmark = ?, client_name = ?, contact_number = ? WHERE order_id = ? AND status = 'Pending'")
-                    ->execute([$destination, $dist_km, $driver_pay, $landmark, $client_name, $contact_number, $order_id]);
+                $pdo->prepare("UPDATE dispatches SET destination = ?, landmark = ?, client_name = ?, contact_number = ? WHERE order_id = ? AND status = 'Pending'")
+                    ->execute([$destination, $landmark, $client_name, $contact_number, $order_id]);
 
                 $_SESSION['success'] = "Order updated successfully.";
                 log_activity($pdo, 'Edited Order', "Updated order ID {$order_id} (Client: {$client_name}, Destination: {$destination})");
