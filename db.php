@@ -1,13 +1,19 @@
 <?php
-$host = 'localhost';
-$db   = 'ssv_trucking';
-$user = 'root';
-$pass = '';
+require_once __DIR__ . '/config.php';
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
+    $pdo = new PDO(
+        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET,
+        DB_USER,
+        DB_PASS
+    );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    
+    $pdo->exec("SET time_zone = '+08:00'");
+    require_once __DIR__ . '/includes/driver_duty_sync.php';
+    syncDailyDriverStatuses($pdo);
 } catch (PDOException $e) {
-    die("Database Connection Failed: " . $e->getMessage());
+    error_log("SSV DB Connection Failed: " . $e->getMessage());
+    die("A database error occurred. Please contact the system administrator.");
 }
