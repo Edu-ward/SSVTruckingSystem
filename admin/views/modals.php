@@ -1145,7 +1145,18 @@
 
             // 3. Try computeDriverTripPay if available
             if (typeof computeDriverTripPay === 'function') {
-                const calc = computeDriverTripPay(20, destName);
+                const searchLower = destName.toLowerCase();
+                let approxKm = 32;
+                if (searchLower.includes('cabanatuan')) approxKm = 32;
+                else if (searchLower.includes('gapan')) approxKm = 22;
+                else if (searchLower.includes('general tinio') || searchLower.includes('gen. tinio') || searchLower.includes('papaya')) approxKm = 30;
+                else if (searchLower.includes('peñaranda') || searchLower.includes('penaranda')) approxKm = 20;
+                else if (searchLower.includes('santa rosa') || searchLower.includes('sta. rosa')) approxKm = 24;
+                else if (searchLower.includes('san isidro')) approxKm = 24;
+                else if (searchLower.includes('jaen')) approxKm = 20;
+                else if (searchLower.includes('palayan')) approxKm = 50;
+                else if (searchLower.includes('talavera')) approxKm = 60;
+                const calc = computeDriverTripPay(approxKm, destName);
                 if (calc && calc.pay > 0) return calc.pay;
             }
 

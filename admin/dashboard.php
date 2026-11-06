@@ -136,6 +136,42 @@ function getDestinationPay(string $destName, array $DISTANCE_KM, array $DRIVER_R
 {
     $km = floatval($DISTANCE_KM[$destName] ?? 0);
     $rate = floatval($DRIVER_RATES[$destName] ?? 0);
+
+    if ($km <= 0) {
+        $destLower = strtolower(trim($destName));
+        $presetTownKm = [
+            'peñaranda' => 20,
+            'penaranda' => 20,
+            'general tinio' => 30,
+            'gen. tinio' => 30,
+            'papaya' => 30,
+            'gapan' => 22,
+            'san isidro' => 24,
+            'jaen' => 20,
+            'santa rosa' => 24,
+            'sta. rosa' => 24,
+            'cabanatuan' => 32,
+            'palayan' => 50,
+            'talavera' => 60,
+            'san leonardo' => 12,
+            'tarlac' => 160,
+            'laur' => 180,
+            'gabaldon' => 200,
+            'dingalan' => 230,
+            'baler' => 280,
+            'san miguel' => 52,
+            'san ildefonso' => 68,
+            'san rafael' => 90,
+            'baliuag' => 104
+        ];
+        foreach ($presetTownKm as $town => $kmVal) {
+            if (strpos($destLower, $town) !== false) {
+                $km = $kmVal;
+                break;
+            }
+        }
+    }
+
     return calculateTripPay($km, $destName, $rate);
 }
 
