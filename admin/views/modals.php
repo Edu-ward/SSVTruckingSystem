@@ -1188,6 +1188,13 @@
         }
 
         function removeBatchTruck(index) {
+            const removedTruck = window.batchTrucks[index];
+            if (removedTruck && removedTruck.rfid_tag) {
+                const pill = document.querySelector(`#batchQueuePills [data-queue-rfid="${CSS.escape(removedTruck.rfid_tag)}"]`);
+                if (pill) {
+                    pill.classList.remove('opacity-40', 'pointer-events-none', 'line-through');
+                }
+            }
             window.batchTrucks.splice(index, 1);
             renderBatchTruckList();
             document.getElementById('batchRfidInput')?.focus();
@@ -1195,6 +1202,8 @@
 
         function clearAllBatchTrucks() {
             window.batchTrucks = [];
+            const pills = document.querySelectorAll('#batchQueuePills [data-queue-rfid]');
+            pills.forEach(p => p.classList.remove('opacity-40', 'pointer-events-none', 'line-through'));
             renderBatchTruckList();
             document.getElementById('batchRfidInput')?.focus();
             const fb = document.getElementById('batchRfidFeedback');
@@ -1310,6 +1319,8 @@
 
         window.resetBatchDispatchModal = function() {
             window.batchTrucks = [];
+            const pills = document.querySelectorAll('#batchQueuePills [data-queue-rfid]');
+            pills.forEach(p => p.classList.remove('opacity-40', 'pointer-events-none', 'line-through'));
             renderBatchTruckList();
             const orderSel = document.getElementById('batchOrderSelect');
             if (orderSel) orderSel.value = '';
