@@ -1,0 +1,54 @@
+<?php
+require_once __DIR__ . '/../includes/security_headers.php';
+require_once __DIR__ . '/../db.php';
+
+header('Content-Type: application/json');
+
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['Admin', 'Superadmin'])) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
+}
+
+$stmt = $pdo->query("
+    SELECT 
+        t.id,
+        t.truck_code,
+        t.status,
+        t.current_location,
+        t.speed,
+        t.latitude,
+        t.longitude,
+        CONCAT(d.first_name, ' ', d.last_name) AS driver_name,
+        disp.destination,
+        disp.ticket_number,
+        disp.transit_start_time,
+        COALESCE(disp.estimated_arrival_time, DATE_ADD(disp.transit_start_time, INTERVAL 60 MINUTE), DATE_ADD(disp.created_at, INTERVAL 60 MINUTE)) AS estimated_arrival_time
+    FROM trucks t
+    INNER JOIN (
+        SELECT truck_id, MAX(id) AS active_disp_id
+        FROM dispatches
+        WHERE status IN ('Pending', 'Loading', 'In Transit', 'Unloading')
+        GROUP BY truck_id
+    ) latest_disp ON t.id = latest_disp.truck_id
+    INNER JOIN dispatches disp ON disp.id = latest_disp.active_disp_id
+    LEFT JOIN drivers d ON d.id = COALESCE(disp.driver_id, (SELECT id FROM drivers WHERE truck_id = t.id AND status != 'Resigned' LIMIT 1))
+    WHERE t.status != 'Decommissioned'
+      AND t.latitude IS NOT NULL
+      AND t.longitude IS NOT NULL
+    ORDER BY t.truck_code ASC
+");
+
+$trucks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+foreach ($trucks as &$tr) {
+    if (!empty($tr['estimated_arrival_time'])) {
+        $ts = strtotime($tr['estimated_arrival_time']);
+        if ($ts !== false) {
+            $tr['estimated_arrival_time'] = date('Y-m-d\TH:i:sP', $ts);
+        }
+    }
+}
+unset($tr);
+
+echo json_encode(['success' => true, 'trucks' => $trucks, 'timestamp' => time()]);

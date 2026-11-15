@@ -1,0 +1,1 @@
+netsh advfirewall firewall add rule name="XAMPP HTTP" protocol=TCP dir=in localport=80 action=allow
